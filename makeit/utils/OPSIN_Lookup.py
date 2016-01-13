@@ -2,7 +2,7 @@ import subprocess
 
 class OPSIN_Lookup:
 	def __init__(self):
-		self.opsin_path = '/home/ccoley/OPSIN/opsin-2.0.0-jar-with-dependencies.jar'
+		self.opsin_path = 'opsin-2.0.0-jar-with-dependencies.jar'
 		self.proc = subprocess.Popen(['java', '-jar', self.opsin_path], shell = False, stdin = subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		self.connected = True
 
