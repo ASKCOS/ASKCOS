@@ -1,1 +1,4 @@
+# Compiled Python modules
 *.pyc
+*.so
+*.pyd
