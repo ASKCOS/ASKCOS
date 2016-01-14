@@ -4,6 +4,5 @@
 *.pyd
 
 # Large data files
+*.h5
 makeit/data/chemical_names_2500000.json
-
-
