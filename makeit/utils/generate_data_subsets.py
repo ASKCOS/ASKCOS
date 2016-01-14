@@ -83,6 +83,8 @@ def chemical_names_with_mws(N = 50000):
 	details += ' satisfying the following criteria:\n'
 	details += '- chemical[\'name\'] == True\n'
 	details += '- chemical[\'mol_weight\'] == True\n'
+	details += '\nData list consists of entries:\n'
+	details += '  [str(name), float(mol_weight)]\n'
 
 	# Save
 	dump_to_data_file(data, 'chemical_names_with_mws_{}'.format(len(data)), 
@@ -159,7 +161,11 @@ def reactions_2reac_1prod(N = 10000):
 	details += '- exactly 2 reactants\n'
 	details += '- exactly 1 product\n'
 	details += 'for the associated chemicals...\n'
-	details += '- chemical[\'name\'] == True'
+	details += '- chemical[\'name\'] == True\n'
+	details += '\nData list consists of entries:\n'
+	details += '  [str(A name), str(B name), str(C name), float(yield)]\n'
+	
+	# Save
 	dump_to_data_file(data, 'reactions_2reac_1prod_{}'.format(len(data)), 
 		details = details)
 	print '...saved json file'

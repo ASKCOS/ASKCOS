@@ -1,4 +1,4 @@
-reactions_2reac_1prod_100.json generated at UTC 2016-01-14 15:37:50.108014
+reactions_2reac_1prod_100.json generated at UTC 2016-01-14 15:41:03.868467
 
 File details
 ------------
@@ -7,3 +7,6 @@ Found 100 random reactions from database satisfying the following criteria:
 - exactly 1 product
 for the associated chemicals...
 - chemical['name'] == True
+
+Data list consists of entries:
+  [str(A name), str(B name), str(C name), float(yield)]

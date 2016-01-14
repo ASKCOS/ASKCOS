@@ -36,3 +36,12 @@ class Collection_Manager:
 			self.done = True
 			self.index = self.num_documents
 			return self.collection.find()[start:]
+
+
+def get_all_ids(collection, db_filter = {}):
+	'''Finds all of the '_id's in the collection (chemicals or reactions) to 
+	allow easier randomization of database subsets. Allows for filters to be
+	used as well (db_filter == dictionary, first argument of find()).'''
+
+	matched_docs = collection.find(db_filter, {"_id": 1})
+	return [x['_id'] for x in matched_docs]
