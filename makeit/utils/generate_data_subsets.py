@@ -172,12 +172,65 @@ def reactions_2reac_1prod(N = 10000):
 
 	return True
 
+def chemical_names(N = 100000):
+	'''Sample chemicals collection for chemicals with a valid name, meant to
+	generate a dataset suitable for fitting a tokenizer.
+
+	Saved data is str(name)'''
+	
+	# Randomize list of chemical IDs
+	chemical_ids = get_all_ids(chemicals)
+	print '...read chemical IDs'
+	shuffle(chemical_ids) 
+	print '...shuffled chemical IDs'
+
+	# Look for valid entries
+	data = []
+	j = 0 # successful entries == len(data)
+	for chemical_id in chemical_ids:
+
+		# Are we done?
+		if j == N:
+			break
+
+		# Find entry
+		chemical = chemicals.find_one({'_id' : chemical_id})
+
+		# Filter
+		if not chemical['name']: # missing name
+			continue
+
+		# Append to list
+		data.append(chemical['name'][0])
+		j = j + 1
+
+		# Report progress
+		if (j % 100) == 0:
+			print '{}/{}'.format(j, N)
+
+	print '...constructed data list'
+
+	# Write details
+	details = 'Found {} random chemicals from database'.format(len(data))
+	details += ' satisfying the following criteria:\n'
+	details += '- chemical[\'name\'] == True\n'
+	details += '\nData list consists of entries:\n'
+	details += '  str(name)\n'
+
+	# Save
+	dump_to_data_file(data, 'chemical_names_{}'.format(len(data)), 
+		details = details)
+	print '...saved json file'
+
+	return True
+
 if __name__ == '__main__':
 	if len(sys.argv) < 2:
 		print('Usage: {} "data type" [max # records]'.format(sys.argv[0]))
 		print('    Available [data type]s:')
 		print('    - "chemical_names_with_mws"')
 		print('    - "reactions_2reac_1prod"')
+		print('    - "chemical_names"')
 		quit(1)
 
 	# Molecular weight training set
@@ -192,6 +245,12 @@ if __name__ == '__main__':
 			reactions_2reac_1prod(int(sys.argv[2]))
 		else:
 			reactions_2reac_1prod()
+
+	elif sys.argv[1] == 'chemical_names':
+		if len(sys.argv) == 3:
+			chemical_names(int(sys.argv[2]))
+		else:
+			chemical_names()
 
 	else:
 		print ('Invalid data type "{}", see usage'.format(sys.argv[1]))
