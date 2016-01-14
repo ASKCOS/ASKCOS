@@ -35,8 +35,6 @@ def dump_to_data_file(data, label, details = ''):
 
 	return True
 
-
-
 def chemical_names_with_mws(N = 50000):
 	'''Sample chemicals collection for chemicals with a valid name and valid
 	molecular weight. Currently, this function does not attempt to fill in 
@@ -73,7 +71,7 @@ def chemical_names_with_mws(N = 50000):
 		j = j + 1
 
 		# Report progress
-		if (j % 100) == 0:
+		if (j % 1000) == 0:
 			print '{}/{}'.format(j, N)
 
 	print '...constructed data list'
@@ -150,7 +148,7 @@ def reactions_2reac_1prod(N = 10000):
 		j = j + 1
 
 		# Report progress
-		if (j % 100) == 0:
+		if (j % 1000) == 0:
 			print '{}/{}'.format(j, N)
 
 	print '...constructed data list'
@@ -205,7 +203,7 @@ def chemical_names(N = 100000):
 		j = j + 1
 
 		# Report progress
-		if (j % 100) == 0:
+		if (j % 5000) == 0:
 			print '{}/{}'.format(j, N)
 
 	print '...constructed data list'
