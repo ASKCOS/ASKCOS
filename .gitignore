@@ -2,3 +2,8 @@
 *.pyc
 *.so
 *.pyd
+
+# Large data files
+makeit/data/chemical_names_2500000.json
+
+
