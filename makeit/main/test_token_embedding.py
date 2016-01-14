@@ -5,6 +5,7 @@ from makeit.utils.database import Collection_Manager
 from keras.models import Sequential
 from keras.layers.embeddings import Embedding
 from keras.optimizers import SGD
+import cPickle
 import os
 
 model_fname = os.path.join(os.path.dirname(__file__), 'test_model.cpickle')
@@ -52,9 +53,12 @@ def train_model(model, tokenizer, chemicals):
 	for i in range(10):
 		# Pull a batch of documents for training
 		batch_docs  = Chemicals.pull()
-		batch_names = [x['name'][0] for x in batch_docs]
-		batch_names = [' '.join(SplitChemicalName(x)) for x in batch_names]
-		batch_mws   = [x['mol_weight'] for x in batch_docs]
+		batch_names = []
+		batch_mws = []
+		for doc in batch_docs:
+			if doc['name'] and doc['mol_weight']:
+				batch_names.append(' '.join(SplitChemicalName(doc['name'][0])))
+				batch_mws.append(doc['mol_weight'])
 
 		# Run through tokenizer
 		batch_matrix = tokenizer.texts_to_matrix(batch_names)
@@ -70,7 +74,6 @@ def train_model(model, tokenizer, chemicals):
 	batch_mws   = [x['mol_weight'] for x in batch_docs]
 	batch_matrix = tokenizer.texts_to_matrix(batch_names)
 	score = model.evaluate(batch_matrix, batch_mws)
-
 
 	return (model, score)
 
@@ -98,11 +101,13 @@ if __name__ == '__main__':
 		# Build model
 		model = build_model(len(tokenizer.word_counts), 1)
 		print 'built untrained model'
-		# Train model
-		(model, score) = train_model(model, tokenizer, chemicals)
-		print 'trained model'
-		print '-> score = ' + str(score)
 		# Save for future
 		save_model(model)
 		print 'saved model'
+		
+	# Train model
+	(model, score) = train_model(model, tokenizer, chemicals)
+	print 'trained model'
+	print '-> score = ' + str(score)
+		
 
