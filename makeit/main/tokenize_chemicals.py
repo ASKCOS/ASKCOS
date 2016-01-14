@@ -26,6 +26,7 @@ def build_tokenizer(data_fname, N = 10000):
 	print '...loaded data from {}'.format(data_fname)
 
 	# Convert punctuation to spaces
+	crude_name = data[0]
 	data = [' '.join(SplitChemicalName(name)) for name in data]
 
 	# Iterate through now to build list
@@ -35,6 +36,7 @@ def build_tokenizer(data_fname, N = 10000):
 	# Print example
 	name = data[0]
 	print 'EXAMPLE:'
+	print '    ' + crude_name
 	print '    ' + name
 	print '    ' + str(tokenizer.texts_to_sequences([name]))
 
