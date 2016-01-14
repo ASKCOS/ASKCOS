@@ -1,0 +1,6 @@
+makeit/models/neural_name_to_mw generated at UTC 2016-01-14 20:25:12.178373
+
+File details
+------------
+- tokenizer source: makeit/models/tokenizer.cpickle
+- data source: makeit/data/chemical_names_with_mws_1000.json
