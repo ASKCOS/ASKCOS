@@ -5,6 +5,7 @@ from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import LSTM
 from keras.optimizers import SGD
+from keras.utils.visualize_util import plot
 import datetime
 import cPickle
 import json
@@ -52,6 +53,10 @@ def save_model(model, tokenizer_fpath, data_fpath):
 	model.save_weights(fpath + '.h5')
 	print '...saved weights'
 
+	# Dump image
+	plot(model, to_file = fpath + '.png')
+	print '...saved image'
+
 	# Write to info file
 	info_fid = open(fpath + '.info', 'w')
 	time_now = datetime.datetime.utcnow()
@@ -61,7 +66,7 @@ def save_model(model, tokenizer_fpath, data_fpath):
 	info_fid.write('- data source: {}\n'.format(data_fpath))
 	info_fid.close()
 
-	print '...saved model to {}.[json, h5, info]'.format(fpath)
+	print '...saved model to {}.[json, h5, png, info]'.format(fpath)
 	return True
 
 def train_model(model, tokenizer, data_fpath):
@@ -113,10 +118,10 @@ if __name__ == '__main__':
 	model = build_model(len(tokenizer.word_counts))
 	print '...built untrained model'
 
-	# Train model
-	print '...training model'
-	(model, score) = train_model(model, tokenizer, sys.argv[2])
-	print '...trained model, evaluated score = {}'.format(score)
+	# # Train model
+	# print '...training model'
+	# (model, score) = train_model(model, tokenizer, sys.argv[2])
+	# print '...trained model, evaluated score = {}'.format(score)
 
 	# Save for future
 	print '...saving model'
