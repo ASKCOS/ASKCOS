@@ -1,3 +1,4 @@
+from __future__ import print_function
 from makeit.utils.chemnet_connect import * # mongodb connection, gets 'chemicals', 'reactions'
 from makeit.utils.database import get_all_ids
 from numpy.random import shuffle # for random selection
@@ -44,9 +45,9 @@ def chemical_names_with_mws(N = 50000):
 	
 	# Randomize list of chemical IDs
 	chemical_ids = get_all_ids(chemicals)
-	print '...read chemical IDs'
+	print('...read chemical IDs')
 	shuffle(chemical_ids) 
-	print '...shuffled chemical IDs'
+	print('...shuffled chemical IDs')
 
 	# Look for valid entries
 	data = []
@@ -72,9 +73,9 @@ def chemical_names_with_mws(N = 50000):
 
 		# Report progress
 		if (j % 1000) == 0:
-			print '{}/{}'.format(j, N)
+			print('{}/{}'.format(j, N))
 
-	print '...constructed data list'
+	print('...constructed data list')
 
 	# Write details
 	details = 'Found {} random chemicals from database'.format(len(data))
@@ -87,7 +88,7 @@ def chemical_names_with_mws(N = 50000):
 	# Save
 	dump_to_data_file(data, 'chemical_names_with_mws_{}'.format(len(data)), 
 		details = details)
-	print '...saved json file'
+	print('...saved json file')
 
 	return True
 
@@ -103,9 +104,9 @@ def reactions_2reac_1prod(N = 10000):
 
 	# Randomize list of chemical IDs
 	reaction_ids = get_all_ids(reactions, db_filter = db_filter)
-	print '...read reaction IDs'
+	print('...read reaction IDs')
 	shuffle(reaction_ids) 
-	print '...shuffled reaction IDs'
+	print('...shuffled reaction IDs')
 
 	# Look for valid entries
 	data = []
@@ -151,7 +152,7 @@ def reactions_2reac_1prod(N = 10000):
 		if (j % 1000) == 0:
 			print '{}/{}'.format(j, N)
 
-	print '...constructed data list'
+	print('...constructed data list')
 
 	# Write details
 	details = 'Found {} random reactions from database'.format(len(data))
@@ -166,7 +167,7 @@ def reactions_2reac_1prod(N = 10000):
 	# Save
 	dump_to_data_file(data, 'reactions_2reac_1prod_{}'.format(len(data)), 
 		details = details)
-	print '...saved json file'
+	print '...saved json file')
 
 	return True
 
@@ -178,9 +179,9 @@ def chemical_names(N = 100000):
 	
 	# Randomize list of chemical IDs
 	chemical_ids = get_all_ids(chemicals)
-	print '...read chemical IDs'
+	print('...read chemical IDs')
 	shuffle(chemical_ids) 
-	print '...shuffled chemical IDs'
+	print('...shuffled chemical IDs')
 
 	# Look for valid entries
 	data = []
@@ -204,9 +205,9 @@ def chemical_names(N = 100000):
 
 		# Report progress
 		if (j % 5000) == 0:
-			print '{}/{}'.format(j, N)
+			print('{}/{}'.format(j, N))
 
-	print '...constructed data list'
+	print('...constructed data list')
 
 	# Write details
 	details = 'Found {} random chemicals from database'.format(len(data))
@@ -218,7 +219,7 @@ def chemical_names(N = 100000):
 	# Save
 	dump_to_data_file(data, 'chemical_names_{}'.format(len(data)), 
 		details = details)
-	print '...saved json file'
+	print('...saved json file')
 
 	return True
 
@@ -251,5 +252,5 @@ if __name__ == '__main__':
 			chemical_names()
 
 	else:
-		print ('Invalid data type "{}", see usage'.format(sys.argv[1]))
+		print('Invalid data type "{}", see usage'.format(sys.argv[1]))
 		quit(1)

@@ -1,3 +1,4 @@
+from __future__ import print_function
 from makeit.utils.parsing import SplitChemicalName 
 from keras.preprocessing.text import Tokenizer # text pre-processing
 import datetime
@@ -8,22 +9,21 @@ import os
 
 def get_tokenizer_fpath():
 	'''Returns file path where tokenizer is backed up'''
-	fpath_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models')
-	return os.path.join(fpath_root, 'tokenizer.cpickle')
+	return os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models')
 
-def build_tokenizer(data_fname, N = 10000):
+def build_tokenizer(data_fname, N = None):
 	'''This function trains a keras.preprocessing.text.Tokenizer on a set
 	of data in .json form, where the .json file must be a list of chemical 
 	names.'''
 
 	# Initialize tokenizer
-	tokenizer = Tokenizer(nb_words = None, filters = '', lower = True, 
+	tokenizer = Tokenizer(nb_words = N, filters = '', lower = True, 
 		split = ' ')
 
 	# Load data
 	data_fid = open(data_fname, 'r')
 	data = json.load(data_fid)
-	print '...loaded data from {}'.format(data_fname)
+	print('...loaded data from {}'.format(data_fname))
 
 	# Convert punctuation to spaces
 	crude_name = data[0]
@@ -35,32 +35,38 @@ def build_tokenizer(data_fname, N = 10000):
 
 	# Print example
 	name = data[0]
-	print 'EXAMPLE:'
-	print '    ' + crude_name
-	print '    ' + name
-	print '    ' + str(tokenizer.texts_to_sequences([name]))
+	print('EXAMPLE:')
+	print('    ' + crude_name)
+	print('    ' + name)
+	print('    ' + str(tokenizer.texts_to_sequences([name])))
 
 	# Return trained tokenizer
 	return tokenizer
 
 def save_tokenizer(tokenizer, data_fname):
-	'''Saves tokenizer object according to the filename defined
-	in makeit.main.tokenize_chemicals.py'''
+	'''Saves tokenizer object and associated information'''
+
+	# Create filename
+	if tokenizer.nb_words:
+		fpath_root = os.path.join(get_tokenizer_fpath(), 'tokenizer_{}'.format(tokenizer.nb_words))
+	else:
+		fpath_root = os.path.join(get_tokenizer_fpath(), 'tokenizer_{}'.format(len(tokenizer.word_counts)))
+
 	# Dump data
-	fpath = get_tokenizer_fpath()
-	cPickle.dump(tokenizer, open(fpath, 'wb'))
+	cPickle.dump(tokenizer, open(fpath_root + '.cpickle', 'wb'))
 
 	# Write to info file
-	info_fid = open(fpath + '.info', 'w')
+	info_fid = open(fpath_root + '.info', 'w')
 	time_now = datetime.datetime.utcnow()
-	info_fid.write('{} generated at UTC {}\n\n'.format(fpath, time_now))
+	info_fid.write('{} generated at UTC {}\n\n'.format(fpath_root, time_now))
 	info_fid.write('File details\n------------\n')
 	info_fid.write('- data source: {}\n'.format(data_fname))
 	info_fid.write('- document count: {}\n'.format(tokenizer.document_count))
 	info_fid.write('- vocabulary size: {}\n'.format(len(tokenizer.word_counts)))
+	info_fid.write('- nb_words: {}\n'.format(tokenizer.nb_words))
 	info_fid.close()
 
-	print '...saved tokenizer to {}'.format(get_tokenizer_fpath())
+	print('...saved tokenizer to {}'.format(fpath_root))
 	return True
 
 def load_tokenizer():
