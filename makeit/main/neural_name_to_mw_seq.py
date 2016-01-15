@@ -1,6 +1,7 @@
 from __future__ import print_function
-from makeit.utils.parsing import SplitChemicalName 
-from keras.models import Sequential
+from makeit.utils.parsing import SplitChemicalName, input_to_bool, sequences_to_texts
+from makeit.utils.saving import save_model_history
+from keras.models import Sequential, model_from_json
 from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.embeddings import Embedding
 from keras.preprocessing.sequence import pad_sequences
@@ -16,9 +17,12 @@ import os
 def get_model_fpath():
 	'''Returns file path where this model is backed up'''
 	fpath_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models')
-	return os.path.join(fpath_root, 'neural_name_to_mw')
+	fpath = os.path.join(fpath_root, 'neural_name_to_mw_seq')
+	if flabel:
+		return fpath + '_{}'.format(flabel)
+	return fpath
 
-def build_model(vocab_size, embedding_size = 100):
+def build_model(vocab_size, embedding_size = 100, lstm_size = 100):
 	'''Generates simple embedding model to use tokenized chemical name as
 	input in order to predict a single-valued output (i.e., MW)'''
 
@@ -27,19 +31,20 @@ def build_model(vocab_size, embedding_size = 100):
 
 	# Add layers
 	model.add(Embedding(vocab_size, embedding_size, 
-		init = 'uniform', mask_zero = True)
+		init = 'uniform', mask_zero = True))
 	print('    model: added Embedding layer ({} -> {})'.format(vocab_size, 
 		embedding_size))
-	model.add(Dropout(0.5))
-	print('    model: added Dropout layer')
-	model.add(LSTM(output_dim = 1))
-	print('    model: added LSTM layer ({} -> {})'.format(embedding_size, 1))
-
-	# Define optimizer
-	sgd = SGD(lr = 0.1, decay = 1e-6, momentum = 0.9)
+	# model.add(Dropout(0.5))
+	# print('    model: added Dropout layer')
+	model.add(LSTM(lstm_size))
+	print('    model: added LSTM layer ({} -> {})'.format(embedding_size, lstm_size))
+	model.add(Activation('linear'))
+	print('    model: added Activation(linear) layer')
+	model.add(Dense(1))
+	print('    model: added Dense layer ({} -> {})'.format(lstm_size, 1))
 
 	# Compile
-	model.compile(loss = 'mean_squared_error', optimizer = sgd)
+	model.compile(loss = 'mean_squared_error', optimizer = 'rmsprop')
 
 	return model
 
@@ -62,13 +67,13 @@ def save_model(model, tokenizer_fpath, data_fpath, hist = None):
 
 	# Dump history
 	if hist:
-		hist_fid = open(fpath + '.hist', 'w')
-		print(hist.history, file = hist_fid)
+		save_model_history(hist, fpath + '.hist')
+		print ('...saved history')
 
 	# Write to info file
 	info_fid = open(fpath + '.info', 'w')
 	time_now = datetime.datetime.utcnow()
-	info_fid.write('{} generated at UTC {}\n\n'.format(fpath, time_now))
+	info_fid.write('{} saved at UTC {}\n\n'.format(fpath, time_now))
 	info_fid.write('File details\n------------\n')
 	info_fid.write('- tokenizer source: {}\n'.format(tokenizer_fpath))
 	info_fid.write('- data source: {}\n'.format(data_fpath))
@@ -77,66 +82,131 @@ def save_model(model, tokenizer_fpath, data_fpath, hist = None):
 	print('...saved model to {}.[json, h5, png, info]'.format(fpath))
 	return True
 
-def train_model(model, tokenizer, data_fpath):
-	'''Trains the model to predict chemical molecular weights'''
+def get_data(data_fpath, training_ratio = 0.9, maxlen = 30):
+	'''This is a helper script to read the data .json object and return
+	the training and test data sets separately. This is to allow for an
+	already-trained model to be evaluated using the test data (i.e., which
+	we know it hasn't seen before)'''
 
 	# Load data from json file
 	with open(data_fpath, 'r') as data_fid:
 		data = json.load(data_fid)
 
 	# Parse data into individual components
-	names = [str(x[0]) for x in data] # from unicode
+	names = [' '.join(SplitChemicalName(str(x[0]))) for x in data] # from unicode
 	mws   = [x[1] for x in data]
 
+	# Vectorize chemical names according to tokenizer
+	names = tokenizer.texts_to_sequences(names)
+
 	# Create training/development split
-	division = int(len(data) * 0.9)
+	division = int(len(data) * training_ratio)
 	names_train = names[:division]
 	names_test  = names[division:]
 	mws_train = mws[:division]
 	mws_test  = mws[division:]
 
-	# Vectorize chemical names according to tokenizer
-	names_train = tokenizer.texts_to_sequences(names_train)
-	names_test  = tokenizer.texts_to_sequences(names_test)
-	print('names_train shape: {}'.format(names_train.shape))
-	print('names_test  shape: {}'.format(names_test.shape))
-
 	# Pad to get uniform lengths (req. for training in same batch)
-	names_train = pad_sequences(names_train, maxlen = 30)
-	names_test  = pad_sequences(names_test, maxlen = 30)
-	print('names_train shape: {}'.format(names_train.shape))
-	print('names_test  shape: {}'.format(names_test.shape))
+	names_train = pad_sequences(names_train, maxlen = maxlen)
+	names_test  = pad_sequences(names_test, maxlen = maxlen)
 
-	#return (model, -1)
+	return (names_train, mws_train, names_test, mws_test)
 
-	hist = model.fit(names_train, mws_train, nb_epoch = 5, batch_size = 4, 
-	 	      verbose = 1, show_accuracy = True)
-	score = model.evaluate(names_test, mws_test, batch_size = 4, 
-			  verbose = 1, show_accuracy = True)
+def train_model(model, tokenizer, data_fpath, nb_epoch = 50, batch_size = 64):
+	'''Trains the model to predict chemical molecular weights'''
 
-	return (model, hist, score)
+	# Get data from helper function
+	data = get_data(data_fpath)
+	names_train = data[0]
+	mws_train = data[1]
+	# Fit
+	hist = model.fit(names_train, mws_train, nb_epoch = nb_epoch, 
+			batch_size = batch_size, verbose = 1)	
 
+	return (model, hist)
+
+def test_model(model, tokenizer, data_fpath):
+	'''This function evaluates model performance using test data. The output is
+	more meaningful than just the loss function value.'''
+
+	# Get data from helper function
+	data = get_data(data_fpath)
+	names_test = data[2]
+	mws_test = data[3]
+
+	# Simple evaluation
+	score = model.evaluate(names_test, mws_test, verbose = 1)
+	print('model loss function score: {}'.format(score))
+
+	# Custom evaluation
+	mws_predicted = model.predict(names_test)
+	names_test_decoded = sequences_to_texts(tokenizer, names_test)
+	for i in range(5):
+		print('Test entry {}'.format(i))
+		print('  decoded name: {}'.format(names_test_decoded[i]))
+		print('  actual mw:    {}'.format(mws_test[i]))
+		print('  predicted mw: {}'.format(mws_predicted[i]))
+
+	# Save
+	fpath = get_model_fpath() + '.test'
+	with open(fpath, 'w') as fid:
+		fid.write('Detailed model test:\n')
+		fid.write('test entry\tdecoded name\tactual mw\tpredicted mw\n')
+		for i in range(len(names_test)):
+			fid.write('{}\t{}\t{}\t{}\n'.format(i, names_test_decoded[i], 
+					mws_test[i], mws_predicted[i]))
+
+	return score
 
 if __name__ == '__main__':
 	if len(sys.argv) < 3:
-		print('Usage: {} "tokenizer.cpickle" "data.json"'.format(sys.argv[0]))
+		print('Usage: {} "tokenizer.cpickle" "data.json" [model_label]'.format(sys.argv[0]))
 		print('    tokenizer.cpickle must be an already-fit tokenizer')
 		print('    data_file.json must be a list of lists, where each' + 
 			  ' element is a list of str(name) and float(mw)')
 		quit(1)
 
+	# Get model label
+	if len(sys.argv) == 4:
+		flabel = sys.argv[3]
+	else:
+		flabel = None
+
 	# Load tokenizer
 	with open(sys.argv[1], 'rb') as tokenizer_fid:
 		tokenizer = cPickle.load(tokenizer_fid)
 
-	# Build model
-	print('...building model')
-	if tokenizer.nb_words:
-		vocab_size = min([tokenizer.nb_words, len(tokenizer.word_counts)])
+	# See if the model exists in this location already
+	fpath = get_model_fpath()
+	structure_fpath = fpath + '.json'
+	use_old = True
+	if os.path.isfile(structure_fpath):
+		use_old = raw_input('Use existing model structure [y/n]? ')
+		use_old = input_to_bool(use_old)
+	# Overwrite model
+	if use_old:
+		# Load model
+		with open(structure_fpath, 'r') as structure_fid:
+			model = model_from_json(json.load(structure_fid))
+			print('...loaded structural information')
 	else:
-		vocab_size = len(tokenizer.word_counts)
-	model = build_model(vocab_size)
-	print('...built untrained model')
+		# Build model
+		print('...building model')
+		if tokenizer.nb_words:
+			vocab_size = min([tokenizer.nb_words, len(tokenizer.word_counts)])
+		else:
+			vocab_size = len(tokenizer.word_counts)
+		model = build_model(vocab_size)
+		print('...built untrained model')
+
+	# See if weights exist in this location already
+	weights_fpath = fpath + '.h5'
+	if os.path.isfile(weights_fpath):
+		use_old = raw_input('Use existing model weights [y/n]? ')
+		if input_to_bool(use_old):
+			# Use weights
+			model.load_weights(weights_fpath)
+			print('...loaded weight information')
 
 	# Train model
 	print('...training model')
@@ -145,7 +215,10 @@ if __name__ == '__main__':
 
 	# Save for future
 	print('...saving model')
-	save_model(model, sys.argv[1], sys.argv[2], hist = hist)
+	save_model(model, sys.argv[1], sys.argv[2], hist = hist, score = score)
 	print('...saved model')
 		
-
+	# Test model
+	print('...testing model')
+	test_model(model, tokenizer, sys.argv[2])
+	print('...tested model')
