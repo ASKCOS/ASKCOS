@@ -150,7 +150,7 @@ def reactions_2reac_1prod(N = 10000):
 
 		# Report progress
 		if (j % 1000) == 0:
-			print '{}/{}'.format(j, N)
+			print('{}/{}'.format(j, N))
 
 	print('...constructed data list')
 
@@ -167,7 +167,7 @@ def reactions_2reac_1prod(N = 10000):
 	# Save
 	dump_to_data_file(data, 'reactions_2reac_1prod_{}'.format(len(data)), 
 		details = details)
-	print '...saved json file')
+	print('...saved json file')
 
 	return True
 
@@ -230,7 +230,11 @@ def all_reaction_dois():
 	# Look for valid entries
 	data = []
 	N = reactions.find().count()
-	for i, reaction in enumerate(reactions.find()_:
+	num_refs = 0
+	num_rxns_with_refs = 0
+	num_rxns_with_doi = 0
+	for i, reaction in enumerate(reactions.find()):
+		this_data = []
 
 		# Get rxid tag
 		rxid = reaction['rxid'][0]
@@ -238,30 +242,39 @@ def all_reaction_dois():
 		# Try reading reference list
 		try: 
 			references = reaction['rx' + str(rxid)]
-
+			num_rxns_with_refs += 1
 			# Get list of dois from all references
 			if references:
-				this_data = []
 				for reference in references:
+					num_refs += 1
 					try:
 						this_data += reference['doi']
+					except:
+						pass
+		except:
+			pass
 
 		# Append to data
-		data += this_data
+		if this_data:
+			num_rxns_with_doi += 1
+			data += this_data
 
 		# Report progress
-		if (i % 1000) == 0:
-			print '{}/{}'.format(i, N)
+		if (i % 10000) == 0:
+			print('{}/{}'.format(i, N))
 
-	print('...constructed data list')
+	print('...constructed data list ({} DOIs from {} refs)'.format(len(data), num_refs))
 
 	# Write details
-	details = 'Found {} DOIs in database'.format(len(data))
+	details = 'Found {} DOIs in database '.format(len(data))
+	details += ' from {} references'.format(num_refs)
+	details += ', representing {} different reactions'.format(num_rxns_with_refs)
+	details += ', but only {} of those had DOI information'.format(num_rxns_with_doi)
 
 	# Save
 	dump_to_data_file(data, 'all_reaction_dois_{}'.format(len(data)), 
 		details = details)
-	print '...saved json file')
+	print('...saved json file')
 
 	return True
 
@@ -272,6 +285,7 @@ if __name__ == '__main__':
 		print('    - "chemical_names_with_mws"')
 		print('    - "reactions_2reac_1prod"')
 		print('    - "chemical_names"')
+		print('    - "all_reaction_dois"')
 		quit(1)
 
 	# Molecular weight training set
@@ -293,6 +307,8 @@ if __name__ == '__main__':
 		else:
 			chemical_names()
 
+	elif sys.argv[1] == 'all_reaction_dois':
+		all_reaction_dois()
 	else:
 		print('Invalid data type "{}", see usage'.format(sys.argv[1]))
 		quit(1)
