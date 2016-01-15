@@ -1,0 +1,9 @@
+iteration	num_batches	batch_size	loss	accuracy
+1	1405	15	79502.4416297
+2	1405	15	30999.1913932
+iteration	num_batches	batch_size	loss	accuracy
+1	351	63	153703.914528
+iteration	num_batches	batch_size	loss	accuracy
+1	351	63	153801.139664
+iteration	num_batches	batch_size	loss	accuracy
+1	351	63	147604.21866

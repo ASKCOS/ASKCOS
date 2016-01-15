@@ -222,6 +222,48 @@ def chemical_names(N = 100000):
 	print('...saved json file')
 
 	return True
+	
+def all_reaction_dois():
+	'''This function searches for all DOIs references in the reaction
+	datababse.'''
+
+	# Look for valid entries
+	data = []
+	N = reactions.find().count()
+	for i, reaction in enumerate(reactions.find()_:
+
+		# Get rxid tag
+		rxid = reaction['rxid'][0]
+		
+		# Try reading reference list
+		try: 
+			references = reaction['rx' + str(rxid)]
+
+			# Get list of dois from all references
+			if references:
+				this_data = []
+				for reference in references:
+					try:
+						this_data += reference['doi']
+
+		# Append to data
+		data += this_data
+
+		# Report progress
+		if (i % 1000) == 0:
+			print '{}/{}'.format(i, N)
+
+	print('...constructed data list')
+
+	# Write details
+	details = 'Found {} DOIs in database'.format(len(data))
+
+	# Save
+	dump_to_data_file(data, 'all_reaction_dois_{}'.format(len(data)), 
+		details = details)
+	print '...saved json file')
+
+	return True
 
 if __name__ == '__main__':
 	if len(sys.argv) < 2:

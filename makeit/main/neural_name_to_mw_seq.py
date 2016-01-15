@@ -22,7 +22,7 @@ def get_model_fpath():
 		return fpath + '_{}'.format(flabel)
 	return fpath
 
-def build_model(vocab_size, embedding_size = 100, lstm_size = 100):
+def build_model(vocab_size, embedding_size = 100, lstm_size = 16):
 	'''Generates simple embedding model to use tokenized chemical name as
 	input in order to predict a single-valued output (i.e., MW)'''
 
@@ -30,16 +30,17 @@ def build_model(vocab_size, embedding_size = 100, lstm_size = 100):
 	model = Sequential()
 
 	# Add layers
-	model.add(Embedding(vocab_size, embedding_size, 
-		init = 'uniform', mask_zero = True))
+	model.add(Embedding(vocab_size, embedding_size, mask_zero = True))
 	print('    model: added Embedding layer ({} -> {})'.format(vocab_size, 
 		embedding_size))
 	# model.add(Dropout(0.5))
 	# print('    model: added Dropout layer')
 	model.add(LSTM(lstm_size))
 	print('    model: added LSTM layer ({} -> {})'.format(embedding_size, lstm_size))
-	model.add(Activation('linear'))
-	print('    model: added Activation(linear) layer')
+	# model.add(Activation('linear'))
+	# print('    model: added Activation(linear) layer')
+	model.add(Dropout(0.5))
+	print('    model: added Dropout layer')
 	model.add(Dense(1))
 	print('    model: added Dense layer ({} -> {})'.format(lstm_size, 1))
 
@@ -112,7 +113,7 @@ def get_data(data_fpath, training_ratio = 0.9, maxlen = 30):
 
 	return (names_train, mws_train, names_test, mws_test)
 
-def train_model(model, tokenizer, data_fpath, nb_epoch = 50, batch_size = 64):
+def train_model(model, tokenizer, data_fpath, nb_epoch = 3, batch_size = 16):
 	'''Trains the model to predict chemical molecular weights'''
 
 	# Get data from helper function
@@ -139,13 +140,14 @@ def test_model(model, tokenizer, data_fpath):
 	print('model loss function score: {}'.format(score))
 
 	# Custom evaluation
-	mws_predicted = model.predict(names_test)
+	mws_predicted = model.predict(names_test, verbose = 1)
+
 	names_test_decoded = sequences_to_texts(tokenizer, names_test)
 	for i in range(5):
 		print('Test entry {}'.format(i))
 		print('  decoded name: {}'.format(names_test_decoded[i]))
 		print('  actual mw:    {}'.format(mws_test[i]))
-		print('  predicted mw: {}'.format(mws_predicted[i]))
+		print('  predicted mw: {}'.format(mws_predicted[i, 0]))
 
 	# Save
 	fpath = get_model_fpath() + '.test'
@@ -154,7 +156,7 @@ def test_model(model, tokenizer, data_fpath):
 		fid.write('test entry\tdecoded name\tactual mw\tpredicted mw\n')
 		for i in range(len(names_test)):
 			fid.write('{}\t{}\t{}\t{}\n'.format(i, names_test_decoded[i], 
-					mws_test[i], mws_predicted[i]))
+					mws_test[i], mws_predicted[i, 0]))
 
 	return score
 
@@ -164,6 +166,8 @@ if __name__ == '__main__':
 		print('    tokenizer.cpickle must be an already-fit tokenizer')
 		print('    data_file.json must be a list of lists, where each' + 
 			  ' element is a list of str(name) and float(mw)')
+		print('    [model_label] is an extra tag to append to the file' + 
+			  ' name if a unique identifier is desired')
 		quit(1)
 
 	# Get model label
@@ -183,7 +187,6 @@ if __name__ == '__main__':
 	if os.path.isfile(structure_fpath):
 		use_old = raw_input('Use existing model structure [y/n]? ')
 		use_old = input_to_bool(use_old)
-	# Overwrite model
 	if use_old:
 		# Load model
 		with open(structure_fpath, 'r') as structure_fid:
@@ -210,12 +213,13 @@ if __name__ == '__main__':
 
 	# Train model
 	print('...training model')
-	(model, hist, score) = train_model(model, tokenizer, sys.argv[2])
-	print('...trained model, evaluated score = {}'.format(score))
+	hist = None
+	(model, hist) = train_model(model, tokenizer, sys.argv[2], nb_epoch = 1, batch_size = 64)
+	print('...trained model')
 
 	# Save for future
 	print('...saving model')
-	save_model(model, sys.argv[1], sys.argv[2], hist = hist, score = score)
+	save_model(model, sys.argv[1], sys.argv[2], hist = hist)
 	print('...saved model')
 		
 	# Test model
