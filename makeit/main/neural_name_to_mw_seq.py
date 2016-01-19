@@ -6,8 +6,9 @@ from keras.layers.core import Dense, Dropout, Activation
 from keras.layers.embeddings import Embedding
 from keras.preprocessing.sequence import pad_sequences
 from keras.layers.recurrent import LSTM
-from keras.optimizers import SGD
+from keras.optimizers import RMSprop
 from keras.utils.visualize_util import plot
+import matplotlib.pyplot as plt
 import datetime
 import cPickle
 import json
@@ -22,7 +23,7 @@ def get_model_fpath():
 		return fpath + '_{}'.format(flabel)
 	return fpath
 
-def build_model(vocab_size, embedding_size = 100, lstm_size = 16):
+def build_model(vocab_size, embedding_size = 100, lstm_size = 32):
 	'''Generates simple embedding model to use tokenized chemical name as
 	input in order to predict a single-valued output (i.e., MW)'''
 
@@ -39,13 +40,14 @@ def build_model(vocab_size, embedding_size = 100, lstm_size = 16):
 	print('    model: added LSTM layer ({} -> {})'.format(embedding_size, lstm_size))
 	# model.add(Activation('linear'))
 	# print('    model: added Activation(linear) layer')
-	model.add(Dropout(0.5))
-	print('    model: added Dropout layer')
+	# model.add(Dropout(0.5))
+	# print('    model: added Dropout layer')
 	model.add(Dense(1))
 	print('    model: added Dense layer ({} -> {})'.format(lstm_size, 1))
 
 	# Compile
-	model.compile(loss = 'mean_squared_error', optimizer = 'rmsprop')
+	optimizer = RMSprop(lr = 0.3)
+	model.compile(loss = 'mean_squared_error', optimizer = optimizer)
 
 	return model
 
@@ -158,6 +160,15 @@ def test_model(model, tokenizer, data_fpath):
 			fid.write('{}\t{}\t{}\t{}\n'.format(i, names_test_decoded[i], 
 					mws_test[i], mws_predicted[i, 0]))
 
+	# Create parity plot
+	plt.scatter(mws_test, mws_predicted, alpha = 0.2)
+	plt.xlabel('Actual molecular weight (g/mol)')
+	plt.ylabel('Predicted molecular weight (g/mol)')
+	plt.title('Parity plot for MW prediction')
+	plt.grid(True)
+	plt.axis([0, 1600, 0, 1600])
+	plt.show()
+
 	return score
 
 if __name__ == '__main__':
@@ -187,6 +198,8 @@ if __name__ == '__main__':
 	if os.path.isfile(structure_fpath):
 		use_old = raw_input('Use existing model structure [y/n]? ')
 		use_old = input_to_bool(use_old)
+	else:
+		use_old = False
 	if use_old:
 		# Load model
 		with open(structure_fpath, 'r') as structure_fid:
@@ -214,7 +227,7 @@ if __name__ == '__main__':
 	# Train model
 	print('...training model')
 	hist = None
-	(model, hist) = train_model(model, tokenizer, sys.argv[2], nb_epoch = 1, batch_size = 64)
+	(model, hist) = train_model(model, tokenizer, sys.argv[2], nb_epoch = 5, batch_size = 10000)
 	print('...trained model')
 
 	# Save for future

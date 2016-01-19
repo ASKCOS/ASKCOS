@@ -2,6 +2,7 @@ from __future__ import print_function
 from makeit.utils.chemnet_connect import * # mongodb connection, gets 'chemicals', 'reactions'
 from makeit.utils.database import get_all_ids
 from numpy.random import shuffle # for random selection
+import rdkit.Chem as Chem          # molecule building
 import datetime # for info files
 import json # for dumping
 import sys  # for commanad line
@@ -223,6 +224,63 @@ def chemical_names(N = 100000):
 
 	return True
 	
+def chemical_rdsmiles(N = 100000):
+	'''Sample chemicals collection for chemicals that can be parsed into RDKit
+
+	Saved data is str(SMILES)'''
+	
+	# Randomize list of chemical IDs
+	chemical_ids = get_all_ids(chemicals)
+	print('...read chemical IDs')
+	shuffle(chemical_ids) 
+	print('...shuffled chemical IDs')
+
+	# Look for valid entries
+	data = []
+	j = 0 # successful entries == len(data)
+	for chemical_id in chemical_ids:
+
+		# Are we done?
+		if j == N:
+			break
+
+		# Find entry
+		chemical = chemicals.find_one({'_id' : chemical_id})
+
+		# Try loading smiles
+		if chemical['smiles']:
+			try:
+				this_mol = Chem.MolFromSmiles(chemical['smiles'])
+				if not this_mol:
+					continue
+			except:
+				continue
+
+		# Append to list
+		data.append(Chem.MolToSmiles(this_mol))
+		j = j + 1
+
+		# Report progress
+		if (j % 5000) == 0:
+			print('{}/{}'.format(j, N))
+
+	print('...constructed data list')
+
+	# Write details
+	details = 'Found {} random chemicals from database'.format(len(data))
+	details += ' satisfying the following criteria:\n'
+	details += '- could be parsed by RDKit using SMILES\n'
+	details += '\nData list consists of entries:\n'
+	details += '  str(SMILES)\n'
+
+	# Save
+	print(data)
+	dump_to_data_file(data, 'chemical_rdmols_{}'.format(len(data)), 
+		details = details)
+	print('...saved json file')
+
+	return True
+	
 def all_reaction_dois():
 	'''This function searches for all DOIs references in the reaction
 	datababse.'''
@@ -286,7 +344,7 @@ if __name__ == '__main__':
 		print('    - "reactions_2reac_1prod"')
 		print('    - "chemical_names"')
 		print('    - "all_reaction_dois"')
-		quit(1)
+		print('    - "chemical_rdsmiles"')
 
 	# Molecular weight training set
 	if sys.argv[1] == 'chemical_names_with_mws':
@@ -309,6 +367,12 @@ if __name__ == '__main__':
 
 	elif sys.argv[1] == 'all_reaction_dois':
 		all_reaction_dois()
+
+	elif sys.argv[1] == 'chemical_rdsmiles':
+		if len(sys.argv) == 3:
+			chemical_rdsmiles(int(sys.argv[2]))
+		else:
+			chemical_rdsmiles()		
 	else:
 		print('Invalid data type "{}", see usage'.format(sys.argv[1]))
 		quit(1)
