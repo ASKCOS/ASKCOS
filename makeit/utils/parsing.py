@@ -1,4 +1,6 @@
 import re # regular expression processing
+import rdkit.Chem as Chem
+import numpy as np
 
 def SplitChemicalName(name):
 	'''This function takes a raw chemical name and replaces any common
@@ -32,3 +34,12 @@ def sequences_to_texts(tokenizer, sequences):
 			words.append(ordered_vocab[index - 1])
 		texts.append(' '.join(words))
 	return texts
+
+def smiles_to_boolean_fps(all_smiles):
+	'''This function takes a list of SMILES strings and returns a fingerprint 
+	in the form of an explicit boolean vector'''
+
+	BVs = [Chem.RDKFingerprint(Chem.MolFromSmiles(smiles)) for smiles in all_smiles]
+	for i in range(len(BVs)):
+		BVs[i] = np.array([bool(index) for index in BVs[i]])
+	return np.vstack(BVs)

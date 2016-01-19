@@ -172,6 +172,87 @@ def reactions_2reac_1prod(N = 10000):
 
 	return True
 
+
+def reactions_2reac_rdsmiles(N = 10000):
+	'''Sample database for reactions with exactly two reactants. Chemicals
+	are checked to make sure they can be parsed by RDKit by SMILES. Yields
+	of exactly 0.75 are filtered out
+
+	Saved data is [str(SMILES), str(SMILES), float(yield)]'''
+
+	# Build filter (2 reactants and 1 product)
+	db_filter = {'reactants' : {'$size' : 2}, 'yield' : {'$ne' : 0.75}}
+
+	# Randomize list of reaction IDs
+	reaction_ids = get_all_ids(reactions, db_filter = db_filter)
+	print('...read reaction IDs')
+	shuffle(reaction_ids) 
+	print('...shuffled reaction IDs')
+
+	# Look for valid entries
+	data = []
+	j = 0 # successful entries == len(data)
+	for reaction_id in reaction_ids:
+
+		# Are we done?
+		if j == N:
+			break
+
+		# Find entry
+		reaction = reactions.find_one({'_id' : reaction_id})
+
+		# Unpack
+		[idA, idB] = reaction['reactants']
+		chemical_names = []
+
+		# Filter
+		if not reaction['yield']: # missing yield
+			continue
+		skip_this_reaction = False
+		for chemical_id in [idA, idB]:
+			chemical = chemicals.find_one({'_id' : chemical_id})
+			if not chemical: # ID not found
+				skip_this_reaction = True
+				break
+			elif not chemical['smiles']: # missing smiles
+				skip_this_reaction = True
+				break
+			this_mol = Chem.MolFromSmiles(chemical['smiles'])
+			if not this_mol:
+				skip_this_reaction = True
+				break
+			chemical_names.append(Chem.MolToSmiles(this_mol))
+		if skip_this_reaction:
+			continue
+
+		# Append to data
+		data.append(chemical_names + [reaction['yield']])
+		j = j + 1
+
+		# Report progress
+		if (j % 1000) == 0:
+			print('{}/{}'.format(j, N))
+
+	print('...constructed data list')
+
+	# Write details
+	details = 'Found {} random reactions from database'.format(len(data))
+	details += ' satisfying the following criteria:\n'
+	details += '- exactly 2 reactants\n'
+	details += '- yield != 0.75 exactly\n'
+	details += 'for the associated chemicals...\n'
+	details += '- chemical[\'smiles\'] == True\n'
+	details += '- can be parsed by RDKit'
+	details += '\nData list consists of entries:\n'
+	details += '  [str(SMILES), str(SMILES), float(yield)]\n'
+	
+	# Save
+	dump_to_data_file(data, 'reactions_2reac_rdsmiles_{}'.format(len(data)), 
+		details = details)
+	print('...saved json file')
+
+	return True
+
 def chemical_names(N = 100000):
 	'''Sample chemicals collection for chemicals with a valid name, meant to
 	generate a dataset suitable for fitting a tokenizer.
@@ -358,6 +439,12 @@ if __name__ == '__main__':
 			reactions_2reac_1prod(int(sys.argv[2]))
 		else:
 			reactions_2reac_1prod()
+
+	elif sys.argv[1] == 'reactions_2reac_rdsmiles':
+		if len(sys.argv) == 3:
+			reactions_2reac_rdsmiles(int(sys.argv[2]))
+		else:
+			reactions_2reac_rdsmiles()
 
 	elif sys.argv[1] == 'chemical_names':
 		if len(sys.argv) == 3:

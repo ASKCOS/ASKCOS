@@ -1,0 +1,12 @@
+reactions_2reac_rdsmiles_57847.json generated at UTC 2016-01-19 19:28:57.794688
+
+File details
+------------
+Found 57847 random reactions from database satisfying the following criteria:
+- exactly 2 reactants
+- yield != 0.75 exactly
+for the associated chemicals...
+- chemical['smiles'] == True
+- can be parsed by RDKit
+Data list consists of entries:
+  [str(SMILES), str(SMILES), float(yield)]
