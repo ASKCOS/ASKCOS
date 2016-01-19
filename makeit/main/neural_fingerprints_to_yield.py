@@ -22,36 +22,51 @@ def get_model_fpath():
 		return fpath + '_{}'.format(flabel)
 	return fpath
 
-def build_model(fp_size = 2048, embedding_size = 100, dropout = 0.75):
+def build_model(fp_size = 2048, embedding_size = 8, dropout = 0.75):
 	'''Uses fingerprints for two chemicals to predict the yield of a reaction
 	between them, ignoring the chemical species of that product'''
 
 	# Base model
 	model = Graph()
 
+	# # Inputs
+	# model.add_input(name = 'fpA', input_shape = (fp_size, ), dtype = 'bool')
+	# model.add_input(name = 'fpB', input_shape = (fp_size, ), dtype = 'bool')
+	# # Embebdding
+	# embedding = Embedding(output_dim = embedding_size, input_dim = fp_size, 
+	# 	init = 'glorot_normal')
+	# model.add_shared_node(embedding, 'embed', inputs = ['fpA', 'fpB'], 
+	# 	outputs = ['emA', 'emB'])
+	# model.add_shared_node(Dropout(dropout), 'dropout', inputs = ['emA', 'emB'], 
+	# 	outputs = ['drA', 'drB'])
+	# model.add_shared_node(LSTM(output_dim = embedding_size, activation = 'tanh', 
+	# 	return_sequences = True), 'lstm', inputs = ['drA', 'drB'], 
+	# 	outputs = ['lstmA', 'lstmB'])
+	# # Merge
+	# model.add_node(Dropout(dropout), name = 'drM', inputs = ['lstmA', 'lstmB'], 
+	# 	merge_mode = 'concat')
+	# model.add_node(LSTM(output_dim = 2 * embedding_size, activation = 'tanh', 
+	# 	return_sequences = False), 'lstmM', input = 'drM')
+	# model.add_node(Dropout(dropout), name = 'drmM2', input = 'lstmM')
+	# model.add_node(Dense(1, activation = 'linear'), name = 'denseM',
+	# 	input = 'drmM2')
+	# model.add_output(name = 'yield', input = 'denseM')
+
 	# Inputs
 	model.add_input(name = 'fpA', input_shape = (fp_size, ), dtype = 'bool')
 	model.add_input(name = 'fpB', input_shape = (fp_size, ), dtype = 'bool')
-
 	# Embebdding
 	embedding = Embedding(output_dim = embedding_size, input_dim = fp_size, 
 		init = 'glorot_normal')
 	model.add_shared_node(embedding, 'embed', inputs = ['fpA', 'fpB'], 
 		outputs = ['emA', 'emB'])
-	model.add_shared_node(Dropout(dropout), 'dropout', inputs = ['emA', 'emB'], 
-		outputs = ['drA', 'drB'])
-	model.add_shared_node(LSTM(output_dim = embedding_size, activation = 'tanh', 
-		return_sequences = True), 'lstm', inputs = ['drA', 'drB'], 
-		outputs = ['lstmA', 'lstmB'])
-
 	# Merge
-	model.add_node(Dropout(dropout), name = 'drM', inputs = ['lstmA', 'lstmB'], 
+	model.add_node(Dropout(dropout), name = 'drM', inputs = ['emA', 'emB'], 
 		merge_mode = 'concat')
 	model.add_node(LSTM(output_dim = 2 * embedding_size, activation = 'tanh', 
-		return_sequences = False), 'lstmM', input = 'drM')
-	model.add_node(Dropout(dropout), name = 'drmM2', input = 'lstmM')
+	 	return_sequences = False), 'lstmM', input = 'drM')
 	model.add_node(Dense(1, activation = 'linear'), name = 'denseM',
-		input = 'drmM2')
+		input = 'lstmM')
 	model.add_output(name = 'yield', input = 'denseM')
 
 	# Compile
@@ -166,8 +181,7 @@ def test_model(model, data_fpath):
 		fid.write('Detailed model test:\n')
 		fid.write('test entry\tactual yield\tpredicted yield\n')
 		for i in range(len(fpA_test)):
-			fid.write('{}\t{}\t{}\t{}\n'.format(i, yields_test[i], 
-					yields_predicted[i]))
+			fid.write('{}\t{}\t{}\n'.format(i, yields_test[i], yields_predicted[i]))
 
 	# Create parity plot
 	plt.scatter(yields_test, yields_predicted, alpha = 0.2)
@@ -175,7 +189,7 @@ def test_model(model, data_fpath):
 	plt.ylabel('Predicted yield')
 	plt.title('Parity plot for yield prediction')
 	plt.grid(True)
-	plt.axis([0, 1, 0, 1])
+	#plt.axis([0, 1, 0, 1])
 	plt.show()
 
 	return score
@@ -189,9 +203,6 @@ if __name__ == '__main__':
 			  ' name if a unique identifier is desired')
 		quit(1)
 
-	# get_data(sys.argv[1])
-	# quit(1)
-
 	# Get model label
 	if len(sys.argv) == 3:
 		flabel = sys.argv[2]
@@ -200,26 +211,9 @@ if __name__ == '__main__':
 
 	# See if the model exists in this location already
 	fpath = get_model_fpath()
-	structure_fpath = fpath + '.json'
-	use_old = True
-	if os.path.isfile(structure_fpath):
-		use_old = raw_input('Use existing model structure [y/n]? ')
-		use_old = input_to_bool(use_old)
-	else:
-		use_old = False
-	if use_old:
-		# Load model
-		with open(structure_fpath, 'r') as structure_fid:
-			model = model_from_json(json.load(structure_fid))
-			print('...loaded structural information')
-	else:
-		# Build model
-		model = build_model(fp_size = 2048, embedding_size = 100, dropout = 0.75)
-		print('...built untrained model')
-		# Save for future
-		print('...saving model')
-		save_model(model, sys.argv[1])
-		print('...saved model')
+	# Build model
+	model = build_model(fp_size = 2048, embedding_size = 100, dropout = 0.75)
+	print('...built untrained model')
 
 	# See if weights exist in this location already
 	weights_fpath = fpath + '.h5'
@@ -233,7 +227,7 @@ if __name__ == '__main__':
 	# Train model
 	print('...training model')
 	hist = None
-	(model, hist) = train_model(model, sys.argv[1], nb_epoch = 1, batch_size = 16)
+	(model, hist) = train_model(model, sys.argv[1], nb_epoch = 1, batch_size = 300)
 	print('...trained model')
 
 	# Save for future
