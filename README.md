@@ -18,12 +18,12 @@ These can each be installed through
 #### 1. Prepare data sets
 To avoid interacting with the database directly, any information relevant for a certain task should be pre-parsed and resaved as a .json dump. This is done by running <code>python makeit/utils/generate_data_subsets.py "data type" [max # records]</code> with the appropriate arguments. Currently, there are three available types of data:
 
-- <code>"chemical_names_with_mws"</code> : each element in the dumped list consists of <code>[str(name), float(mol_weight)]</code>
-- <code>"reactions_2reac_1prod"</code> : each element in the dumped list consists of <code>[str(A_name), str(B_name), str(C_name), float(yield)]</code>
-- <code>"reactions_2reac_rdsmiles"</code> : each element in the udmped list consists of <code>[str(A_smiles), str(B_smiles), float(yield)]</code>
-- <code>"all_reaction_dois"</code> : each element in the dumped list consists of <code>str(doi)</code> for whatever DOIs can be found in the reaction database
-- <code>"chemical_names"</code> : each element in the dumped list consists of <code>str(name)</code>
-- <code>"chemical_rdsmiles"</code> : each element in the dumped list consists of <code>str(smiles)</code>
+- <code>"chemical_names_with_mws"</code> : each element in the dumped list consists of <code>[str(name), float(mol_weight)]</code>, for chemicals with non-empty names and non-empty molecular weights.
+- <code>"reactions_2reac_1prod"</code> : each element in the dumped list consists of <code>[str(A_name), str(B_name), str(C_name), float(yield)]</code>, for reactions with exactly two reactants and one product and non-empty chemical names for each.
+- <code>"reactions_2reac_rdsmiles"</code> : each element in the dumped list consists of <code>[str(A_smiles), str(B_smiles), float(yield)]</code>, for reactions with exactly two reactants, reactants with valid SMILES strings that can be parsed by RDKit, and yield not equal to 0.75.
+- <code>"all_reaction_dois"</code> : each element in the dumped list consists of <code>str(doi)</code> for whatever DOIs can be found in the reaction database for any set of references within any reaction document.
+- <code>"chemical_names"</code> : each element in the dumped list consists of <code>str(name)</code>, wherever the name field is not empty.
+- <code>"chemical_rdsmiles"</code> : each element in the dumped list consists of <code>str(smiles)</code>, where each SMILES string can be parsed by RDKit uniquely.
 
 #### 2. Build tokenizer
 The tokenizer must be fit before it can be used, so that words can be scored and ranked by the frequency of their occurrence in the corpus. For speed, building the tokenizer requires a json file which consists of a list of chemical names. This can be generated using the <code>"chemical_names"</code> option in <code>generate_data_subsets.py</code>. 
