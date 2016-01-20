@@ -138,9 +138,6 @@ def reactions_2reac_1prod(N = 10000):
 			elif not chemical['name']: # missing name
 				skip_this_reaction = True
 				break
-			elif not chemical['mol_weight']: # missing mol_weight
-				skip_this_reaction = True
-				break
 			chemical_names.append(chemical['name'][0])
 		if skip_this_reaction:
 			continue
@@ -183,7 +180,7 @@ def reactions_2reac_rdsmiles(N = 10000):
 	# Build filter (2 reactants and 1 product)
 	db_filter = {'reactants' : {'$size' : 2}, 'yield' : {'$ne' : 0.75}}
 
-	# Randomize list of reaction IDs
+	# Randomize list of reaction IDsgit gui
 	reaction_ids = get_all_ids(reactions, db_filter = db_filter)
 	print('...read reaction IDs')
 	shuffle(reaction_ids) 
