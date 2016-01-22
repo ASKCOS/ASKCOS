@@ -22,7 +22,7 @@ def get_model_fpath():
 		return fpath + '_{}'.format(flabel)
 	return fpath
 
-def build_model(fp_size = 2048, embedding_size = 8, dropout = 0.75):
+def build_model(fp_size = 2048, embedding_size = 32, dropout = 0.5, lr = 0.5):
 	'''Uses fingerprints for two chemicals to predict the yield of a reaction
 	between them, ignoring the chemical species of that product'''
 
@@ -63,15 +63,15 @@ def build_model(fp_size = 2048, embedding_size = 8, dropout = 0.75):
 	# Merge
 	model.add_node(Dropout(dropout), name = 'drM', inputs = ['emA', 'emB'], 
 		merge_mode = 'concat')
-	model.add_node(LSTM(output_dim = 2 * embedding_size, activation = 'tanh', 
+	model.add_node(LSTM(output_dim = 2 * embedding_size, activation = 'sigmoid', 
 	 	return_sequences = False), 'lstmM', input = 'drM')
-	model.add_node(Dense(1, activation = 'linear'), name = 'denseM',
+	model.add_node(Dense(1, activation = 'sigmoid'), name = 'denseM',
 		input = 'lstmM')
 	model.add_output(name = 'yield', input = 'denseM')
 
 	# Compile
 	print('...compiling model')
-	optimizer = RMSprop(lr = 0.1)
+	optimizer = RMSprop(lr = lr)
 	model.compile(loss = {'yield' : 'mse'}, optimizer = optimizer)
 
 	return model
@@ -120,13 +120,14 @@ def get_data(data_fpath, training_ratio = 0.9):
 	print('...loading data')
 	with open(data_fpath, 'r') as data_fid:
 		data = json.load(data_fid)
-		data = data[0:1000]
+		# data = data[0:10000]
 
 	# Parse data into individual components
 	print('...calculating fingerprints')
 	fpA = smiles_to_boolean_fps([x[0] for x in data])
 	fpB = smiles_to_boolean_fps([x[1] for x in data])
 	yields   = np.asarray([x[2] for x in data])
+	yields[yields > 1] = 1.0 # put ceiling on any unphysical yields
 
 	# Create training/development split
 	division = int(len(data) * training_ratio)
@@ -150,9 +151,12 @@ def train_model(model, data_fpath, nb_epoch = 3, batch_size = 16):
 	fpB_train = data[1]
 	yields_train = data[2]
 
-	# Fit
-	hist = model.fit({'fpA' : fpA_train, 'fpB' : fpB_train, 'yield' : yields_train}, 
-		nb_epoch = nb_epoch, batch_size = batch_size, verbose = 1)	
+	# Fit (allows keyboard interrupts in the middle)
+	try:
+		hist = model.fit({'fpA' : fpA_train, 'fpB' : fpB_train, 'yield' : yields_train}, 
+			nb_epoch = nb_epoch, batch_size = batch_size, verbose = 1)	
+	except:
+		hist = None
 
 	return (model, hist)
 
@@ -212,7 +216,7 @@ if __name__ == '__main__':
 	# See if the model exists in this location already
 	fpath = get_model_fpath()
 	# Build model
-	model = build_model(fp_size = 2048, embedding_size = 100, dropout = 0.75)
+	model = build_model(fp_size = 2048, embedding_size = 32, dropout = 0.3, lr = 0.001)
 	print('...built untrained model')
 
 	# See if weights exist in this location already
@@ -227,7 +231,7 @@ if __name__ == '__main__':
 	# Train model
 	print('...training model')
 	hist = None
-	(model, hist) = train_model(model, sys.argv[1], nb_epoch = 1, batch_size = 300)
+	(model, hist) = train_model(model, sys.argv[1], nb_epoch = 1, batch_size = 400)
 	print('...trained model')
 
 	# Save for future

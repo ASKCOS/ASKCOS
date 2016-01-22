@@ -9,3 +9,21 @@ iteration	num_batches	batch_size	loss	accuracy
 2	1	237	2.22937755267
 iteration	num_batches	batch_size	loss	accuracy
 1	1	300	272.926567964
+iteration	num_batches	batch_size	loss	accuracy
+1	1	300	54.2476178507
+iteration	num_batches	batch_size	loss	accuracy
+1	1	300	nan
+2	1	300	nan
+iteration	num_batches	batch_size	loss	accuracy
+1	1	300	74.6324039698
+2	1	300	0.998004963001
+iteration	num_batches	batch_size	loss	accuracy
+1	1	300	26.0015984947
+2	1	300	0.0712566971779
+3	1	300	0.0713758170605
+4	1	300	0.0726332738996
+5	1	300	0.0751698339979
+iteration	num_batches	batch_size	loss	accuracy
+1	14	300	3.57335775395
+iteration	num_batches	batch_size	loss	accuracy
+1	14	300	25.407739459

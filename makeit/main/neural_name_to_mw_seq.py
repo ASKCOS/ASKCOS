@@ -23,7 +23,7 @@ def get_model_fpath():
 		return fpath + '_{}'.format(flabel)
 	return fpath
 
-def build_model(vocab_size, embedding_size = 100, lstm_size = 32):
+def build_model(vocab_size, embedding_size = 100, lstm_size = 32, lr = 0.01):
 	'''Generates simple embedding model to use tokenized chemical name as
 	input in order to predict a single-valued output (i.e., MW)'''
 
@@ -46,7 +46,7 @@ def build_model(vocab_size, embedding_size = 100, lstm_size = 32):
 	print('    model: added Dense layer ({} -> {})'.format(lstm_size, 1))
 
 	# Compile
-	optimizer = RMSprop(lr = 0.3)
+	optimizer = RMSprop(lr = lr)
 	model.compile(loss = 'mean_squared_error', optimizer = optimizer)
 
 	return model
@@ -227,7 +227,7 @@ if __name__ == '__main__':
 	# Train model
 	print('...training model')
 	hist = None
-	(model, hist) = train_model(model, tokenizer, sys.argv[2], nb_epoch = 5, batch_size = 10000)
+	(model, hist) = train_model(model, tokenizer, sys.argv[2], nb_epoch = 10, batch_size = 10000)
 	print('...trained model')
 
 	# Save for future
