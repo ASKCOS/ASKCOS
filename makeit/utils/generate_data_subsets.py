@@ -250,6 +250,63 @@ def reactions_2reac_rdsmiles(N = 10000):
 
 	return True
 
+def reactions_2reac_smilesyield(N = 10000):
+	'''Sample database for reactions with exactly two reactants. Yields of 
+	exactly 0.75 are filtered out.
+
+	Saved data is [str(RXN_SMILES), float(yield)]'''
+
+	# Build filter (2 reactants and 1 product)
+	db_filter = {'yield' : {'$ne' : 0.75}}
+
+	# Randomize list of reaction IDsgit gui
+	reaction_ids = get_all_ids(reactions, db_filter = db_filter)
+	print('...read reaction IDs')
+	shuffle(reaction_ids) 
+	print('...shuffled reaction IDs')
+
+	# Look for valid entries
+	data = []
+	j = 0 # successful entries == len(data)
+	for reaction_id in reaction_ids:
+
+		# Are we done?
+		if j == N:
+			break
+
+		# Find entry
+		reaction = reactions.find_one({'_id' : reaction_id})
+
+		# Filter
+		if not reaction['yield']: # missing yield
+			continue
+		if not reaction['smiles']: # missing reaction
+			continue
+
+		# Append to data
+		data.append([reaction['smiles'], reaction['yield']])
+		j = j + 1
+
+		# Report progress
+		if (j % 1000) == 0:
+			print('{}/{}'.format(j, N))
+
+	print('...constructed data list')
+
+	# Write details
+	details = 'Found {} random reactions from database'.format(len(data))
+	details += ' satisfying the following criteria:\n'
+	details += '- yield != 0.75 exactly\n'
+	details += '\nData list consists of entries:\n'
+	details += '  [str(RXN_SMILES), float(yield)]\n'
+	
+	# Save
+	dump_to_data_file(data, 'reactions_2reac_smilesyield_{}'.format(len(data)), 
+		details = details)
+	print('...saved json file')
+
+	return True
+
 def chemical_names(N = 100000):
 	'''Sample chemicals collection for chemicals with a valid name, meant to
 	generate a dataset suitable for fitting a tokenizer.
@@ -423,6 +480,7 @@ if __name__ == '__main__':
 		print('    - "chemical_names"')
 		print('    - "all_reaction_dois"')
 		print('    - "chemical_rdsmiles"')
+		print('    - "reactions_2reac_smilesyield"')
 
 	# Molecular weight training set
 	if sys.argv[1] == 'chemical_names_with_mws':
@@ -457,6 +515,13 @@ if __name__ == '__main__':
 			chemical_rdsmiles(int(sys.argv[2]))
 		else:
 			chemical_rdsmiles()		
+
+	elif sys.argv[1] == 'reactions_2reac_smilesyield':
+		if len(sys.argv) == 3:
+			reactions_2reac_smilesyield(int(sys.argv[2]))
+		else:
+			reactions_2reac_smilesyield()		
+
 	else:
 		print('Invalid data type "{}", see usage'.format(sys.argv[1]))
 		quit(1)
