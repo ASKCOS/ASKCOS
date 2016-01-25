@@ -1,5 +1,6 @@
 from __future__ import print_function
 from keras.preprocessing.text import Tokenizer # text pre-processing
+import collections
 import datetime
 import cPickle
 import json
@@ -11,29 +12,33 @@ def get_tokenizer_fpath():
 	return os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models')
 
 def build_tokenizer(data_fname, N = None):
-	'''This function trains a keras.preprocessing.text.Tokenizer on a set
-	of data in .json form, where the .json file must be a list of elements 
-	where the first value is a reaction smiles string'''
-
-	# Initialize tokenizer
-	tokenizer = Tokenizer(nb_words = N, filters = '', lower = True, 
-		split = ' ')
+	'''This function defines a dictionary character mapping'''
 
 	# Load data
 	data_fid = open(data_fname, 'r')
 	data = json.load(data_fid)
 	print('...loaded data from {}'.format(data_fname))
-	rxn_smiles_strings = [x[0] for x in data]
+	rxn_smiles_strings = [str(x[0].strip()) for x in data]
 
-	# Iterate through now to build list
-	tokenizer.fit_on_texts(rxn_smiles_strings)
-	print '...fit tokenizer on reaction smiles strings'
+	# Merge
+	all_chars = ''.join(rxn_smiles_strings)
+	print('total characters read: {}'.format(len(all_chars)))
+
+	# Define collection
+	chars = collections.Counter(all_chars)
+
+	# Get unique values ordered by frequency
+	chars_by_freq = sorted(chars, key = chars.get, reverse = True)
+
+	tokenizer = {}
+	for (i, char) in enumerate(chars_by_freq):
+		tokenizer[char] = i + 1 # save 0 for masking
 
 	# Print example
-	name = data[0][0]
+	name = rxn_smiles_strings[0]
 	print('EXAMPLE:')
-	print('    ' + name)
-	print('    ' + str(tokenizer.texts_to_sequences([name])))
+	print('    {}'.format(name))
+	print('    {}'.format([tokenizer[x] for x in name]))
 
 	# Return trained tokenizer
 	return tokenizer
@@ -42,13 +47,10 @@ def save_tokenizer(tokenizer, data_fname):
 	'''Saves tokenizer object and associated information'''
 
 	# Create filename
-	if tokenizer.nb_words:
-		fpath_root = os.path.join(get_tokenizer_fpath(), 'tokenizer_rxnsmiles_{}'.format(tokenizer.nb_words))
-	else:
-		fpath_root = os.path.join(get_tokenizer_fpath(), 'tokenizer_rxnsmiles_{}'.format(len(tokenizer.word_counts)))
+	fpath_root = os.path.join(get_tokenizer_fpath(), 'tokenizer_rxnsmiles')
 
 	# Dump data
-	cPickle.dump(tokenizer, open(fpath_root + '.cpickle', 'wb'))
+	json.dump(tokenizer, open(fpath_root + '.json', 'wb'))
 
 	# Write to info file
 	info_fid = open(fpath_root + '.info', 'w')
@@ -56,9 +58,7 @@ def save_tokenizer(tokenizer, data_fname):
 	info_fid.write('{} generated at UTC {}\n\n'.format(fpath_root, time_now))
 	info_fid.write('File details\n------------\n')
 	info_fid.write('- data source: {}\n'.format(data_fname))
-	info_fid.write('- document count: {}\n'.format(tokenizer.document_count))
-	info_fid.write('- vocabulary size: {}\n'.format(len(tokenizer.word_counts)))
-	info_fid.write('- nb_words: {}\n'.format(tokenizer.nb_words))
+	info_fid.write('- vocabulary size: {}\n'.format(len(tokenizer.keys())))
 	info_fid.close()
 
 	print('...saved tokenizer to {}'.format(fpath_root))
