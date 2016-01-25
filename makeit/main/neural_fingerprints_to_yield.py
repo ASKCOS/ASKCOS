@@ -2,7 +2,7 @@ from __future__ import print_function
 from makeit.utils.parsing import input_to_bool, smiles_to_boolean_fps
 from makeit.utils.saving import save_model_history
 from keras.models import Graph, model_from_json
-from keras.layers.core import Dense, Dropout, Activation
+from keras.layers.core import Dense, Dropout, Activation, Masking
 from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import LSTM
 from keras.optimizers import RMSprop
@@ -55,10 +55,12 @@ def build_model(fp_size = 2048, embedding_size = 32, dropout = 0.5, lr = 0.5):
 	# Inputs
 	model.add_input(name = 'fpA', input_shape = (fp_size, ), dtype = 'bool')
 	model.add_input(name = 'fpB', input_shape = (fp_size, ), dtype = 'bool')
+	model.add_shared_node(Masking(mask_value = 0), 'mask', 
+		inputs = [ 'fpA', 'fpB'], outputs = ['fpAm', 'fpBm'])
 	# Embebdding
 	embedding = Embedding(output_dim = embedding_size, input_dim = fp_size, 
 		init = 'glorot_normal')
-	model.add_shared_node(embedding, 'embed', inputs = ['fpA', 'fpB'], 
+	model.add_shared_node(embedding, 'embed', inputs = ['fpAm', 'fpBm'], 
 		outputs = ['emA', 'emB'])
 	# Merge
 	model.add_node(Dropout(dropout), name = 'drM', inputs = ['emA', 'emB'], 
@@ -120,7 +122,7 @@ def get_data(data_fpath, training_ratio = 0.9):
 	print('...loading data')
 	with open(data_fpath, 'r') as data_fid:
 		data = json.load(data_fid)
-		# data = data[0:10000]
+		# data = data[0:1000]
 
 	# Parse data into individual components
 	print('...calculating fingerprints')
@@ -216,7 +218,7 @@ if __name__ == '__main__':
 	# See if the model exists in this location already
 	fpath = get_model_fpath()
 	# Build model
-	model = build_model(fp_size = 2048, embedding_size = 32, dropout = 0.3, lr = 0.001)
+	model = build_model(fp_size = 2048, embedding_size = 32, dropout = 0.5, lr = 0.01)
 	print('...built untrained model')
 
 	# See if weights exist in this location already
