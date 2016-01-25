@@ -93,11 +93,12 @@ def get_data(data_fpath, training_ratio = 0.9):
 	print('...loading data')
 	with open(data_fpath, 'r') as data_fid:
 		data = json.load(data_fid)
-		# data = data[0:1000]
+		data = data[0:10000]
 
 	# Parse data into individual components
 	smiles = [x[0] for x in data]
 	yields = [x[1] for x in data]
+	yields[yields > 1] = 1.0
 
 	# Vectorize chemical names according to tokenizer
 	smiles = [[tokenizer[x] for x in one_smiles] for one_smiles in smiles]
@@ -125,8 +126,12 @@ def train_model(model, data_fpath, nb_epoch = 3, batch_size = 16):
 	yields_train = data[1]
 
 	# Fit (allows keyboard interrupts in the middle)
-	hist = model.fit(smiles_train, yields_train, 
-		nb_epoch = nb_epoch, batch_size = batch_size, verbose = 1)	
+	try:
+		hist = model.fit(smiles_train, yields_train, 
+			nb_epoch = nb_epoch, batch_size = batch_size, verbose = 1)	
+	except:
+		print('terminated training early due to error')
+		hist = None
 
 	return (model, hist)
 
@@ -147,13 +152,13 @@ def test_model(model, data_fpath):
 	yields_predicted = model.predict(smiles_test, verbose = 1)
 
 	# Decode smiles strings
-	reverse_tokenizer = {}
+	reverse_tokenizer = {0 : ''}
 	for key, val in tokenizer.iteritems():
 		reverse_tokenizer[val] = key
 
 	# Save
 	fpath = get_model_fpath() + '.test'
-	with open(fpath, 'a') as fid:
+	with open(fpath, 'w') as fid:
 		time_now = datetime.datetime.utcnow()
 		fid.write('-- tested at UTC {}\n\n'.format(fpath, time_now))		
 		fid.write('test entry\treaction\tactual yield\tpredicted yield\n')
@@ -211,7 +216,7 @@ if __name__ == '__main__':
 		# Build model
 		print('...building model')
 		vocab_size = len(tokenizer.keys())
-		model = build_model(vocab_size, embedding_size = 100, lstm_size = 32, lr = 0.01)
+		model = build_model(vocab_size + 1, embedding_size = 100, lstm_size = 100, lr = 0.001)
 		print('...built untrained model')
 
 	# See if weights exist in this location already
@@ -226,7 +231,7 @@ if __name__ == '__main__':
 	# Train model
 	print('...training model')
 	hist = None
-	(model, hist) = train_model(model, sys.argv[2], nb_epoch = 1, batch_size = 500)
+	(model, hist) = train_model(model, sys.argv[2], nb_epoch = 2, batch_size = 500)
 	print('...trained model')
 
 	# Save for future
