@@ -212,7 +212,7 @@ if __name__ == '__main__':
 			vocab_size = min([tokenizer.nb_words, len(tokenizer.word_counts)])
 		else:
 			vocab_size = len(tokenizer.word_counts)
-		model = build_model(vocab_size)
+		model = build_model(vocab_size, embedding_size = 100, lstm_size = 32, lr = 0.01)
 		print('...built untrained model')
 
 	# See if weights exist in this location already
