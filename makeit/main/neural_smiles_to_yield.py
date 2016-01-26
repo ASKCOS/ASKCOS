@@ -142,6 +142,8 @@ def test_model(model, data_fpath):
 
 	# Get data from helper function
 	data = get_data(data_fpath)
+	smiles_train = data[0]
+	yields_train = data[1]
 	smiles_test = data[2]
 	yields_test = data[3]
 
@@ -172,9 +174,19 @@ def test_model(model, data_fpath):
 	plt.scatter(yields_test, yields_predicted, alpha = 0.2)
 	plt.xlabel('Actual yield')
 	plt.ylabel('Predicted yield')
-	plt.title('Parity plot for yield prediction')
+	plt.title('Parity plot for yield prediction (test set)')
 	plt.grid(True)
-	#plt.axis([0, 1, 0, 1])
+	plt.axis([0, 1, 0, 1])
+	plt.show()
+
+	# Look at training data onw
+	yields_train_predicted = model.predict(smiles_train, verbose = 1)
+	plt.scatter(yields_train, yields_train_predicted, alpha = 0.2)
+	plt.xlabel('Actual yield')
+	plt.ylabel('Predicted yield')
+	plt.title('Parity plot for yield prediction (train set)')
+	plt.grid(True)
+	plt.axis([0, 1, 0, 1])
 	plt.show()
 
 	return score
@@ -258,7 +270,7 @@ if __name__ == '__main__':
 		# Build model
 		print('...building model')
 		vocab_size = len(tokenizer.keys())
-		model = build_model(vocab_size + 1, embedding_size = 100, lstm_size = 100, lr = 0.001)
+		model = build_model(vocab_size + 1, embedding_size = 100, lstm_size = 100, lr = 0.01)
 		print('...built untrained model')
 
 	# See if weights exist in this location already
@@ -270,10 +282,10 @@ if __name__ == '__main__':
 			model.load_weights(weights_fpath)
 			print('...loaded weight information')
 
-	##### TEMP ###########
-	# Test current embebddings
-	test_embeddings_demo(model, sys.argv[2])
-	quit(1)
+	# ##### TEMP ###########
+	# # Test current embebddings
+	# test_embeddings_demo(model, sys.argv[2])
+	# quit(1)
 
 	# Train model
 	print('...training model')
