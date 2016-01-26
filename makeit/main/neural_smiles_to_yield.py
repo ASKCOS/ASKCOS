@@ -8,6 +8,7 @@ from keras.layers.recurrent import LSTM
 from keras.preprocessing.sequence import pad_sequences
 from keras.optimizers import RMSprop
 from keras.utils.visualize_util import plot
+import theano
 import matplotlib.pyplot as plt
 import numpy as np
 import datetime
@@ -31,16 +32,16 @@ def build_model(vocab_size, embedding_size = 100, lstm_size = 32, lr = 0.01):
 	model = Sequential()
 
 	# Add layers
-	model.add(Embedding(vocab_size, embedding_size, mask_zero = True))
+	model.add(Embedding(vocab_size, embedding_size, mask_zero = True, init = 'uniform'))
 	print('    model: added Embedding layer ({} -> {})'.format(vocab_size, 
 		embedding_size))
 	model.add(Dropout(0.2))
 	print('    model: added Dropout layer')
-	model.add(LSTM(lstm_size))
+	model.add(LSTM(lstm_size, init = 'uniform'))
 	print('    model: added LSTM layer ({} -> {})'.format(embedding_size, lstm_size))
 	model.add(Dropout(0.2))
 	print('    model: added Dropout layer')
-	model.add(Dense(1))
+	model.add(Dense(1, init = 'uniform'))
 	print('    model: added Dense layer ({} -> {})'.format(lstm_size, 1))
 
 	# Compile
@@ -93,12 +94,12 @@ def get_data(data_fpath, training_ratio = 0.9):
 	print('...loading data')
 	with open(data_fpath, 'r') as data_fid:
 		data = json.load(data_fid)
-		data = data[0:10000]
+		data = data[0:50000]
 
 	# Parse data into individual components
 	smiles = [x[0] for x in data]
-	yields = [x[1] for x in data]
-	yields[yields > 1] = 1.0
+	yields = np.array([x[1] for x in data], dtype = np.float32)
+	yields[yields > 1.0] = 1.0
 
 	# Vectorize chemical names according to tokenizer
 	smiles = [[tokenizer[x] for x in one_smiles] for one_smiles in smiles]
@@ -112,8 +113,8 @@ def get_data(data_fpath, training_ratio = 0.9):
 	yields_test  = yields[division:]
 
 	# Pad to get uniform lengths (req. for training in same batch)
-	smiles_train = pad_sequences(smiles_train, maxlen = maxlen)
-	smiles_test  = pad_sequences(smiles_test, maxlen = maxlen)
+	smiles_train = pad_sequences(smiles_train, maxlen = maxlen).astype(np.uint8)
+	smiles_test  = pad_sequences(smiles_test, maxlen = maxlen).astype(np.uint8)
 
 	return (smiles_train, yields_train, smiles_test, yields_test)
 
@@ -178,6 +179,47 @@ def test_model(model, data_fpath):
 
 	return score
 
+def test_embeddings_demo(model, data_fpath):
+	'''This function tests dense embeddings of reactions and tries to find the
+	most similar one to a test example'''
+
+	# Get training data from helper function
+	data = get_data(data_fpath)
+	smiles_train = data[0]
+	smiles_test = data[2]
+
+	# Decode smiles strings
+	reverse_tokenizer = {0 : ''}
+	for key, val in tokenizer.iteritems():
+		reverse_tokenizer[val] = key
+
+	# Define function to test embedding
+	tf = theano.function([model.layers[0].input], 
+		model.layers[2].get_output(train = False))
+
+	# Look for reaction most similar to test reaction one:
+	print('smiles test: {}'.format(smiles_test[0]))
+	ref_embedding = tf([smiles_test[0]])[0]
+	print('shape of model.layers[2] output for comparison: {}'.format(ref_embedding.shape))
+	current_closest = [[0]]
+	current_maxdot  = 0
+	N = len(smiles_train)
+	i = 0
+	for smiles in smiles_train[0:1000]:
+		embedding = tf([smiles])[0]
+		i = i + 1
+		print('{}/{}'.format(i, N))
+		dot = np.dot(embedding, ref_embedding)
+		if dot > current_maxdot:
+			current_closest = smiles
+			current_maxdot = dot
+	print('---results---')
+	print('Reference reaction: {}'.format(''.join([reverse_tokenizer[x] for x in smiles_test[0]])))
+	print('Most similar from training: {}'.format(''.join([reverse_tokenizer[x] for x in current_closest])))
+	print(' (dot product = {})'.format(current_maxdot))
+
+	return
+
 if __name__ == '__main__':
 	if len(sys.argv) < 3:
 		print('Usage: {} "tokenizer.json" "data.json" [model_label]'.format(sys.argv[0]))
@@ -228,10 +270,15 @@ if __name__ == '__main__':
 			model.load_weights(weights_fpath)
 			print('...loaded weight information')
 
+	##### TEMP ###########
+	# Test current embebddings
+	test_embeddings_demo(model, sys.argv[2])
+	quit(1)
+
 	# Train model
 	print('...training model')
 	hist = None
-	(model, hist) = train_model(model, sys.argv[2], nb_epoch = 2, batch_size = 500)
+	(model, hist) = train_model(model, sys.argv[2], nb_epoch = 3, batch_size = 256)
 	print('...trained model')
 
 	# Save for future
