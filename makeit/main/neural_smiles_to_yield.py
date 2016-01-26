@@ -16,6 +16,7 @@ import json
 import sys
 import os
 
+
 def get_model_fpath():
 	'''Returns file path where this model is backed up'''
 	fpath_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models')
@@ -191,7 +192,7 @@ def test_model(model, data_fpath):
 
 	return score
 
-def test_embeddings_demo(model, data_fpath):
+def test_embeddings_demo(model, data_fpath, ref_index = 0):
 	'''This function tests dense embeddings of reactions and tries to find the
 	most similar one to a test example'''
 
@@ -210,23 +211,27 @@ def test_embeddings_demo(model, data_fpath):
 		model.layers[2].get_output(train = False))
 
 	# Look for reaction most similar to test reaction one:
-	print('smiles test: {}'.format(smiles_test[0]))
-	ref_embedding = tf([smiles_test[0]])[0]
+	ref_embedding = tf([smiles_test[ref_index]])[0]
 	print('shape of model.layers[2] output for comparison: {}'.format(ref_embedding.shape))
 	current_closest = [[0]]
 	current_maxdot  = 0
-	N = len(smiles_train)
+	nb = 1000
 	i = 0
-	for smiles in smiles_train[0:1000]:
-		embedding = tf([smiles])[0]
+	batches = [smiles_train[x:(x + nb)] for x in range(0, len(smiles_train), nb)]
+	N = len(batches)
+	for batch in batches:
+		embeddings = tf(batch)
 		i = i + 1
 		print('{}/{}'.format(i, N))
-		dot = np.dot(embedding, ref_embedding)
-		if dot > current_maxdot:
-			current_closest = smiles
-			current_maxdot = dot
+		scores = np.dot(ref_embedding, embeddings.T)
+		maxscore_index = np.argmax(scores)
+		maxscore = scores[maxscore_index]
+		if maxscore > current_maxdot:
+			current_closest = batch[maxscore_index]
+			current_maxdot = maxscore
+			print('...found a better match: {}'.format(current_maxdot))
 	print('---results---')
-	print('Reference reaction: {}'.format(''.join([reverse_tokenizer[x] for x in smiles_test[0]])))
+	print('Reference reaction: {}'.format(''.join([reverse_tokenizer[x] for x in smiles_test[ref_index]])))
 	print('Most similar from training: {}'.format(''.join([reverse_tokenizer[x] for x in current_closest])))
 	print(' (dot product = {})'.format(current_maxdot))
 
@@ -284,13 +289,13 @@ if __name__ == '__main__':
 
 	# ##### TEMP ###########
 	# # Test current embebddings
-	# test_embeddings_demo(model, sys.argv[2])
+	# test_embeddings_demo(model, sys.argv[2], ref_index = 0)
 	# quit(1)
 
 	# Train model
 	print('...training model')
 	hist = None
-	(model, hist) = train_model(model, sys.argv[2], nb_epoch = 3, batch_size = 256)
+	(model, hist) = train_model(model, sys.argv[2], nb_epoch = 1, batch_size = 400)
 	print('...trained model')
 
 	# Save for future
