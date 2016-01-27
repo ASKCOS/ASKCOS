@@ -1,5 +1,6 @@
 from __future__ import print_function
 from makeit.utils.parsing import input_to_bool, smiles_to_boolean_fps
+from makeit.utils.parse_cfg import read_config
 from makeit.utils.saving import save_model_history
 from keras.models import Graph, Sequential, model_from_json
 from keras.layers.core import Dense, Dropout, Activation, Masking
@@ -16,16 +17,7 @@ import json
 import sys
 import os
 
-
-def get_model_fpath():
-	'''Returns file path where this model is backed up'''
-	fpath_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models')
-	fpath = os.path.join(fpath_root, 'neural_smiles_to_yield')
-	if flabel:
-		return fpath + '_{}'.format(flabel)
-	return fpath
-
-def build_model(vocab_size, embedding_size = 100, lstm_size = 100, lr = 0.001):
+def build_model(vocab_size, embedding_size = 100, lstm_size = 100, lr = 0.01, optimizer = 'adam'):
 	'''Generates simple embedding model to use reaction smiles as
 	input in order to predict a single-valued output (i.e., yield)'''
 
@@ -46,14 +38,20 @@ def build_model(vocab_size, embedding_size = 100, lstm_size = 100, lr = 0.001):
 	print('    model: added Dense layer ({} -> {})'.format(lstm_size, 1))
 
 	# Compile
-	optimizer = Adam(lr = lr)
+	if optimizer == 'adam':
+		optimizer = Adam(lr = lr)
+	elif optimizer == 'rmsprop':
+		optimizer = RMSProp(lr = lr)
+	else:
+		print('Can only handle adam or rmsprop optimizers currently')
+		quit(1)
+
 	model.compile(loss = 'mean_squared_error', optimizer = optimizer)
 
 	return model
 
-def save_model(model, data_fpath, hist = None):
+def save_model(model, fpath = '', config = {}, hist = None, tstamp = ''):
 	'''Saves NN model object and associated information'''
-	fpath = get_model_fpath()
 
 	# Dump data
 	with open(fpath + '.json', 'w') as structure_fpath:
@@ -74,11 +72,10 @@ def save_model(model, data_fpath, hist = None):
 		print ('...saved history')
 
 	# Write to info file
-	info_fid = open(fpath + '.info', 'w')
-	time_now = datetime.datetime.utcnow()
-	info_fid.write('{} saved at UTC {}\n\n'.format(fpath, time_now))
-	info_fid.write('File details\n------------\n')
-	info_fid.write('- data source: {}\n'.format(data_fpath))
+	info_fid = open(fpath + '.info', 'a')
+	info_fid.write('{} saved at UTC {}\n\n'.format(fpath, tstamp))
+	info_fid.write('Configuration details\n------------\n')
+	info_fid.write('  {}\n'.format(config))
 	info_fid.close()
 
 	print('...saved model to {}.[json, h5, png, info]'.format(fpath))
@@ -95,7 +92,13 @@ def get_data(data_fpath, training_ratio = 0.9):
 	print('...loading data')
 	with open(data_fpath, 'r') as data_fid:
 		data = json.load(data_fid)
-		data = data[0:50000]
+		
+	# Truncate if necessary
+	try:
+		truncate_to = int(config['TRAINING']['truncate_to'])
+		data = data[0:truncate_to]
+	except:
+		pass
 
 	# Parse data into individual components
 	smiles = [x[0] for x in data]
@@ -119,7 +122,7 @@ def get_data(data_fpath, training_ratio = 0.9):
 
 	return (smiles_train, yields_train, smiles_test, yields_test)
 
-def train_model(model, data_fpath, nb_epoch = 3, batch_size = 16):
+def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 	'''Trains the model to predict chemical molecular weights'''
 
 	# Get data from helper function
@@ -130,16 +133,19 @@ def train_model(model, data_fpath, nb_epoch = 3, batch_size = 16):
 	# Fit (allows keyboard interrupts in the middle)
 	try:
 		hist = model.fit(smiles_train, yields_train, 
-			nb_epoch = nb_epoch, batch_size = batch_size, verbose = 1)	
-	except:
-		print('terminated training early due to error')
+			nb_epoch = nb_epoch, 
+			batch_size = batch_size, 
+			verbose = 1)	
+	except KeyboardInterrupt:
+		print('terminated training early (intentionally)')
 		hist = None
 
 	return (model, hist)
 
-def test_model(model, data_fpath):
+def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 	'''This function evaluates model performance using test data. The output is
 	more meaningful than just the loss function value.'''
+	test_fpath = config['IO']['model_fpath'] + ' ' + tstamp
 
 	# Get data from helper function
 	data = get_data(data_fpath)
@@ -149,11 +155,18 @@ def test_model(model, data_fpath):
 	yields_test = data[3]
 
 	# Simple evaluation
-	score = model.evaluate(smiles_test, yields_test, verbose = 1)
+	score = model.evaluate(smiles_test, yields_test, 
+		batch_size = batch_size,
+		verbose = 1)
 	print('model loss function score: {}'.format(score))
 
 	# Custom evaluation
-	yields_predicted = model.predict(smiles_test, verbose = 1)
+	yields_predicted = model.predict(smiles_test, 
+		batch_size = batch_size,
+		verbose = 1)
+	yields_train_predicted = model.predict(smiles_train, 
+		batch_size = batch_size,
+		verbose = 1)
 
 	# Decode smiles strings
 	reverse_tokenizer = {0 : ''}
@@ -161,7 +174,6 @@ def test_model(model, data_fpath):
 		reverse_tokenizer[val] = key
 
 	# Save
-	fpath = get_model_fpath() + '.test'
 	with open(fpath, 'w') as fid:
 		time_now = datetime.datetime.utcnow()
 		fid.write('-- tested at UTC {}\n\n'.format(fpath, time_now))		
@@ -178,19 +190,18 @@ def test_model(model, data_fpath):
 	plt.title('Parity plot for yield prediction (test set)')
 	plt.grid(True)
 	plt.axis([0, 1, 0, 1])
-	plt.show()
-
-
-	# Look at training data now
+	plt.savefig(test_fpath + ' test.png', bbox_inches = 'tight')
 	plt.clf()
-	yields_train_predicted = model.predict(smiles_train, verbose = 1)
+
+	# Look at training data onw
 	plt.scatter(yields_train, yields_train_predicted, alpha = 0.2)
 	plt.xlabel('Actual yield')
 	plt.ylabel('Predicted yield')
 	plt.title('Parity plot for yield prediction (train set)')
 	plt.grid(True)
 	plt.axis([0, 1, 0, 1])
-	plt.show()
+	plt.savefig(test_fpath + ' train.png', bbox_inches = 'tight')
+	plt.clf()
 
 	return score
 
@@ -240,54 +251,78 @@ def test_embeddings_demo(model, data_fpath, ref_index = 0):
 	return
 
 if __name__ == '__main__':
-	if len(sys.argv) < 3:
-		print('Usage: {} "tokenizer.json" "data.json" [model_label]'.format(sys.argv[0]))
-		print('    tokenizer.json must be a character dictionary')
-		print('    data_file.json must be a list of lists, where each' + 
-			  ' element is a list of str(reaction_smiles), float(yield))')
-		print('    [model_label] is an extra tag to append to the file' + 
-			  ' name if a unique identifier is desired')
+	if len(sys.argv) < 2:
+		print('Usage: {} "settings.cfg"'.format(sys.argv[0]))
+		quit(1)
+
+	# Load settings
+	try:
+		config = read_config(sys.argv[1])
+	except:
+		print('Could not read config file {}'.format(sys.argv[1]))
 		quit(1)
 
 	# Load tokenizer
-	with open(sys.argv[1], 'rb') as tokenizer_fid:
+	with open(config['IO']['tokenizer_fpath'], 'rb') as tokenizer_fid:
 		tokenizer = json.load(tokenizer_fid)
 
 	# Get model label
-	if len(sys.argv) == 4:
-		flabel = sys.argv[3]
-	else:
-		flabel = None
+	try:
+		fpath = config['IO']['model_fpath']
+	except KeyError:
+		print('Must specify model_fpath in IO in config')
+		quit(1)
 
-	# See if the model exists in this location already
-	fpath = get_model_fpath()
+	# Are we loading from an old structure?
 	structure_fpath = fpath + '.json'
-	use_old = True
-	if os.path.isfile(structure_fpath):
-		use_old = raw_input('Use existing model structure [y/n]? ')
-		use_old = input_to_bool(use_old)
-	else:
-		use_old = False
-	if use_old:
+	try:
+		use_old_structure = input_to_bool(config['ARCHITECTURE']['use_existing'])
+	except KeyError:
+		print('Must specify whether or not to use existing model architecture')
+		quit(1)
+	if use_old_structure and os.path.isfile(structure_fpath):
 		# Load model
 		with open(structure_fpath, 'r') as structure_fid:
+			print('...loading model architecture')
 			model = model_from_json(json.load(structure_fid))
 			print('...loaded structural information')
+	elif use_old_structure and not os.path.isfile(structure_fpath):
+		print('Model not found at specified path!')
+		quit(1)
 	else:
 		# Build model
 		print('...building model')
-		vocab_size = len(tokenizer.keys())
-		model = build_model(vocab_size + 1, embedding_size = 100, lstm_size = 100, lr = 0.01)
-		print('...built untrained model')
+		try:
+			model = build_model(len(tokenizer.keys()) + 1, 
+				embedding_size = int(config['ARCHITECTURE']['embedding_size']), 
+				lstm_size = int(config['ARCHITECTURE']['lstm_size']), 
+				lr = float(config['ARCHITECTURE']['lr']),
+				optimizer = config['ARCHITECTURE']['optimizer'])
+			print('...built untrained model')
+		except KeyError:
+			print('Must specify embedding_size, lstm_size, and lr in ARCHITECTURE in config')
+			quit(1)
+		except ValueError:
+			print('embedding_size, lstm_size, and/or lr must be suitable numbers')
+			quit(1)
 
 	# See if weights exist in this location already
 	weights_fpath = fpath + '.h5'
-	if os.path.isfile(weights_fpath):
-		use_old = raw_input('Use existing model weights [y/n]? ')
-		if input_to_bool(use_old):
-			# Use weights
-			model.load_weights(weights_fpath)
-			print('...loaded weight information')
+	try:
+		use_old_weights = input_to_bool(config['TRAINING']['use_existing'])
+	except KeyError:
+		print('Must specify whether or not to use existing model weights')
+		quit(1)
+	if use_old_weights and os.path.isfile(weights_fpath):
+		# Load weights
+		model.load_weights(weights_fpath)
+		print('...loaded weight information')
+	elif use_old_weights and not os.path.isfile(weights_fpath):
+		print('Weights not found at specified path!')
+		quit(1)
+	else:
+		# New weights will be used anyway
+		pass
 
 	# ##### TEMP ###########
 	# # Test current embebddings
@@ -295,17 +330,39 @@ if __name__ == '__main__':
 	# quit(1)
 
 	# Train model
-	print('...training model')
 	hist = None
-	(model, hist) = train_model(model, sys.argv[2], nb_epoch = 2, batch_size = 400)
-	print('...trained model')
+	try:
+		print('...training model')
+		(model, hist) = train_model(model, 
+			data_fpath = config['IO']['data_fpath'], 
+			nb_epoch = int(config['TRAINING']['nb_epoch']), 
+			batch_size = int(config['TRAINING']['batch_size']))
+		print('...trained model')
+	except KeyError:
+		print('Must specify data_fpath in IO and nb_epoch and batch_size in TRAINING in config')
+		quit(1)
+	except ValueError:
+		print('nb_epoch and batch_size must be integers')
+		quit(1)
+	except KeyboardInterrupt:
+		pass
+
+	# Get the current time
+	tstamp = datetime.datetime.utcnow().strftime('%d-%m-%Y_%H-%M')
 
 	# Save for future
 	print('...saving model')
-	save_model(model, sys.argv[2], hist = hist)
+	save_model(model, 
+		fpath = fpath,
+		config = config, 
+		hist = hist, 
+		tstamp = tstamp)
 	print('...saved model')
 		
 	# Test model
 	print('...testing model')
-	test_model(model, sys.argv[2])
+	test_model(model, config['IO']['data_fpath'],
+		fpath,
+		tstamp = tstamp,
+		batch_size = int(config['TRAINING']['batch_size']))
 	print('...tested model')
