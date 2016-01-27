@@ -5,3 +5,4 @@
 
 # Bad old models
 makeit/models/neural_name_to_mw*
+makeit/data/chemical_names_*

@@ -8,7 +8,7 @@ def read_config(fpath):
 	'''This function reads a configuration file and returns an equivalent dictionary'''
 
 	# Create new parser
-	config = ConfigParser.ConfigParser()
+	config = ConfigParser.SafeConfigParser()
 	with open(fpath, 'r') as fid:
 		config.readfp(fid)
 

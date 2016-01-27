@@ -283,6 +283,7 @@ if __name__ == '__main__':
 	if use_old_structure and os.path.isfile(structure_fpath):
 		# Load model
 		with open(structure_fpath, 'r') as structure_fid:
+			print('...loading model architecture')
 			model = model_from_json(json.load(structure_fid))
 			print('...loaded structural information')
 	elif use_old_structure and not os.path.isfile(structure_fpath):

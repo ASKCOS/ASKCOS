@@ -6,7 +6,7 @@ from keras.layers.core import Dense, Dropout, Activation, Masking
 from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import LSTM
 from keras.preprocessing.sequence import pad_sequences
-from keras.optimizers import RMSprop
+from keras.optimizers import RMSprop, Adam
 from keras.utils.visualize_util import plot
 import theano
 import matplotlib.pyplot as plt
@@ -25,7 +25,7 @@ def get_model_fpath():
 		return fpath + '_{}'.format(flabel)
 	return fpath
 
-def build_model(vocab_size, embedding_size = 100, lstm_size = 32, lr = 0.01):
+def build_model(vocab_size, embedding_size = 100, lstm_size = 100, lr = 0.001):
 	'''Generates simple embedding model to use reaction smiles as
 	input in order to predict a single-valued output (i.e., yield)'''
 
@@ -36,17 +36,17 @@ def build_model(vocab_size, embedding_size = 100, lstm_size = 32, lr = 0.01):
 	model.add(Embedding(vocab_size, embedding_size, mask_zero = True, init = 'uniform'))
 	print('    model: added Embedding layer ({} -> {})'.format(vocab_size, 
 		embedding_size))
-	model.add(Dropout(0.2))
-	print('    model: added Dropout layer')
+	# model.add(Dropout(0.2))
+	# print('    model: added Dropout layer')
 	model.add(LSTM(lstm_size, init = 'uniform'))
 	print('    model: added LSTM layer ({} -> {})'.format(embedding_size, lstm_size))
-	model.add(Dropout(0.2))
-	print('    model: added Dropout layer')
+	# model.add(Dropout(0.2))
+	# print('    model: added Dropout layer')
 	model.add(Dense(1, init = 'uniform'))
 	print('    model: added Dense layer ({} -> {})'.format(lstm_size, 1))
 
 	# Compile
-	optimizer = RMSprop(lr = lr)
+	optimizer = Adam(lr = lr)
 	model.compile(loss = 'mean_squared_error', optimizer = optimizer)
 
 	return model
@@ -180,7 +180,9 @@ def test_model(model, data_fpath):
 	plt.axis([0, 1, 0, 1])
 	plt.show()
 
-	# Look at training data onw
+
+	# Look at training data now
+	plt.clf()
 	yields_train_predicted = model.predict(smiles_train, verbose = 1)
 	plt.scatter(yields_train, yields_train_predicted, alpha = 0.2)
 	plt.xlabel('Actual yield')
@@ -295,7 +297,7 @@ if __name__ == '__main__':
 	# Train model
 	print('...training model')
 	hist = None
-	(model, hist) = train_model(model, sys.argv[2], nb_epoch = 1, batch_size = 400)
+	(model, hist) = train_model(model, sys.argv[2], nb_epoch = 2, batch_size = 400)
 	print('...trained model')
 
 	# Save for future
