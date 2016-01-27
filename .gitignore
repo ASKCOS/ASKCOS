@@ -3,7 +3,5 @@
 *.so
 *.pyd
 
-# Large data files
-*.h5
-*.h5_backup
-makeit/data/chemical_names_2500000.json
+# Bad old models
+makeit/models/neural_name_to_mw*
