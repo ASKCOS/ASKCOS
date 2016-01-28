@@ -3,3 +3,18 @@ makeit/models/neural_smiles_to_yield_01_27_2016_nodrouput_adamopt saved at UTC 2
 File details
 ------------
 - data source: makeit/data/reactions_2reac_smilesyield_179013.json
+/home/ccoley/ML Chemistry/Make-It/makeit/models/neural_smiles_to_yield_01_27_2016_nodrouput_adamopt saved at UTC 27-01-2016_18-53
+
+Configuration details
+------------
+  OrderedDict([('IO', OrderedDict([('__name__', 'IO'), ('model_fpath', '/home/ccoley/ML Chemistry/Make-It/makeit/models/neural_smiles_to_yield_01_27_2016_nodrouput_adamopt'), ('tokenizer_fpath', '/home/ccoley/ML Chemistry/Make-It/makeit/models/tokenizer_rxnsmiles.json'), ('data_fpath', '/home/ccoley/ML Chemistry/Make-It/makeit/data/reactions_2reac_smilesyield_179013.json')])), ('ARCHITECTURE', OrderedDict([('__name__', 'ARCHITECTURE'), ('use_existing', 'false'), ('embedding_size', '100'), ('lstm_size', '100'), ('optimizer', 'adam'), ('lr', '0.003')])), ('TRAINING', OrderedDict([('__name__', 'TRAINING'), ('use_existing', 'true'), ('truncate_to', '50000'), ('batch_size', '400'), ('nb_epoch', '1')]))])
+/home/ccoley/ML Chemistry/Make-It/makeit/models/neural_smiles_to_yield_01_27_2016_nodrouput_adamopt saved at UTC 01-27-2016_20-14
+
+Configuration details
+------------
+  OrderedDict([('IO', OrderedDict([('__name__', 'IO'), ('model_fpath', '/home/ccoley/ML Chemistry/Make-It/makeit/models/neural_smiles_to_yield_01_27_2016_nodrouput_adamopt'), ('tokenizer_fpath', '/home/ccoley/ML Chemistry/Make-It/makeit/models/tokenizer_rxnsmiles.json'), ('data_fpath', '/home/ccoley/ML Chemistry/Make-It/makeit/data/reactions_2reac_smilesyield_179013.json')])), ('ARCHITECTURE', OrderedDict([('__name__', 'ARCHITECTURE'), ('use_existing', 'false'), ('embedding_size', '100'), ('lstm_size', '100'), ('optimizer', 'adam'), ('lr', '0.003')])), ('TRAINING', OrderedDict([('__name__', 'TRAINING'), ('use_existing', 'true'), ('truncate_to', '50000'), ('batch_size', '600'), ('nb_epoch', '2')]))])
+/home/ccoley/ML Chemistry/Make-It/makeit/models/neural_smiles_to_yield_01_27_2016_nodrouput_adamopt saved at UTC 01-27-2016_22-02
+
+Configuration details
+------------
+  OrderedDict([('IO', OrderedDict([('__name__', 'IO'), ('model_fpath', '/home/ccoley/ML Chemistry/Make-It/makeit/models/neural_smiles_to_yield_01_27_2016_nodrouput_adamopt'), ('tokenizer_fpath', '/home/ccoley/ML Chemistry/Make-It/makeit/models/tokenizer_rxnsmiles.json'), ('data_fpath', '/home/ccoley/ML Chemistry/Make-It/makeit/data/reactions_2reac_smilesyield_179013.json')])), ('ARCHITECTURE', OrderedDict([('__name__', 'ARCHITECTURE'), ('use_existing', 'false'), ('embedding_size', '100'), ('lstm_size', '100'), ('optimizer', 'adam'), ('lr', '0.003')])), ('TRAINING', OrderedDict([('__name__', 'TRAINING'), ('use_existing', 'true'), ('truncate_to', '50000'), ('batch_size', '600'), ('nb_epoch', '3')]))])

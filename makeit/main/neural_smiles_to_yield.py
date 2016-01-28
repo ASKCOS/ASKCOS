@@ -145,7 +145,7 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 	'''This function evaluates model performance using test data. The output is
 	more meaningful than just the loss function value.'''
-	test_fpath = config['IO']['model_fpath'] + ' ' + tstamp
+	test_fpath = fpath + ' ' + tstamp
 
 	# Get data from helper function
 	data = get_data(data_fpath)
@@ -287,7 +287,7 @@ if __name__ == '__main__':
 			model = model_from_json(json.load(structure_fid))
 			print('...loaded structural information')
 	elif use_old_structure and not os.path.isfile(structure_fpath):
-		print('Model not found at specified path!')
+		print('Model not found at specified path {}'.format(structure_fpath))
 		quit(1)
 	else:
 		# Build model
@@ -318,7 +318,7 @@ if __name__ == '__main__':
 		model.load_weights(weights_fpath)
 		print('...loaded weight information')
 	elif use_old_weights and not os.path.isfile(weights_fpath):
-		print('Weights not found at specified path!')
+		print('Weights not found at specified path {}'.format(weights_fpath))
 		quit(1)
 	else:
 		# New weights will be used anyway
@@ -348,7 +348,7 @@ if __name__ == '__main__':
 		pass
 
 	# Get the current time
-	tstamp = datetime.datetime.utcnow().strftime('%d-%m-%Y_%H-%M')
+	tstamp = datetime.datetime.utcnow().strftime('%m-%d-%Y_%H-%M')
 
 	# Save for future
 	print('...saving model')
