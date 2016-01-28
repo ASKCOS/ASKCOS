@@ -28,12 +28,12 @@ def build_model(vocab_size, embedding_size = 100, lstm_size = 100, lr = 0.01, op
 	model.add(Embedding(vocab_size, embedding_size, mask_zero = True, init = 'uniform'))
 	print('    model: added Embedding layer ({} -> {})'.format(vocab_size, 
 		embedding_size))
-	# model.add(Dropout(0.2))
-	# print('    model: added Dropout layer')
+	model.add(Dropout(0.2))
+	print('    model: added Dropout layer')
 	model.add(LSTM(lstm_size, init = 'uniform'))
 	print('    model: added LSTM layer ({} -> {})'.format(embedding_size, lstm_size))
-	# model.add(Dropout(0.2))
-	# print('    model: added Dropout layer')
+	model.add(Dropout(0.2))
+	print('    model: added Dropout layer')
 	model.add(Dense(1, init = 'uniform'))
 	print('    model: added Dense layer ({} -> {})'.format(lstm_size, 1))
 
@@ -333,6 +333,7 @@ if __name__ == '__main__':
 	hist = None
 	try:
 		print('...training model')
+		model.optimizer.lr.set_value(float(config['TRAINING']['lr']))
 		(model, hist) = train_model(model, 
 			data_fpath = config['IO']['data_fpath'], 
 			nb_epoch = int(config['TRAINING']['nb_epoch']), 
