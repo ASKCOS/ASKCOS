@@ -221,14 +221,26 @@ def test_embeddings_demo(model, data_fpath, ref_index = 0):
 
 	# Define function to test embedding
 	tf = theano.function([model.layers[0].input], 
-		model.layers[2].get_output(train = False))
+		model.layers[1].get_output(train = False))
 
 	# Look for reaction most similar to test reaction one:
 	ref_embedding = tf([smiles_test[ref_index]])[0]
-	print('shape of model.layers[2] output for comparison: {}'.format(ref_embedding.shape))
+	print('shape of model.layers[1] output for comparison: {}'.format(ref_embedding.shape))
+
+	# For debugging
+	np.set_printoptions(threshold = 'nan')
+	print(ref_embedding)
+	
+	# Define vector-angle function
+	def vector_angle(embedding):
+		angle = np.arccos(np.dot(embedding, ref_embedding) / 
+			np.linalg.norm(embedding) / 
+			np.linalg.norm(ref_embedding))
+		return angle
+
 	current_closest = [[0]]
-	current_maxdot  = 0
-	nb = 1000
+	current_minangle  = 99
+	nb = 2000
 	i = 0
 	batches = [smiles_train[x:(x + nb)] for x in range(0, len(smiles_train), nb)]
 	N = len(batches)
@@ -236,17 +248,20 @@ def test_embeddings_demo(model, data_fpath, ref_index = 0):
 		embeddings = tf(batch)
 		i = i + 1
 		print('{}/{}'.format(i, N))
-		scores = np.dot(ref_embedding, embeddings.T)
-		maxscore_index = np.argmax(scores)
-		maxscore = scores[maxscore_index]
-		if maxscore > current_maxdot:
-			current_closest = batch[maxscore_index]
-			current_maxdot = maxscore
-			print('...found a better match: {}'.format(current_maxdot))
+		scores = np.apply_along_axis(vector_angle, axis = 1, arr = embeddings)
+		minangle_index = np.argmin(scores)
+		minangle = scores[minangle_index]
+		if minangle < current_minangle:
+			current_closest = batch[minangle_index]
+			current_minangle = minangle
+			print('...found a better match, angle = {}'.format(current_minangle))
+			# For debugging
+			np.set_printoptions(threshold='nan')
+			print(embeddings[minangle_index])
 	print('---results---')
 	print('Reference reaction: {}'.format(''.join([reverse_tokenizer[x] for x in smiles_test[ref_index]])))
 	print('Most similar from training: {}'.format(''.join([reverse_tokenizer[x] for x in current_closest])))
-	print(' (dot product = {})'.format(current_maxdot))
+	print(' (angle = {})'.format(current_minangle))
 
 	return
 
@@ -324,10 +339,15 @@ if __name__ == '__main__':
 		# New weights will be used anyway
 		pass
 
-	# ##### TEMP ###########
-	# # Test current embebddings
-	# test_embeddings_demo(model, sys.argv[2], ref_index = 0)
-	# quit(1)
+	# Testing embeddings?
+	try:
+		if input_to_bool(config['TESTING']['test_embedding']):
+			# Test current embebddings
+			test_embeddings_demo(model, config['IO']['data_fpath'],
+				ref_index = int(config['TESTING']['test_index']))
+			quit(1)
+	except KeyError:
+		pass
 
 	# Train model
 	hist = None
