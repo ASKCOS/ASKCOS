@@ -25,16 +25,14 @@ def build_model(vocab_size, embedding_size = 100, lstm_size = 100, lr = 0.01, op
 	model = Sequential()
 
 	# Add layers
-	model.add(Embedding(vocab_size, embedding_size, mask_zero = True, init = 'uniform'))
+	model.add(Embedding(vocab_size, embedding_size, mask_zero = True, init = 'he_uniform'))
 	print('    model: added Embedding layer ({} -> {})'.format(vocab_size, 
 		embedding_size))
-	model.add(Dropout(0.2))
-	print('    model: added Dropout layer')
-	model.add(LSTM(lstm_size, init = 'uniform'))
+	model.add(LSTM(lstm_size, init = 'he_normal'))
 	print('    model: added LSTM layer ({} -> {})'.format(embedding_size, lstm_size))
 	model.add(Dropout(0.2))
 	print('    model: added Dropout layer')
-	model.add(Dense(1, init = 'uniform'))
+	model.add(Dense(1, init = 'zero'))
 	print('    model: added Dense layer ({} -> {})'.format(lstm_size, 1))
 
 	# Compile
@@ -97,6 +95,13 @@ def get_data(data_fpath, training_ratio = 0.9):
 	try:
 		truncate_to = int(config['TRAINING']['truncate_to'])
 		data = data[0:truncate_to]
+	except:
+		pass
+
+	# Get new training_ratio if possible
+	try:
+		temp = float(config['TRAINING']['ratio'])
+		training_ratio = temp
 	except:
 		pass
 
