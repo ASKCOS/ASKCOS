@@ -125,7 +125,7 @@ def get_data(data_fpath, training_ratio = 0.9):
 	smiles_train = pad_sequences(smiles_train, maxlen = maxlen).astype(np.uint8)
 	smiles_test  = pad_sequences(smiles_test, maxlen = maxlen).astype(np.uint8)
 
-	return (smiles_train, yields_train, smiles_test, yields_test)
+	return (smiles_train, yields_train, smiles_test, yields_test, training_ratio)
 
 def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 	'''Trains the model to predict chemical molecular weights'''
@@ -134,12 +134,18 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 	data = get_data(data_fpath)
 	smiles_train = data[0]
 	yields_train = data[1]
+	smiles_test = data[2]
+	yields_test = data[3]
+	training_ratio = data[4]
+	# Note: will rejoin data and use validation_split
 
 	# Fit (allows keyboard interrupts in the middle)
 	try:
-		hist = model.fit(smiles_train, yields_train, 
+		hist = model.fit(np.concatenate((smiles_train, smiles_test)),
+			np.concatenate((yields_train, yields_test)), 
 			nb_epoch = nb_epoch, 
 			batch_size = batch_size, 
+			validation_split = (1 - training_ratio),
 			verbose = 1)	
 	except KeyboardInterrupt:
 		print('terminated training early (intentionally)')
@@ -158,12 +164,6 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 	yields_train = data[1]
 	smiles_test = data[2]
 	yields_test = data[3]
-
-	# Simple evaluation
-	score = model.evaluate(smiles_test, yields_test, 
-		batch_size = batch_size,
-		verbose = 1)
-	print('model loss function score: {}'.format(score))
 
 	# Custom evaluation
 	yields_predicted = model.predict(smiles_test, 
@@ -208,7 +208,7 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 	plt.savefig(test_fpath + ' train.png', bbox_inches = 'tight')
 	plt.clf()
 
-	return score
+	return
 
 def test_embeddings_demo(model, data_fpath, ref_index = 0):
 	'''This function tests dense embeddings of reactions and tries to find the
@@ -367,9 +367,9 @@ if __name__ == '__main__':
 	except KeyError:
 		print('Must specify data_fpath in IO and nb_epoch and batch_size in TRAINING in config')
 		quit(1)
-	except ValueError:
-		print('nb_epoch and batch_size must be integers')
-		quit(1)
+#	except ValueError:
+#		print('nb_epoch and batch_size must be integers')
+#		quit(1)
 	except KeyboardInterrupt:
 		pass
 
