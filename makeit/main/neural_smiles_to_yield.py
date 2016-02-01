@@ -238,10 +238,8 @@ def test_embeddings_demo(model, data_fpath, ref_index = 0):
 	
 	# Define vector-angle function
 	def vector_angle(embedding):
-		angle = np.arccos(np.dot(embedding, ref_embedding) / 
-			np.linalg.norm(embedding) / 
-			np.linalg.norm(ref_embedding))
-		return angle
+		score = np.linalg.norm(embedding - ref_embedding) 
+		return score
 
 	current_closest = [[0]]
 	current_minangle  = 99
@@ -266,7 +264,7 @@ def test_embeddings_demo(model, data_fpath, ref_index = 0):
 	print('---results---')
 	print('Reference reaction: {}'.format(''.join([reverse_tokenizer[x] for x in smiles_test[ref_index]])))
 	print('Most similar from training: {}'.format(''.join([reverse_tokenizer[x] for x in current_closest])))
-	print(' (angle = {})'.format(current_minangle))
+	print(' (score = {})'.format(current_minangle))
 
 	return
 
