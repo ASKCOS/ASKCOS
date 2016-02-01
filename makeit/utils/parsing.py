@@ -39,7 +39,7 @@ def smiles_to_boolean_fps(all_smiles):
 	'''This function takes a list of SMILES strings and returns a fingerprint 
 	in the form of an explicit boolean vector'''
 
-	BVs = [Chem.RDKFingerprint(Chem.MolFromSmiles(smiles)) for smiles in all_smiles]
+	BVs = [Chem.RDKFingerprint(Chem.MolFromSmiles(str(smiles))) for smiles in all_smiles]
 	for i in range(len(BVs)):
 		BVs[i] = np.array([bool(index) for index in BVs[i]])
 	return np.vstack(BVs)
