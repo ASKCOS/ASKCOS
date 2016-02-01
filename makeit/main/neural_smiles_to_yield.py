@@ -25,16 +25,14 @@ def build_model(vocab_size, embedding_size = 100, lstm_size = 100, lr = 0.01, op
 	model = Sequential()
 
 	# Add layers
-	model.add(Embedding(vocab_size, embedding_size, mask_zero = True, init = 'uniform'))
+	model.add(Embedding(vocab_size, embedding_size, mask_zero = True, init = 'he_uniform'))
 	print('    model: added Embedding layer ({} -> {})'.format(vocab_size, 
 		embedding_size))
-	# model.add(Dropout(0.2))
-	# print('    model: added Dropout layer')
-	model.add(LSTM(lstm_size, init = 'uniform'))
+	model.add(LSTM(lstm_size, init = 'he_normal'))
 	print('    model: added LSTM layer ({} -> {})'.format(embedding_size, lstm_size))
-	# model.add(Dropout(0.2))
-	# print('    model: added Dropout layer')
-	model.add(Dense(1, init = 'uniform'))
+	model.add(Dropout(0.2))
+	print('    model: added Dropout layer')
+	model.add(Dense(1, init = 'zero'))
 	print('    model: added Dense layer ({} -> {})'.format(lstm_size, 1))
 
 	# Compile
@@ -100,6 +98,13 @@ def get_data(data_fpath, training_ratio = 0.9):
 	except:
 		pass
 
+	# Get new training_ratio if possible
+	try:
+		temp = float(config['TRAINING']['ratio'])
+		training_ratio = temp
+	except:
+		pass
+
 	# Parse data into individual components
 	smiles = [x[0] for x in data]
 	yields = np.array([x[1] for x in data], dtype = np.float32)
@@ -120,7 +125,7 @@ def get_data(data_fpath, training_ratio = 0.9):
 	smiles_train = pad_sequences(smiles_train, maxlen = maxlen).astype(np.uint8)
 	smiles_test  = pad_sequences(smiles_test, maxlen = maxlen).astype(np.uint8)
 
-	return (smiles_train, yields_train, smiles_test, yields_test)
+	return (smiles_train, yields_train, smiles_test, yields_test, training_ratio)
 
 def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 	'''Trains the model to predict chemical molecular weights'''
@@ -129,12 +134,18 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 	data = get_data(data_fpath)
 	smiles_train = data[0]
 	yields_train = data[1]
+	smiles_test = data[2]
+	yields_test = data[3]
+	training_ratio = data[4]
+	# Note: will rejoin data and use validation_split
 
 	# Fit (allows keyboard interrupts in the middle)
 	try:
-		hist = model.fit(smiles_train, yields_train, 
+		hist = model.fit(np.concatenate((smiles_train, smiles_test)),
+			np.concatenate((yields_train, yields_test)), 
 			nb_epoch = nb_epoch, 
 			batch_size = batch_size, 
+			validation_split = (1 - training_ratio),
 			verbose = 1)	
 	except KeyboardInterrupt:
 		print('terminated training early (intentionally)')
@@ -153,12 +164,6 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 	yields_train = data[1]
 	smiles_test = data[2]
 	yields_test = data[3]
-
-	# Simple evaluation
-	score = model.evaluate(smiles_test, yields_test, 
-		batch_size = batch_size,
-		verbose = 1)
-	print('model loss function score: {}'.format(score))
 
 	# Custom evaluation
 	yields_predicted = model.predict(smiles_test, 
@@ -203,7 +208,7 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 	plt.savefig(test_fpath + ' train.png', bbox_inches = 'tight')
 	plt.clf()
 
-	return score
+	return
 
 def test_embeddings_demo(model, data_fpath, ref_index = 0):
 	'''This function tests dense embeddings of reactions and tries to find the
@@ -221,14 +226,24 @@ def test_embeddings_demo(model, data_fpath, ref_index = 0):
 
 	# Define function to test embedding
 	tf = theano.function([model.layers[0].input], 
-		model.layers[2].get_output(train = False))
+		model.layers[1].get_output(train = False))
 
 	# Look for reaction most similar to test reaction one:
 	ref_embedding = tf([smiles_test[ref_index]])[0]
-	print('shape of model.layers[2] output for comparison: {}'.format(ref_embedding.shape))
+	print('shape of model.layers[1] output for comparison: {}'.format(ref_embedding.shape))
+
+	# For debugging
+	np.set_printoptions(threshold = 'nan')
+	print(ref_embedding)
+	
+	# Define vector-angle function
+	def vector_angle(embedding):
+		score = np.linalg.norm(embedding - ref_embedding) 
+		return score
+
 	current_closest = [[0]]
-	current_maxdot  = 0
-	nb = 1000
+	current_minangle  = 99
+	nb = 2000
 	i = 0
 	batches = [smiles_train[x:(x + nb)] for x in range(0, len(smiles_train), nb)]
 	N = len(batches)
@@ -236,17 +251,20 @@ def test_embeddings_demo(model, data_fpath, ref_index = 0):
 		embeddings = tf(batch)
 		i = i + 1
 		print('{}/{}'.format(i, N))
-		scores = np.dot(ref_embedding, embeddings.T)
-		maxscore_index = np.argmax(scores)
-		maxscore = scores[maxscore_index]
-		if maxscore > current_maxdot:
-			current_closest = batch[maxscore_index]
-			current_maxdot = maxscore
-			print('...found a better match: {}'.format(current_maxdot))
+		scores = np.apply_along_axis(vector_angle, axis = 1, arr = embeddings)
+		minangle_index = np.argmin(scores)
+		minangle = scores[minangle_index]
+		if minangle < current_minangle:
+			current_closest = batch[minangle_index]
+			current_minangle = minangle
+			print('...found a better match, angle = {}'.format(current_minangle))
+			# For debugging
+			np.set_printoptions(threshold='nan')
+			print(embeddings[minangle_index])
 	print('---results---')
 	print('Reference reaction: {}'.format(''.join([reverse_tokenizer[x] for x in smiles_test[ref_index]])))
 	print('Most similar from training: {}'.format(''.join([reverse_tokenizer[x] for x in current_closest])))
-	print(' (dot product = {})'.format(current_maxdot))
+	print(' (score = {})'.format(current_minangle))
 
 	return
 
@@ -324,15 +342,21 @@ if __name__ == '__main__':
 		# New weights will be used anyway
 		pass
 
-	# ##### TEMP ###########
-	# # Test current embebddings
-	# test_embeddings_demo(model, sys.argv[2], ref_index = 0)
-	# quit(1)
+	# Testing embeddings?
+	try:
+		if input_to_bool(config['TESTING']['test_embedding']):
+			# Test current embebddings
+			test_embeddings_demo(model, config['IO']['data_fpath'],
+				ref_index = int(config['TESTING']['test_index']))
+			quit(1)
+	except KeyError:
+		pass
 
 	# Train model
 	hist = None
 	try:
 		print('...training model')
+		model.optimizer.lr.set_value(float(config['TRAINING']['lr']))
 		(model, hist) = train_model(model, 
 			data_fpath = config['IO']['data_fpath'], 
 			nb_epoch = int(config['TRAINING']['nb_epoch']), 
@@ -341,9 +365,9 @@ if __name__ == '__main__':
 	except KeyError:
 		print('Must specify data_fpath in IO and nb_epoch and batch_size in TRAINING in config')
 		quit(1)
-	except ValueError:
-		print('nb_epoch and batch_size must be integers')
-		quit(1)
+#	except ValueError:
+#		print('nb_epoch and batch_size must be integers')
+#		quit(1)
 	except KeyboardInterrupt:
 		pass
 

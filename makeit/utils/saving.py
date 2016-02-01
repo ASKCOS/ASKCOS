@@ -8,14 +8,19 @@ def save_model_history(hist, fpath):
 	# Open file
 	fid = open(fpath, 'a')
 	print('trained at {}'.format(datetime.datetime.utcnow()))
-	print('iteration\tnum_batches\tbatch_size\tloss\taccuracy', file = fid)
+	print('iteration\tnum_batches\tbatch_size\tloss\tval_loss', file = fid)
 
-	# Iterate through
-	for i in range(len(hist.history['batch'])):
-		print('{}\t{}\t{}\t{}'.format(i + 1, 
-			                          hist.history['batch'][i], 
-			                          hist.history['size'][i],
-			                          hist.history['loss'][i]), file = fid)
+	try:
+		# Iterate through
+		for i in range(len(hist.history['batch'])):
+			print('{}\t{}\t{}\t{}\t{}'.format(i + 1, 
+							hist.history['batch'][i],
+							hist.history['size'][i],
+							hist.history['loss'][i], 
+							hist.history['val_loss'][i] if 'val_loss' in hist.history else 'n/a'),
+							file = fid)
+	except KeyError:
+		print('<no history found>', file = fid)
 
 	# Close file
 	fid.close()
