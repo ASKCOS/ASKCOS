@@ -12,11 +12,22 @@ class Graph():
 		self.edges = []
 		return
 
+	def nodeAttributes(self):
+		'''Returns 2D array where (#, :) contains attributes of node #'''
+		return np.vstack([x.attributes for x in self.nodes])
+	
+	def edgeAttributes(self):
+		'''Returns 2D array where (#, :) contains attributes of edge #'''
+		return np.vstack([x.attributes for x in self.edges])
+
+	def nodeNeighbors(self):
+		return [x.neighbors for x in self.notes]
+
 class Node():
 	'''Describes an attributed node in an undirected graph'''
 	def __init__(self, i = None, attributes = np.array([], dtype = att_dtype)):
 		self.i = i
-		self.attributes = attributes
+		self.attributes = attributes # 1D array
 		self.neighbors = [] # (atom index, bond index)
 		return
 
@@ -24,7 +35,7 @@ class Edge():
 	'''Describes an attributed edge in an undirected graph'''
 	def __init__(self, connects = (), i = None, attributes = np.array([], dtype = att_dtype)):
 		self.i = i
-		self.attributes = attributes
+		self.attributes = attributes # 1D array
 		self.connects = connects # (atom index, atom index)
 		return
 
@@ -32,6 +43,13 @@ def molToGraph(rdmol):
 	'''Converts an RDKit molecule to an attributed undirected graph'''
 	# Initialize
 	graph = Graph()
+	# Add bonds
+	for bond in rdmol.GetBonds():
+		edge = Edge()
+		edge.i = bond.GetIdx()
+		edge.attributes = bondAttributes(bond)
+		edge.connects = (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())
+		graph.edges.append(edge)
 	# Add atoms
 	for atom in rdmol.GetAtoms():
 		node = Node()
@@ -46,13 +64,6 @@ def molToGraph(rdmol):
 				).GetIdx()
 			))
 		graph.nodes.append(node)
-	# Add bonds
-	for bond in rdmol.GetBonds():
-		edge = Edge()
-		edge.i = bond.GetIdx()
-		edge.attributes = bondAttributes(bond)
-		edge.connects = (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())
-		graph.edges.append(edge)
 	return graph 
 
 def bondAttributes(bond):
@@ -122,5 +133,9 @@ def oneHotVector(val, lst):
 		return lst[-1]
 	return map(lambda x: x == val, lst)
 
-m = AllChem.MolFromSmiles('CC(O)C=C')
-g = molToGraph(m)
+def sizeAttributeVector():
+	m = AllChem.MolFromSmiles('CC')
+	g = molToGraph(m)
+	a = g.nodes[0]
+	b = g.edges[0]
+	return len(a.attributes) + len(b.attributes)
