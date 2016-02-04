@@ -1,0 +1,30 @@
+makeit/models/neural_fp_to_yield_02_01_2016_overfit saved at UTC 02-01-2016_16-59
+
+Configuration details
+------------
+  OrderedDict([('IO', OrderedDict([('__name__', 'IO'), ('model_fpath', 'makeit/models/neural_fp_to_yield_02_01_2016_overfit'), ('data_fpath', 'makeit/data/reactions_2reac_rdsmiles_57847.json')])), ('ARCHITECTURE', OrderedDict([('__name__', 'ARCHITECTURE'), ('use_existing', 'false'), ('embedding_size', '32'), ('optimizer', 'adam'), ('lr', '0.003'), ('fp_size', '2048'), ('dropout', '0.1')])), ('TRAINING', OrderedDict([('__name__', 'TRAINING'), ('use_existing', 'false'), ('truncate_to', '50'), ('split', '0.8'), ('batch_size', '50'), ('nb_epoch', '2'), ('lr', '0.003')]))])
+makeit/models/neural_fp_to_yield_02_01_2016_overfit saved at UTC 02-01-2016_17-03
+
+Configuration details
+------------
+  OrderedDict([('IO', OrderedDict([('__name__', 'IO'), ('model_fpath', 'makeit/models/neural_fp_to_yield_02_01_2016_overfit'), ('data_fpath', 'makeit/data/reactions_2reac_rdsmiles_57847.json')])), ('ARCHITECTURE', OrderedDict([('__name__', 'ARCHITECTURE'), ('use_existing', 'false'), ('embedding_size', '32'), ('optimizer', 'adam'), ('lr', '0.003'), ('fp_size', '2048'), ('dropout', '0.1')])), ('TRAINING', OrderedDict([('__name__', 'TRAINING'), ('use_existing', 'false'), ('truncate_to', '50'), ('split', '0.8'), ('batch_size', '50'), ('nb_epoch', '100'), ('lr', '0.003')]))])
+makeit/models/neural_fp_to_yield_02_01_2016_overfit saved at UTC 02-01-2016_17-07
+
+Configuration details
+------------
+  OrderedDict([('IO', OrderedDict([('__name__', 'IO'), ('model_fpath', 'makeit/models/neural_fp_to_yield_02_01_2016_overfit'), ('data_fpath', 'makeit/data/reactions_2reac_rdsmiles_57847.json')])), ('ARCHITECTURE', OrderedDict([('__name__', 'ARCHITECTURE'), ('use_existing', 'false'), ('embedding_size', '100'), ('optimizer', 'adam'), ('lr', '0.003'), ('fp_size', '2048'), ('dropout', '0.1')])), ('TRAINING', OrderedDict([('__name__', 'TRAINING'), ('use_existing', 'false'), ('truncate_to', '50'), ('split', '0.8'), ('batch_size', '50'), ('nb_epoch', '100'), ('lr', '0.01')]))])
+makeit/models/neural_fp_to_yield_02_01_2016_overfit saved at UTC 02-01-2016_17-09
+
+Configuration details
+------------
+  OrderedDict([('IO', OrderedDict([('__name__', 'IO'), ('model_fpath', 'makeit/models/neural_fp_to_yield_02_01_2016_overfit'), ('data_fpath', 'makeit/data/reactions_2reac_rdsmiles_57847.json')])), ('ARCHITECTURE', OrderedDict([('__name__', 'ARCHITECTURE'), ('use_existing', 'false'), ('embedding_size', '100'), ('optimizer', 'adam'), ('lr', '0.003'), ('fp_size', '2048'), ('dropout', '0.1')])), ('TRAINING', OrderedDict([('__name__', 'TRAINING'), ('use_existing', 'false'), ('truncate_to', '50'), ('split', '0.8'), ('batch_size', '50'), ('nb_epoch', '100'), ('lr', '0.001')]))])
+makeit/models/neural_fp_to_yield_02_01_2016_overfit saved at UTC 02-01-2016_17-15
+
+Configuration details
+------------
+  OrderedDict([('IO', OrderedDict([('__name__', 'IO'), ('model_fpath', 'makeit/models/neural_fp_to_yield_02_01_2016_overfit'), ('data_fpath', 'makeit/data/reactions_2reac_rdsmiles_57847.json')])), ('ARCHITECTURE', OrderedDict([('__name__', 'ARCHITECTURE'), ('use_existing', 'false'), ('embedding_size', '100'), ('optimizer', 'adam'), ('lr', '0.003'), ('fp_size', '2048'), ('dropout', '0.1')])), ('TRAINING', OrderedDict([('__name__', 'TRAINING'), ('use_existing', 'false'), ('truncate_to', '50'), ('split', '0.8'), ('batch_size', '50'), ('nb_epoch', '100'), ('lr', '0.003')]))])
+makeit/models/neural_fp_to_yield_02_01_2016_overfit saved at UTC 02-01-2016_17-25
+
+Configuration details
+------------
+  OrderedDict([('IO', OrderedDict([('__name__', 'IO'), ('model_fpath', 'makeit/models/neural_fp_to_yield_02_01_2016_overfit'), ('data_fpath', 'makeit/data/reactions_2reac_rdsmiles_57847.json')])), ('ARCHITECTURE', OrderedDict([('__name__', 'ARCHITECTURE'), ('use_existing', 'false'), ('embedding_size', '100'), ('optimizer', 'adam'), ('lr', '0.003'), ('fp_size', '2048'), ('dropout', '0.1')])), ('TRAINING', OrderedDict([('__name__', 'TRAINING'), ('use_existing', 'true'), ('truncate_to', '50'), ('split', '0.8'), ('batch_size', '50'), ('nb_epoch', '200'), ('lr', '0.003')]))])

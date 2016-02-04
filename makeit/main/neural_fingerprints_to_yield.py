@@ -1,11 +1,12 @@
 from __future__ import print_function
 from makeit.utils.parsing import input_to_bool, smiles_to_boolean_fps
 from makeit.utils.saving import save_model_history
+from makeit.utils.parse_cfg import read_config
 from keras.models import Graph, model_from_json
 from keras.layers.core import Dense, Dropout, Activation, Masking
 from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import LSTM
-from keras.optimizers import RMSprop
+from keras.optimizers import RMSprop, Adam
 from keras.utils.visualize_util import plot
 import matplotlib.pyplot as plt
 import numpy as np
@@ -52,7 +53,7 @@ def build_model(fp_size = 2048, embedding_size = 32, dropout = 0.1, lr = 0.5, op
 		print('Can only handle adam or rmsprop optimizers currently')
 		quit(1)
 
-	model.compile(loss = 'mean_squared_error', optimizer = optimizer)
+	model.compile(loss = {'yield' : 'mean_squared_error'}, optimizer = optimizer)
 
 	return model
 
@@ -148,10 +149,10 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 
 	# Fit (allows keyboard interrupts in the middle)
 	try:
-		fpA = np.concatenate(fpA_train, fpA_test)
-		fpB = np.concatenate(fpB_train, fpB_test)
-		yields = np.concatenate(yields_train, yields_test)
-		hist = model.fit({'fpA' : fpA_train, 'fpB' : fpB_train, 'yield' : yields}, 
+		fpA = np.vstack((fpA_train, fpA_test))
+		fpB = np.vstack((fpB_train, fpB_test))
+		yields = np.concatenate((yields_train, yields_test))
+		hist = model.fit({'fpA' : fpA, 'fpB' : fpB, 'yield' : yields}, 
 			nb_epoch = nb_epoch, 
 			batch_size = batch_size, 
 			validation_split = (1 - training_ratio),
@@ -185,12 +186,12 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 		verbose = 1)['yield']
 
 	# Save
-	with open(fpath, 'w') as fid:
+	with open(test_fpath, 'w') as fid:
 		time_now = datetime.datetime.utcnow()
 		fid.write('-- tested at UTC {}\n\n'.format(fpath, time_now))		
 		fid.write('test entry\tactual yield\tpredicted yield\n')
-		for i in range(len(smiles_test)):
-			fid.write('{}\t{}\t{}\t{}\n'.format(i, 
+		for i in range(len(yields_test)):
+			fid.write('{}\t{}\t{}\n'.format(i, 
 				yields_test[i], yields_predicted[i, 0]))
 
 	# Create parity plot
@@ -227,10 +228,6 @@ if __name__ == '__main__':
 		print('Could not read config file {}'.format(sys.argv[1]))
 		quit(1)
 
-	# Load tokenizer
-	with open(config['IO']['tokenizer_fpath'], 'rb') as tokenizer_fid:
-		tokenizer = json.load(tokenizer_fid)
-
 	# Get model label
 	try:
 		fpath = config['IO']['model_fpath']
@@ -258,8 +255,7 @@ if __name__ == '__main__':
 		# Build model
 		print('...building model')
 		try:
-			model = build_model(len(tokenizer.keys()) + 1, 
-				fp_size = int(config['ARCHITECTURE']['fp_size']),
+			model = build_model(fp_size = int(config['ARCHITECTURE']['fp_size']),
 				embedding_size = int(config['ARCHITECTURE']['embedding_size']), 
 				dropout = float(config['ARCHITECTURE']['dropout']),
 				lr = float(config['ARCHITECTURE']['lr']),
