@@ -3,6 +3,7 @@ from makeit.utils.chemnet_connect import * # mongodb connection, gets 'chemicals
 from makeit.utils.database import get_all_ids
 from numpy.random import shuffle # for random selection
 import rdkit.Chem as Chem          # molecule building
+import rdkit.Chem.FunctionalGroups as rdFGs
 import datetime # for info files
 import json # for dumping
 import sys  # for commanad line
@@ -415,7 +416,68 @@ def chemical_rdsmiles(N = 100000):
 	print('...saved json file')
 
 	return True
+
+def chemical_rdsmiles_rdfuncgroups(N = 10000):
+	'''Sample chemicals collection for chemicals that can be parsed into RDKit
+
+	Saved data is str(SMILES), list(funcgroup FP)'''
 	
+
+	# Get hierarchy
+	hierarchy = rdFGs.BuildFuncGroupHierarchy()
+
+	# Randomize list of chemical IDs
+	chemical_ids = get_all_ids(chemicals)
+	print('...read chemical IDs')
+	shuffle(chemical_ids) 
+	print('...shuffled chemical IDs')
+
+	# Look for valid entries
+	data = []
+	j = 0 # successful entries == len(data)
+	for chemical_id in chemical_ids:
+
+		# Are we done?
+		if j == N:
+			break
+
+		# Find entry
+		chemical = chemicals.find_one({'_id' : chemical_id})
+
+		# Try loading smiles
+		if chemical['smiles']:
+			try:
+				this_mol = Chem.MolFromSmiles(chemical['smiles'])
+				this_fp = rdFGs.CreateMolFingerprint(this_mol, hierarchy)
+				if not this_mol:
+					continue
+			except:
+				continue
+
+		# Append to list
+		data.append([Chem.MolToSmiles(this_mol), this_fp])
+		j = j + 1
+
+		# Report progress
+		if (j % 100) == 0:
+			print('{}/{}'.format(j, N))
+
+	print('...constructed data list')
+
+	# Write details
+	details = 'Found {} random chemicals from database'.format(len(data))
+	details += ' satisfying the following criteria:\n'
+	details += '- could be parsed by RDKit using SMILES\n'
+	details += '\nData list consists of entries:\n'
+	details += '  str(SMILES), list(FunctionalGroup FP)\n'
+
+	# Save
+	dump_to_data_file(data, 'chemical_rdsmiles_rdfuncgroups_{}'.format(len(data)), 
+		details = details)
+	print('...saved json file')
+
+	return True
+
 def all_reaction_dois():
 	'''This function searches for all DOIs references in the reaction
 	datababse.'''
@@ -481,6 +543,7 @@ if __name__ == '__main__':
 		print('    - "all_reaction_dois"')
 		print('    - "chemical_rdsmiles"')
 		print('    - "reactions_2reac_smilesyield"')
+		print('    - "chemical_rdsmiles_rdfuncgroups"')
 
 	# Molecular weight training set
 	if sys.argv[1] == 'chemical_names_with_mws':
@@ -521,6 +584,12 @@ if __name__ == '__main__':
 			reactions_2reac_smilesyield(int(sys.argv[2]))
 		else:
 			reactions_2reac_smilesyield()		
+
+	elif sys.argv[1] == 'chemical_rdsmiles_rdfuncgroups':
+		if len(sys.argv) == 3:
+			chemical_rdsmiles_rdfuncgroups(int(sys.argv[2]))
+		else:
+			chemical_rdsmiles_rdfuncgroups()
 
 	else:
 		print('Invalid data type "{}", see usage'.format(sys.argv[1]))
