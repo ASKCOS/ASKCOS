@@ -27,7 +27,7 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam'):
 	model = Sequential()
 
 	# Add layers
-	model.add(GraphFP(embedding_size, sizeAttributeVector() - 1, depth = 1))
+	model.add(GraphFP(embedding_size, sizeAttributeVector(), depth = 1))
 	print('    model: added GraphFP layer ({} -> {})'.format('mol', embedding_size))
 	model.add(Dense(1, init = 'zero'))
 	print('    model: added Dense layer ({} -> {})'.format(embedding_size, 1))
