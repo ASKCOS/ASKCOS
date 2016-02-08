@@ -48,14 +48,14 @@ class GraphFP(Layer):
 		self.depth = depth
 
 		self.initial_weights = None
-		self.input_dim = 4 # each entry is a 3D tensor
+		self.input_dim = 1
 		if self.input_dim:
 			kwargs['input_shape'] = (self.input_dim,)
-		self.input = K.placeholder(ndim = 3)
+		#self.input = K.placeholder(ndim=1)
 		super(GraphFP, self).__init__(**kwargs)
-		self.input = K.placeholder(ndim = 3)
-		# self.input = K.variable(molToGraph(MolFromSmiles('CC')).dump_as_tensor()) # override?
-		# self.input.name = 'placeholder_input'
+		self.input = theano.gof.graph.Variable(molToGraph(MolFromSmiles('CC'))) # override?
+		self.input = molToGraph(MolFromSmiles('CC')) # override?
+		self.input.name = 'placeholder_input'
 
 
 	def build(self):
@@ -98,103 +98,61 @@ class GraphFP(Layer):
 		return (self.input_shape[0], self.output_dim)
 
 	def get_output(self, train=False):
-		original_graph = self.get_input(train)
-		# print('self.get_input returned: {}'.format(original_graph))
+		graph = self.get_input(train)
+		#graph = graph.eval()
+		print(graph)
 
 		# Get attribute values for layer zero
 		# where attributes is a 2D tensor and attributes[#, :] is the vector of
 		# concatenated node and edge attributes. In the first layer (depth 0), the 
 		# edge attribute section is initialized to zeros. After increaseing depth, howevevr,
 		# this part of the vector will become non-zero.
-
-		# The first attributes matrix is just graph_tensor[i, i, :], but we can't use that 
-		# kind of advanced indexing
-		# Want to extract tensor diagonal as matrix, but can't do that directly...
-		# Want to loop over third dimension, so need to dimshuffle
-		(attributes, updates) = theano.scan(lambda x: x.diagonal(), sequences = original_graph.dimshuffle((2, 0, 1)))
-		attributes.name = 'attributes'
-		# Now the attributes is (N_features x N_nodes), so we need to transpose
-		attributes = attributes.T
-		attributes.name = 'attributes post-transpose'
+		empty_edge_attribute_vec = K.zeros_like(graph.edgeAttributes()[0:1, :])
+		empty_edge_attribute_vec.namae = 'empty_edge_attribute_vec'
+		empty_edge_attribute_mat = T.tile(empty_edge_attribute_vec, (graph.nodeAttributes().shape[0], 1))
+		empty_edge_attribute_mat.name = 'empty_edge_attribute_mat'
+		attributes = K.concatenate((graph.nodeAttributes(), empty_edge_attribute_mat), axis = 1)
 
 		# Get initial fingerprint
 		fp = self.attributes_to_fp_contribution(attributes, 0)
-		fp.name = 'initial fingerprint'
-
-		# Get bond matrix
-		bonds = original_graph[:, :, -1] # flag if the bond is present, (N_atom x N_atom)
-		bonds.name = 'bonds'
 
 		# Iterate through different depths, updating attributes each time
 		for depth in range(self.depth):
-			print('depth {} fp: {}'.format(depth, fp.eval()))
 			depth = depth + 1 # correct for zero-indexing
-			(attributes, graph) = self.attributes_update(attributes, depth, original_graph, original_graph, bonds)
-			fp_new = self.attributes_to_fp_contribution(attributes, depth)
-			fp_new.name = 'fp_new contribution'
-			fp = fp + fp_new
 
-		print('final fp: {}'.format(fp.eval()))
+			attributes = self.attributes_update(attributes, depth, graph)
+			fp += self.attributes_to_fp_contribution(attributes, depth)
+
 		return fp
 
-	def attributes_update(self, attributes, depth, graph, original_graph, bonds):
+	def attributes_update(self, attributes, depth, graph):
 		'''Given the current attributes, the current depth, and the graph that the attributes
 		are based on, this function will update the 2D attributes tensor'''
-		
-		############# GET NEW ATTRIBUTE MATRIX #########################
-		# New pre-activated attribute matrix v = M_i,j,: x ones((N_atom, 1)) -> (N_atom, N_features) 
-		# as long as dimensions are appropriately shuffled
-		shuffled_graph = graph.copy().dimshuffle((2, 0, 1)) # (N_feature x N_atom x N_atom)
-		shuffled_graph.name = 'shuffled_graph'
-		# print('shuffled shape of graph: {}'.format(shuffled_graph.eval().shape))
-		ones_vec = K.ones_like(attributes[:, 0]) # (N_atom x 1)
-		ones_vec.name = 'ones_vec'
-		(new_preactivated_attributes, updates) = theano.scan(lambda x: K.dot(x, ones_vec), sequences = shuffled_graph) # (N_features x N_atom)
-		# print('SIZE OF PRE_ACTIVATED_ATTRIBUTES: {}'.format(new_preactivated_attributes.eval().shape))
-
-		# Need to pass through an activation function still
-		# Final attribute = bond flag = is not part of W_inner or b_inner
-		(new_attributes, updates) = theano.scan(lambda x: self.activation_inner(
-			K.dot(x, self.W_inner[depth, :, :]) + self.b_inner[depth, 0, :]), sequences = new_preactivated_attributes[:-1, :].T) # (N_atom x N_features -1)
-		# Append last feature (bond flag) after the loop
-		# print('SIZE OF NEW_ATTRIBUTES BEFORE CONCAT: {}'.format(new_attributes.eval().shape))
-		new_attributes = K.concatenate((new_attributes, attributes[:, -1:]), axis = 1)
-		new_attributes.name = 'new_attributes'
-		# print('new_attributes shape: {}'.format(new_attributes.eval().shape))
-
-
-		############ UPDATE GRAPH TENSOR WITH NEW ATOM ATTRIBUTES ###################
-		### Node attribute contribution is located in every entry of graph[i,j,:] where
-		### there is a bond @ ij or when i = j (self)
-		# Get atoms matrix (identity)
-		atoms = T.identity_like(bonds) # (N_atom x N_atom)
-		atoms.name = 'atoms_identity'
-		# Combine
-		bonds_or_atoms = bonds + atoms # (N_atom x N_atom)
-		bonds_or_atoms.name = 'bonds_or_atoms'
-		# print('shape of bonds_or_atoms: {}'.format(bonds_or_atoms.eval().shape))
-
-		atom_indeces = T.arange(ones_vec.shape[0]) # 0 to N_atoms - 1 (indeces)
-		atom_indeces.name = 'atom_indeces vector'
-		### Subtract previous node attribute contribution
-		# Multiply each entry in bonds_or_atoms by the previous atom features for that column
-		(old_features_to_sub, updates) = theano.scan(lambda i: T.outer(bonds_or_atoms[:, i], attributes[i, :]), 
-			sequences = T.arange(ones_vec.shape[0]))
-		old_features_to_sub.name = 'old_features_to_sub'
-		print('old_to_sub: {}'.format(old_features_to_sub.eval()))
-
-		### Add new node ttribute contribution
-		# Multiply each entry in bonds_or_atoms by the previous atom features for that column
-		(new_features_to_add, updates) = theano.scan(lambda i: T.outer(bonds_or_atoms[:, i], new_attributes[i, :]),
-			sequences = T.arange(ones_vec.shape[0]))
-		new_features_to_add.name = 'new_features_to_add'
-		print('new_to_add: {}'.format(new_features_to_add.eval()))
-
-		# Update new graph
-		new_graph = graph - old_features_to_sub + new_features_to_add
-		new_graph.name = 'new_graph'
-
-		return (new_attributes, new_graph)
+		# Get original attribute vectors for sizing
+		edgeAttributes = graph.edgeAttributes()
+		nodeAttributes = graph.nodeAttributes()
+		# Copy new attributes so we can overwrite
+		vs = []
+		for i, node in enumerate(graph.nodes):
+			v = attributes[i, :].copy() # initialize with current attributes
+			v.name = 'v'
+			for (ni, ei) in node.neighbors:
+				# mix in contributions from neighbor node's attributes
+				v += attributes[ni, :] 
+				# modify with edge information to get to that neighbor
+				v += K.concatenate((K.zeros_like(nodeAttributes[0]), edgeAttributes[ei]), axis = 0)
+			# smooth with inner activation function and weights
+			inner_dot = K.dot(v, self.W_inner[depth, :, :])
+			inner_dot.name = 'inner_dot'
+			inner_bias = self.b_inner[depth, 0, :]
+			inner_bias.name = 'inner_bias'
+			inner_activated = self.activation_inner(inner_dot + inner_bias)
+			inner_activated.name = 'inner_activated'
+			vs.append(inner_activated)
+		# Return updated attribute tensor
+		stacked = T.stack(vs)
+		stacked.name = 'stacked_attributes'
+		return T.stack(vs)
 
 
 	def attributes_to_fp_contribution(self, attributes, depth):
@@ -202,21 +160,14 @@ class GraphFP(Layer):
 		node, this method will apply the output sparsifying (often softmax) function and return
 		the contribution to the fingerprint'''
 		# Apply output activation function
-		# print('SIZE OF ATTRIBUTES[:, :-1]: {}'.format(attributes[:, :-1].eval().shape))
-		output_dot = K.dot(attributes[:, :-1], self.W_output[depth, :, :]) # ignore last attribute (bond flag)
+		output_dot = K.dot(attributes, self.W_output[depth, :, :])
 		output_dot.name = 'output_dot'
-		# print('OUTPUT DOT')
-		# print(output_dot.eval())
-		output_bias = self.b_output[depth, 0, :]
+		output_bias = K.ones_like(attributes[:, 0]) * self.b_output[depth, 0, :]
 		output_bias.name = 'output_bias'
-		# print('OUTPUT BIAS')
-		# print(output_bias.eval())
 		output_activated = self.activation_output(output_dot + output_bias)
 		output_activated.name = 'output_activated'
 		summed_activated = K.sum(output_activated, axis = 0)
 		summed_activated.name = 'summed_activated'
-		# print('SUMMED_ACTIVATED')
-		# print(summed_activated.eval())
 		return summed_activated
 
 	def get_config(self):

@@ -2,7 +2,10 @@
 # based on description in http://arxiv.org/pdf/1509.09292v2.pdfv
 
 import numpy as np
+import keras.backend as K
 import rdkit.Chem.AllChem as AllChem
+import copy
+from theano.gof.type import Generic
 att_dtype = np.float32
 
 class Graph():
@@ -10,18 +13,57 @@ class Graph():
 	def __init__(self):
 		self.nodes = []
 		self.edges = []
+		# Extra attributes for Theano
+		self.name = ''
+		self.type = Generic()
 		return
 
 	def nodeAttributes(self):
 		'''Returns 2D array where (#, :) contains attributes of node #'''
-		return np.vstack([x.attributes for x in self.nodes])
+		return K.variable(np.vstack([x.attributes for x in self.nodes]))
 	
 	def edgeAttributes(self):
 		'''Returns 2D array where (#, :) contains attributes of edge #'''
-		return np.vstack([x.attributes for x in self.edges])
+		return K.variable(np.vstack([x.attributes for x in self.edges]))
 
 	def nodeNeighbors(self):
-		return [x.neighbors for x in self.notes]
+		return [x.neighbors for x in self.nodes]
+
+	def clone(self):
+		'''clone() method to trick Theano'''
+		return copy.deepcopy(self) 
+
+	def dump_as_tensor(self):
+		'''Method to represent attributed graph as a giant tensor
+
+		The tensor is N_node x N_node x N_attributes.
+
+		For a given node, A_i,i,: is a vector of that node's features, followed
+		  by zeros where edge attributes would be.
+		For a pair of nodes i and j, A_i,j,: is a vector of node j's features, 
+		  followed by the edge attributes connecting the two nodes.
+
+		This representation is not as efficient as it could be, but we need to
+		  pack the whole graph information into a single tensor in order to use
+		  Keras/Theano easily'''
+
+		N_nodes = len(self.nodes)
+		N_features = sizeAttributeVector()
+		tensor = np.zeros((N_nodes, N_nodes, N_features))
+		edgeAttributes = np.vstack([x.attributes for x in self.edges])
+		nodeAttributes = np.vstack([x.attributes for x in self.nodes])
+		nodeNeighbors = self.nodeNeighbors()
+		# Assign diagonal entries
+		for i, node in enumerate(self.nodes):
+			tensor[i, i, :] = np.concatenate((nodeAttributes[i], np.zeros_like(edgeAttributes[0])))
+		# Assign bonds now
+		for e, edge in enumerate(self.edges):
+			(i, j) = edge.connects
+			tensor[i, j, :] = np.concatenate((nodeAttributes[j], edgeAttributes[e]))
+			tensor[j, i, :] = np.concatenate((nodeAttributes[i], edgeAttributes[e]))
+
+		return tensor
+
 
 class Node():
 	'''Describes an attributed node in an undirected graph'''
@@ -87,6 +129,9 @@ def bondAttributes(bond):
 	# Add if bond is part of ring
 	attributes.append(bond.IsInRing())
 
+	# NEED THIS FOR TENSOR REPRESENTATION - 1 IF THERE IS A BOND
+	attributes.append(1)
+
 	return np.array(attributes, dtype = att_dtype)
 
 def atomAttributes(atom):
@@ -105,8 +150,8 @@ def atomAttributes(atom):
 	attributes = []
 	# Add atomic number (todo: finish)
 	attributes += oneHotVector(
-		atom.GetAtomicNum(),
-		[1, 4, 5, 6, 7, 8, 9, 10, 'other']
+		atom.GetAtomicNum(), 
+		[1, 4, 5, 6, 7, 8, 9, 10, 999]
 	)
 	# Add heavy neighbor count
 	attributes += oneHotVector(
@@ -130,7 +175,7 @@ def atomAttributes(atom):
 def oneHotVector(val, lst):
 	'''Converts a value to a one-hot vector based on options in lst'''
 	if val not in lst:
-		return lst[-1]
+		val = lst[-1]
 	return map(lambda x: x == val, lst)
 
 def sizeAttributeVector():
