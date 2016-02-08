@@ -48,12 +48,11 @@ class GraphFP(Layer):
 		self.depth = depth
 
 		self.initial_weights = None
-		self.input_dim = 4 # each entry is a 3D tensor
+		self.input_dim = 4 # each entry is a 3D N_atom x N_atom x N_feature tensor
 		if self.input_dim:
-			kwargs['input_shape'] = (self.input_dim,)
-		self.input = K.placeholder(ndim = 3)
+			kwargs['input_shape'] = (None, None, None,) # 3D tensor for each input
+		self.input = K.placeholder(ndim = 4)
 		super(GraphFP, self).__init__(**kwargs)
-		self.input = K.placeholder(ndim = 3)
 		# self.input = K.variable(molToGraph(MolFromSmiles('CC')).dump_as_tensor()) # override?
 		# self.input.name = 'placeholder_input'
 
@@ -98,9 +97,13 @@ class GraphFP(Layer):
 		return (self.input_shape[0], self.output_dim)
 
 	def get_output(self, train=False):
-		original_graph = self.get_input(train)
-		# print('self.get_input returned: {}'.format(original_graph))
+		original_graphs = self.get_input(train)
+		# print('self.get_input returned: {}'.format(original_graphs))
+		(output, updates) = theano.scan(lambda x: self.get_output_singlesample(x), sequences = original_graphs)
+		return output
 
+	def get_output_singlesample(self, original_graph, train=False):
+		'''For a 3D tensor, get the output. Avoids the need for even more complicated vectorization'''
 		# Get attribute values for layer zero
 		# where attributes is a 2D tensor and attributes[#, :] is the vector of
 		# concatenated node and edge attributes. In the first layer (depth 0), the 
@@ -111,6 +114,7 @@ class GraphFP(Layer):
 		# kind of advanced indexing
 		# Want to extract tensor diagonal as matrix, but can't do that directly...
 		# Want to loop over third dimension, so need to dimshuffle
+		# print('original graph shape: {}'.format(original_graph.shape.eval()))
 		(attributes, updates) = theano.scan(lambda x: x.diagonal(), sequences = original_graph.dimshuffle((2, 0, 1)))
 		attributes.name = 'attributes'
 		# Now the attributes is (N_features x N_nodes), so we need to transpose
@@ -127,14 +131,14 @@ class GraphFP(Layer):
 
 		# Iterate through different depths, updating attributes each time
 		for depth in range(self.depth):
-			print('depth {} fp: {}'.format(depth, fp.eval()))
+			# print('depth {} fp: {}'.format(depth, fp.eval()))
 			depth = depth + 1 # correct for zero-indexing
 			(attributes, graph) = self.attributes_update(attributes, depth, original_graph, original_graph, bonds)
 			fp_new = self.attributes_to_fp_contribution(attributes, depth)
 			fp_new.name = 'fp_new contribution'
 			fp = fp + fp_new
 
-		print('final fp: {}'.format(fp.eval()))
+		# print('final fp: {}'.format(fp.eval()))
 		return fp
 
 	def attributes_update(self, attributes, depth, graph, original_graph, bonds):
@@ -181,14 +185,14 @@ class GraphFP(Layer):
 		(old_features_to_sub, updates) = theano.scan(lambda i: T.outer(bonds_or_atoms[:, i], attributes[i, :]), 
 			sequences = T.arange(ones_vec.shape[0]))
 		old_features_to_sub.name = 'old_features_to_sub'
-		print('old_to_sub: {}'.format(old_features_to_sub.eval()))
+		# print('old_to_sub: {}'.format(old_features_to_sub.eval()))
 
 		### Add new node ttribute contribution
 		# Multiply each entry in bonds_or_atoms by the previous atom features for that column
 		(new_features_to_add, updates) = theano.scan(lambda i: T.outer(bonds_or_atoms[:, i], new_attributes[i, :]),
 			sequences = T.arange(ones_vec.shape[0]))
 		new_features_to_add.name = 'new_features_to_add'
-		print('new_to_add: {}'.format(new_features_to_add.eval()))
+		# print('new_to_add: {}'.format(new_features_to_add.eval()))
 
 		# Update new graph
 		new_graph = graph - old_features_to_sub + new_features_to_add
