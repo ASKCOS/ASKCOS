@@ -90,7 +90,8 @@ def get_data(data_fpath, training_ratio = 0.9):
 	# Truncate if necessary
 	try:
 		truncate_to = int(config['TRAINING']['truncate_to'])
-		data = data[0:truncate_to]
+		data = data[:truncate_to]
+		print('truncated data to first {} samples'.format(truncate_to))
 	except:
 		pass
 
@@ -103,8 +104,14 @@ def get_data(data_fpath, training_ratio = 0.9):
 
 	# Parse data into individual components
 	smiles = [x[0] for x in data]
-	mols = [molToGraph(Chem.MolFromSmiles(smile)).dump_as_tensor() for smile in smiles]
-	fgroups = [np.array(x[1]) > 0 for x in data] # change count to flag
+	mols = []
+	fgroups = []
+	for i, smile in enumerate(smiles):
+		try:
+			mols.append(molToGraph(Chem.MolFromSmiles(smile)).dump_as_tensor())
+			fgroups.append(np.array(data[i][1]) > 0) # change count to boolean flag
+		except:
+			print('Failed to generate graph for {}'.format(smile))
 
 	# Create training/development split
 	division = int(len(data) * training_ratio)
@@ -115,6 +122,7 @@ def get_data(data_fpath, training_ratio = 0.9):
 	smiles_train = smiles[:division]
 	smiles_test = smiles[division:]
 
+	print('...loaded data')
 	return (mols_train, fgroups_train, mols_test, fgroups_test, training_ratio, smiles_train, smiles_test)
 
 def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
@@ -243,12 +251,12 @@ def test_embeddings_demo(model, data_fpath):
 	print('-------------')
 	print('DEMONSTRATION')
 	print('-------------')
-	for j in range(len(mols_train)):
-		print('original smiles: {}'.format(smiles_train[j]))
-		embedding = model.predict_on_batch(np.array(mols_train[j:j+1]))[0][0]
+	for j in range(len(mols_test)):
+		print('original smiles: {}'.format(smiles_test[j]))
+		embedding = model.predict_on_batch(np.array(mols_test[j:j+1]))[0][0]
 		print('{}\t{}\t{}'.format('idx', 'embed', 'target'))
 		for k in range(len(embedding)):
-			print('{}\t{}\t{}'.format(k, round(embedding[k], 2), int(fgroups_train[j][k])))
+			print('{}\t{}\t{}'.format(k, round(embedding[k], 2), int(fgroups_test[j][k])))
 
 	return
 

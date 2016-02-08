@@ -13,9 +13,6 @@ class Graph():
 	def __init__(self):
 		self.nodes = []
 		self.edges = []
-		# Extra attributes for Theano
-		self.name = ''
-		self.type = Generic()
 		return
 
 	def nodeAttributes(self):
@@ -46,6 +43,12 @@ class Graph():
 		This representation is not as efficient as it could be, but we need to
 		  pack the whole graph information into a single tensor in order to use
 		  Keras/Theano easily'''
+
+		# Bad input handling
+		if not self.edges or not self.nodes:
+			print('Error with graph!')
+			print('edges: {}'.format(self.edges))
+			print('nodes: {}'.format(self.nodes))
 
 		N_nodes = len(self.nodes)
 		N_features = sizeAttributeVector()
