@@ -9,6 +9,7 @@ import datetime # for info files
 import json # for dumping
 import sys  # for commanad line
 import os   # for file paths
+import re 
 
 def mols_from_smiles_list(all_smiles):
 	'''Given a list of smiles strings, this function creates rdkit
@@ -85,12 +86,50 @@ def bond_comparison_to_smarts(created_bonds, destroyed_bonds, agents = None):
 	'''This function creates a simple reaction SMARTS rule based on the
 	created and destroyed bonds in the molcule'''
 	# Join components separately
+
+
+	# Look until reaction can be initialized
+	while True:
+
+		# Identify which atom indeces show up multiple times
+		destroyed_bonds_atoms = [[] for x in destroyed_bonds]
+		mapped_atoms = []
+		for i, destroyed_bond in enumerate(destroyed_bonds):
+			atom_indeces = re.findall(r'\:([0-9]*)\]', destroyed_bond)
+			destroyed_bonds_atoms[i] += [int(x) for x in set(atom_indeces)]
+			mapped_atoms += [int(x) for x in set(atom_indeces)]
+
+		# Get duplicates
+		duplicates = set([x for x in mapped_atoms if mapped_atoms.count(x) > 1])
+		print('duplicates: {}'.format(duplicates))
+
+		if not duplicates:
+			break
+
+		# Get the first conflict
+		atom_index = duplicates.pop()
+		print('first duplicate: {}'.format(atom_index))
+		group = '('
+		bonds_in_group = []
+		for i, atom_indeces in enumerate(destroyed_bonds_atoms):
+			if atom_index in atom_indeces:
+				group += destroyed_bonds[i] + '.'
+				bonds_in_group.append(i)
+		group = group[:-1] + ')'
+
+		# Update destroyed_bonds to reflect grouping
+		destroyed_bonds[bonds_in_group[0]] = group
+		for bond_index in bonds_in_group[1:]:
+			destroyed_bonds.remove(destroyed_bonds[bond_index])
+		
+	# Combine now
 	reactants = '.'.join(destroyed_bonds)
 	products  = '.'.join(created_bonds)
 	if agents:
 		agents = '.'.join(agents)
 	else:
 		agents = ''
+
 	# Merge 
 	return '{}>{}>{}'.format(reactants, agents, products)
 
@@ -123,12 +162,6 @@ def main(db_fpath, N = 15):
 		(created_bonds, destroyed_bonds) = \
 			compare_bond_lists(reactant_bonds, product_bonds)
 
-		# Convert to reaction SMARTS (without agent for now)
-		rxn_smarts = bond_comparison_to_smarts(created_bonds, destroyed_bonds)
-
-		# Load into rdkit
-		rxn = AllChem.ReactionFromSmarts(rxn_smarts)
-
 		# Print
 		print('reaction {}'.format(i))
 		print('  reaction:  {}'.format(reaction_smiles))
@@ -138,6 +171,16 @@ def main(db_fpath, N = 15):
 			continue
 		else:
 			print('  destroyed: {}'.format(destroyed_bonds))
+
+		# Convert to reaction SMARTS (without agent for now)
+		rxn_smarts = bond_comparison_to_smarts(created_bonds, destroyed_bonds)
+
+		# Load into rdkit
+		rxn = AllChem.ReactionFromSmarts(rxn_smarts)
+		AllChem.ChemicalReaction.Initialize(rxn)
+		if not (AllChem.ChemicalReaction.IsInitialized(rxn)):
+			print('Could not intiialize reaction: {}'.format(rxn_smarts))
+			quit(1)
 
 		# Test reaction
 		print('reaction test')
