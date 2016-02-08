@@ -139,15 +139,22 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 			print('Epoch {}/{}'.format(i + 1, nb_epoch))
 			this_loss = []
 			this_val_loss = []
+
+			# Shuffle training data
+
 			
+			# Run through training set
 			print('Training...')
-			for j in range(len(mols_train)):
+			training_order = range(len(mols_train))
+			np.random.shuffle(training_order)
+			for j in training_order:
 				single_mol_as_array = np.array(mols_train[j:j+1])
 				single_fp_as_array = np.array(fgroups_train[j:j+1])
 				sloss = model.train_on_batch(single_mol_as_array, single_fp_as_array, accuracy = False)
 				# print('single loss: {}'.format(sloss))
 				this_loss.append(sloss)
 			
+			# Run through testing set
 			print('Testing...')
 			for j in range(len(mols_test)):
 				single_mol_as_array = np.array(mols_test[j:j+1])
