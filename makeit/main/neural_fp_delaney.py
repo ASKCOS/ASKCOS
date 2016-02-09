@@ -20,7 +20,7 @@ import json
 import sys
 import os
 
-def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2):
+def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2, scale_output = 0.05):
 	'''Generates simple embedding model to use reaction smiles as
 	input in order to predict a single-valued output (i.e., yield)'''
 
@@ -28,7 +28,9 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2):
 	model = Sequential()
 
 	# Add layers
-	model.add(GraphFP(embedding_size, sizeAttributeVector() - 1, depth = depth))
+	model.add(GraphFP(embedding_size, sizeAttributeVector() - 1, 
+		depth = depth,
+		scale_output = scale_output))
 	print('    model: added GraphFP layer ({} -> {})'.format('mol', embedding_size))
 	model.add(Dense(1))
 	print('    model: added Dense layer ({} -> {})'.format(embedding_size, 1))
@@ -89,7 +91,7 @@ def get_data(data_fpath, training_ratio = 0.9):
 	print('reading data...',)
 	data = []
 	with open(data_fpath, 'r') as data_fid:
-		reader = csv.reader(data_fid, delimeter = ',', quotechar = '"')
+		reader = csv.reader(data_fid, delimiter = ',', quotechar = '"')
 		for row in reader:
 			data.append(row)
 	print('done')
@@ -114,26 +116,33 @@ def get_data(data_fpath, training_ratio = 0.9):
 	mols = []
 	y = []
 	print('processing data...',)
+	# Randomize
+	np.random.seed(0)
+	np.random.shuffle(data)
 	for i, row in enumerate(data):
+		if i == 0:
+			continue
+		elif (i % 100) == 99:
+			print('  {}/{}'.format(i + 1, len(data) - 1))
 		try:
 			# Molecule first (most likely to fail)
 			mols.append(molToGraph(Chem.MolFromSmiles(row[3])).dump_as_tensor())
-			y.append(row[1]) # Measured log(solubility M/L)
+			y.append(float(row[1])) # Measured log(solubility M/L)
 			smiles.append(row[3]) # Smiles
 		except:
-			print('Failed to generate graph for {}'.format(smile))
+			print('Failed to generate graph for {}'.format(row[3]))
 	print('done')
 
 	# Create training/development split
 	division = int(len(data) * training_ratio)
 	mols_train = mols[:division]
-	mols_test  = mols[division:]
+	mols_notrain  = mols[division:]
 	y_train = y[:division]
-	y_test  = y[division:]
+	y_notrain  = y[division:]
 	smiles_train = smiles[:division]
-	smiles_test = smiles[division:]
+	smiles_notrain = smiles[division:]
 
-	return (mols_train, y_train, mols_test, y_test, training_ratio, smiles_train, smiles_test)
+	return (mols_train, y_train, mols_notrain, y_notrain, training_ratio, smiles_train, smiles_notrain)
 
 def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 	'''Trains the model'''
@@ -142,10 +151,13 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 	data = get_data(data_fpath)
 	mols_train = data[0]
 	y_train = data[1]
-	mols_test = data[2]
-	y_test = data[3]
+	mols_notrain = data[2]
+	y_notrain = data[3]
 	training_ratio = data[4]
-	# Note: will rejoin data and use validation_split
+	
+	# Split notrain up
+	mols_val    = mols_notrain[:(len(mols_notrain) / 2)] # first half
+	y_val       = y_notrain[:(len(mols_notrain) / 2)] # first half
 
 	# Fit (allows keyboard interrupts in the middle)
 	# Because molecular graph tensors are different sizes based on N_atoms, can only do one at a time
@@ -167,17 +179,17 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 			np.random.shuffle(training_order)
 			for j in training_order:
 				single_mol_as_array = np.array(mols_train[j:j+1])
-				single_y_as_array = np.array(y[j:j+1])
+				single_y_as_array = np.array(y_train[j:j+1])
 				sloss = model.train_on_batch(single_mol_as_array, single_y_as_array, accuracy = False)
 				# print('single loss: {}'.format(sloss))
 				this_loss.append(sloss)
 			
 			# Run through testing set
 			print('Testing...')
-			for j in range(len(mols_test)):
-				single_mol_as_array = np.array(mols_test[j:j+1])
-				spred = model.predict_on_batch(single_mol_as_array)
-				sloss = np.mean((spred[0] - y_test[j]) ** 2)
+			for j in range(len(mols_val)):
+				single_mol_as_array = np.array(mols_val[j:j+1])
+				spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
+				sloss = (spred - y_val[j]) ** 2
 				# print('single loss: {}'.format(sloss))
 				this_val_loss.append(sloss)
 			
@@ -195,78 +207,133 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 	'''This function evaluates model performance using test data. The output is
 	more meaningful than just the loss function value.'''
-	# test_fpath = fpath + ' ' + tstamp
-
-	# # Get data from helper function
-	# data = get_data(data_fpath)
-	# smiles_train = data[0]
-	# yields_train = data[1]
-	# smiles_test = data[2]
-	# yields_test = data[3]
-
-	# # Custom evaluation
-	# yields_predicted = model.predict(smiles_test, 
-	# 	batch_size = batch_size,
-	# 	verbose = 1)
-	# yields_train_predicted = model.predict(smiles_train, 
-	# 	batch_size = batch_size,
-	# 	verbose = 1)
-
-	# # Save
-	# with open(fpath, 'w') as fid:
-	# 	time_now = datetime.datetime.utcnow()
-	# 	fid.write('-- tested at UTC {}\n\n'.format(fpath, time_now))		
-	# 	fid.write('test entry\treaction\tactual yield\tpredicted yield\n')
-	# 	for i in range(len(smiles_test)):
-	# 		fid.write('{}\t{}\t{}\t{}\n'.format(i, 
-	# 			''.join([reverse_tokenizer[x] for x in smiles_test[i]]), 
-	# 			yields_test[i], yields_predicted[i, 0]))
-
-	# # Create parity plot
-	# plt.scatter(yields_test, yields_predicted, alpha = 0.2)
-	# plt.xlabel('Actual yield')
-	# plt.ylabel('Predicted yield')
-	# plt.title('Parity plot for yield prediction (test set)')
-	# plt.grid(True)
-	# plt.axis([0, 1, 0, 1])
-	# plt.savefig(test_fpath + ' test.png', bbox_inches = 'tight')
-	# plt.clf()
-
-	# # Look at training data onw
-	# plt.scatter(yields_train, yields_train_predicted, alpha = 0.2)
-	# plt.xlabel('Actual yield')
-	# plt.ylabel('Predicted yield')
-	# plt.title('Parity plot for yield prediction (train set)')
-	# plt.grid(True)
-	# plt.axis([0, 1, 0, 1])
-	# plt.savefig(test_fpath + ' train.png', bbox_inches = 'tight')
-	# plt.clf()
-
-	return
-
-def test_embeddings_demo(model, data_fpath):
-	'''This function tests dense embeddings of reactions and tries to find the
-	most similar one to a test example'''
+	# Create folder to dump testing info to
+	try:
+		os.makedirs(fpath)
+	except: # file exists
+		pass
+	test_fpath = os.path.join(fpath, tstamp)
 
 	# Get data from helper function
 	data = get_data(data_fpath)
 	mols_train = data[0]
 	y_train = data[1]
-	mols_test = data[2]
-	y_test = data[3]
+	mols_notrain = data[2]
+	y_notrain = data[3]
 	training_ratio = data[4]
 	smiles_train = data[5]
-	smiles_test = data[6]
+	smiles_notrain = data[6]
 
-	print('-------------')
-	print('DEMONSTRATION')
-	print('-------------')
+	# Split notrain up
+	mols_val    = mols_notrain[:(len(mols_notrain) / 2)] # first half
+	y_val       = y_notrain[:(len(mols_notrain) / 2)] # first half
+	smiles_val  = smiles_notrain[:(len(mols_notrain) / 2)] # first half
+	mols_test   = mols_notrain[(len(mols_notrain) / 2):] # second half
+	y_test      = y_notrain[(len(mols_notrain) / 2):] # second half
+	smiles_test = smiles_notrain[(len(mols_notrain) / 2):] # second half
+
+	# Fit (allows keyboard interrupts in the middle)
+	# Because molecular graph tensors are different sizes based on N_atoms, can only do one at a time
+	# (alternative is to pad with zeros and try to add some masking feature to GraphFP)
+	y_train_pred = []
+	y_val_pred = []
+	y_test_pred = []
+
+	# Run through training set
+	for j in range(len(mols_train)):
+		single_mol_as_array = np.array(mols_train[j:j+1])
+		single_y_as_array = np.array(y_train[j:j+1])
+		spred = spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
+		y_train_pred.append(spred)
+
+	# Run through validation set
+	for j in range(len(mols_val)):
+		single_mol_as_array = np.array(mols_val[j:j+1])
+		spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
+		y_val_pred.append(spred)
+
+	# Run through testing set
 	for j in range(len(mols_test)):
-		print('original smiles: {}'.format(smiles_test[j]))
-		embedding = model.predict_on_batch(np.array(mols_test[j:j+1]))[0][0]
-		print('{}\t{}\t{}'.format('idx', 'embed', 'target'))
-		for k in range(len(embedding)):
-			print('{}\t{}\t{}'.format(k, round(embedding[k], 2), int(y_test[j][k])))
+		single_mol_as_array = np.array(mols_test[j:j+1])
+		spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
+		y_test_pred.append(spred)
+
+	# Save
+	with open(test_fpath + '.test', 'w') as fid:
+		time_now = datetime.datetime.utcnow()
+		fid.write('-- tested at UTC {}\n\n'.format(fpath, time_now))		
+		fid.write('test entry\tsmiles\tactual log(sol)\tpredicted log(sol)\tactual - predicted\n')
+		for i in range(len(smiles_test)):
+			fid.write('{}\t{}\t{}\t{}\t{}\n'.format(i, 
+				smiles_test[i],
+				y_test[i], 
+				y_test_pred[i],
+				y_test[i] - y_test_pred[i]))
+
+	# Create parity plot
+	plt.scatter(y_train, y_train_pred, alpha = 0.5)
+	plt.xlabel('Actual log(solubility (M))')
+	plt.ylabel('Predicted log(solubility (M))')
+	plt.title('Parity plot for solubility prediction (train set)\nMSE({}) = {}'.format(
+		len(y_train), np.mean((np.array(y_train) - np.array(y_train_pred)) ** 2)))
+	plt.grid(True)
+	min_y = min(plt.axis())
+	max_y = max(plt.axis())
+	plt.axis([min_y, max_y, min_y, max_y])	
+	plt.savefig(test_fpath + ' train.png', bbox_inches = 'tight')
+	plt.clf()
+
+	# Create parity plot
+	plt.scatter(y_val, y_val_pred, alpha = 0.5)
+	plt.xlabel('Actual log(solubility (M))')
+	plt.ylabel('Predicted log(solubility (M))')
+	plt.title('Parity plot for solubility prediction (validation set)\nMSE({}) = {}'.format(
+		len(y_val), np.mean((np.array(y_val) - np.array(y_val_pred)) ** 2)))
+	plt.grid(True)
+	min_y = min(plt.axis())
+	max_y = max(plt.axis())
+	plt.axis([min_y, max_y, min_y, max_y])
+	plt.savefig(test_fpath + ' val.png', bbox_inches = 'tight')
+	plt.clf()
+
+	# Create parity plot
+	plt.scatter(y_test, y_test_pred, alpha = 0.5)
+	plt.xlabel('Actual log(solubility (M))')
+	plt.ylabel('Predicted log(solubility (M))')
+	plt.title('Parity plot for solubility prediction (test set)\nMSE({}) = {}'.format(
+		len(y_test), np.mean((np.array(y_test) - np.array(y_test_pred)) ** 2)))
+	plt.grid(True)
+	min_y = min(plt.axis())
+	max_y = max(plt.axis())
+	plt.axis([min_y, max_y, min_y, max_y])	
+	plt.savefig(test_fpath + ' test.png', bbox_inches = 'tight')
+	plt.clf()
+
+	return
+
+def test_embeddings_demo(model, data_fpath):
+	# '''This function tests dense embeddings of reactions and tries to find the
+	# most similar one to a test example'''
+
+	# # Get data from helper function
+	# data = get_data(data_fpath)
+	# mols_train = data[0]
+	# y_train = data[1]
+	# mols_test = data[2]
+	# y_test = data[3]
+	# training_ratio = data[4]
+	# smiles_train = data[5]
+	# smiles_test = data[6]
+
+	# print('-------------')
+	# print('DEMONSTRATION')
+	# print('-------------')
+	# for j in range(len(mols_test)):
+	# 	print('original smiles: {}'.format(smiles_test[j]))
+	# 	embedding = model.predict_on_batch(np.array(mols_test[j:j+1]))[0][0]
+	# 	print('{}\t{}\t{}'.format('idx', 'embed', 'target'))
+	# 	for k in range(len(embedding)):
+	# 		print('{}\t{}\t{}'.format(k, round(embedding[k], 2), int(y_test[j][k])))
 
 	return
 
@@ -310,7 +377,8 @@ if __name__ == '__main__':
 		print('...building model')
 		try:
 			model = build_model(embedding_size = int(config['ARCHITECTURE']['embedding_size']),
-				depth = int(config['ARCHITECTURE']['depth']))
+				depth = int(config['ARCHITECTURE']['depth']),
+				scale_output = float(config['ARCHITECTURE']['scale_output']))
 			print('...built untrained model')
 		except KeyError:
 			print('Must specify embedding_size in ARCHITECTURE in config')

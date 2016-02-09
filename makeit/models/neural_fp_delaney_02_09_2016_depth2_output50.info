@@ -1,0 +1,10 @@
+makeit/models/neural_fp_delaney_02_09_2016_depth0_output50 saved at UTC 02-09-2016_18-00
+
+Configuration details
+------------
+  OrderedDict([('IO', OrderedDict([('__name__', 'IO'), ('model_fpath', 'makeit/models/neural_fp_delaney_02_09_2016_depth0_output50'), ('data_fpath', 'makeit/data/Delaney2004.txt')])), ('ARCHITECTURE', OrderedDict([('__name__', 'ARCHITECTURE'), ('use_existing', 'false'), ('embedding_size', '512'), ('depth', '2'), ('scale_output', '50')])), ('TRAINING', OrderedDict([('__name__', 'TRAINING'), ('use_existing', 'false'), ('truncate_to', 'n/a'), ('ratio', '0.5'), ('batch_size', '1'), ('nb_epoch', '50'), ('lr', '0.001')])), ('TESTING', OrderedDict([('__name__', 'TESTING'), ('test_embedding', 'false')]))])
+makeit/models/neural_fp_delaney_02_09_2016_depth0_output50 saved at UTC 02-09-2016_18-05
+
+Configuration details
+------------
+  OrderedDict([('IO', OrderedDict([('__name__', 'IO'), ('model_fpath', 'makeit/models/neural_fp_delaney_02_09_2016_depth0_output50'), ('data_fpath', 'makeit/data/Delaney2004.txt')])), ('ARCHITECTURE', OrderedDict([('__name__', 'ARCHITECTURE'), ('use_existing', 'false'), ('embedding_size', '512'), ('depth', '2'), ('scale_output', '50')])), ('TRAINING', OrderedDict([('__name__', 'TRAINING'), ('use_existing', 'true'), ('truncate_to', 'n/a'), ('ratio', '0.5'), ('batch_size', '1'), ('nb_epoch', '50'), ('lr', '0.0001')])), ('TESTING', OrderedDict([('__name__', 'TESTING'), ('test_embedding', 'false')]))])

@@ -34,9 +34,10 @@ class GraphFP(Layer):
 			for each (bond, atom) pair concatenated.
 	'''
 
-	def __init__(self, output_dim, inner_dim, depth = 2, init_output='glorot_uniform', 
+	def __init__(self, output_dim, inner_dim, depth = 2, init_output='uniform', 
 			activation_output='softmax', init_inner='identity',
-			activation_inner='linear', activity_regularizer=None, **kwargs):
+			activation_inner='linear', activity_regularizer=None, 
+			scale_output=0.05, **kwargs):
 		if depth < 1:
 			quit('Cannot use GraphFP with depth zero')
 		self.init_output = initializations.get(init_output)
@@ -46,6 +47,7 @@ class GraphFP(Layer):
 		self.output_dim = output_dim
 		self.inner_dim = inner_dim
 		self.depth = depth
+		self.scale_output = scale_output
 
 		self.initial_weights = None
 		self.input_dim = 4 # each entry is a 3D N_atom x N_atom x N_feature tensor
@@ -75,7 +77,7 @@ class GraphFP(Layer):
 		# # weight matrix for layer/depth #.
 
 		# Define template weights for output FxL
-		W_output = self.init_output((self.inner_dim, self.output_dim))
+		W_output = self.init_output((self.inner_dim, self.output_dim), scale = self.scale_output)
 		b_output = K.zeros((1, self.output_dim))
 		# Initialize weights tensor
 		self.W_output = K.variable(T.tile(W_output, (self.depth + 1, 1, 1)).eval())

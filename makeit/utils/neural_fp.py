@@ -154,7 +154,7 @@ def atomAttributes(atom):
 	# Add atomic number (todo: finish)
 	attributes += oneHotVector(
 		atom.GetAtomicNum(), 
-		[1, 4, 5, 6, 7, 8, 9, 10, 999]
+		[5, 6, 7, 8, 9, 15, 16, 17, 35, 53, 999]
 	)
 	# Add heavy neighbor count
 	attributes += oneHotVector(
