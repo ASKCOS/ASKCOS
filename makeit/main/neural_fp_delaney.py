@@ -42,7 +42,9 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2):
 		print('Can only handle adam or rmsprop optimizers currently')
 		quit(1)
 
+	print('compiling...',)
 	model.compile(loss = 'mse', optimizer = optimizer)
+	print('done')
 
 	return model
 
@@ -84,12 +86,13 @@ def get_data(data_fpath, training_ratio = 0.9):
 
 
 	# Load data from json file
-	print('...loading data')
+	print('reading data...',)
 	data = []
 	with open(data_fpath, 'r') as data_fid:
-		csv = csv.reader(data_fid, delimeter = ',', quotechar = '"')
-		for row in csv:
+		reader = csv.reader(data_fid, delimeter = ',', quotechar = '"')
+		for row in reader:
 			data.append(row)
+	print('done')
 		
 	# Truncate if necessary
 	try:
@@ -110,6 +113,7 @@ def get_data(data_fpath, training_ratio = 0.9):
 	smiles = []
 	mols = []
 	y = []
+	print('processing data...',)
 	for i, row in enumerate(data):
 		try:
 			# Molecule first (most likely to fail)
@@ -118,6 +122,7 @@ def get_data(data_fpath, training_ratio = 0.9):
 			smiles.append(row[3]) # Smiles
 		except:
 			print('Failed to generate graph for {}'.format(smile))
+	print('done')
 
 	# Create training/development split
 	division = int(len(data) * training_ratio)
@@ -128,7 +133,6 @@ def get_data(data_fpath, training_ratio = 0.9):
 	smiles_train = smiles[:division]
 	smiles_test = smiles[division:]
 
-	print('...loaded data')
 	return (mols_train, y_train, mols_test, y_test, training_ratio, smiles_train, smiles_test)
 
 def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
