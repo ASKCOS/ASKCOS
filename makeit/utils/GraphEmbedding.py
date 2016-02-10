@@ -37,7 +37,7 @@ class GraphFP(Layer):
 	def __init__(self, output_dim, inner_dim, depth = 2, init_output='uniform', 
 			activation_output='softmax', init_inner='identity',
 			activation_inner='linear', activity_regularizer=None, 
-			scale_output=0.05, **kwargs):
+			scale_output=0.05, padding=False, **kwargs):
 		if depth < 1:
 			quit('Cannot use GraphFP with depth zero')
 		self.init_output = initializations.get(init_output)
@@ -48,6 +48,7 @@ class GraphFP(Layer):
 		self.inner_dim = inner_dim
 		self.depth = depth
 		self.scale_output = scale_output
+		self.padding = padding
 
 		self.initial_weights = None
 		self.input_dim = 4 # each entry is a 3D N_atom x N_atom x N_feature tensor
@@ -106,6 +107,13 @@ class GraphFP(Layer):
 
 	def get_output_singlesample(self, original_graph, train=False):
 		'''For a 3D tensor, get the output. Avoids the need for even more complicated vectorization'''
+		# Check padding
+		if self.padding:
+			rowsum = original_graph.sum(axis = 0) # add across
+			trim = rowsum[:, -1] # last feature == bond flag
+			trim_to = T.eq(trim, 0).nonzero()[0][0] # first index with no bonds
+			original_graph = original_graph[:trim_to, :trim_to, :] # reduced graph
+
 		# Get attribute values for layer zero
 		# where attributes is a 2D tensor and attributes[#, :] is the vector of
 		# concatenated node and edge attributes. In the first layer (depth 0), the 

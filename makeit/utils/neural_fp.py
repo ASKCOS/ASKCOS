@@ -12,7 +12,9 @@ class Graph():
 	'''Describes an undirected graph class'''
 	def __init__(self):
 		self.nodes = []
+		self.num_nodes = 0
 		self.edges = []
+		self.num_edges = 0
 		return
 
 	def nodeAttributes(self):
@@ -109,7 +111,23 @@ def molToGraph(rdmol):
 				).GetIdx()
 			))
 		graph.nodes.append(node)
+	# Add counts, for convenience
+	graph.num_edges = len(graph.edges)
+	graph.num_nodes = len(graph.nodes)
 	return graph 
+
+def padGraphTensor(old_tensor, new_dsize):
+	'''This function takes an input tensor of dsize x dsize x Nfeatures and pads 
+	up the first two dimensions to new_dsize with zeros as needed'''
+	
+	old_shape = old_tensor.shape
+	new_tensor = np.zeros((new_dsize, new_dsize, old_shape[2]))
+	for i in range(old_shape[0]):
+		for j in range(old_shape[1]):
+			for k in range(old_shape[2]):
+				new_tensor[i, j, k] = old_tensor[i, j, k]
+
+	return new_tensor
 
 def bondAttributes(bond):
 	'''Returns a numpy array of attributes for an RDKit bond

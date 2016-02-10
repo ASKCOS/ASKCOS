@@ -20,7 +20,8 @@ import json
 import sys
 import os
 
-def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2, scale_output = 0.05):
+def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2, 
+	scale_output = 0.05, padding = True):
 	'''Generates simple embedding model to use reaction smiles as
 	input in order to predict a single-valued output (i.e., yield)'''
 
@@ -30,7 +31,8 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2, 
 	# Add layers
 	model.add(GraphFP(embedding_size, sizeAttributeVector() - 1, 
 		depth = depth,
-		scale_output = scale_output))
+		scale_output = scale_output,
+		padding = padding))
 	print('    model: added GraphFP layer ({} -> {})'.format('mol', embedding_size))
 	model.add(Dense(1))
 	print('    model: added Dense layer ({} -> {})'.format(embedding_size, 1))
@@ -131,6 +133,12 @@ def get_data(data_fpath, training_ratio = 0.9):
 			smiles.append(row[3]) # Smiles
 		except:
 			print('Failed to generate graph for {}'.format(row[3]))
+
+	if int(config['TRAINING']['batch_size']) > 1: # NEED TO PAD
+		num_atoms = [x.shape[0] for x in mols]
+		max_num_atoms = max(num_atoms)
+		print('padding tensors up to N_atoms = {}...'.format(max_num_atoms + 1))
+		mols = [padGraphTensor(x, max_num_atoms + 1) for x in mols]
 	print('done')
 
 	# Create training/development split
@@ -165,39 +173,50 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 	try:
 		loss = []
 		val_loss = []
-		for i in range(nb_epoch):
-			print('Epoch {}/{}'.format(i + 1, nb_epoch))
-			this_loss = []
-			this_val_loss = []
 
-			# Shuffle training data
+		if batch_size == 1: # DO NOT NEED TO PAD
+			for i in range(nb_epoch):
+				print('Epoch {}/{}'.format(i + 1, nb_epoch))
+				this_loss = []
+				this_val_loss = []
 
-			
-			# Run through training set
-			print('Training...')
-			training_order = range(len(mols_train))
-			np.random.shuffle(training_order)
-			for j in training_order:
-				single_mol_as_array = np.array(mols_train[j:j+1])
-				single_y_as_array = np.array(y_train[j:j+1])
-				sloss = model.train_on_batch(single_mol_as_array, single_y_as_array, accuracy = False)
-				# print('single loss: {}'.format(sloss))
-				this_loss.append(sloss)
-			
-			# Run through testing set
-			print('Testing...')
-			for j in range(len(mols_val)):
-				single_mol_as_array = np.array(mols_val[j:j+1])
-				spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
-				sloss = (spred - y_val[j]) ** 2
-				# print('single loss: {}'.format(sloss))
-				this_val_loss.append(sloss)
-			
-			loss.append(np.mean(this_loss))
-			val_loss.append(np.mean(this_val_loss))
-			print('loss: {}\tval_loss: {}'.format(loss[i], val_loss[i]))
+				# Shuffle training data
 
-		# Write history
+				
+				# Run through training set
+				print('Training...')
+				training_order = range(len(mols_train))
+				np.random.shuffle(training_order)
+				for j in training_order:
+					single_mol_as_array = np.array(mols_train[j:j+1])
+					single_y_as_array = np.array(y_train[j:j+1])
+					sloss = model.train_on_batch(single_mol_as_array, single_y_as_array, accuracy = False)
+					# print('single loss: {}'.format(sloss))
+					this_loss.append(sloss)
+				
+				# Run through testing set
+				print('Testing...')
+				for j in range(len(mols_val)):
+					single_mol_as_array = np.array(mols_val[j:j+1])
+					spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
+					sloss = (spred - y_val[j]) ** 2
+					# print('single loss: {}'.format(sloss))
+					this_val_loss.append(sloss)
+				
+				loss.append(np.mean(this_loss))
+				val_loss.append(np.mean(this_val_loss))
+				print('loss: {}\tval_loss: {}'.format(loss[i], val_loss[i]))
+		
+		else: # PADDED VALUES 
+			mols = np.vstack((mols_train, mols_val))
+			y = np.concatenate((y_train, y_val))
+			hist = model.fit(mols, y, 
+				nb_epoch = nb_epoch, 
+				batch_size = batch_size, 
+				validation_split = (1 - float(len(mols_train))/(len(mols_val) + len(mols_train))),
+				verbose = 1)	
+			loss = hist.history['loss']
+			val_loss = hist.history['val_loss']
 
 	except KeyboardInterrupt:
 		print('terminated training early (intentionally)')
@@ -239,24 +258,30 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 	y_val_pred = []
 	y_test_pred = []
 
-	# Run through training set
-	for j in range(len(mols_train)):
-		single_mol_as_array = np.array(mols_train[j:j+1])
-		single_y_as_array = np.array(y_train[j:j+1])
-		spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
-		y_train_pred.append(spred)
+	if batch_size == 1: # UNEVEN TENSORS, ONE AT A TIME PREDICTION
+		# Run through training set
+		for j in range(len(mols_train)):
+			single_mol_as_array = np.array(mols_train[j:j+1])
+			single_y_as_array = np.array(y_train[j:j+1])
+			spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
+			y_train_pred.append(spred)
 
-	# Run through validation set
-	for j in range(len(mols_val)):
-		single_mol_as_array = np.array(mols_val[j:j+1])
-		spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
-		y_val_pred.append(spred)
+		# Run through validation set
+		for j in range(len(mols_val)):
+			single_mol_as_array = np.array(mols_val[j:j+1])
+			spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
+			y_val_pred.append(spred)
 
-	# Run through testing set
-	for j in range(len(mols_test)):
-		single_mol_as_array = np.array(mols_test[j:j+1])
-		spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
-		y_test_pred.append(spred)
+		# Run through testing set
+		for j in range(len(mols_test)):
+			single_mol_as_array = np.array(mols_test[j:j+1])
+			spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
+			y_test_pred.append(spred)
+
+	else: # PADDED
+		y_train_pred = model.predict(np.array(mols_train), batch_size = batch_size, verbose = 1)[:, 0]
+		y_val_pred = model.predict(np.array(mols_val), batch_size = batch_size, verbose = 1)[:, 0]
+		y_test_pred = model.predict(np.array(mols_test), batch_size = batch_size, verbose = 1)[:, 0]
 
 	# Save
 	with open(test_fpath + '.test', 'w') as fid:
@@ -471,10 +496,11 @@ if __name__ == '__main__':
 		try:
 			model = build_model(embedding_size = int(config['ARCHITECTURE']['embedding_size']),
 				depth = int(config['ARCHITECTURE']['depth']),
-				scale_output = float(config['ARCHITECTURE']['scale_output']))
+				scale_output = float(config['ARCHITECTURE']['scale_output']),
+				padding = int(config['TRAINING']['batch_size']) > 1)
 			print('...built untrained model')
 		except KeyError:
-			print('Must specify embedding_size in ARCHITECTURE in config')
+			print('Missing key in config')
 			quit(1)
 		# # except ValueError:
 		# # 	print('embedding_size must be suitable number')
