@@ -294,8 +294,9 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 		SEN = float(TP) / (TP + FN)
 		SPEC = float(TN) / (TN + FP)
 		BAC = float(SEN + SPEC) / 2.0
-		print('TP[{}]\tTN[{}]\tFP[{}]\tFN[{}]\tSEN[{}]\tSPEC[{}]\tBAC[{}]'.format(
-			TP, TN, FP, FN, SEN, SPEC, BAC))
+		Q = (TP + TN) / N
+		print('TP[{}]\tTN[{}]\tFP[{}]\tFN[{}]\tSEN[{}]\tSPEC[{}]\tBAC[{}]\tQ[{}]'.format(
+			TP, TN, FP, FN, SEN, SPEC, BAC, Q))
 		return
 
 	# Report statistics:

@@ -243,7 +243,7 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 	for j in range(len(mols_train)):
 		single_mol_as_array = np.array(mols_train[j:j+1])
 		single_y_as_array = np.array(y_train[j:j+1])
-		spred = spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
+		spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
 		y_train_pred.append(spred)
 
 	# Run through validation set
@@ -311,31 +311,124 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 
 	return
 
-def test_embeddings_demo(model, data_fpath):
-	# '''This function tests dense embeddings of reactions and tries to find the
-	# most similar one to a test example'''
+def test_embeddings_demo(model, data_fpath, fpath):
+	'''This function tests molecular representations'''
+	# Create folder to dump testing info to
+	try:
+		os.makedirs(fpath)
+	except: # folder exists
+		pass
+	try:
+		fpath = os.path.join(fpath, 'embeddings')
+		os.makedirs(fpath)
+	except: # folder exists
+		pass
 
-	# # Get data from helper function
-	# data = get_data(data_fpath)
-	# mols_train = data[0]
-	# y_train = data[1]
-	# mols_test = data[2]
-	# y_test = data[3]
-	# training_ratio = data[4]
-	# smiles_train = data[5]
-	# smiles_test = data[6]
+	# Get data
+	data = get_data(data_fpath)
+	mols_train = data[0]
+	y_train = data[1]
+	mols_notrain = data[2]
+	y_notrain = data[3]
+	training_ratio = data[4]
+	smiles_train = data[5]
+	smiles_notrain = data[6]
 
-	# print('-------------')
-	# print('DEMONSTRATION')
-	# print('-------------')
-	# for j in range(len(mols_test)):
-	# 	print('original smiles: {}'.format(smiles_test[j]))
-	# 	embedding = model.predict_on_batch(np.array(mols_test[j:j+1]))[0][0]
-	# 	print('{}\t{}\t{}'.format('idx', 'embed', 'target'))
-	# 	for k in range(len(embedding)):
-	# 		print('{}\t{}\t{}'.format(k, round(embedding[k], 2), int(y_test[j][k])))
+	# Split notrain up
+	mols_val    = mols_notrain[:(len(mols_notrain) / 2)] # first half
+	y_val       = y_notrain[:(len(mols_notrain) / 2)] # first half
+	smiles_val  = smiles_notrain[:(len(mols_notrain) / 2)] # first half
+	mols_test   = mols_notrain[(len(mols_notrain) / 2):] # second half
+	y_test      = y_notrain[(len(mols_notrain) / 2):] # second half
+	smiles_test = smiles_notrain[(len(mols_notrain) / 2):] # second half
+
+
+	# Define function to test embedding
+	tf = K.function([model.layers[0].input], 
+		model.layers[0].get_output(train = False))
+
+	# Define function to save image
+	def embedding_to_png(embedding, label, fpath):
+		fig = plt.figure(figsize=(20,0.5))
+		plt.pcolor(embedding, vmin = 0, vmax = 1)
+		plt.title('{}'.format(label))
+		# cbar = plt.colorbar()
+		plt.gca().yaxis.set_visible(False)
+		plt.gca().xaxis.set_visible(False)
+		plt.xlim([0, 512])
+		plt.subplots_adjust(left = 0, right = 1, top = 0.4, bottom = 0)
+		plt.savefig(os.path.join(fpath, label) + '.png', bbox_inches = 'tight')
+		plt.close(fig)
+		plt.clf()
+		return
+
+	# Run through training set
+	for j in range(len(mols_train)):
+		single_mol_as_array = np.array(mols_train[j:j+1])
+		embedding = tf([single_mol_as_array])
+		embedding_to_png(embedding, smiles_train[j], fpath)
+		
+		if j == 25:
+			break
+
+	# Run through validation set
+	for j in range(len(mols_val)):
+		single_mol_as_array = np.array(mols_val[j:j+1])
+
+	# Run through testing set
+	for j in range(len(mols_test)):
+		single_mol_as_array = np.array(mols_test[j:j+1])
 
 	return
+
+
+def test_activations(model, data_fpath, fpath):
+	'''This function tests activation of the output'''
+	# Create folder to dump testing info to
+	try:
+		os.makedirs(fpath)
+	except: # folder exists
+		pass
+	try:
+		fpath = os.path.join(fpath, 'embeddings')
+		os.makedirs(fpath)
+	except: # folder exists
+		pass
+
+	# Get data
+	data = get_data(data_fpath)
+	mols_train = data[0]
+	y_train = data[1]
+	mols_notrain = data[2]
+	y_notrain = data[3]
+	training_ratio = data[4]
+	smiles_train = data[5]
+	smiles_notrain = data[6]
+
+	# Split notrain up
+	mols_val    = mols_notrain[:(len(mols_notrain) / 2)] # first half
+	y_val       = y_notrain[:(len(mols_notrain) / 2)] # first half
+	smiles_val  = smiles_notrain[:(len(mols_notrain) / 2)] # first half
+	mols_test   = mols_notrain[(len(mols_notrain) / 2):] # second half
+	y_test      = y_notrain[(len(mols_notrain) / 2):] # second half
+	smiles_test = smiles_notrain[(len(mols_notrain) / 2):] # second half
+
+	# Loop through fingerprint indeces in dense layer
+	dense_weights = model.layers[1].get_weights()[0] # weights, not bias
+	# for i, dense_weight in enumerate(dense_weights):
+	# 	print('at index {}, weight = {}'.format(i, dense_weight))
+
+	# Now report 5 most positive activations:
+	sorted_indeces = sorted(range(len(dense_weights)), key = lambda i: dense_weights[i])
+	print('Most negatively-activating fingerprint indeces:')
+	for j in range(5):
+		print('at index {}, weight = {}'.format(sorted_indeces[j], dense_weights[sorted_indeces[j]]))
+	print('Most negatively-activating fingerprint indeces:')
+	for j in range(1, 6):
+		print('at index {}, weight = {}'.format(sorted_indeces[-j], dense_weights[sorted_indeces[-j]]))
+
+	return
+
 
 if __name__ == '__main__':
 	if len(sys.argv) < 2:
@@ -409,7 +502,16 @@ if __name__ == '__main__':
 	try:
 		if input_to_bool(config['TESTING']['test_embedding']):
 			# Test current embebddings
-			test_embeddings_demo(model, config['IO']['data_fpath'])
+			test_embeddings_demo(model, config['IO']['data_fpath'], fpath)
+			quit(1)
+	except KeyError:
+		pass
+
+	# Testing activations?
+	try:
+		if input_to_bool(config['TESTING']['test_activations']):
+			# Test current embebddings
+			test_activations(model, config['IO']['data_fpath'], fpath)
 			quit(1)
 	except KeyError:
 		pass
