@@ -3,6 +3,7 @@ from makeit.utils.parsing import input_to_bool, smiles_to_boolean_fps
 from makeit.utils.saving import save_model_history, save_model_history_manual
 from makeit.utils.parse_cfg import read_config
 from makeit.utils.neural_fp import *
+import makeit.utils.stats as stats
 from makeit.utils.GraphEmbedding import GraphFP
 from keras.models import Sequential, model_from_json
 from keras.layers.core import Dense, Dropout, Activation, Masking
@@ -295,44 +296,43 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 				y_test_pred[i],
 				y_test[i] - y_test_pred[i]))
 
-	# Create parity plot
-	plt.scatter(y_train, y_train_pred, alpha = 0.5)
-	plt.xlabel('Actual log(solubility (M))')
-	plt.ylabel('Predicted log(solubility (M))')
-	plt.title('Parity plot for solubility prediction (train set)\nMSE({}) = {}'.format(
-		len(y_train), np.mean((np.array(y_train) - np.array(y_train_pred)) ** 2)))
-	plt.grid(True)
-	min_y = min(plt.axis())
-	max_y = max(plt.axis())
-	plt.axis([min_y, max_y, min_y, max_y])	
-	plt.savefig(test_fpath + ' train.png', bbox_inches = 'tight')
-	plt.clf()
+	def round3(x):
+		return int(x * 1000) / 1000.0
 
-	# Create parity plot
-	plt.scatter(y_val, y_val_pred, alpha = 0.5)
-	plt.xlabel('Actual log(solubility (M))')
-	plt.ylabel('Predicted log(solubility (M))')
-	plt.title('Parity plot for solubility prediction (validation set)\nMSE({}) = {}'.format(
-		len(y_val), np.mean((np.array(y_val) - np.array(y_val_pred)) ** 2)))
-	plt.grid(True)
-	min_y = min(plt.axis())
-	max_y = max(plt.axis())
-	plt.axis([min_y, max_y, min_y, max_y])
-	plt.savefig(test_fpath + ' val.png', bbox_inches = 'tight')
-	plt.clf()
+	def parity_plot(true, pred, label):
+		# Calculate some stats
+		min_y = np.min((true, pred))
+		max_y = np.max((true, pred))
+		mse = stats.mse(true, pred)
+		q = stats.q(true, pred)
+		(r2, a) = stats.linreg(true, pred) # predicted v observed
+		(r2p, ap) = stats.linreg(pred, true) # observed v predicted
 
-	# Create parity plot
-	plt.scatter(y_test, y_test_pred, alpha = 0.5)
-	plt.xlabel('Actual log(solubility (M))')
-	plt.ylabel('Predicted log(solubility (M))')
-	plt.title('Parity plot for solubility prediction (test set)\nMSE({}) = {}'.format(
-		len(y_test), np.mean((np.array(y_test) - np.array(y_test_pred)) ** 2)))
-	plt.grid(True)
-	min_y = min(plt.axis())
-	max_y = max(plt.axis())
-	plt.axis([min_y, max_y, min_y, max_y])	
-	plt.savefig(test_fpath + ' test.png', bbox_inches = 'tight')
-	plt.clf()
+		# Create parity plot
+		plt.scatter(true, pred, alpha = 0.5)
+		plt.xlabel('Actual log(solubility (M))')
+		plt.ylabel('Predicted log(solubility (M))')
+		plt.title('Parity plot for solubility prediction ({} set, N = {})'.format(label, len(true)) + 
+			'\nMSE = {}, q = {}'.format(round3(mse), round3(q)) + 
+			'\na = {}, r^2 = {}'.format(round3(a), round3(r2)) + 
+			'\na` = {}, r^2` = {}'.format(round3(ap), round3(r2p)))
+		plt.grid(True)
+		plt.plot(true, true * a, 'r--')
+		plt.axis([min_y, max_y, min_y, max_y])	
+		plt.savefig(test_fpath + ' {}.png'.format(label), bbox_inches = 'tight')
+		plt.clf()
+
+		# Print
+		print('{}:'.format(label))
+		print('  mse = {}'.format(mse))
+		print('  q = {}'.format(q))
+		print('  r2 through origin = {}'.format(r2))
+		print('  slope through origin = {}'.format(a[0]))
+
+	# Create plots for datasets
+	parity_plot(y_train, y_train_pred, 'train')
+	parity_plot(y_val, y_val_pred, 'val')
+	parity_plot(y_test, y_test_pred, 'test')
 
 	return
 
