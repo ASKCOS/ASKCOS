@@ -338,6 +338,8 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 
 def test_embeddings_demo(model, data_fpath, fpath):
 	'''This function tests molecular representations'''
+	print('Building images of fingerprint examples')
+
 	# Create folder to dump testing info to
 	try:
 		os.makedirs(fpath)
@@ -403,6 +405,20 @@ def test_embeddings_demo(model, data_fpath, fpath):
 	# Run through testing set
 	for j in range(len(mols_test)):
 		single_mol_as_array = np.array(mols_test[j:j+1])
+
+	smiles = ''
+	while True:
+		smiles = raw_input('Enter smiles: ').strip()
+		if smiles is 'done':
+			break
+		try:
+			mol = Chem.MolFromSmiles(smiles)
+			mol_graph = molToGraph(mol).dump_as_tensor()
+			single_mol_as_array = np.array([mol_graph])
+			embedding = tf([single_mol_as_array])
+			embedding_to_png(embedding, smiles, fpath)
+		except:
+			print('could not understand that!')
 
 	return
 
