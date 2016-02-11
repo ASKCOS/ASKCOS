@@ -23,15 +23,20 @@ class GraphFP(Layer):
 
 	# Arguments
 		output_dim: int > 0, size of the fingerprint
-		init: name of initialization function for the weights of the layer
-			(see [initializations](keras/initializations.md)),
-			or alternatively, Theano function to use for weights
-			initialization. This parameter is only relevant
-			if you don't pass a `weights` argument.
-		activation: activation function used for the *inner* smoothing function,
-			the outer layer always uses softmax.
 		inner_dim: equivalent to F in Duvenaud's paper. the number of attributes
-			for each (bond, atom) pair concatenated.
+			for each (bond, atom) pair concatenated. Does NOT include the extract
+			is_bond_present flag. 
+		depth: radius of fingerprint (how many times to recursively mix attributes)
+		init_output: initialization for weights in output layer
+		activation_output: activation function for output layer. Softmax is recommended
+			because it can help increase sparsity, making it more like a real fingerprint
+		init_inner: initialization for inner weights for mixing attributes. Identity is
+			recommended for the initialization for simplicity
+		activation_inner: activation function for the inner layer.
+		scale_output: scale to use for output weight initializations. Large output weights
+			are closer to a true sparse fingerprint, but small output weights might
+			be better to not get stuck in local minima (with low gradients)
+		padding: whether to look for padding in the input tensors. 		
 	'''
 
 	def __init__(self, output_dim, inner_dim, depth = 2, init_output='uniform', 
