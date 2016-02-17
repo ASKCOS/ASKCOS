@@ -1,4 +1,6 @@
 from __future__ import print_function
+from collections import defaultdict
+from rdkit.Chem import Draw
 import datetime
 
 def save_model_history(hist, fpath):
@@ -47,3 +49,11 @@ def save_model_history_manual(loss, val_loss, fpath):
 	# Close file
 	fid.close()
 	return True
+
+def draw_mol(mol, fpath, highlightAtoms = [], **kwargs):
+	'''Draw a highlighted molecule to a file'''
+	opts = Draw.DrawingOptions()
+	opts.elemDict = defaultdict(lambda: (0,0,0))
+	opts.noCarbonSymbols = False
+	opts.selectColor = (1, 0, 0)
+	Draw.MolToFile(mol, fpath, highlightAtoms = highlightAtoms, options = opts, **kwargs)

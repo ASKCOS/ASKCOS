@@ -178,13 +178,10 @@ class GraphFP(Layer):
 		bonds = original_graph[:, :, -1] # flag if the bond is present, (N_atom x N_atom)
 		# Iterate through different depths, updating attributes each time
 		for depth in range(self.depth):
-			# print('depth {} fp: {}'.format(depth, fp.eval()))
 			depth = depth + 1 # correct for zero-indexing
 			(attributes, graph) = self.attributes_update(attributes, depth, original_graph, original_graph, bonds)
 			fp_new = self.attributes_to_fp_contribution(attributes, depth)
 			fp = K.concatenate((fp, T.shape_padright(fp_new)), axis = 2)
-
-		# print('final fp: {}'.format(fp.eval()))
 		return fp
 
 
