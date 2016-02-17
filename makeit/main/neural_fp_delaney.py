@@ -1,6 +1,6 @@
 from __future__ import print_function
 from makeit.utils.parsing import input_to_bool, smiles_to_boolean_fps
-from makeit.utils.saving import save_model_history, save_model_history_manual
+from makeit.utils.saving import save_model_history, save_model_history_manual, draw_mol
 from makeit.utils.parse_cfg import read_config
 from makeit.utils.neural_fp import *
 import makeit.utils.stats as stats
@@ -418,7 +418,7 @@ def test_embeddings_demo(model, data_fpath, fpath):
 			embedding = tf([single_mol_as_array])
 			embedding_to_png(embedding, smiles, fpath)
 		except:
-			print('could not understand that!')
+			print('error saving embedding - was that a SMILES string?')
 
 	return
 
@@ -461,12 +461,41 @@ def test_activations(model, data_fpath, fpath):
 
 	# Now report 5 most positive activations:
 	sorted_indeces = sorted(range(len(dense_weights)), key = lambda i: dense_weights[i])
+	most_neg = []
 	print('Most negatively-activating fingerprint indeces:')
 	for j in range(5):
 		print('at index {}, weight = {}'.format(sorted_indeces[j], dense_weights[sorted_indeces[j]]))
+		most_neg.append(sorted_indeces[j])
+	most_pos = []
 	print('Most negatively-activating fingerprint indeces:')
 	for j in range(1, 6):
 		print('at index {}, weight = {}'.format(sorted_indeces[-j], dense_weights[sorted_indeces[-j]]))
+		most_pos.append(sorted_indeces[-j])
+
+	# Define function to test embedding
+	tf = K.function([model.layers[0].input], 
+		model.layers[0].get_output_singlesample_detail(train = False))
+
+	# Look at most activating for each?
+	for fp_ind in most_neg + most_pos:
+		print('Looking at index {}'.format(fp_ind))
+		for j in range(len(mols_train)):
+			# print('Looking at training molecule {}'.format(j))
+			single_mol_as_array = np.array(mols_train[j:j+1])
+			embedding = tf([single_mol_as_array])
+			for depth in range(embedding.shape[2]):
+				highlight_atoms = []
+				for atom in range(embedding.shape[0]):
+					if embedding[atom, fp_ind, depth] > 0.75:
+						# print('Atom {} at depth {} triggers fp_index {}'.format(atom, depth, fp_ind))
+						if atom not in highlight_atoms:
+							highlight_atoms.append(atom)
+			if highlight_atoms: # is not empty
+				mol = Chem.MolFromSmiles(smiles_train[j])
+				draw_mol(mol, fpath + '/index{}_'.format(fp_ind) + smiles_train[j] + '.png'.format(depth), highlightAtoms = highlight_atoms)
+			else:
+				# No activations
+				pass
 
 	return
 
