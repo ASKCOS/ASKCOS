@@ -137,7 +137,8 @@ class GraphFP(Layer):
 		attributes.name = 'attributes post-transpose'
 
 		# Get initial fingerprint
-		fp = self.attributes_to_fp_contribution(attributes, 0)
+		presum_fp = self.attributes_to_fp_contribution(attributes, 0)
+		fp = K.sum(presum_fp, axis = 0) # sum across atom contributions
 		fp.name = 'initial fingerprint'
 
 		# Get bond matrix
@@ -149,12 +150,43 @@ class GraphFP(Layer):
 			# print('depth {} fp: {}'.format(depth, fp.eval()))
 			depth = depth + 1 # correct for zero-indexing
 			(attributes, graph) = self.attributes_update(attributes, depth, original_graph, original_graph, bonds)
-			fp_new = self.attributes_to_fp_contribution(attributes, depth)
-			fp_new.name = 'fp_new contribution'
-			fp = fp + fp_new
+			presum_fp_new = self.attributes_to_fp_contribution(attributes, depth)
+			presum_fp_new.name = 'presum_fp_new contribution'
+			fp = fp + K.sum(presum_fp_new, axis = 0) 
 
 		# print('final fp: {}'.format(fp.eval()))
 		return fp
+
+	def get_output_singlesample_detail(self, train = False):
+		'''For a single input, get the output fingerprint *before* summing by atom and 
+		over different depths. This should only be used in visualization.'''
+		original_graph = self.get_input(train)[0]
+		# Check padding
+		if self.padding:
+			rowsum = original_graph.sum(axis = 0) # add across
+			trim = rowsum[:, -1] # last feature == bond flag
+			trim_to = T.eq(trim, 0).nonzero()[0][0] # first index with no bonds
+			original_graph = original_graph[:trim_to, :trim_to, :] # reduced graph
+		(attributes, updates) = theano.scan(lambda x: x.diagonal(), sequences = original_graph.dimshuffle((2, 0, 1)))
+		# Now the attributes is (N_features x N_nodes), so we need to transpose
+		attributes = attributes.T
+		# Get initial fingerprint (not summed over atoms)
+		fp = self.attributes_to_fp_contribution(attributes, 0)
+		# Pad right (since this will become tensor)
+		fp = T.shape_padright(fp)
+		# Get bond matrix
+		bonds = original_graph[:, :, -1] # flag if the bond is present, (N_atom x N_atom)
+		# Iterate through different depths, updating attributes each time
+		for depth in range(self.depth):
+			# print('depth {} fp: {}'.format(depth, fp.eval()))
+			depth = depth + 1 # correct for zero-indexing
+			(attributes, graph) = self.attributes_update(attributes, depth, original_graph, original_graph, bonds)
+			fp_new = self.attributes_to_fp_contribution(attributes, depth)
+			fp = K.concatenate((fp, T.shape_padright(fp_new)), axis = 2)
+
+		# print('final fp: {}'.format(fp.eval()))
+		return fp
+
 
 	def attributes_update(self, attributes, depth, graph, original_graph, bonds):
 		'''Given the current attributes, the current depth, and the graph that the attributes
@@ -232,11 +264,7 @@ class GraphFP(Layer):
 		# print(output_bias.eval())
 		output_activated = self.activation_output(output_dot + output_bias)
 		output_activated.name = 'output_activated'
-		summed_activated = K.sum(output_activated, axis = 0)
-		summed_activated.name = 'summed_activated'
-		# print('SUMMED_ACTIVATED')
-		# print(summed_activated.eval())
-		return summed_activated
+		return output_activated
 
 	def get_config(self):
 		config = {'name': self.__class__.__name__,
