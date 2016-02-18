@@ -9,6 +9,7 @@ from keras.models import Sequential, model_from_json
 from keras.layers.core import Dense, Dropout, Activation, Masking
 from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import LSTM
+from keras.callbacks import LearningRateScheduler
 from keras.optimizers import RMSprop, Adam
 from keras.utils.visualize_util import plot
 import csv
@@ -20,6 +21,7 @@ import datetime
 import json
 import sys
 import os
+
 
 def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2, 
 	scale_output = 0.05, padding = True):
@@ -153,7 +155,7 @@ def get_data(data_fpath, training_ratio = 0.9):
 
 	return (mols_train, y_train, mols_notrain, y_notrain, training_ratio, smiles_train, smiles_notrain)
 
-def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
+def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1, lr_func = '0.01'):
 	'''Trains the model'''
 
 	# Get data from helper function
@@ -168,6 +170,10 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 	mols_val    = mols_notrain[:(len(mols_notrain) / 2)] # first half
 	y_val       = y_notrain[:(len(mols_notrain) / 2)] # first half
 
+	# Create learning rate function
+	lr_func_string = 'def lr(epoch):\n    return {}\n'.format(lr_func)
+	exec lr_func_string
+
 	# Fit (allows keyboard interrupts in the middle)
 	# Because molecular graph tensors are different sizes based on N_atoms, can only do one at a time
 	# (alternative is to pad with zeros and try to add some masking feature to GraphFP)
@@ -177,12 +183,10 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 
 		if batch_size == 1: # DO NOT NEED TO PAD
 			for i in range(nb_epoch):
-				print('Epoch {}/{}'.format(i + 1, nb_epoch))
+				print('Epoch {}/{}, lr = {}'.format(i + 1, nb_epoch, lr(i)))
 				this_loss = []
 				this_val_loss = []
-
-				# Shuffle training data
-
+				model.optimizer.lr.set_value(lr(i))
 				
 				# Run through training set
 				print('Training...')
@@ -215,7 +219,8 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1):
 				nb_epoch = nb_epoch, 
 				batch_size = batch_size, 
 				validation_split = (1 - float(len(mols_train))/(len(mols_val) + len(mols_train))),
-				verbose = 1)	
+				verbose = 1,
+				callbacks = [LearningRateScheduler(lr)])	
 			loss = hist.history['loss']
 			val_loss = hist.history['val_loss']
 
@@ -456,8 +461,14 @@ def test_activations(model, data_fpath, fpath):
 
 	# Loop through fingerprint indeces in dense layer
 	dense_weights = model.layers[1].get_weights()[0] # weights, not bias
-	# for i, dense_weight in enumerate(dense_weights):
-	# 	print('at index {}, weight = {}'.format(i, dense_weight))
+	# Save histogram
+	weights = np.ones_like(dense_weights) / len(dense_weights)
+	n, bins, patches = plt.hist(dense_weights, 50, facecolor = 'blue', alpha = 0.5, weights = weights)
+	plt.xlabel('FP index contribution to predicted log(sol (M))')
+	plt.ylabel('Normalized frequency')
+	plt.title('Histogram of weights for linear FP->Solubility model')
+	plt.grid(True)
+	plt.savefig(fpath + '/weights_histogram.png', bbox_inches = 'tight')
 
 	# Now report 5 most positive activations:
 	sorted_indeces = sorted(range(len(dense_weights)), key = lambda i: dense_weights[i])
@@ -591,11 +602,11 @@ if __name__ == '__main__':
 	hist = None
 	try:
 		print('...training model')
-		model.optimizer.lr.set_value(float(config['TRAINING']['lr']))
 		(model, loss, val_loss) = train_model(model, 
 			data_fpath = config['IO']['data_fpath'], 
 			nb_epoch = int(config['TRAINING']['nb_epoch']), 
-			batch_size = int(config['TRAINING']['batch_size']))
+			batch_size = int(config['TRAINING']['batch_size']),
+			lr_func = config['TRAINING']['lr'])
 		print('...trained model')
 	except KeyError:
 		print('Must specify data_fpath in IO and nb_epoch and batch_size in TRAINING in config')
