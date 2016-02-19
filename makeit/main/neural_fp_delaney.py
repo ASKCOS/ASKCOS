@@ -9,7 +9,7 @@ from keras.models import Sequential, model_from_json
 from keras.layers.core import Dense, Dropout, Activation, Masking
 from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import LSTM
-from keras.callbacks import LearningRateScheduler
+from keras.callbacks import LearningRateScheduler, EarlyStopping
 from keras.optimizers import RMSprop, Adam
 from keras.utils.visualize_util import plot
 import csv
@@ -85,7 +85,7 @@ def save_model(model, loss, val_loss, fpath = '', config = {}, tstamp = ''):
 	print('...saved model to {}.[json, h5, png, info]'.format(fpath))
 	return True
 
-def get_data(data_fpath, training_ratio = 0.9):
+def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0):
 	'''This is a helper script to read the data .json object and return
 	the training and test data sets separately. This is to allow for an
 	already-trained model to be evaluated using the test data (i.e., which
@@ -116,13 +116,20 @@ def get_data(data_fpath, training_ratio = 0.9):
 	except:
 		pass
 
+	# Get new shuffle seed if possible
+	try:
+		temp = int(config['TRAINING']['shuffle_seed'])
+		shuffle_seed = temp
+	except:
+		pass
+
 	# Parse data into individual components
 	smiles = []
 	mols = []
 	y = []
 	print('processing data...',)
 	# Randomize
-	np.random.seed(0)
+	np.random.seed(shuffle_seed)
 	np.random.shuffle(data)
 	for i, row in enumerate(data):
 		if i == 0:
@@ -144,31 +151,74 @@ def get_data(data_fpath, training_ratio = 0.9):
 		mols = [padGraphTensor(x, max_num_atoms + 1) for x in mols]
 	print('done')
 
-	# Create training/development split
-	division = int(len(data) * training_ratio)
-	mols_train = mols[:division]
-	mols_notrain  = mols[division:]
-	y_train = y[:division]
-	y_notrain  = y[division:]
-	smiles_train = smiles[:division]
-	smiles_notrain = smiles[division:]
+	# Divide up data
+	if 'ratio' in config['TRAINING']['data_split']: # split train/notrain
+		# Create training/development split
+		division = int(len(data) * training_ratio)
+		mols_train = mols[:division]
+		mols_notrain  = mols[division:]
+		y_train = y[:division]
+		y_notrain  = y[division:]
+		smiles_train = smiles[:division]
+		smiles_notrain = smiles[division:]
 
-	return (mols_train, y_train, mols_notrain, y_notrain, training_ratio, smiles_train, smiles_notrain)
+		# Split notrain up
+		mols_val    = mols_notrain[:(len(mols_notrain) / 2)] # first half
+		y_val       = y_notrain[:(len(mols_notrain) / 2)] # first half
+		smiles_val  = smiles_notrain[:(len(mols_notrain) / 2)] # first half
+		mols_test   = mols_notrain[(len(mols_notrain) / 2):] # second half
+		y_test      = y_notrain[(len(mols_notrain) / 2):] # second half
+		smiles_test = smiles_notrain[(len(mols_notrain) / 2):] # second half
 
-def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1, lr_func = '0.01'):
+	elif 'cv' in config['TRAINING']['data_split']: # cross-validation
+		# Default to first fold of 5-fold cross-validation
+		folds = 5
+		this_fold = 0
+		# Read from config file
+		try:
+			folds = int(config['TRAINING']['folds'].split('/')[1])
+			this_fold = int(config['TRAINING']['folds'].split('/')[0]) - 1
+		except:
+			pass
+
+		# Get target size of each fold
+		N = len(mols)
+		target_fold_size = int(np.ceil(float(N) / folds))
+		# Split up data
+		folded_mols 	= [mols[x:x+target_fold_size]   for x in range(0, N, target_fold_size)]
+		folded_y 		= [y[x:x+target_fold_size]      for x in range(0, N, target_fold_size)]
+		folded_smiles 	= [smiles[x:x+target_fold_size] for x in range(0, N, target_fold_size)]
+		print('Split data into {} folds'.format(folds))
+		print('...using fold {}'.format(this_fold + 1))
+
+		# Recombine into validation (this_fold), training (everything else), and testing (same as validation)
+		mols_train   = [x for fold in (folded_mols[:this_fold] + folded_mols[(this_fold + 1):])     for x in fold]
+		y_train      = [x for fold in (folded_y[:this_fold] + folded_y[(this_fold + 1):])           for x in fold]
+		smiles_train = [x for fold in (folded_smiles[:this_fold] + folded_smiles[(this_fold + 1):]) for x in fold]
+		# Validation is just this fold
+		mols_val     = folded_mols[this_fold]
+		y_val        = folded_y[this_fold]
+		smiles_val   = folded_smiles[this_fold]
+		# Test is a copy of validation
+		mols_test    = mols_val[:]
+		y_test       = y_val[:]
+		smiles_test  = smiles_val[:]
+
+	else:
+		print('Must specify a data_split type of "ratio" or "cv"')
+		quit(1)
+
+	return (mols_train, y_train, smiles_train,
+			mols_val, y_val, smiles_val,
+			mols_test, y_test, smiles_test)
+
+def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1, lr_func = '0.01', patience = 10):
 	'''Trains the model'''
 
 	# Get data from helper function
-	data = get_data(data_fpath)
-	mols_train = data[0]
-	y_train = data[1]
-	mols_notrain = data[2]
-	y_notrain = data[3]
-	training_ratio = data[4]
-	
-	# Split notrain up
-	mols_val    = mols_notrain[:(len(mols_notrain) / 2)] # first half
-	y_val       = y_notrain[:(len(mols_notrain) / 2)] # first half
+	(mols_train, y_train, smiles_train,
+			mols_val, y_val, smiles_val,
+			_, _, _) = get_data(data_fpath)
 
 	# Create learning rate function
 	lr_func_string = 'def lr(epoch):\n    return {}\n'.format(lr_func)
@@ -220,7 +270,7 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1, lr_func = 
 				batch_size = batch_size, 
 				validation_split = (1 - float(len(mols_train))/(len(mols_val) + len(mols_train))),
 				verbose = 1,
-				callbacks = [LearningRateScheduler(lr)])	
+				callbacks = [LearningRateScheduler(lr), EarlyStopping(patience = patience, verbose = 1)])	
 			loss = hist.history['loss']
 			val_loss = hist.history['val_loss']
 
@@ -240,23 +290,10 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 	test_fpath = os.path.join(fpath, tstamp)
 
 	# Get data from helper function
-	data = get_data(data_fpath)
-	mols_train = data[0]
-	y_train = data[1]
-	mols_notrain = data[2]
-	y_notrain = data[3]
-	training_ratio = data[4]
-	smiles_train = data[5]
-	smiles_notrain = data[6]
-
-	# Split notrain up
-	mols_val    = mols_notrain[:(len(mols_notrain) / 2)] # first half
-	y_val       = y_notrain[:(len(mols_notrain) / 2)] # first half
-	smiles_val  = smiles_notrain[:(len(mols_notrain) / 2)] # first half
-	mols_test   = mols_notrain[(len(mols_notrain) / 2):] # second half
-	y_test      = y_notrain[(len(mols_notrain) / 2):] # second half
-	smiles_test = smiles_notrain[(len(mols_notrain) / 2):] # second half
-
+	(mols_train, y_train, smiles_train,
+			mols_val, y_val, smiles_val,
+			mols_test, y_test, smiles_test) = get_data(data_fpath)
+	
 	# Fit (allows keyboard interrupts in the middle)
 	# Because molecular graph tensors are different sizes based on N_atoms, can only do one at a time
 	# (alternative is to pad with zeros and try to add some masking feature to GraphFP)
@@ -305,6 +342,10 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 		return int(x * 1000) / 1000.0
 
 	def parity_plot(true, pred, label):
+		if len(true) == 0:
+			print('skipping parity plot for empty dataset')
+			return
+
 		# Calculate some stats
 		min_y = np.min((true, pred))
 		max_y = np.max((true, pred))
@@ -357,23 +398,9 @@ def test_embeddings_demo(model, data_fpath, fpath):
 		pass
 
 	# Get data
-	data = get_data(data_fpath)
-	mols_train = data[0]
-	y_train = data[1]
-	mols_notrain = data[2]
-	y_notrain = data[3]
-	training_ratio = data[4]
-	smiles_train = data[5]
-	smiles_notrain = data[6]
-
-	# Split notrain up
-	mols_val    = mols_notrain[:(len(mols_notrain) / 2)] # first half
-	y_val       = y_notrain[:(len(mols_notrain) / 2)] # first half
-	smiles_val  = smiles_notrain[:(len(mols_notrain) / 2)] # first half
-	mols_test   = mols_notrain[(len(mols_notrain) / 2):] # second half
-	y_test      = y_notrain[(len(mols_notrain) / 2):] # second half
-	smiles_test = smiles_notrain[(len(mols_notrain) / 2):] # second half
-
+	(mols_train, y_train, smiles_train,
+			mols_val, y_val, smiles_val,
+			mols_test, y_test, smiles_test) = get_data(data_fpath)
 
 	# Define function to test embedding
 	tf = K.function([model.layers[0].input], 
@@ -442,22 +469,9 @@ def test_activations(model, data_fpath, fpath):
 		pass
 
 	# Get data
-	data = get_data(data_fpath)
-	mols_train = data[0]
-	y_train = data[1]
-	mols_notrain = data[2]
-	y_notrain = data[3]
-	training_ratio = data[4]
-	smiles_train = data[5]
-	smiles_notrain = data[6]
-
-	# Split notrain up
-	mols_val    = mols_notrain[:(len(mols_notrain) / 2)] # first half
-	y_val       = y_notrain[:(len(mols_notrain) / 2)] # first half
-	smiles_val  = smiles_notrain[:(len(mols_notrain) / 2)] # first half
-	mols_test   = mols_notrain[(len(mols_notrain) / 2):] # second half
-	y_test      = y_notrain[(len(mols_notrain) / 2):] # second half
-	smiles_test = smiles_notrain[(len(mols_notrain) / 2):] # second half
+	(mols_train, y_train, smiles_train,
+			mols_val, y_val, smiles_val,
+			mols_test, y_test, smiles_test) = get_data(data_fpath)
 
 	# Loop through fingerprint indeces in dense layer
 	dense_weights = model.layers[1].get_weights()[0] # weights, not bias
@@ -606,7 +620,8 @@ if __name__ == '__main__':
 			data_fpath = config['IO']['data_fpath'], 
 			nb_epoch = int(config['TRAINING']['nb_epoch']), 
 			batch_size = int(config['TRAINING']['batch_size']),
-			lr_func = config['TRAINING']['lr'])
+			lr_func = config['TRAINING']['lr'],
+			patience = int(config['TRAINING']['patience']))
 		print('...trained model')
 	except KeyError:
 		print('Must specify data_fpath in IO and nb_epoch and batch_size in TRAINING in config')
