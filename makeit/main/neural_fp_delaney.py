@@ -37,8 +37,10 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2,
 		scale_output = scale_output,
 		padding = padding))
 	print('    model: added GraphFP layer ({} -> {})'.format('mol', embedding_size))
+	model.add(Dense(50))
+	print('    model: added Dense layer ({} -> {})'.format(embedding_size, 50))
 	model.add(Dense(1))
-	print('    model: added Dense layer ({} -> {})'.format(embedding_size, 1))
+	print('    model: added Dense layer ({} -> {})'.format(50, 1))
 
 	# Compile
 	if optimizer == 'adam':
@@ -350,7 +352,7 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 		min_y = np.min((true, pred))
 		max_y = np.max((true, pred))
 		mse = stats.mse(true, pred)
-		mae = stats.mae((true, pred))
+		mae = stats.mae(true, pred)
 		q = stats.q(true, pred)
 		(r2, a) = stats.linreg(true, pred) # predicted v observed
 		(r2p, ap) = stats.linreg(pred, true) # observed v predicted
