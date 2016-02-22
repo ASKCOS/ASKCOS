@@ -7,6 +7,12 @@ def mse(x, y):
 	y = np.array(y)
 	return np.mean((x - y) ** 2)
 
+def mae(x, y):
+	'''Mean absolute error of two 1D numpy arrays or Python lists'''
+	x = np.array(x)
+	y = np.array(y)
+	return np.mean(np.abs(x - y))
+
 def q(y_true, y_pred):
 	'''q value as described in Tropsha, Gramatica, Gombar:
 	The Importance of Being Earnest'''

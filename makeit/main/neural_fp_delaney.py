@@ -350,6 +350,7 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 		min_y = np.min((true, pred))
 		max_y = np.max((true, pred))
 		mse = stats.mse(true, pred)
+		mae = stats.mae((true, pred))
 		q = stats.q(true, pred)
 		(r2, a) = stats.linreg(true, pred) # predicted v observed
 		(r2p, ap) = stats.linreg(pred, true) # observed v predicted
@@ -359,7 +360,7 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 		plt.xlabel('Actual log(solubility (M))')
 		plt.ylabel('Predicted log(solubility (M))')
 		plt.title('Parity plot for solubility prediction ({} set, N = {})'.format(label, len(true)) + 
-			'\nMSE = {}, q = {}'.format(round3(mse), round3(q)) + 
+			'\nMSE = {}, MAE = {}, q = {}'.format(round3(mse), round3(mae), round3(q)) + 
 			'\na = {}, r^2 = {}'.format(round3(a), round3(r2)) + 
 			'\na` = {}, r^2` = {}'.format(round3(ap), round3(r2p)))
 		plt.grid(True)
