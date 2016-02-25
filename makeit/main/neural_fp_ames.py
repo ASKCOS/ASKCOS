@@ -229,6 +229,8 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1, lr_func = 
 		val_loss = []
 
 		if batch_size == 1: # DO NOT NEED TO PAD
+			wait = 0
+			prev_best_val_loss = 99999999
 			for i in range(nb_epoch):
 				print('Epoch {}/{}, lr = {}'.format(i + 1, nb_epoch, lr(i)))
 				this_loss = []
@@ -258,6 +260,17 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1, lr_func = 
 				loss.append(np.mean(this_loss))
 				val_loss.append(np.mean(this_val_loss))
 				print('loss: {}\tval_loss: {}'.format(loss[i], val_loss[i]))
+
+				# Check progress
+				if np.mean(this_val_loss) < prev_best_val_loss:
+					wait = 0
+					prev_best_val_loss = np.mean(this_val_loss)
+				else:
+					wait = wait + 1
+					print('{} epochs without val_loss progress'.format(wait))
+					if wait == patience:
+						print('stopping early!')
+						break
 		
 		else: # PADDED VALUES 
 			mols = np.vstack((mols_train, mols_val))
@@ -360,7 +373,7 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 		SEN = float(TP) / (TP + FN)
 		SPEC = float(TN) / (TN + FP)
 		BAC = float(SEN + SPEC) / 2.0
-		Q = (TP + TN) / N
+		Q = (TP + TN) / float(N)
 		print('N[{}]\tTP[{}]\tTN[{}]\tFP[{}]\tFN[{}]\tSEN[{}]\tSPEC[{}]\tBAC[{}]\tQ[{}]'.format(
 			N, TP, TN, FP, FN, SEN, SPEC, BAC, Q))
 		return (N, TP, TN, FP, FN, SEN, SPEC, BAC, Q)
@@ -372,13 +385,13 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 		fid.write('\t'.join(['dataset', 'N', 'TP', 'TN', 'FP', 'FN', 'SEN', 'SPEC', 'BAC', 'Q']) + '\n')
 		print('Training performance')
 		(N, TP, TN, FP, FN, SEN, SPEC, BAC, Q) = score_classification(np.array(y_train) > 0.5, np.array(y_train_pred) > 0.5)
-		fid.write('test\t' + '\t'.join(['{}'.format(x) for x in [N, TP, TN, FP, FN, SEN, SPEC, BAC, Q]]))
+		fid.write('test\t' + '\t'.join(['{}'.format(x) for x in [N, TP, TN, FP, FN, SEN, SPEC, BAC, Q]]) + '\n')
 		print('Validation performance')
 		(N, TP, TN, FP, FN, SEN, SPEC, BAC, Q) = score_classification(np.array(y_val) > 0.5, np.array(y_val_pred) > 0.5)
-		fid.write('val\t' + '\t'.join(['{}'.format(x) for x in [N, TP, TN, FP, FN, SEN, SPEC, BAC, Q]]))
+		fid.write('val\t' + '\t'.join(['{}'.format(x) for x in [N, TP, TN, FP, FN, SEN, SPEC, BAC, Q]]) + '\n')
 		print('Testing performance')
 		(N, TP, TN, FP, FN, SEN, SPEC, BAC, Q) = score_classification(np.array(y_test) > 0.5, np.array(y_test_pred) > 0.5)
-		fid.write('test\t' + '\t'.join(['{}'.format(x) for x in [N, TP, TN, FP, FN, SEN, SPEC, BAC, Q]]))
+		fid.write('test\t' + '\t'.join(['{}'.format(x) for x in [N, TP, TN, FP, FN, SEN, SPEC, BAC, Q]]) + '\n')
 	
 	return
 
@@ -536,7 +549,6 @@ if __name__ == '__main__':
 	hist = None
 	try:
 		print('...training model')
-		model.optimizer.lr.set_value(float(config['TRAINING']['lr']))
 		(model, loss, val_loss) = train_model(model, 
 			data_fpath = config['IO']['data_fpath'], 
 			nb_epoch = int(config['TRAINING']['nb_epoch']), 
