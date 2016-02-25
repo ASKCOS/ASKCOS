@@ -25,7 +25,7 @@ import os
 
 def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2, 
 	scale_output = 0.05, padding = True):
-	'''Generates simple embedding model to use reaction smiles as
+	'''Generates simple embedding model to use molecular tensor as
 	input in order to predict a single-valued output (i.e., yield)'''
 
 	# Base model
@@ -35,12 +35,13 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2,
 	model.add(GraphFP(embedding_size, sizeAttributeVector() - 1, 
 		depth = depth,
 		scale_output = scale_output,
-		padding = padding))
+		padding = padding,
+		activation_inner = 'tanh'))
 	print('    model: added GraphFP layer ({} -> {})'.format('mol', embedding_size))
-	model.add(Dense(50))
-	print('    model: added Dense layer ({} -> {})'.format(embedding_size, 50))
+	model.add(Dense(5))
+	print('    model: added Dense layer ({} -> {})'.format(embedding_size, 5))
 	model.add(Dense(1))
-	print('    model: added Dense layer ({} -> {})'.format(50, 1))
+	print('    model: added Dense layer ({} -> {})'.format(5, 1))
 
 	# Compile
 	if optimizer == 'adam':
