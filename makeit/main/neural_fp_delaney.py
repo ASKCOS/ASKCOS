@@ -235,6 +235,8 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1, lr_func = 
 		val_loss = []
 
 		if batch_size == 1: # DO NOT NEED TO PAD
+			wait = 0
+			prev_best_val_loss = 99999999
 			for i in range(nb_epoch):
 				print('Epoch {}/{}, lr = {}'.format(i + 1, nb_epoch, lr(i)))
 				this_loss = []
@@ -264,7 +266,18 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1, lr_func = 
 				loss.append(np.mean(this_loss))
 				val_loss.append(np.mean(this_val_loss))
 				print('loss: {}\tval_loss: {}'.format(loss[i], val_loss[i]))
-		
+
+				# Check progress
+				if np.mean(this_val_loss) < prev_best_val_loss:
+					wait = 0
+					prev_best_val_loss = np.mean(this_val_loss)
+				else:
+					wait = wait + 1
+					print('{} epochs without val_loss progress'.format(wait))
+					if wait == patience:
+						print('stopping early!')
+						break
+								
 		else: # PADDED VALUES 
 			mols = np.vstack((mols_train, mols_val))
 			y = np.concatenate((y_train, y_val))
