@@ -47,14 +47,20 @@ class Graph():
 		  Keras/Theano easily'''
 
 		# Bad input handling
-		if not self.edges or not self.nodes:
-			print('Error with graph!')
-			print('edges: {}'.format(self.edges))
-			print('nodes: {}'.format(self.nodes))
+		if not self.nodes:
+			raise(ValueError, 'Error generating tensor for graph with no nodes')
 
 		N_nodes = len(self.nodes)
 		N_features = sizeAttributeVector()
 		tensor = np.zeros((N_nodes, N_nodes, N_features))
+
+		# Special case of no bonds (e.g., methane)
+		if not self.edges:
+			nodeAttributes = np.vstack([x.attributes for x in self.nodes])
+			for i, node in enumerate(self.nodes):
+				tensor[i, i, 0:len(nodeAttributes[i])] = nodeAttributes[i]
+			return tensor
+
 		edgeAttributes = np.vstack([x.attributes for x in self.edges])
 		nodeAttributes = np.vstack([x.attributes for x in self.nodes])
 		nodeNeighbors = self.nodeNeighbors()
@@ -177,7 +183,7 @@ def atomAttributes(atom):
 	# Add heavy neighbor count
 	attributes += oneHotVector(
 		len(atom.GetNeighbors()),
-		[0, 1, 2, 3, 4, 5, 6]
+		[0, 1, 2, 3, 4, 5]
 	)
 	# Add hydrogen count
 	attributes += oneHotVector(
