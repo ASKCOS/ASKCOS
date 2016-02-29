@@ -1,0 +1,5 @@
+python makeit/main/neural_fp_opensol.py "/home/ccoley/ML Chemistry/Make-It/makeit/inputs/opensol_oct/fold1.cfg"
+python makeit/main/neural_fp_opensol.py "/home/ccoley/ML Chemistry/Make-It/makeit/inputs/opensol_oct/fold2.cfg"
+python makeit/main/neural_fp_opensol.py "/home/ccoley/ML Chemistry/Make-It/makeit/inputs/opensol_oct/fold3.cfg"
+python makeit/main/neural_fp_opensol.py "/home/ccoley/ML Chemistry/Make-It/makeit/inputs/opensol_oct/fold4.cfg"
+python makeit/main/neural_fp_opensol.py "/home/ccoley/ML Chemistry/Make-It/makeit/inputs/opensol_oct/fold5.cfg"
