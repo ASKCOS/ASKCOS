@@ -533,6 +533,103 @@ def all_reaction_dois():
 
 	return True
 
+def reactions_rdsmiles(N = 10000):
+	'''Sample database for reactions
+
+	Saved data is [[str(reacSMILES), str(reacSMILES), ...], 
+	               [str(prodSMILES), str(prodSMILES)]]'''
+
+	# Build filter 
+	db_filter = {}
+
+	# Randomize list of reaction IDsgit gui
+	reaction_ids = get_all_ids(reactions, db_filter = db_filter)
+	print('...read reaction IDs')
+	shuffle(reaction_ids) 
+	print('...shuffled reaction IDs')
+
+	# Look for valid entries
+	data = []
+	j = 0 # successful entries == len(data)
+	for reaction_id in reaction_ids:
+
+		# Are we done?
+		if j == N:
+			break
+
+		# Find entry
+		reaction = reactions.find_one({'_id' : reaction_id})
+
+		# Unpack
+		reactants = reaction['reactants']
+		products = reaction['products']
+		reac_smiles = []
+		prod_smiles = []
+
+		# Get SMILES for reactants and products
+		skip_this_reaction = False
+		for chemical_id in reactants:
+			chemical = chemicals.find_one({'_id' : chemical_id})
+			if not chemical: # ID not found
+				skip_this_reaction = True
+				break
+			elif not chemical['smiles']: # missing smiles
+				skip_this_reaction = True
+				break
+			this_mol = Chem.MolFromSmiles(chemical['smiles'])
+			if not this_mol:
+				skip_this_reaction = True
+				break
+			reac_smiles.append(Chem.MolToSmiles(this_mol))
+		for chemical_id in products:
+			chemical = chemicals.find_one({'_id' : chemical_id})
+			if not chemical: # ID not found
+				skip_this_reaction = True
+				break
+			elif not chemical['smiles']: # missing smiles
+				skip_this_reaction = True
+				break
+			this_mol = Chem.MolFromSmiles(chemical['smiles'])
+			if not this_mol:
+				skip_this_reaction = True
+				break
+			prod_smiles.append(Chem.MolToSmiles(this_mol))
+		# Skip if we couldn't parse reactant/product
+		if skip_this_reaction:
+			continue
+		# Skip if no reactants or no products
+		if not reac_smiles:
+			continue
+		if not prod_smiles:
+			continue
+
+		# Append to data
+		data.append([reac_smiles, prod_smiles])
+		j = j + 1
+
+		# Report progress
+		if (j % 1000) == 0:
+			print('{}/{}'.format(j, N))
+
+	print('...constructed data list')
+
+	# Write details
+	details = 'Found {} random reactions from database'.format(len(data))
+	details += ' satisfying the following criteria:\n'
+	details += '- >=1 reactant, product\n'
+	details += 'for the associated chemicals...\n'
+	details += '- chemical[\'smiles\'] == True\n'
+	details += '- can be parsed by RDKit'
+	details += '\nData list consists of entries:\n'
+	details += '  [[str(reacSMILES), ...], [str(prodSMILES)]]\n'
+	
+	# Save
+	dump_to_data_file(data, 'reactions_rdsmiles_{}'.format(len(data)), 
+		details = details)
+	print('...saved json file')
+
+	return True
+
 if __name__ == '__main__':
 	if len(sys.argv) < 2:
 		print('Usage: {} "data type" [max # records]'.format(sys.argv[0]))
@@ -544,6 +641,7 @@ if __name__ == '__main__':
 		print('    - "chemical_rdsmiles"')
 		print('    - "reactions_2reac_smilesyield"')
 		print('    - "chemical_rdsmiles_rdfuncgroups"')
+		print('    - "reactions_rdsmiles"')
 
 	# Molecular weight training set
 	if sys.argv[1] == 'chemical_names_with_mws':
@@ -590,6 +688,12 @@ if __name__ == '__main__':
 			chemical_rdsmiles_rdfuncgroups(int(sys.argv[2]))
 		else:
 			chemical_rdsmiles_rdfuncgroups()
+
+	elif sys.argv[1] == 'reactions_rdsmiles':
+		if len(sys.argv) == 3:
+			reactions_rdsmiles(int(sys.argv[2]))
+		else:
+			reactions_rdsmiles()
 
 	else:
 		print('Invalid data type "{}", see usage'.format(sys.argv[1]))
