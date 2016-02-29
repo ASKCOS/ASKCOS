@@ -38,10 +38,10 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2,
 		padding = padding,
 		activation_inner = 'tanh'))
 	print('    model: added GraphFP layer ({} -> {})'.format('mol', embedding_size))
-	# model.add(Dense(5))
-	# print('    model: added Dense layer ({} -> {})'.format(embedding_size, 5))
+	# model.add(Dense(10))
+	# print('    model: added Dense layer (-> {})'.format(10))
 	model.add(Dense(1))
-	print('    model: added Dense layer ({} -> {})'.format(5, 1))
+	print('    model: added Dense layer (-> {})'.format(1))
 
 	# Compile
 	if optimizer == 'adam':

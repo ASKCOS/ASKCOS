@@ -1,0 +1,5 @@
+makeit/models/opensol_oct_02_29_2016/opensol_oct_fp512_depth3_linear_5foldCV_fold4 saved at UTC 02-29-2016_17-13
+
+Configuration details
+------------
+  OrderedDict([('IO', OrderedDict([('__name__', 'IO'), ('model_fpath', 'makeit/models/opensol_oct_02_29_2016/opensol_oct_fp512_depth3_linear_5foldCV_fold4'), ('data_fpath', 'makeit/data/20150430SolubilitiesSum_red.csv')])), ('ARCHITECTURE', OrderedDict([('__name__', 'ARCHITECTURE'), ('use_existing', 'false'), ('embedding_size', '512'), ('depth', '3'), ('scale_output', '0.05')])), ('TRAINING', OrderedDict([('__name__', 'TRAINING'), ('use_existing', 'false'), ('truncate_to', 'n/a'), ('data_split', 'cv'), ('folds', '4/5'), ('batch_size', '10'), ('nb_epoch', '300'), ('lr', 'float(0.001 * np.exp(- epoch / 40.0))'), ('patience', '20'), ('shuffle_seed', '4259')])), ('TESTING', OrderedDict([('__name__', 'TESTING'), ('test_embedding', 'false'), ('test_activations', 'false')]))])
