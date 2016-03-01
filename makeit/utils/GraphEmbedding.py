@@ -98,17 +98,17 @@ class GraphFP(Layer):
 		# # different weights. Now, self.W_output[#,:,:] corresponds to the 
 		# # weight matrix for layer/depth #.
 
-		# Get regularizers
-		self.regularizers = []
-		if self.inner_regularizer:
-			self.inner_regularizer.set_param(self.W_inner)
-			self.regularizers.append(self.inner_regularizer)
-		if self.output_regularizer:
-			self.output_regularizer.set_param(self.W_output)
-			self.regularizers.append(self.output_regularizer)
+		# # Get regularizers
+		# self.regularizers = []
+		# if self.inner_regularizer:
+		# 	self.inner_regularizer.set_param(self.W_inner)
+		# 	self.regularizers.append(self.inner_regularizer)
+		# if self.output_regularizer:
+		# 	self.output_regularizer.set_param(self.W_output)
+		# 	self.regularizers.append(self.output_regularizer)
 
 		# Pack params
-		self.trainable_weights = [self.W_inner, 
+		self.params = [self.W_inner, 
 					   self.b_inner,
 					   self.W_output,
 					   self.b_output]

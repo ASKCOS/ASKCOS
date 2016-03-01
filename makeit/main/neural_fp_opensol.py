@@ -3,6 +3,7 @@ from makeit.utils.parsing import input_to_bool, smiles_to_boolean_fps
 from makeit.utils.saving import save_model_history, save_model_history_manual, draw_mol
 from makeit.utils.parse_cfg import read_config
 from makeit.utils.neural_fp import *
+from makeit.main.reaction_clustering import generate_rxn_embeddings_and_save, cluster
 import makeit.utils.stats as stats
 from makeit.utils.GraphEmbedding import GraphFP
 from keras.models import Sequential, model_from_json
@@ -51,8 +52,8 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2,
 		inner_regularizer = inner_regularizer,
 		output_regularizer = output_regularizer))
 	print('    model: added GraphFP layer ({} -> {})'.format('mol', embedding_size))
-	# model.add(Dense(10))
-	# print('    model: added Dense layer (-> {})'.format(10))
+	model.add(Dense(50, activation = 'tanh'))
+	print('    model: added Dense layer (-> {})'.format(50))
 	model.add(Dense(1))
 	print('    model: added Dense layer (-> {})'.format(1))
 
@@ -151,7 +152,7 @@ def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0):
 	for i, row in enumerate(data):
 		if i == 0:
 			continue
-		elif (i % 100) == 99:
+		elif (i % 1000) == 999:
 			print('  {}/{}'.format(i + 1, len(data) - 1))
 
 		# Get solvent counts
@@ -183,7 +184,8 @@ def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0):
 
 	# Report solvents
 	for key in sorted(solvents, key = solvents.get, reverse = True):
-		print('Solvent {}: {}'.format(key, solvents[key]))
+		if solvents[key] > 50: # only report semi-frequent solvents
+			print('Solvent {}: {}'.format(key, solvents[key]))
 
 	# Pad?
 	if int(config['TRAINING']['batch_size']) > 1: # NEED TO PAD
@@ -444,6 +446,28 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 
 	return
 
+def test_reactions(model, fpath):
+	'''This function tests reaction embeddings'''
+
+	# Create folder to dump testing info to
+	try:
+		os.makedirs(fpath)
+	except: # folder exists
+		pass
+	try:
+		fpath = os.path.join(fpath, 'embeddings')
+		os.makedirs(fpath)
+	except: # folder exists
+		pass
+
+	# Define function to test embedding
+	tf = K.function([model.layers[0].input], 
+		model.layers[0].get_output(train = False))
+
+	# Embed reactions
+	(embebddings, smiles) = generate_rxn_embeddings_and_save(embedding_func, fpath)
+	cluster(embeddings, smiles)
+
 def test_embeddings_demo(model, data_fpath, fpath):
 	'''This function tests molecular representations'''
 	print('Building images of fingerprint examples')
@@ -675,6 +699,15 @@ if __name__ == '__main__':
 			quit(1)
 	except KeyError:
 		pass
+
+	# Testing reaction embeddings?
+	try:
+		if input_to_bool(config['TESTING']['test_reactions']):
+			test_reactions(model, fpath)
+			quit(1)
+	except KeyError:
+		pass
+
 
 	# Train model
 	hist = None
