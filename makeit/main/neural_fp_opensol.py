@@ -10,6 +10,7 @@ from keras.layers.core import Dense, Dropout, Activation, Masking
 from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import LSTM
 from keras.callbacks import LearningRateScheduler, EarlyStopping
+from keras.regularizers import l2
 from keras.optimizers import RMSprop, Adam
 from keras.utils.visualize_util import plot
 import csv
@@ -24,19 +25,31 @@ import os
 
 
 def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2, 
-	scale_output = 0.05, padding = True):
+	scale_output = 0.05, padding = True, inner_reg_l2 = 0.0, output_reg_l2 = 0.0):
 	'''Generates simple embedding model to use molecular tensor as
 	input in order to predict a single-valued output (i.e., yield)'''
 
 	# Base model
 	model = Sequential()
 
+	# Get regularizers
+	if inner_reg_l2 > 0:
+		inner_regularizer = l2(inner_reg_l2)
+	else:
+		inner_regularizer = None
+	if output_reg_l2 > 0:
+		output_regularizer = l2(output_reg_l2)
+	else:
+		output_regularizer = None
+
 	# Add layers
 	model.add(GraphFP(embedding_size, sizeAttributeVector() - 1, 
 		depth = depth,
 		scale_output = scale_output,
 		padding = padding,
-		activation_inner = 'tanh'))
+		activation_inner = 'tanh',
+		inner_regularizer = inner_regularizer,
+		output_regularizer = output_regularizer))
 	print('    model: added GraphFP layer ({} -> {})'.format('mol', embedding_size))
 	# model.add(Dense(10))
 	# print('    model: added Dense layer (-> {})'.format(10))
@@ -131,6 +144,7 @@ def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0):
 	mols = []
 	y = []
 	print('processing data...',)
+	solvents = {}
 	# Randomize
 	np.random.seed(shuffle_seed)
 	np.random.shuffle(data)
@@ -139,6 +153,12 @@ def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0):
 			continue
 		elif (i % 100) == 99:
 			print('  {}/{}'.format(i + 1, len(data) - 1))
+
+		# Get solvent counts
+		if row[2] not in solvents.keys():
+			solvents[row[2]] = 1
+		else:
+			solvents[row[2]] = solvents[row[2]] + 1
 
 		# Only look for ones with octanol as the solvent!
 		if not (row[2] == '1-octanol'):
@@ -161,6 +181,11 @@ def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0):
 		except:
 			print('Failed to generate graph for {}, sol: {}'.format(row[1], row[4]))
 
+	# Report solvents
+	for key in sorted(solvents, key = solvents.get, reverse = True):
+		print('Solvent {}: {}'.format(key, solvents[key]))
+
+	# Pad?
 	if int(config['TRAINING']['batch_size']) > 1: # NEED TO PAD
 		num_atoms = [x.shape[0] for x in mols]
 		max_num_atoms = max(num_atoms)
@@ -170,8 +195,9 @@ def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0):
 
 	# Divide up data
 	if 'ratio' in config['TRAINING']['data_split']: # split train/notrain
+		print('Using first fraction ({}) as training'.format(training_ratio))
 		# Create training/development split
-		division = int(len(data) * training_ratio)
+		division = int(len(mols) * training_ratio)
 		mols_train = mols[:division]
 		mols_notrain  = mols[division:]
 		y_train = y[:division]
@@ -186,6 +212,9 @@ def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0):
 		mols_test   = mols_notrain[(len(mols_notrain) / 2):] # second half
 		y_test      = y_notrain[(len(mols_notrain) / 2):] # second half
 		smiles_test = smiles_notrain[(len(mols_notrain) / 2):] # second half
+		print('Training size: {}'.format(len(mols_train)))
+		print('Validation size: {}'.format(len(mols_val)))
+		print('Testing size: {}'.format(len(mols_test)))
 
 	elif 'cv' in config['TRAINING']['data_split']: # cross-validation
 		# Default to first fold of 5-fold cross-validation
@@ -293,6 +322,8 @@ def train_model(model, data_fpath = '', nb_epoch = 0, batch_size = 1, lr_func = 
 						break
 
 		else: # PADDED VALUES 
+			# print(np.array(mols_train).shape)
+			# print(np.array(mols_val).shape)
 			mols = np.vstack((mols_train, mols_val))
 			y = np.concatenate((y_train, y_val))
 			hist = model.fit(mols, y, 
@@ -519,12 +550,12 @@ def test_activations(model, data_fpath, fpath):
 	sorted_indeces = sorted(range(len(dense_weights)), key = lambda i: dense_weights[i])
 	most_neg = []
 	print('Most negatively-activating fingerprint indeces:')
-	for j in range(5):
+	for j in range(3):
 		print('at index {}, weight = {}'.format(sorted_indeces[j], dense_weights[sorted_indeces[j]]))
 		most_neg.append(sorted_indeces[j])
 	most_pos = []
 	print('Most negatively-activating fingerprint indeces:')
-	for j in range(1, 6):
+	for j in range(1, 4):
 		print('at index {}, weight = {}'.format(sorted_indeces[-j], dense_weights[sorted_indeces[-j]]))
 		most_pos.append(sorted_indeces[-j])
 
@@ -539,10 +570,12 @@ def test_activations(model, data_fpath, fpath):
 			# print('Looking at training molecule {}'.format(j))
 			single_mol_as_array = np.array(mols_train[j:j+1])
 			embedding = tf([single_mol_as_array])
+			if j in range(5):
+				print(embedding)
 			for depth in range(embedding.shape[2]):
 				highlight_atoms = []
 				for atom in range(embedding.shape[0]):
-					if embedding[atom, fp_ind, depth] > 0.75:
+					if embedding[atom, fp_ind, depth] > 0.001:
 						# print('Atom {} at depth {} triggers fp_index {}'.format(atom, depth, fp_ind))
 						if atom not in highlight_atoms:
 							highlight_atoms.append(atom)

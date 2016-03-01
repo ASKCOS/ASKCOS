@@ -38,8 +38,8 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2,
 		padding = padding,
 		activation_inner = 'tanh'))
 	print('    model: added GraphFP layer ({} -> {})'.format('mol', embedding_size))
-	model.add(Dense(5))
-	print('    model: added Dense layer ({} -> {})'.format(embedding_size, 5))
+	# model.add(Dense(5))
+	# print('    model: added Dense layer ({} -> {})'.format(embedding_size, 5))
 	model.add(Dense(1))
 	print('    model: added Dense layer ({} -> {})'.format(5, 1))
 
@@ -139,6 +139,9 @@ def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0):
 			continue
 		elif (i % 100) == 99:
 			print('  {}/{}'.format(i + 1, len(data) - 1))
+		# Single-atoms don't work...
+		if row[3] == 'C':
+			continue
 		try:
 			# Molecule first (most likely to fail)
 			mols.append(molToGraph(Chem.MolFromSmiles(row[3])).dump_as_tensor())
@@ -505,12 +508,12 @@ def test_activations(model, data_fpath, fpath):
 	sorted_indeces = sorted(range(len(dense_weights)), key = lambda i: dense_weights[i])
 	most_neg = []
 	print('Most negatively-activating fingerprint indeces:')
-	for j in range(5):
+	for j in range(3):
 		print('at index {}, weight = {}'.format(sorted_indeces[j], dense_weights[sorted_indeces[j]]))
 		most_neg.append(sorted_indeces[j])
 	most_pos = []
 	print('Most negatively-activating fingerprint indeces:')
-	for j in range(1, 6):
+	for j in range(1, 4):
 		print('at index {}, weight = {}'.format(sorted_indeces[-j], dense_weights[sorted_indeces[-j]]))
 		most_pos.append(sorted_indeces[-j])
 
@@ -524,11 +527,12 @@ def test_activations(model, data_fpath, fpath):
 		for j in range(len(mols_train)):
 			# print('Looking at training molecule {}'.format(j))
 			single_mol_as_array = np.array(mols_train[j:j+1])
+			# print('training molecule {}'.format(smiles_train[j:j+1]))
 			embedding = tf([single_mol_as_array])
 			for depth in range(embedding.shape[2]):
 				highlight_atoms = []
 				for atom in range(embedding.shape[0]):
-					if embedding[atom, fp_ind, depth] > 0.75:
+					if embedding[atom, fp_ind, depth] > 0.5:
 						# print('Atom {} at depth {} triggers fp_index {}'.format(atom, depth, fp_ind))
 						if atom not in highlight_atoms:
 							highlight_atoms.append(atom)
