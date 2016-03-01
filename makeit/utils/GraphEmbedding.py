@@ -5,7 +5,7 @@ import numpy as np
 import keras.backend as K
 import theano.tensor as T # should write custom back-end eventually, but this is quick fix
 import theano
-from keras import activations, initializations
+from keras import activations, initializations, regularizers
 from keras.layers.core import Layer
 from makeit.utils.neural_fp import Graph, molToGraph
 from rdkit.Chem import MolFromSmiles
@@ -41,8 +41,8 @@ class GraphFP(Layer):
 
 	def __init__(self, output_dim, inner_dim, depth = 2, init_output='uniform', 
 			activation_output='softmax', init_inner='identity',
-			activation_inner='linear', activity_regularizer=None, 
-			scale_output=0.05, padding=False, **kwargs):
+			activation_inner='linear', inner_regularizer=None, 
+			output_regularizer=None, scale_output=0.05, padding=False, **kwargs):
 		if depth < 1:
 			quit('Cannot use GraphFP with depth zero')
 		self.init_output = initializations.get(init_output)
@@ -54,6 +54,10 @@ class GraphFP(Layer):
 		self.depth = depth
 		self.scale_output = scale_output
 		self.padding = padding
+
+		# Regularizers
+		self.inner_regularizer = regularizers.get(inner_regularizer)
+		self.output_regularizer = regularizers.get(output_regularizer)
 
 		self.initial_weights = None
 		self.input_dim = 4 # each entry is a 3D N_atom x N_atom x N_feature tensor
@@ -94,8 +98,17 @@ class GraphFP(Layer):
 		# # different weights. Now, self.W_output[#,:,:] corresponds to the 
 		# # weight matrix for layer/depth #.
 
+		# Get regularizers
+		self.regularizers = []
+		if self.inner_regularizer:
+			self.inner_regularizer.set_param(self.W_inner)
+			self.regularizers.append(self.inner_regularizer)
+		if self.output_regularizer:
+			self.output_regularizer.set_param(self.W_output)
+			self.regularizers.append(self.output_regularizer)
+
 		# Pack params
-		self.params = [self.W_inner, 
+		self.trainable_weights = [self.W_inner, 
 					   self.b_inner,
 					   self.W_output,
 					   self.b_output]
@@ -271,6 +284,8 @@ class GraphFP(Layer):
 				  'init_inner' : self.init_inner.__name__,
 				  'activation_inner': self.activation_inner.__name__,
 				  'activation_output' : self.activation_output.__name__,
+				  'inner_regularizer' : self.inner_regularizer.get_config() if self.inner_regularizer else None,
+				  'output_regularizer' : self.output_regularizer.get_config() if self.output_regularizer else None,
 				  'input_dim': self.input_dim,
 				  'depth' : self.depth}
 		base_config = super(GraphFP, self).get_config()
