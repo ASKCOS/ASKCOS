@@ -104,7 +104,7 @@ def save_model(model, loss, val_loss, fpath = '', config = {}, tstamp = ''):
 	print('...saved model to {}.[json, h5, png, info]'.format(fpath))
 	return True
 
-def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0, solvent = '1-octanol'):
+def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0):
 	'''This is a helper script to read the data .json object and return
 	the training and test data sets separately. This is to allow for an
 	already-trained model to be evaluated using the test data (i.e., which
@@ -142,13 +142,6 @@ def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0, solvent = '1-oc
 	except:
 		pass
 
-	# Get solvent
-	try:
-		temp = config['TRAINING']['solvent']
-		solvent = temp
-	except:
-		pass
-
 	# Parse data into individual components
 	smiles = []
 	mols = []
@@ -159,42 +152,18 @@ def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0, solvent = '1-oc
 	np.random.seed(shuffle_seed)
 	np.random.shuffle(data)
 	for i, row in enumerate(data):
-		if i == 0:
-			continue
-		elif (i % 1000) == 999:
-			print('  {}/{}'.format(i + 1, len(data) - 1))
-
-		# Get solvent counts
-		if row[2] not in solvents.keys():
-			solvents[row[2]] = 1
-		else:
-			solvents[row[2]] = solvents[row[2]] + 1
-
-		# Only look for ones with octanol as the solvent!
-		if not (row[2] == solvent):
-			continue
-
-		# Do not use entries with DONOTUSE
-		if 'DONOTUSE' in row[0]:
-			continue
+		if (i % 1000) == 0:
+			print('  {}/{}'.format(i + 1, len(data)))
 
 		try:
 			# Molecule first (most likely to fail)
-			mol_tensor = molToGraph(Chem.MolFromSmiles(row[1])).dump_as_tensor()
-			sol = float(row[4])
-			if sol <= 0:
-				raise(ValueError('Non-positive solubility encountered'))
-			log10sol = np.log10(sol)
+			mol_tensor = molToGraph(Chem.MolFromSmiles(row[0])).dump_as_tensor()
+			Tm = float(row[1])
 			mols.append(mol_tensor)
-			y.append(log10sol) # Measured log(solubility M/L)
-			smiles.append(row[1]) # Smiles
+			y.append(Tm) # Measured melting point (C)
+			smiles.append(row[0]) # Smiles
 		except:
-			print('Failed to generate graph for {}, sol: {}'.format(row[1], row[4]))
-
-	# Report solvents
-	for key in sorted(solvents, key = solvents.get, reverse = True):
-		if solvents[key] > 50: # only report semi-frequent solvents
-			print('Solvent {}: {}'.format(key, solvents[key]))
+			print('Failed to generate graph for {}, Tm: {}'.format(row[0], row[1]))
 
 	# Pad?
 	if int(config['TRAINING']['batch_size']) > 1: # NEED TO PAD
@@ -402,7 +371,7 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 	with open(test_fpath + '.test', 'w') as fid:
 		time_now = datetime.datetime.utcnow()
 		fid.write('-- tested at UTC {}\n\n'.format(fpath, time_now))		
-		fid.write('test entry\tsmiles\tactual log(sol)\tpredicted log(sol)\tactual - predicted\n')
+		fid.write('test entry\tsmiles\tactual Tm (C)\tpredicted Tm (C)\tactual - predicted\n')
 		for i in range(len(smiles_test)):
 			fid.write('{}\t{}\t{}\t{}\t{}\n'.format(i, 
 				smiles_test[i],
@@ -429,9 +398,9 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 
 		# Create parity plot
 		plt.scatter(true, pred, alpha = 0.5)
-		plt.xlabel('Actual log(solubility (M))')
-		plt.ylabel('Predicted log(solubility (M))')
-		plt.title('Parity plot for solubility prediction ({} set, N = {})'.format(label, len(true)) + 
+		plt.xlabel('Actual Tm (C)')
+		plt.ylabel('Predicted Tm (C)')
+		plt.title('Parity plot for melting point prediction ({} set, N = {})'.format(label, len(true)) + 
 			'\nMSE = {}, MAE = {}, q = {}'.format(round3(mse), round3(mae), round3(q)) + 
 			'\na = {}, r^2 = {}'.format(round3(a), round3(r2)) + 
 			'\na` = {}, r^2` = {}'.format(round3(ap), round3(r2p)))
@@ -454,173 +423,6 @@ def test_model(model, data_fpath, fpath, tstamp = '', batch_size = 128):
 	parity_plot(y_test, y_test_pred, 'test')
 
 	return
-
-def test_reactions(model, fpath):
-	'''This function tests reaction embeddings'''
-
-	# Create folder to dump testing info to
-	try:
-		os.makedirs(fpath)
-	except: # folder exists
-		pass
-	try:
-		fpath = os.path.join(fpath, 'embeddings')
-		os.makedirs(fpath)
-	except: # folder exists
-		pass
-
-	# Define function to test embedding
-	tf = K.function([model.layers[0].input], 
-		model.layers[0].get_output(train = False))
-
-	# Embed reactions
-	(embebddings, smiles) = generate_rxn_embeddings_and_save(embedding_func, fpath)
-	cluster(embeddings, smiles)
-
-def test_embeddings_demo(model, data_fpath, fpath):
-	'''This function tests molecular representations'''
-	print('Building images of fingerprint examples')
-
-	# Create folder to dump testing info to
-	try:
-		os.makedirs(fpath)
-	except: # folder exists
-		pass
-	try:
-		fpath = os.path.join(fpath, 'embeddings')
-		os.makedirs(fpath)
-	except: # folder exists
-		pass
-
-	# Get data
-	(mols_train, y_train, smiles_train,
-			mols_val, y_val, smiles_val,
-			mols_test, y_test, smiles_test) = get_data(data_fpath)
-
-	# Define function to test embedding
-	tf = K.function([model.layers[0].input], 
-		model.layers[0].get_output(train = False))
-
-	# Define function to save image
-	def embedding_to_png(embedding, label, fpath):
-		fig = plt.figure(figsize=(20,0.5))
-		plt.pcolor(embedding, vmin = 0, vmax = 1)
-		plt.title('{}'.format(label))
-		# cbar = plt.colorbar()
-		plt.gca().yaxis.set_visible(False)
-		plt.gca().xaxis.set_visible(False)
-		plt.xlim([0, 512])
-		plt.subplots_adjust(left = 0, right = 1, top = 0.4, bottom = 0)
-		plt.savefig(os.path.join(fpath, label) + '.png', bbox_inches = 'tight')
-		plt.close(fig)
-		plt.clf()
-		return
-
-	# Run through training set
-	for j in range(len(mols_train)):
-		single_mol_as_array = np.array(mols_train[j:j+1])
-		embedding = tf([single_mol_as_array])
-		embedding_to_png(embedding, smiles_train[j], fpath)
-		
-		if j == 25:
-			break
-
-	# Run through validation set
-	for j in range(len(mols_val)):
-		single_mol_as_array = np.array(mols_val[j:j+1])
-
-	# Run through testing set
-	for j in range(len(mols_test)):
-		single_mol_as_array = np.array(mols_test[j:j+1])
-
-	smiles = ''
-	while True:
-		smiles = raw_input('Enter smiles: ').strip()
-		if smiles is 'done':
-			break
-		try:
-			mol = Chem.MolFromSmiles(smiles)
-			mol_graph = molToGraph(mol).dump_as_tensor()
-			single_mol_as_array = np.array([mol_graph])
-			embedding = tf([single_mol_as_array])
-			embedding_to_png(embedding, smiles, fpath)
-		except:
-			print('error saving embedding - was that a SMILES string?')
-
-	return
-
-
-def test_activations(model, data_fpath, fpath):
-	'''This function tests activation of the output'''
-	# Create folder to dump testing info to
-	try:
-		os.makedirs(fpath)
-	except: # folder exists
-		pass
-	try:
-		fpath = os.path.join(fpath, 'embeddings')
-		os.makedirs(fpath)
-	except: # folder exists
-		pass
-
-	# Get data
-	(mols_train, y_train, smiles_train,
-			mols_val, y_val, smiles_val,
-			mols_test, y_test, smiles_test) = get_data(data_fpath)
-
-	# Loop through fingerprint indeces in dense layer
-	dense_weights = model.layers[1].get_weights()[0] # weights, not bias
-	# Save histogram
-	weights = np.ones_like(dense_weights) / len(dense_weights)
-	n, bins, patches = plt.hist(dense_weights, 50, facecolor = 'blue', alpha = 0.5, weights = weights)
-	plt.xlabel('FP index contribution to predicted log(sol (M))')
-	plt.ylabel('Normalized frequency')
-	plt.title('Histogram of weights for linear FP->Solubility model')
-	plt.grid(True)
-	plt.savefig(fpath + '/weights_histogram.png', bbox_inches = 'tight')
-
-	# Now report 5 most positive activations:
-	sorted_indeces = sorted(range(len(dense_weights)), key = lambda i: dense_weights[i])
-	most_neg = []
-	print('Most negatively-activating fingerprint indeces:')
-	for j in range(3):
-		print('at index {}, weight = {}'.format(sorted_indeces[j], dense_weights[sorted_indeces[j]]))
-		most_neg.append(sorted_indeces[j])
-	most_pos = []
-	print('Most negatively-activating fingerprint indeces:')
-	for j in range(1, 4):
-		print('at index {}, weight = {}'.format(sorted_indeces[-j], dense_weights[sorted_indeces[-j]]))
-		most_pos.append(sorted_indeces[-j])
-
-	# Define function to test embedding
-	tf = K.function([model.layers[0].input], 
-		model.layers[0].get_output_singlesample_detail(train = False))
-
-	# Look at most activating for each?
-	for fp_ind in most_neg + most_pos:
-		print('Looking at index {}'.format(fp_ind))
-		for j in range(len(mols_train)):
-			# print('Looking at training molecule {}'.format(j))
-			single_mol_as_array = np.array(mols_train[j:j+1])
-			embedding = tf([single_mol_as_array])
-			if j in range(5):
-				print(embedding)
-			for depth in range(embedding.shape[2]):
-				highlight_atoms = []
-				for atom in range(embedding.shape[0]):
-					if embedding[atom, fp_ind, depth] > 0.001:
-						# print('Atom {} at depth {} triggers fp_index {}'.format(atom, depth, fp_ind))
-						if atom not in highlight_atoms:
-							highlight_atoms.append(atom)
-			if highlight_atoms: # is not empty
-				mol = Chem.MolFromSmiles(smiles_train[j])
-				draw_mol(mol, fpath + '/index{}_'.format(fp_ind) + smiles_train[j] + '.png'.format(depth), highlightAtoms = highlight_atoms)
-			else:
-				# No activations
-				pass
-
-	return
-
 
 if __name__ == '__main__':
 	if len(sys.argv) < 2:

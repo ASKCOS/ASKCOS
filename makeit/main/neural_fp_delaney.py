@@ -38,10 +38,10 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2,
 		padding = padding,
 		activation_inner = 'tanh'))
 	print('    model: added GraphFP layer ({} -> {})'.format('mol', embedding_size))
-	# model.add(Dense(5))
-	# print('    model: added Dense layer ({} -> {})'.format(embedding_size, 5))
+	model.add(Dense(20, activation = 'tanh'))
+	print('    model: added Dense layer ({} -> {})'.format(embedding_size, 20))
 	model.add(Dense(1))
-	print('    model: added Dense layer ({} -> {})'.format(5, 1))
+	print('    model: added Dense layer ({} -> {})'.format(20, 1))
 
 	# Compile
 	if optimizer == 'adam':
@@ -135,9 +135,7 @@ def get_data(data_fpath, training_ratio = 0.9, shuffle_seed = 0):
 	np.random.seed(shuffle_seed)
 	np.random.shuffle(data)
 	for i, row in enumerate(data):
-		if i == 0:
-			continue
-		elif (i % 100) == 99:
+		if (i % 100) == 99:
 			print('  {}/{}'.format(i + 1, len(data) - 1))
 		# Single-atoms don't work...
 		if row[3] == 'C':
