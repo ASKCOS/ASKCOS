@@ -5,6 +5,3 @@
 
 # Bad large data
 makeit/data/chemical_names_*
-
-# Models
-makeit/models/*
