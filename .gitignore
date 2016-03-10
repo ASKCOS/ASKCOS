@@ -3,6 +3,8 @@
 *.so
 *.pyd
 
-# Bad old models
-makeit/models/neural_name_to_mw*
+# Bad large data
 makeit/data/chemical_names_*
+
+# Models
+makeit/models/*
