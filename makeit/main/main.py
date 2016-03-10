@@ -10,7 +10,7 @@ import sys
 import os
 
 from makeit.main.core import build_model, train_model, save_model
-from makeit.main.test import test_model, test_reactions, test_embeddings_demo
+from makeit.main.test import test_model, test_reactions, test_activations, test_embeddings_demo
 from makeit.main.data import get_data_full
 
 if __name__ == '__main__':
@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
 	structure_fpath = fpath + '.json'
 	try:
-		use_old_structure = input_to_bool(config['ARCHITECTURE']['use_existing'])
+		use_old_structure = input_to_bool(config['IO']['use_existing_model'])
 	except KeyError:
 		print('Must specify whether or not to use existing model architecture')
 		quit(1)
@@ -55,11 +55,20 @@ if __name__ == '__main__':
 		# Build model
 		print('...building model')
 		try:
-			model = build_model(embedding_size = int(config['ARCHITECTURE']['embedding_size']),
-				depth = int(config['ARCHITECTURE']['depth']),
-				scale_output = float(config['ARCHITECTURE']['scale_output']),
-				padding = int(config['TRAINING']['batch_size']) > 1,
-				hidden = int(config['ARCHITECTURE']['hidden']))
+			kwargs = config['ARCHITECTURE']
+			del kwargs['__name__'] #  from configparser
+			if 'batch_size' in config['TRAINING']:
+				kwargs['padding'] = int(config['TRAINING']['batch_size']) > 1
+			if 'embedding_size' in kwargs: 
+				kwargs['embedding_size'] = int(kwargs['embedding_size'])
+			if 'hidden' in kwargs: 
+				kwargs['hidden'] = int(kwargs['hidden'])
+			if 'depth' in kwargs: 
+				kwargs['depth'] = int(kwargs['depth'])
+			if 'scale_output' in kwargs: 
+				kwargs['scale_output'] = float(kwargs['scale_output'])
+
+			model = build_model(**kwargs)
 			print('...built untrained model')
 		except KeyboardInterrupt:
 			print('User cancelled model building')
@@ -72,7 +81,7 @@ if __name__ == '__main__':
 	weights_fpath = fpath + '.h5'
 
 	try:
-		use_old_weights = input_to_bool(config['TRAINING']['use_existing'])
+		use_old_weights = input_to_bool(config['IO']['use_existing_weights'])
 	except KeyError:
 		print('Must specify whether or not to use existing model weights')
 		quit(1)
@@ -87,6 +96,21 @@ if __name__ == '__main__':
 	else:
 		# New weights will be used anyway
 		pass
+	
+	###################################################################################
+	### DEFINE DATA 
+	###################################################################################
+
+	data_kwargs = config['DATA']
+	del data_kwargs['__name__'] #  from configparser
+	if 'batch_size' in config['TRAINING']:
+		data_kwargs['batch_size'] = int(config['TRAINING']['batch_size'])
+	if 'shuffle_seed' in data_kwargs:
+		data_kwargs['shuffle_seed'] = int(data_kwargs['shuffle_seed'])
+	if 'truncate_to' in data_kwargs:
+		data_kwargs['truncate_to'] = int(data_kwargs['truncate_to'])
+
+	data = get_data_full(**data_kwargs)
 
 	###################################################################################
 	### CHECK FOR TESTING CONDITIONS
@@ -96,7 +120,7 @@ if __name__ == '__main__':
 	try:
 		if input_to_bool(config['TESTING']['test_embedding']):
 			# Test current embebddings
-			test_embeddings_demo(model, get_data, fpath)
+			test_embeddings_demo(model, data, fpath)
 			quit(1)
 	except KeyError:
 		pass
@@ -105,7 +129,7 @@ if __name__ == '__main__':
 	try:
 		if input_to_bool(config['TESTING']['test_activations']):
 			# Test current embebddings
-			test_activations(model, get_data, fpath, contribution_threshold = 0.5)
+			test_activations(model, data, fpath, contribution_threshold = 0.5)
 			quit(1)
 	except KeyError:
 		pass
@@ -119,24 +143,21 @@ if __name__ == '__main__':
 		pass
 
 	###################################################################################
-	### DEFINE GET_DATA FUNCTION
-	###################################################################################
-
-	def get_data():	return get_data_full(config['IO']['data_label'], config = {})
-
-	###################################################################################
 	### TRAIN THE MODEL
 	###################################################################################
 
 	# Train model
 	try:
 		print('...training model')
-		(model, loss, val_loss) = train_model(model, 
-			get_data = get_data,
-			nb_epoch = int(config['TRAINING']['nb_epoch']), 
-			batch_size = int(config['TRAINING']['batch_size']),
-			lr_func = config['TRAINING']['lr'],
-			patience = int(config['TRAINING']['patience']))
+		kwargs = config['TRAINING']
+		del kwargs['__name__'] #  from configparser
+		if 'nb_epoch' in kwargs:
+			kwargs['nb_epoch'] = int(kwargs['nb_epoch'])
+		if 'batch_size' in kwargs:
+			kwargs['batch_size'] = int(kwargs['batch_size'])
+		if 'patience' in kwargs:
+			kwargs['patience'] = int(kwargs['patience'])
+		(model, loss, val_loss) = train_model(model, data, **kwargs)
 		print('...trained model')
 	except KeyboardInterrupt:
 		pass
@@ -161,6 +182,6 @@ if __name__ == '__main__':
 	###################################################################################
 
 	print('...testing model')
-	test_model(model, get_data,	fpath, tstamp = tstamp,
+	test_model(model, data,	fpath, tstamp = tstamp,
 		batch_size = int(config['TRAINING']['batch_size']))
 	print('...tested model')

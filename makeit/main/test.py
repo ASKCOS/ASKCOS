@@ -1,8 +1,10 @@
 from __future__ import print_function
 from makeit.utils.saving import draw_mol
 from makeit.main.reaction_clustering import generate_rxn_embeddings_and_save, cluster
+import rdkit.Chem as Chem
+from makeit.utils.neural_fp import molToGraph
 import makeit.utils.stats as stats
-import theano # for looking at computational graph
+import keras.backend as K 
 import matplotlib.pyplot as plt
 import numpy as np
 import datetime
@@ -10,13 +12,13 @@ import sys
 import os
 
 
-def test_model(model, get_data, fpath, tstamp = 'no_time', batch_size = 128):
+def test_model(model, data, fpath, tstamp = 'no_time', batch_size = 128):
 	'''This function evaluates model performance using test data. The output is
 	more meaningful than just the loss function value.
 
 	inputs:
 		model - the trained Keras model
-		get_data - a function that returns three dictionaries for training,
+		data - three dictionaries for training,
 					validation, and testing data. Each dictionary should have
 					keys of 'mol', a molecular tensor, 'y', the target output, 
 					and 'smiles', the SMILES string of that molecule
@@ -31,8 +33,8 @@ def test_model(model, get_data, fpath, tstamp = 'no_time', batch_size = 128):
 		pass
 	test_fpath = os.path.join(fpath, tstamp)
 
-	# Get data from helper function
-	(train, val, test) = get_data()
+	# Unpack
+	(train, val, test) = data
 	# Unpack
 	mols_train = train['mols']; y_train = train['y']; smiles_train = train['smiles']
 	mols_val   = val['mols'];   y_val   = val['y'];   smiles_val   = val['smiles']
@@ -71,17 +73,6 @@ def test_model(model, get_data, fpath, tstamp = 'no_time', batch_size = 128):
 		y_val_pred = model.predict(np.array(mols_val), batch_size = batch_size, verbose = 1)[:, 0]
 		y_test_pred = model.predict(np.array(mols_test), batch_size = batch_size, verbose = 1)[:, 0]
 
-	# Save
-	with open(test_fpath + '.test', 'w') as fid:
-		fid.write('{} tested at UTC {}, predicting {}\n\n'.format(fpath, tstamp, y_label))		
-		fid.write('test entry\tsmiles\tactual\tpredicted\tactual - predicted\n')
-		for i in range(len(smiles_test)):
-			fid.write('{}\t{}\t{}\t{}\t{}\n'.format(i, 
-				smiles_test[i],
-				y_test[i], 
-				y_test_pred[i],
-				y_test[i] - y_test_pred[i]))
-
 	def round3(x):
 		return int(x * 1000) / 1000.0
 
@@ -110,20 +101,83 @@ def test_model(model, get_data, fpath, tstamp = 'no_time', batch_size = 128):
 		plt.grid(True)
 		plt.plot(true, true * a, 'r--')
 		plt.axis([min_y, max_y, min_y, max_y])	
-		plt.savefig(test_fpath + ' {}.png'.format(label), bbox_inches = 'tight')
+		plt.savefig(test_fpath + ' {}.png'.format(set_label), bbox_inches = 'tight')
 		plt.clf()
 
 		# Print
-		print('{}:'.format(label))
+		print('{}:'.format(set_label))
 		print('  mse = {}, mae = {}'.format(mse, mae))
 		print('  q = {}'.format(q))
 		print('  r2 through origin = {} (pred v. true), {} (true v. pred)'.format(r2, r2p))
 		print('  slope through origin = {} (pred v. true), {} (true v. pred)'.format(a[0], ap[0]))
 
-	# Create plots for datasets
-	parity_plot(y_train, y_train_pred, 'train')
-	parity_plot(y_val, y_val_pred, 'val')
-	parity_plot(y_test, y_test_pred, 'test')
+	def score_classification(actual, predicted):
+		'''Given two numpy boolean vectors, calculates various performance measures'''
+		if actual.shape != predicted.shape:
+			print('Shapes of inputs do not match in score_classification')
+			return
+
+		TP = 0
+		TN = 0
+		FP = 0
+		FN = 0
+		N = len(actual)
+		for i in range(N):
+			if actual[i]:
+				if predicted[i]:
+					TP += 1
+				else:
+					FN += 1
+			else:
+				if predicted[i]:
+					FP += 1
+				else:
+					TN += 1
+		SEN = float(TP) / (TP + FN)
+		SPEC = float(TN) / (TN + FP)
+		BAC = float(SEN + SPEC) / 2.0
+		Q = (TP + TN) / float(N)
+		print('N[{}]\tTP[{}]\tTN[{}]\tFP[{}]\tFN[{}]\tSEN[{}]\tSPEC[{}]\tBAC[{}]\tQ[{}]'.format(
+			N, TP, TN, FP, FN, SEN, SPEC, BAC, Q))
+		return (N, TP, TN, FP, FN, SEN, SPEC, BAC, Q)
+
+	# Save
+	with open(test_fpath + '.test', 'w') as fid:
+		fid.write('{} tested at UTC {}, predicting {}\n\n'.format(fpath, tstamp, y_label))		
+		fid.write('test entry\tsmiles\tactual\tpredicted\tactual - predicted\n')
+		for i in range(len(smiles_test)):
+			fid.write('{}\t{}\t{}\t{}\t{}\n'.format(i, 
+				smiles_test[i],
+				y_test[i], 
+				y_test_pred[i],
+				y_test[i] - y_test_pred[i]))
+
+	# Is this a boolean prediction?
+	if len(np.unique(y_test)) == 2:
+		
+		# Save/report stats
+		with open(test_fpath + '.stats', 'w') as fid:
+			time_now = datetime.datetime.utcnow()
+			fid.write('-- tested at UTC {}\n\n'.format(fpath, time_now))		
+			fid.write('\t'.join(['dataset', 'N', 'TP', 'TN', 'FP', 'FN', 'SEN', 'SPEC', 'BAC', 'Q']) + '\n')
+			print('Training performance')
+			(N, TP, TN, FP, FN, SEN, SPEC, BAC, Q) = score_classification(np.array(y_train) > 0.5, np.array(y_train_pred) > 0.5)
+			fid.write('test\t' + '\t'.join(['{}'.format(x) for x in [N, TP, TN, FP, FN, SEN, SPEC, BAC, Q]]) + '\n')
+			print('Validation performance')
+			(N, TP, TN, FP, FN, SEN, SPEC, BAC, Q) = score_classification(np.array(y_val) > 0.5, np.array(y_val_pred) > 0.5)
+			fid.write('val\t' + '\t'.join(['{}'.format(x) for x in [N, TP, TN, FP, FN, SEN, SPEC, BAC, Q]]) + '\n')
+			print('Testing performance')
+			(N, TP, TN, FP, FN, SEN, SPEC, BAC, Q) = score_classification(np.array(y_test) > 0.5, np.array(y_test_pred) > 0.5)
+			fid.write('test\t' + '\t'.join(['{}'.format(x) for x in [N, TP, TN, FP, FN, SEN, SPEC, BAC, Q]]) + '\n')
+
+	else:
+
+		# Create plots for datasets
+		parity_plot(y_train, y_train_pred, 'train')
+		parity_plot(y_val, y_val_pred, 'val')
+		parity_plot(y_test, y_test_pred, 'test')
+
+
 
 	return
 
@@ -151,13 +205,13 @@ def test_reactions(model, fpath):
 	(embebddings, smiles) = generate_rxn_embeddings_and_save(embedding_func, fpath)
 	cluster(embeddings, smiles)
 
-def test_embeddings_demo(model, get_data, fpath):
+def test_embeddings_demo(model, data, fpath):
 	'''This function tests molecular representations by creating visualizations
 	of fingerprints given a SMILES string.
 
 	inputs:
 		model - the trained Keras model
-		get_data - a function that returns three dictionaries for training,
+		data - three dictionaries for training,
 					validation, and testing data. Each dictionary should have
 					keys of 'mol', a molecular tensor, 'y', the target output, 
 					and 'smiles', the SMILES string of that molecule
@@ -176,8 +230,8 @@ def test_embeddings_demo(model, get_data, fpath):
 	except: # folder exists
 		pass
 
-	# Get data from helper function
-	(train, val, test) = get_data()
+	# Unpack data
+	(train, val, test) = data
 	# Unpack
 	mols_train = train['mols']; y_train = train['y']; smiles_train = train['smiles']
 	mols_val   = val['mols'];   y_val   = val['y'];   smiles_val   = val['smiles']
@@ -196,7 +250,7 @@ def test_embeddings_demo(model, get_data, fpath):
 		# cbar = plt.colorbar()
 		plt.gca().yaxis.set_visible(False)
 		plt.gca().xaxis.set_visible(False)
-		plt.xlim([0, 512])
+		plt.xlim([0, len(embedding)])
 		plt.subplots_adjust(left = 0, right = 1, top = 0.4, bottom = 0)
 		plt.savefig(os.path.join(fpath, label) + '.png', bbox_inches = 'tight')
 		plt.close(fig)
@@ -225,7 +279,7 @@ def test_embeddings_demo(model, get_data, fpath):
 	smiles = ''
 	while True:
 		smiles = raw_input('Enter smiles: ').strip()
-		if smiles is 'done':
+		if smiles == 'done':
 			break
 		try:
 			mol = Chem.MolFromSmiles(smiles)
@@ -238,12 +292,12 @@ def test_embeddings_demo(model, get_data, fpath):
 
 	return
 
-def test_activations(model, get_data, fpath, contribution_threshold = 0.5):
+def test_activations(model, data, fpath, contribution_threshold = 0.5):
 	'''This function tests activation of the output for a LINEAR model
 
 	inputs:
 		model - the trained Keras model
-		get_data - a function that returns three dictionaries for training,
+		data - three dictionaries for training,
 					validation, and testing data. Each dictionary should have
 					keys of 'mol', a molecular tensor, 'y', the target output, 
 					and 'smiles', the SMILES string of that molecule
@@ -263,8 +317,8 @@ def test_activations(model, get_data, fpath, contribution_threshold = 0.5):
 	except: # folder exists
 		pass
 
-	# Get data from helper function
-	(train, val, test) = get_data()
+	# Unpack
+	(train, val, test) = data
 	# Unpack
 	mols_train = train['mols']; y_train = train['y']; smiles_train = train['smiles']
 	mols_val   = val['mols'];   y_val   = val['y'];   smiles_val   = val['smiles']
@@ -306,8 +360,6 @@ def test_activations(model, get_data, fpath, contribution_threshold = 0.5):
 			# print('Looking at training molecule {}'.format(j))
 			single_mol_as_array = np.array(mols_train[j:j+1])
 			embedding = tf([single_mol_as_array])
-			if j in range(5):
-				print(embedding)
 			for depth in range(embedding.shape[2]):
 				highlight_atoms = []
 				for atom in range(embedding.shape[0]):

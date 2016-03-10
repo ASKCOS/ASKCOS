@@ -1,11 +1,13 @@
 from __future__ import print_function
 from makeit.utils.saving import save_model_history, save_model_history_manual
 from makeit.utils.GraphEmbedding import GraphFP
+from makeit.utils.neural_fp import sizeAttributeVector
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Masking
 from keras.callbacks import LearningRateScheduler, EarlyStopping
 from keras.regularizers import l2
 from keras.optimizers import RMSprop, Adam
+from keras.utils.visualize_util import plot
 import numpy as np
 import datetime
 import json
@@ -15,7 +17,8 @@ import os
 
 def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2, 
 	scale_output = 0.05, padding = True, inner_reg_l2 = 0.0, output_reg_l2 = 0.0,
-	hidden = 0, loss = 'mse'):
+	hidden = 0, loss = 'mse', class_mode = 'categorical', hidden_activation = 'tanh',
+	output_activation = 'linear'):
 	'''Generates simple embedding model to use molecular tensor as
 	input in order to predict a single-valued output (i.e., yield)
 
@@ -57,22 +60,22 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2,
 		output_regularizer = output_regularizer))
 	print('    model: added GraphFP layer ({} -> {})'.format('mol', embedding_size))
 	if hidden > 0:
-		model.add(Dense(hidden, activation = 'tanh'))
-		print('    model: added Dense layer (-> {})'.format(hidden))
-	model.add(Dense(1))
-	print('    model: added Dense layer (-> {})'.format(1))
+		model.add(Dense(hidden, activation = hidden_activation))
+		print('    model: added tanh Dense layer (-> {})'.format(hidden))
+	model.add(Dense(1, activation = output_activation))
+	print('    model: added lin Dense layer (-> {})'.format(1))
 
 	# Compile
 	if optimizer == 'adam':
 		optimizer = Adam(lr = lr)
 	elif optimizer == 'rmsprop':
-		optimizer = RMSProp(lr = lr)
+		optimizer = RMSprop(lr = lr)
 	else:
 		print('Can only handle adam or rmsprop optimizers currently')
 		quit(1)
 
 	print('compiling...',)
-	model.compile(loss = loss, optimizer = optimizer)
+	model.compile(loss = loss, optimizer = optimizer, class_mode = class_mode)
 	print('done')
 
 	return model
@@ -116,16 +119,16 @@ def save_model(model, loss, val_loss, fpath = '', config = {}, tstamp = ''):
 	return True
 
 
-def train_model(model, get_data, nb_epoch = 0, batch_size = 1, lr_func = '0.01', patience = 10):
+def train_model(model, data, nb_epoch = 0, batch_size = 1, lr_func = '0.01', patience = 10):
 	'''Trains the model.
 
 	inputs:
 		model - a Keras model
-		get_data - the function which returns three dictionaries for training,
+		data - three dictionaries for training,
 				validation, and testing separately
 		nb_epoch - number of epochs to train for
 		batch_size - batch_size to use on the data. This must agree with what was
-				specified for get_data (i.e., if tensors are padded or not)
+				specified for data (i.e., if tensors are padded or not)
 		lr_func - string which is evaluated with 'epoch' to produce the learning 
 				rate at each epoch 
 		patience - number of epochs to wait when no progress is being made in 
@@ -137,7 +140,7 @@ def train_model(model, get_data, nb_epoch = 0, batch_size = 1, lr_func = '0.01',
 		val_loss - list of validation losses corresponding to each epoch'''
 
 	# Get data from helper function
-	(train, val, test) = get_data()
+	(train, val, test) = data
 	# Unpack
 	mols_train = train['mols']; y_train = train['y']; smiles_train = train['smiles']
 	mols_val   = val['mols'];   y_val   = val['y'];   smiles_val   = val['smiles']

@@ -1,11 +1,14 @@
 from makeit.utils.neural_fp import *
+import rdkit.Chem as Chem
 import numpy as np
 import os
 import csv
 import json
 
 
-def get_data_full(data_label, config = {}):
+def get_data_full(data_label = '', shuffle_seed = None, batch_size = 1, 
+	data_split = 'ratio', cv_folds = '1/1', solvent = '1-octanol',
+	truncate_to = None, training_ratio = 0.8):
 	'''This is a helper script to read the data .json object and return
 	the training and test data sets separately. This is to allow for an
 	already-trained model to be evaluated using the test data (i.e., which
@@ -37,12 +40,6 @@ def get_data_full(data_label, config = {}):
 		smiles_index = 1
 		y_index = 4
 		def y_func(x): return np.log10(x)
-		# Get solvent
-		try:
-			temp = config['TRAINING']['solvent']
-			solvent = temp
-		except:
-			solvent = '1-octanol'
 		y_label = 'log10({} sol (M))'.format(solvent)
 
 	# Delaney solubility
@@ -96,30 +93,16 @@ def get_data_full(data_label, config = {}):
 	print('done')
 		
 	# Truncate if necessary
-	try:
-		truncate_to = int(config['TRAINING']['truncate_to'])
+	if truncate_to is not None:
 		if ftype == 'csv':
 			data = data[:truncate_to]
 		elif ftype == 'sdf':
 			data_indeces = data_indeces[:truncate_to]
 		print('truncated data to first {} samples'.format(truncate_to))
-	except:
-		pass
-
-	# Get new training_ratio if possible
-	try:
-		temp = float(config['TRAINING']['ratio'])
-		training_ratio = temp
-	except:
-		training_ratio = 0.8
-		pass
 
 	# Get new shuffle seed if possible
-	try:
-		temp = int(config['TRAINING']['shuffle_seed'])
-		np.random.seed(temp)
-	except:
-		pass
+	if shuffle_seed is not None:
+		np.random.seed(shuffle_seed)
 	
 	###################################################################################
 	### ITERATE THROUGH DATASET AND CREATE NECESSARY DATA LISTS
@@ -128,7 +111,7 @@ def get_data_full(data_label, config = {}):
 	smiles = []
 	mols = []
 	y = []
-	print('processing data...',)
+	print('processing data...')
 	# Randomize
 	if ftype == 'csv':
 		np.random.shuffle(data)
@@ -166,16 +149,18 @@ def get_data_full(data_label, config = {}):
 			
 			try:
 				# Molecule first (most likely to fail)
-				mol = suppl[i]
+				mol = data[i]
 				if not mol:
 					print('Failed to generate mol for entry {}'.format(i))
 					continue
-				mols.append(molToGraph(mol).dump_as_tensor())
 				
 				if dset == 'ames':
-					nonmutagenic = 'nonmutagen' in suppl.GetItemText(i)
+					nonmutagenic = 'nonmutagen' in data.GetItemText(i)
 					y.append(1 - int(nonmutagenic)) # 1 if mutagenic
+				else:
+					y.append(-999) # default
 
+				mols.append(molToGraph(mol).dump_as_tensor())
 				smiles.append(Chem.MolToSmiles(mol)) # Smiles
 			except:
 				print('Failed to generate mol for entry {}'.format(i))
@@ -185,7 +170,7 @@ def get_data_full(data_label, config = {}):
 	### PAD MOLECULAR TENSORS
 	###################################################################################
 
-	if int(config['TRAINING']['batch_size']) > 1: # NEED TO PAD
+	if batch_size > 1: # NEED TO PAD
 		num_atoms = [x.shape[0] for x in mols]
 		max_num_atoms = max(num_atoms)
 		print('padding tensors up to N_atoms = {}...'.format(max_num_atoms + 1))
@@ -196,7 +181,7 @@ def get_data_full(data_label, config = {}):
 	### DIVIDE DATA VIA RATIO OR CV
 	###################################################################################
 
-	if 'ratio' in config['TRAINING']['data_split']: # split train/notrain
+	if 'ratio' in data_split: # split train/notrain
 		print('Using first fraction ({}) as training'.format(training_ratio))
 		# Create training/development split
 		division = int(len(mols) * training_ratio)
@@ -218,14 +203,14 @@ def get_data_full(data_label, config = {}):
 		print('Validation size: {}'.format(len(mols_val)))
 		print('Testing size: {}'.format(len(mols_test)))
 
-	elif 'cv' in config['TRAINING']['data_split']: # cross-validation
+	elif 'cv' in data_split: # cross-validation
 		# Default to first fold of 5-fold cross-validation
 		folds = 5
 		this_fold = 0
-		# Read from config file
+		# Read fold information
 		try:
-			folds = int(config['TRAINING']['folds'].split('/')[1])
-			this_fold = int(config['TRAINING']['folds'].split('/')[0]) - 1
+			folds = int(cv_folds.split('/')[1])
+			this_fold = int(cv_folds.split('/')[0]) - 1
 		except:
 			pass
 
@@ -259,9 +244,9 @@ def get_data_full(data_label, config = {}):
 	###################################################################################
 	### REPACKAGE AS DICTIONARY
 	###################################################################################
-	
-	train = {}; train['mols'] = mols_train; train['y'] = y_train; train['smiles'] = smiles_train
-	val   = {}; val['mols']   = mols_val;   val['y']   = y_val;   val['smiles']   = smiles_val
-	test  = {}; test['mols']  = mols_test;  test['y']  = y_test;  test['smiles']  = smiles_test
+
+	train = {}; train['mols'] = mols_train; train['y'] = y_train; train['smiles'] = smiles_train; train['y_label'] = y_label
+	val   = {}; val['mols']   = mols_val;   val['y']   = y_val;   val['smiles']   = smiles_val;   val['y_label']   = y_label
+	test  = {}; test['mols']  = mols_test;  test['y']  = y_test;  test['smiles']  = smiles_test; test['y_label']  = y_label
 
 	return (train, val, test)
