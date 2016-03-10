@@ -177,9 +177,11 @@ def test_model(model, data, fpath, tstamp = 'no_time', batch_size = 128):
 		parity_plot(y_val, y_val_pred, 'val')
 		parity_plot(y_test, y_test_pred, 'test')
 
+	train['residuals'] = np.array(y_train) - np.array(y_train_pred)
+	val['residuals'] = np.array(y_val) - np.array(y_val_pred)
+	test['residuals'] = np.array(y_test) - np.array(y_test_pred)
 
-
-	return
+	return (train, val, test)
 
 def test_reactions(model, fpath):
 	'''This function tests how reactions are embedded
@@ -204,6 +206,74 @@ def test_reactions(model, fpath):
 	# Embed reactions
 	(embebddings, smiles) = generate_rxn_embeddings_and_save(embedding_func, fpath)
 	cluster(embeddings, smiles)
+
+def test_predictions(model, data_withresiduals, fpath, tstamp = ''):
+	'''This function prompts the user for a SMILES string to predict in real time 
+	and optionally estimates confidence based on similarity to similar molecules'''
+	
+	# Create folder to dump testing info to
+	try:
+		os.makedirs(fpath)
+	except: # file exists
+		pass
+	test_fpath = os.path.join(fpath, tstamp)
+
+	# Unpack
+	(train, val, test) = data_withresiduals
+	# Unpack
+	mols_train = train['mols']; y_train = train['y']; smiles_train = train['smiles']; resids_train = train['residuals']
+	mols_val   = val['mols'];   y_val   = val['y'];   smiles_val   = val['smiles'];   resids_val   = val['residuals']
+	mols_test  = test['mols'];  y_test  = test['y'];  smiles_test  = test['smiles'];  resids_test  = test['residuals']
+	y_label = train['y_label']
+
+	# Define function to test embedding
+	tf = K.function([model.layers[0].input], 
+		model.layers[0].get_output(train = False))
+
+	def get_similarity(em1, em2):
+		dotprod = np.dot(em1, em2.T)[0][0]
+		norm1 = np.dot(em1, em1.T)[0][0]
+		norm2 = np.dot(em2, em2.T)[0][0]
+		return dotprod / (norm1 + norm2 - dotprod)
+
+	smiles = ''
+	while True:
+		smiles = raw_input('Enter smiles: ').strip()
+		if smiles == 'done':
+			break
+
+		if True:
+			mol = Chem.MolFromSmiles(smiles)
+			mol_graph = molToGraph(mol).dump_as_tensor()
+			single_mol_as_array = np.array([mol_graph])
+			pred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
+			print('predicted {}: {}'.format(y_label, pred))
+			details = raw_input('Do you want to look at similarities? ').strip()
+			if details not in ['y', 'Y', 'true', 'yes', 'Yes', '1']:
+				continue
+
+			embedding = tf([single_mol_as_array])
+
+			similarities = []
+			residuals = []
+			# Run through testing set
+			for j in range(len(mols_test)):
+				this_single_mol_as_array = np.array(mols_test[j:j+1])
+				this_embedding = tf([this_single_mol_as_array])
+				similarities.append(get_similarity(embedding, this_embedding))
+				residuals.append(resids_test[j])
+
+			# Create scatter plot
+			plt.scatter(similarities, residuals, alpha = 0.5)
+			plt.xlabel('Similarity score')
+			plt.ylabel('Residual {}'.format(y_label))
+			plt.title('Testing set statistics for prediction of {} for {}'.format(y_label, smiles))
+			plt.grid(True)
+			plt.savefig(test_fpath + ' {}.png'.format(smiles), bbox_inches = 'tight')
+			plt.show()
+			plt.clf()
+
+	return
 
 def test_embeddings_demo(model, data, fpath):
 	'''This function tests molecular representations by creating visualizations
