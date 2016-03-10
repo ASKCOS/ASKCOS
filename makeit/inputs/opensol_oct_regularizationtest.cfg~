@@ -1,24 +1,26 @@
 [IO]
-model_fpath:		makeit/models/opensol_oct_02_29_2016/opensol_oct_fp512_depth4_linear_{}foldCV_fold{}
+model_fpath:		makeit/models/opensol_oct_regularizationtest
 data_fpath: 		makeit/data/20150430SolubilitiesSum_red.csv
 
 [ARCHITECTURE]
 use_existing:	false
 embedding_size: 	512
-depth: 4
+depth: 3
 scale_output: 0.05
 
 [TRAINING]
 use_existing:		false
 truncate_to:		n/a
-data_split:			cv
-folds:				{}/{}
-batch_size: 		1
-nb_epoch: 		300
-lr: 			float(0.003 * np.exp(- epoch / 25.0))
+data_split:		ratio
+ratio:			0.8
+folds:			1/1
+batch_size: 		10
+nb_epoch: 		0
+lr: 			float(0.001 * np.exp(- epoch / 40.0))
 patience:	20
-shuffle_seed:	{}
+shuffle_seed:	50723412
 
 [TESTING]
 test_embedding: false
 test_activations: false
+
