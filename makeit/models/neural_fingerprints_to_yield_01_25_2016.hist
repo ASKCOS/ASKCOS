@@ -1,4 +1,0 @@
-iteration	num_batches	batch_size	loss	accuracy
-1	0	366	0.0744068663981
-iteration	num_batches	batch_size	loss	accuracy
-1	64	399	0.0740607277487

@@ -1,6 +1,0 @@
-makeit/models/neural_name_to_mw_seq_01_21_2016 saved at UTC 2016-01-21 22:28:07.157704
-
-File details
-------------
-- tokenizer source: makeit/models/tokenizer_50000.cpickle
-- data source: makeit/data/chemical_names_with_mws_500000.json

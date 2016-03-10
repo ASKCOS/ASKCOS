@@ -1,8 +1,0 @@
--- tested at UTC makeit/models/neural_smiles_to_yield_01_26_2015_overfit50.test
-
-test entry	reaction	actual yield	predicted yield
-0	CC1=CC(c2ncc(-c3ccc(-c4ccc(-c5cnc(C6CCCN6C(=O)OC(C)(C)C)n5)cc4)cc3)n2)N(C(=O)OC(C)(C)C)C1>>CC1=CC(c2ncc(-c3ccc(-c4ccc(-c5cnc(C6CCCN6)n5)cc4)cc3)n2)NC1	0.930000007153	0.662769734859
-1	Cc1c(-c2ccc(C#N)cc2)c(C#N)c(C2OCCO2)n1Cc1cnc(Cl)c(CO)c1>>Cc1c(-c2ccc(C#N)cc2)c(C#N)c(C=O)n1Cc1cnc(Cl)c(CO)c1	0.870000004768	0.700765788555
-2	COCCOCOc1c(OC)cc(C=CC=CC(=O)N2CCSC2=S)cc1OC>>COCCOCOc1c(OC)cc(C=CC=CC(=O)N2CCNCC2)cc1OC	0.460000008345	0.33250322938
-3	NNC(=O)c1ccc(Br)cc1.O=C(Cl)c1ccccc1>>O=C(NNC(=O)c1ccc(Br)cc1)c1ccccc1	0.839999973774	0.759944081306
-4	COC(=O)C=Cc1cnc(Cl)cn1.CCC(N)C(=O)NCC1CCCCC1>>CCC(Nc1cnc(C=CC(=O)OC)cn1)C(=O)NCC1CCCCC1	0.670000016689	0.809226810932

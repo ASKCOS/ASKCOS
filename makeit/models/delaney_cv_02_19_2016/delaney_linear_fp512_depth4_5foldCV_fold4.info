@@ -1,5 +1,0 @@
-makeit/models/delaney_cv/delaney_linear_fp512_depth4_5foldCV_fold4 saved at UTC 02-20-2016_00-48
-
-Configuration details
-------------
-  OrderedDict([('IO', OrderedDict([('__name__', 'IO'), ('model_fpath', 'makeit/models/delaney_cv/delaney_linear_fp512_depth4_5foldCV_fold4'), ('data_fpath', 'makeit/data/Delaney2004.txt')])), ('ARCHITECTURE', OrderedDict([('__name__', 'ARCHITECTURE'), ('use_existing', 'false'), ('embedding_size', '512'), ('depth', '4'), ('scale_output', '0.0')])), ('TRAINING', OrderedDict([('__name__', 'TRAINING'), ('use_existing', 'false'), ('truncate_to', 'n/a'), ('data_split', 'cv'), ('folds', '4/5'), ('batch_size', '10'), ('nb_epoch', '300'), ('lr', 'float(0.01 * np.exp(- epoch / 30.0))'), ('patience', '10'), ('shuffle_seed', '0')])), ('TESTING', OrderedDict([('__name__', 'TESTING'), ('test_embedding', 'false'), ('test_activations', 'false')]))])

@@ -1,8 +1,0 @@
-makeit/models/tokenizer_50000 generated at UTC 2016-01-15 13:41:53.576159
-
-File details
-------------
-- data source: makeit/data/chemical_names_2500000.json
-- document count: 2500000
-- vocabulary size: 247337
-- nb_words: 50000

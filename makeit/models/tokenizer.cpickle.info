@@ -1,7 +1,0 @@
-makeit/models/tokenizer.cpickle generated at UTC 2016-01-14 18:29:29.180837
-
-File details
-------------
-- data source: makeit/data/chemical_names_2500000.json
-- document count: 2500000
-- vocabulary size: 247337
