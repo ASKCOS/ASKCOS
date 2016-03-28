@@ -34,7 +34,7 @@ def mols_from_smiles_list(all_smiles):
 # 			continue
 # 		mol = Chem.MolFromSmiles(smiles)
 # 		if not mol: # couldn't parse
-# 			print('could not parse {}'.format(smiles))
+# 			if v: print('could not parse {}'.format(smiles))
 # 			continue
 # 		for bond in mol.GetBonds():
 # 			bonds.append(bond_to_label(bond))
@@ -103,14 +103,14 @@ def mols_from_smiles_list(all_smiles):
 
 # 		# Get duplicates
 # 		duplicates = set([x for x in mapped_atoms if mapped_atoms.count(x) > 1])
-# 		print('duplicates: {}'.format(duplicates))
+# 		if v: print('duplicates: {}'.format(duplicates))
 
 # 		if not duplicates:
 # 			break
 
 # 		# Get the first conflict
 # 		atom_index = duplicates.pop()
-# 		print('first duplicate: {}'.format(atom_index))
+# 		if v: print('first duplicate: {}'.format(atom_index))
 # 		group = '('
 # 		bonds_in_group = []
 # 		for i, atom_indeces in enumerate(destroyed_bonds_atoms):
@@ -186,15 +186,15 @@ def get_changed_atoms(reactants, products):
 	err = 0
 	prod_atoms, prod_atom_tags = get_tagged_atoms_from_mols(products)
 
-	print('Products contain {} tagged atoms'.format(len(prod_atoms)))
-	print('Products contain {} unique atom numbers'.format(len(set(prod_atom_tags))))
+	if v: print('Products contain {} tagged atoms'.format(len(prod_atoms)))
+	if v: print('Products contain {} unique atom numbers'.format(len(set(prod_atom_tags))))
 
 	reac_atoms, reac_atom_tags = get_tagged_atoms_from_mols(reactants)
 	if len(set(prod_atom_tags)) != len(set(reac_atom_tags)):
-		print('warning: different atom tags appear in reactants and products')
+		if v: print('warning: different atom tags appear in reactants and products')
 		err = 1
 	if len(prod_atoms) != len(reac_atoms):
-		print('warning: total number of tagged atoms differ, stoichometry != 1?')
+		if v: print('warning: total number of tagged atoms differ, stoichometry != 1?')
 		err = 1
 
 	# Find differences 
@@ -216,9 +216,9 @@ def get_changed_atoms(reactants, products):
 				changed_atoms.append(reac_atoms[j])
 				changed_atom_tags.append(reac_tag)
 
-	print('{} tagged atoms in reactants change 1-atom properties'.format(len(changed_atom_tags)))
+	if v: print('{} tagged atoms in reactants change 1-atom properties'.format(len(changed_atom_tags)))
 	for smarts in [atom.GetSmarts() for atom in changed_atoms]:
-		print('  {}'.format(smarts))
+		if v: print('  {}'.format(smarts))
 
 	return changed_atoms, changed_atom_tags, err
 
@@ -290,6 +290,8 @@ def main(db_fpath, N = 15, radius = 1):
 	total_correct = 0 # actual products predicted
 	total_precise = 0 # ONLY actual products predicted
 
+	out_fid = open('test/transforms/all_transforms.txt', 'w')
+
 	# Look for entries
 	for i, line in enumerate(data_fid):
 
@@ -297,16 +299,16 @@ def main(db_fpath, N = 15, radius = 1):
 		if i == N:
 			break
 
-		print('##################################')
-		print('###        RXN {}'.format(i))
-		print('##################################')
+		if v: print('##################################')
+		if v: print('###        RXN {}'.format(i))
+		if v: print('##################################')
 
 		# Unpack
 		reaction_smiles = line.split('\t')[0].split(' ')[0] # remove fragment portion, too
 		reactants, agents, products = [mols_from_smiles_list(x) for x in 
 										[mols.split('.') for mols in reaction_smiles.split('>')]]
 		if None in reactants + agents + products: 
-			print('Could not parse all molecules in reaction, skipping')
+			if v: print('Could not parse all molecules in reaction, skipping')
 			continue
 
 		# Map atoms
@@ -314,27 +316,29 @@ def main(db_fpath, N = 15, radius = 1):
 
 		# Calculate changed atoms
 		changed_atoms, changed_atom_tags, err = get_changed_atoms(reactants, products)
-		if err: print('skipping'); continue
+		if err: 
+			if v: print('skipping')
+			continue
 
 		# Draw
-		print(reaction_smiles)
+		if v: print(reaction_smiles)
 		#draw_reaction_smiles(reaction_smiles, fpath = 'test/transforms/rxn_{}.png'.format(i))
 
 		# Get fragments
-		print('Using radius {} to build fragments'.format(radius))
+		if v: print('Using radius {} to build fragments'.format(radius))
 		reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags, radius = radius)
 		product_fragments  = get_fragments_for_changed_atoms(products,  changed_atom_tags, radius = radius)
 
 		# Report transform
 		rxn_string = '{}>>{}'.format(reactant_fragments, product_fragments)
-		print('Overall fragment transform: {}'.format(rxn_string))
+		if v: print('Overall fragment transform: {}'.format(rxn_string))
 
 		# Load into RDKit
 		rxn = AllChem.ReactionFromSmarts(rxn_string)
 
 		# Analyze
-		print('Original number of reactants: {}'.format(len(reactants)))
-		print('Number of reactants in transform: {}'.format(rxn.GetNumReactantTemplates()))
+		if v: print('Original number of reactants: {}'.format(len(reactants)))
+		if v: print('Number of reactants in transform: {}'.format(rxn.GetNumReactantTemplates()))
 
 		# Run reaction
 		try:
@@ -344,36 +348,37 @@ def main(db_fpath, N = 15, radius = 1):
 			for combination in combinations:
 				outcomes = rxn.RunReactants(list(combination))
 				if not outcomes: continue
-				print('\nFor reactants {}'.format([Chem.MolToSmiles(mol) for mol in combination]))
+				if v: print('\nFor reactants {}'.format([Chem.MolToSmiles(mol) for mol in combination]))
 				for j, outcome in enumerate(outcomes):
-					print('- outcome {}/{}'.format(j + 1, len(outcomes)))
+					if v: print('- outcome {}/{}'.format(j + 1, len(outcomes)))
 					for k, product in enumerate(outcome):
-						print('  product {}: {}'.format(k, Chem.MolToSmiles(product)))
+						if v: print('  product {}: {}'.format(k, Chem.MolToSmiles(product)))
 					product_set = mol_list_to_inchi(outcome)
 					if product_set not in unique_product_sets:
 						unique_product_sets.append(product_set)
 
-			print('\nExpctd {}'.format(mol_list_to_inchi(products)))
+			if v: print('\nExpctd {}'.format(mol_list_to_inchi(products)))
 			for product_set in unique_product_sets:
-				print('Found  {}'.format(product_set))
+				if v: print('Found  {}'.format(product_set))
 
 			if mol_list_to_inchi(products) in unique_product_sets:
-				print('\nSuccessfully found true products!')
+				if v: print('\nSuccessfully found true products!')
 				total_correct += 1
 				if len(unique_product_sets) > 1:
-					print('...but also found {} more'.format(len(unique_product_sets) - 1))
+					if v: print('...but also found {} more'.format(len(unique_product_sets) - 1))
 				else:
 					total_precise += 1
+					out_fid.write(rxn_string + '\n')
 			else:
-				print('\nDid not find true products')
+				if v: print('\nDid not find true products')
 				if len(unique_product_sets) > 1:
-					print('...but found {} unexpected ones'.format(len(unique_product_sets)))
+					if v: print('...but found {} unexpected ones'.format(len(unique_product_sets)))
 			
 			total_templates += 1
 		
 		except Exception as e:
-			print(e)
-			print('skipping')
+			if v: print(e)
+			if v: print('skipping')
 			continue
 
 
@@ -384,12 +389,14 @@ def main(db_fpath, N = 15, radius = 1):
 		# Pause
 		# raw_input('Enter anything to continue...')
 
-	print('...finished looking through N reaction records')
+	print('...finished looking through {} reaction records'.format(N))
 
 	print('Correct product predictions in {}/{} ({}%) cases'.format(total_correct, 
 		total_templates, total_correct * 100.0 / total_templates))
 	print('Specific product predictions in {}/{} ({}%) cases'.format(total_precise, 
 		total_templates, total_precise * 100.0 / total_templates))
+
+	out_fid.close()
 
 	return True
 
@@ -399,6 +406,12 @@ if __name__ == '__main__':
 		print('Usage: {} "data.rsmi" [max # records]'.format(sys.argv[0]))
 		quit(1)
 
+	# Verbose?
+	if '-v' in sys.argv: 
+		v = True
+	else:
+		v = False
+
 	# Run 
 	if len(sys.argv) >= 4:
 		main(sys.argv[1], N = int(sys.argv[2]), radius = int(sys.argv[3]))
@@ -406,3 +419,4 @@ if __name__ == '__main__':
 		main(sys.argv[1], N = int(sys.argv[2]))
 	else:
 		main(sys.argv[1])
+
