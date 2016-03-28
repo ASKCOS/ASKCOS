@@ -237,17 +237,33 @@ def draw_reaction_smiles(rxn_smiles, fpath = 'test.png'):
 
 def expand_atoms_to_use(mol, atoms_to_use):
 	'''Given an RDKit molecule and a list of AtomIdX which should be included
-	in a fragment, this function expands the list of AtomIdXs to include one 
-	nearest neighbor'''
+	in the reaction, this function expands the list of AtomIdXs to include one 
+	nearest neighbor with special consideration of (a) unimportant neighbors and
+	(b) important functional groupings'''
 
+	# Copy
 	new_atoms_to_use = atoms_to_use[:]
+
+	# Look for all atoms in the current list of atoms to use
 	for atom in mol.GetAtoms():
-		if atom.GetIdx() in atoms_to_use: continue
+		if atom.GetIdx() not in atoms_to_use: continue
+		# Look for all nearest neighbors of the currently-included atoms
 		for neighbor in atom.GetNeighbors():
-			if neighbor.GetIdx() in atoms_to_use:
-				new_atoms_to_use.append(atom.GetIdx())
-				break
+			# Evaluate nearest neighbor atom to determine what should be included
+			new_atoms_to_use = expand_atoms_to_use_atom(mol, new_atoms_to_use, neighbor.GetIdx())
+			
 	return new_atoms_to_use
+
+def expand_atoms_to_use_atom(mol, atoms_to_use, atom_idx):
+	'''Given an RDKit molecule and a list of AtomIdx which should be included
+	in the reaction, this function extends the list of atoms_to_use by considering 
+	a candidate atom extension, atom_idx'''
+
+	# Include candidate atom if it is not currently being included
+	if atom_idx not in atoms_to_use:
+		atoms_to_use.append(atom_idx)
+
+	return atoms_to_use
 
 def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0):
 	'''Given a list of RDKit mols and a list of changed atom tags, this function
