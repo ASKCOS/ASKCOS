@@ -18,8 +18,7 @@ def mols_from_smiles_list(all_smiles):
 	molecules'''
 	mols = []
 	for smiles in all_smiles:
-		if not smiles: # empty string
-			continue
+		if not smiles: continue
 		mols.append(Chem.MolFromSmiles(smiles))
 	return mols
 
@@ -163,7 +162,7 @@ def get_tagged_atoms_from_mol(mol):
 			atom_tags.append(atom.GetSmarts().split(':')[1][:-1])
 	return atoms, atom_tags
 
-def atoms_are_different(atom1, atom2):
+def atoms_are_different(atom1, atom2, level = 1):
 	'''Compares two RDKit atoms based on basic properties'''
 
 	if atom1.GetAtomicNum() != atom2.GetAtomicNum(): return True # must be true for atom mapping
@@ -171,6 +170,12 @@ def atoms_are_different(atom1, atom2):
 	if atom1.GetFormalCharge() != atom2.GetFormalCharge(): return True
 	if atom1.GetDegree() != atom2.GetDegree(): return True
 	# TODO: add # pi electrons like ICSynth?
+
+	if level >= 1:
+		# Check neighbors too
+		neighbors1 = sorted([atom.GetAtomicNum() for atom in atom1.GetNeighbors()])
+		neighbors2 = sorted([atom.GetAtomicNum() for atom in atom2.GetNeighbors()])
+		if neighbors1 != neighbors2: return True
 
 	return False
 
@@ -229,7 +234,21 @@ def draw_reaction_smiles(rxn_smiles, fpath = 'test.png'):
 
 	return
 
-def get_fragments_for_changed_atoms(mols, changed_atom_tags):
+def expand_atoms_to_use(mol, atoms_to_use):
+	'''Given an RDKit molecule and a list of AtomIdX which should be included
+	in a fragment, this function expands the list of AtomIdXs to include one 
+	nearest neighbor'''
+
+	new_atoms_to_use = atoms_to_use[:]
+	for atom in mol.GetAtoms():
+		if atom.GetIdx() in atoms_to_use: continue
+		for neighbor in atom.GetNeighbors():
+			if neighbor.GetIdx() in atoms_to_use:
+				new_atoms_to_use.append(atom.GetIdx())
+				break
+	return new_atoms_to_use
+
+def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0):
 	'''Given a list of RDKit mols and a list of changed atom tags, this function
 	computes the SMILES string of molecular fragments using MolFragmentToSmiles 
 	for all changed fragments'''
@@ -237,9 +256,15 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags):
 	for mol in mols:
 		atoms_to_use = []
 		for atom in mol.GetAtoms():
-			if ':' not in atom.GetSmarts(): continue
-			if atom.GetSmarts().split(':')[1][:-1] in changed_atom_tags:
-				atoms_to_use.append(atom.GetIdx())
+			# Check self (only tagged atoms)
+			if ':' in atom.GetSmarts():
+				if atom.GetSmarts().split(':')[1][:-1] in changed_atom_tags:
+					atoms_to_use.append(atom.GetIdx())
+					continue
+		# Check neighbors (any atom)
+		for k in range(radius):
+			atoms_to_use = expand_atoms_to_use(mol, atoms_to_use)
+
 		if not atoms_to_use: continue
 		fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use) + ').'
 	return fragments[:-1]
@@ -253,18 +278,21 @@ def main(db_fpath, N = 15):
 	# Look for entries
 	for i, line in enumerate(data_fid):
 
+		print('##################################')
+		print('###        RXN {}'.format(i))
+		print('##################################')
+
 		# Are we done?
 		if i == N:
 			break
 
 		# Unpack
-		print(line)
 		reaction_smiles = line.split('\t')[0].split(' ')[0] # remove fragment portion, too
 		reactants, agents, products = [mols_from_smiles_list(x) for x in 
 										[mols.split('.') for mols in reaction_smiles.split('>')]]
-
-		# Draw
-		#draw_reaction_smiles(reaction_smiles, fpath = 'test/transforms/rxn_{}.png'.format(i))
+		if None in reactants + agents + products: 
+			print('Could not parse all molecules in reaction, skipping')
+			continue
 
 		# Map atoms
 		reactants, products = map_reaction(reactants, products)
@@ -273,9 +301,14 @@ def main(db_fpath, N = 15):
 		changed_atoms, changed_atom_tags, err = get_changed_atoms(reactants, products)
 		if err: print('skipping'); continue
 
+		# Draw
+		draw_reaction_smiles(reaction_smiles, fpath = 'test/transforms/rxn_{}.png'.format(i))
+
 		# Get fragments
-		reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags)
-		product_fragments  = get_fragments_for_changed_atoms(products,  changed_atom_tags)
+		radius = 1
+		print('Using radius {} to build fragments'.format(radius))
+		reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags, radius = radius)
+		product_fragments  = get_fragments_for_changed_atoms(products,  changed_atom_tags, radius = radius)
 
 		# Report transform
 		rxn_string = '{}>>{}'.format(reactant_fragments, product_fragments)
