@@ -66,16 +66,15 @@ def mols_from_smiles_list(all_smiles):
 
 # 	return (created_bonds, destroyed_bonds)
 
-# def bond_to_label(bond):
-# 	'''This function takes an RDKit bond and creates a label describing
-# 	the most important attributes'''
-# 	atoms = sorted([atom_to_label(bond.GetBeginAtom()), \
-# 				    atom_to_label(bond.GetEndAtom())])
+def bond_to_label(bond):
+	'''This function takes an RDKit bond and creates a label describing
+	the most important attributes'''
+	# atoms = sorted([atom_to_label(bond.GetBeginAtom().GetIdx()), \
+	# 			    atom_to_label(bond.GetEndAtom().GetIdx())])
+	atoms = sorted([bond.GetBeginAtom().GetAtomicNum(), \
+					bond.GetEndAtom().GetAtomicNum()])
 
-# 	return atoms[0] + bond.GetSmarts() + atoms[1] 
-# 	return [atoms[0], \
-# 	        atoms[1], \
-# 	        bond.GetSmarts()]
+	return '{}{}{}'.format(atoms[0], bond.GetSmarts(), atoms[1])
 
 # def atom_to_label(atom):
 # 	'''This function takes an RDKit atom and creates a label describing
@@ -172,11 +171,16 @@ def atoms_are_different(atom1, atom2, level = 1):
 	if atom1.GetDegree() != atom2.GetDegree(): return True
 	# TODO: add # pi electrons like ICSynth?
 
+	# Check bonds and nearest neighbor identity
 	if level >= 1:
-		# Check neighbors too
-		neighbors1 = sorted([atom.GetAtomicNum() for atom in atom1.GetNeighbors()])
-		neighbors2 = sorted([atom.GetAtomicNum() for atom in atom2.GetNeighbors()])
-		if neighbors1 != neighbors2: return True
+		bonds1 = sorted([bond_to_label(bond) for bond in atom1.GetBonds()]) 
+		bonds2 = sorted([bond_to_label(bond) for bond in atom2.GetBonds()]) 
+		if bonds1 != bonds2: return True
+
+		# # Check neighbors too (already taken care of with previous lines)
+		# neighbors1 = sorted([atom.GetAtomicNum() for atom in atom1.GetNeighbors()])
+		# neighbors2 = sorted([atom.GetAtomicNum() for atom in atom2.GetNeighbors()])
+		# if neighbors1 != neighbors2: return True
 
 	return False
 
@@ -195,20 +199,34 @@ def get_changed_atoms(reactants, products):
 		err = 1
 	if len(prod_atoms) != len(reac_atoms):
 		if v: print('warning: total number of tagged atoms differ, stoichometry != 1?')
-		err = 1
+		#err = 1
 
 	# Find differences 
 	changed_atoms = []
 	changed_atom_tags = []
+	print(reac_atom_tags)
+	print(prod_atom_tags)
 	# Product atoms that are different from reactant atom equivalent
 	for i, prod_tag in enumerate(prod_atom_tags):
 		for j, reac_tag in enumerate(reac_atom_tags):
 			if reac_tag != prod_tag: continue
+			if reac_tag == '25':
+				atom1 = reac_atoms[j]
+				atom2 = prod_atoms[i]
+				if atom1.GetAtomicNum() != atom2.GetAtomicNum(): print('atomnum') # must be true for atom mapping
+				if atom1.GetTotalNumHs() != atom2.GetTotalNumHs(): print('totalHs')
+				if atom1.GetFormalCharge() != atom2.GetFormalCharge(): print('formalcharge')
+				if atom1.GetDegree() != atom2.GetDegree(): print('degree')
+				bonds1 = sorted([bond_to_label(bond) for bond in atom1.GetBonds()]) 
+				bonds2 = sorted([bond_to_label(bond) for bond in atom2.GetBonds()]) 
+				if bonds1 != bonds2: print('bonds')
+
 			if reac_tag not in changed_atom_tags: # don't bother comparing if we know this atom changes
 				if atoms_are_different(prod_atoms[i], reac_atoms[j]):
 					changed_atoms.append(reac_atoms[j])
 					changed_atom_tags.append(reac_tag)
 					break
+
 	# Reactant atoms that do not appear in product (tagged leaving groups)
 	for j, reac_tag in enumerate(reac_atom_tags):
 		if reac_tag not in changed_atom_tags:
@@ -216,9 +234,10 @@ def get_changed_atoms(reactants, products):
 				changed_atoms.append(reac_atoms[j])
 				changed_atom_tags.append(reac_tag)
 
-	if v: print('{} tagged atoms in reactants change 1-atom properties'.format(len(changed_atom_tags)))
-	for smarts in [atom.GetSmarts() for atom in changed_atoms]:
-		if v: print('  {}'.format(smarts))
+	if v: 
+		print('{} tagged atoms in reactants change 1-atom properties'.format(len(changed_atom_tags)))
+		for smarts in [atom.GetSmarts() for atom in changed_atoms]:
+			print('  {}'.format(smarts))
 
 	return changed_atoms, changed_atom_tags, err
 
@@ -232,6 +251,21 @@ def draw_reaction_smiles(rxn_smiles, fpath = 'test.png'):
 	rxn = AllChem.ReactionFromSmarts(rxn_smiles)
 	img = Draw.ReactionToImage(rxn, subImgSize = (300, 300), highlightAtoms = [], options = opts)
 	img.save(fpath)
+
+	try:
+		fpath2 = fpath.replace('.', '_clean.')
+		new_rxn_string = ''
+		for i in range(rxn.GetNumReactantTemplates()):
+			new_rxn_string += Chem.MolToSmiles(Chem.MolFromTPLBlock(Chem.MolToTPLBlock(rxn.GetReactantTemplate(i))), isomericSmiles = True) + '.'
+		new_rxn_string = new_rxn_string[:-1] + '>>'
+		for j in range(rxn.GetNumProductTemplates()):
+			new_rxn_string += Chem.MolToSmiles(Chem.MolFromTPLBlock(Chem.MolToTPLBlock(rxn.GetProductTemplate(j))), isomericSmiles = True) + '.'
+		rxn2 = AllChem.ReactionFromSmarts(new_rxn_string[:-1])
+		opts.noCarbonSymbols = True
+		img = Draw.ReactionToImage(rxn2, subImgSize = (300, 300), highlightAtoms = [], options = opts)
+		img.save(fpath2)
+	except Exception as e:
+		if v: print('warning: failed to draw clean transform')
 
 	return
 
@@ -295,7 +329,7 @@ def mol_list_from_inchi(inchis):
 	'''InChI string separated by ++ to list of RDKit molecules'''
 	return [Chem.MolFromInchi(inchi.strip()) for inchi in inchis.split('++')]
 
-def main(db_fpath, N = 15, radius = 1):
+def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 	'''Read reactions from Lowe's patent reaction SMILES'''
 
 	# Open file
@@ -312,19 +346,23 @@ def main(db_fpath, N = 15, radius = 1):
 	for i, line in enumerate(data_fid):
 
 		# Are we done?
-		if i == N:
+		if i == (N - 1):
 			break
 
-		if v: print('##################################')
-		if v: print('###        RXN {}'.format(i))
-		if v: print('##################################')
+		if v: 
+			print('##################################')
+			print('###        RXN {}'.format(i))
+			print('##################################')
 
 		# Unpack
 		reaction_smiles = line.split('\t')[0].split(' ')[0] # remove fragment portion, too
 		reactants, agents, products = [mols_from_smiles_list(x) for x in 
 										[mols.split('.') for mols in reaction_smiles.split('>')]]
 		if None in reactants + agents + products: 
-			if v: print('Could not parse all molecules in reaction, skipping')
+			if v: 
+				print(reaction_smiles)
+				print('Could not parse all molecules in reaction, skipping')
+				raw_input('Enter anything to continue...')
 			continue
 
 		# Map atoms
@@ -337,8 +375,11 @@ def main(db_fpath, N = 15, radius = 1):
 			continue
 
 		# Draw
-		if v: print(reaction_smiles)
-		#draw_reaction_smiles(reaction_smiles, fpath = 'test/transforms/rxn_{}.png'.format(i))
+		if v: 
+			print(reaction_smiles)
+			if not os.path.exists('{}/rxn_{}'.format(folder, i)):
+				os.makedirs('{}/rxn_{}'.format(folder, i))
+			draw_reaction_smiles(reaction_smiles, fpath = '{}/rxn_{}/rxn_{}.png'.format(folder, i, i))
 
 		# Get fragments
 		if v: print('Using radius {} to build fragments'.format(radius))
@@ -353,8 +394,9 @@ def main(db_fpath, N = 15, radius = 1):
 		rxn = AllChem.ReactionFromSmarts(rxn_string)
 
 		# Analyze
-		if v: print('Original number of reactants: {}'.format(len(reactants)))
-		if v: print('Number of reactants in transform: {}'.format(rxn.GetNumReactantTemplates()))
+		if v: 
+			print('Original number of reactants: {}'.format(len(reactants)))
+			print('Number of reactants in transform: {}'.format(rxn.GetNumReactantTemplates()))
 
 		# Run reaction
 		try:
@@ -368,14 +410,22 @@ def main(db_fpath, N = 15, radius = 1):
 				for j, outcome in enumerate(outcomes):
 					if v: print('- outcome {}/{}'.format(j + 1, len(outcomes)))
 					for k, product in enumerate(outcome):
-						if v: print('  product {}: {}'.format(k, Chem.MolToSmiles(product)))
+						if v: 
+							print('  - product {}: {}'.format(k, Chem.MolToSmiles(product, isomericSmiles = True)))
+							try:
+								Chem.SanitizeMol(product)
+								#product = Chem.MolFromSmiles(Chem.MolToSmiles(product, isomericSmiles = True))
+								Draw.MolToFile(product, '{}/rxn_{}/outcome_{}_product_{}.png'.format(folder, i, j, k), size=(250,250))
+							except Exception as e:
+								print('warning: could not draw {}: {}'.format(Chem.MolToSmiles(product, isomericSmiles = True), e))
 					product_set = mol_list_to_inchi(outcome)
 					if product_set not in unique_product_sets:
 						unique_product_sets.append(product_set)
 
-			if v: print('\nExpctd {}'.format(mol_list_to_inchi(products)))
-			for product_set in unique_product_sets:
-				if v: print('Found  {}'.format(product_set))
+			if v: 
+				print('\nExpctd {}'.format(mol_list_to_inchi(products)))
+				for product_set in unique_product_sets:
+					print('Found  {}'.format(product_set))
 
 			if mol_list_to_inchi(products) in unique_product_sets:
 				if v: print('\nSuccessfully found true products!')
@@ -391,10 +441,15 @@ def main(db_fpath, N = 15, radius = 1):
 					if v: print('...but found {} unexpected ones'.format(len(unique_product_sets)))
 			
 			total_templates += 1
+			if v: 
+				draw_reaction_smiles(rxn_string, fpath = '{}/rxn_{}/tform_{}.png'.format(folder, i, i))
+				with open('{}/rxn_{}/tform_{}.txt'.format(folder, i, i), 'w') as tform_fid:
+					tform_fid.write(rxn_string)
 		
 		except Exception as e:
 			if v: print(e)
 			if v: print('skipping')
+			raw_input('Enter anything to continue')
 			continue
 
 
@@ -403,7 +458,7 @@ def main(db_fpath, N = 15, radius = 1):
 			print('{}/{}'.format(i, N))
 
 		# Pause
-		# raw_input('Enter anything to continue...')
+		raw_input('Enter anything to continue...')
 
 	print('...finished looking through {} reaction records'.format(N))
 
@@ -419,12 +474,13 @@ def main(db_fpath, N = 15, radius = 1):
 
 if __name__ == '__main__':
 	if len(sys.argv) < 2:
-		print('Usage: {} "data.rsmi" [max # records]'.format(sys.argv[0]))
+		print('Usage: {} "data.rsmi" [max # records] [radius]'.format(sys.argv[0]))
 		quit(1)
 
 	# Verbose?
 	if '-v' in sys.argv: 
 		v = True
+		sys.argv.remove('-v')
 	else:
 		v = False
 
