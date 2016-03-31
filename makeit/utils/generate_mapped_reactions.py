@@ -367,7 +367,7 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 						continue
 
 		if not atoms_to_use: continue
-		fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, allHsExplicit = True) + ').'
+		fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, allHsExplicit = True, allBondsExplicit = True, isomericSmiles = True) + ').'
 	return fragments[:-1]
 
 def expand_changed_atom_tags(changed_atom_tags, reactant_fragments):
@@ -472,12 +472,12 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 		if v: print('Using radius {} to build fragments'.format(radius))
 		reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags, 
 			radius = radius, get_groups = True)
-		print('reactant fragments: {}'.format(reactant_fragments))
+		#print('reactant fragments: {}'.format(reactant_fragments))
 		# Get fragments for products 
 		# (WITHOUT matching groups but WITH the addition of reactant fragments)
 		product_fragments  = get_fragments_for_changed_atoms(products, changed_atom_tags, 
 			radius = 0, expansion = expand_changed_atom_tags(changed_atom_tags, reactant_fragments))
-		print('product fragments before expansion: {}'.format(product_fragments))
+		#print('product fragments before expansion: {}'.format(product_fragments))
 
 
 
@@ -530,7 +530,7 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 					if v: print('...but also found {} more'.format(len(unique_product_sets) - 1))
 				else:
 					total_precise += 1
-					out_fid.write(rxn_string + '\n')
+					out_fid.write('{}\t{}'.format(i, rxn_string) + '\n')
 			else:
 				if v: print('\nDid not find true products')
 				if len(unique_product_sets) > 1:
@@ -543,9 +543,10 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 					tform_fid.write(rxn_string)
 		
 		except Exception as e:
-			if v: print(e)
-			if v: print('skipping')
-			raw_input('Enter anything to continue')
+			if v: 
+				print(e)
+				print('skipping')
+				raw_input('Enter anything to continue')
 			continue
 
 
@@ -554,7 +555,7 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 			print('{}/{}'.format(i, N))
 
 		# Pause
-		#raw_input('Enter anything to continue...')
+		if v: raw_input('Enter anything to continue...')
 
 	print('...finished looking through {} reaction records'.format(N))
 
