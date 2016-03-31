@@ -297,8 +297,9 @@ def expand_atoms_to_use_atom(mol, atoms_to_use, atom_idx, groups = []):
 		return atoms_to_use
 	
 	# Append additional atom if it isn't an unchanged sp3 carbon
-	if not atom_is_boring:
-		atoms_to_use.append(atom_idx)
+	#if not atom_is_boring:
+	
+	atoms_to_use.append(atom_idx)
 
 	# See if this atom belongs to any groups
 	for group in groups:
