@@ -169,6 +169,8 @@ def atoms_are_different(atom1, atom2, level = 1):
 	if atom1.GetTotalNumHs() != atom2.GetTotalNumHs(): return True
 	if atom1.GetFormalCharge() != atom2.GetFormalCharge(): return True
 	if atom1.GetDegree() != atom2.GetDegree(): return True
+	if atom1.IsInRing() != atom2.IsInRing(): return True
+	if atom1.GetNumRadicalElectrons() != atom2.GetNumRadicalElectrons(): return True
 	# TODO: add # pi electrons like ICSynth?
 
 	# Check bonds and nearest neighbor identity
@@ -294,10 +296,9 @@ def expand_atoms_to_use_atom(mol, atoms_to_use, atom_idx, groups = []):
 	if atom_idx in atoms_to_use:
 		return atoms_to_use
 	
-	# Append additional atom regardless
-	#if not atom_is_boring:
-	#	atoms_to_use.append(atom_idx)
-	atoms_to_use.append(atom_idx)
+	# Append additional atom if it isn't an unchanged sp3 carbon
+	if not atom_is_boring:
+		atoms_to_use.append(atom_idx)
 
 	# See if this atom belongs to any groups
 	for group in groups:
