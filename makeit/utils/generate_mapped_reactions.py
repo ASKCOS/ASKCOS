@@ -210,17 +210,6 @@ def get_changed_atoms(reactants, products):
 	for i, prod_tag in enumerate(prod_atom_tags):
 		for j, reac_tag in enumerate(reac_atom_tags):
 			if reac_tag != prod_tag: continue
-			if reac_tag == '25':
-				atom1 = reac_atoms[j]
-				atom2 = prod_atoms[i]
-				if atom1.GetAtomicNum() != atom2.GetAtomicNum(): print('atomnum') # must be true for atom mapping
-				if atom1.GetTotalNumHs() != atom2.GetTotalNumHs(): print('totalHs')
-				if atom1.GetFormalCharge() != atom2.GetFormalCharge(): print('formalcharge')
-				if atom1.GetDegree() != atom2.GetDegree(): print('degree')
-				bonds1 = sorted([bond_to_label(bond) for bond in atom1.GetBonds()]) 
-				bonds2 = sorted([bond_to_label(bond) for bond in atom2.GetBonds()]) 
-				if bonds1 != bonds2: print('bonds')
-
 			if reac_tag not in changed_atom_tags: # don't bother comparing if we know this atom changes
 				if atoms_are_different(prod_atoms[i], reac_atoms[j]):
 					changed_atoms.append(reac_atoms[j])
@@ -269,7 +258,7 @@ def draw_reaction_smiles(rxn_smiles, fpath = 'test.png'):
 
 	return
 
-def expand_atoms_to_use(mol, atoms_to_use):
+def expand_atoms_to_use(mol, atoms_to_use, groups = []):
 	'''Given an RDKit molecule and a list of AtomIdX which should be included
 	in the reaction, this function expands the list of AtomIdXs to include one 
 	nearest neighbor with special consideration of (a) unimportant neighbors and
@@ -284,27 +273,44 @@ def expand_atoms_to_use(mol, atoms_to_use):
 		# Look for all nearest neighbors of the currently-included atoms
 		for neighbor in atom.GetNeighbors():
 			# Evaluate nearest neighbor atom to determine what should be included
-			new_atoms_to_use = expand_atoms_to_use_atom(mol, new_atoms_to_use, neighbor.GetIdx())
+			new_atoms_to_use = expand_atoms_to_use_atom(mol, new_atoms_to_use, neighbor.GetIdx(), groups = [])
 			
 	return new_atoms_to_use
 
-def expand_atoms_to_use_atom(mol, atoms_to_use, atom_idx):
+def expand_atoms_to_use_atom(mol, atoms_to_use, atom_idx, groups = []):
 	'''Given an RDKit molecule and a list of AtomIdx which should be included
 	in the reaction, this function extends the list of atoms_to_use by considering 
 	a candidate atom extension, atom_idx'''
 
-	# Include candidate atom if it is not currently being included
-	if atom_idx not in atoms_to_use:
-		atoms_to_use.append(atom_idx)
+	# Skip current candidate atom if it is already included
+	if atom_idx in atoms_to_use:
+		return atoms_to_use
+	
+	# Append additional atom regardless
+	atoms_to_use.append(atom_idx)
+
+	# See if this atom belongs to any groups
+	for group in groups:
+		if atom_idx in group:
+			# Add the whole list, redundancies don't matter
+			atoms_to_use.extend(list(group)) 
 
 	return atoms_to_use
 
-def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0):
+def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0, get_groups = False):
 	'''Given a list of RDKit mols and a list of changed atom tags, this function
 	computes the SMILES string of molecular fragments using MolFragmentToSmiles 
 	for all changed fragments'''
+
 	fragments = ''
 	for mol in mols:
+		# Are we looking for groups? (reactants only)
+		if get_groups:
+			groups = get_special_groups(mol)
+		else:
+			groups = []
+
+		# Build list of atoms to use
 		atoms_to_use = []
 		for atom in mol.GetAtoms():
 			# Check self (only tagged atoms)
@@ -312,13 +318,22 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0):
 				if atom.GetSmarts().split(':')[1][:-1] in changed_atom_tags:
 					atoms_to_use.append(atom.GetIdx())
 					continue
+
 		# Check neighbors (any atom)
 		for k in range(radius):
-			atoms_to_use = expand_atoms_to_use(mol, atoms_to_use)
+			atoms_to_use = expand_atoms_to_use(mol, atoms_to_use, groups)
 
 		if not atoms_to_use: continue
-		fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use) + ').'
+		fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, allHsExplicit = True) + ').'
 	return fragments[:-1]
+
+def get_special_groups(mol):
+	'''Given an RDKit molecule, this function returns a list of tuples, where
+	each tuple contains the AtomIdx's for a special group of atoms which should 
+	be included in a fragment all together. This should only be done for the 
+	reactants, otherwise the products might end up with mapping mismatches'''
+
+	return []
 
 def mol_list_to_inchi(mols):
 	'''List of RDKit molecules to InChI string separated by ++'''
@@ -383,7 +398,7 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 
 		# Get fragments
 		if v: print('Using radius {} to build fragments'.format(radius))
-		reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags, radius = radius)
+		reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags, radius = radius, get_groups = True)
 		product_fragments  = get_fragments_for_changed_atoms(products,  changed_atom_tags, radius = radius)
 
 		# Report transform
@@ -414,6 +429,7 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 							print('  - product {}: {}'.format(k, Chem.MolToSmiles(product, isomericSmiles = True)))
 							try:
 								Chem.SanitizeMol(product)
+								product.UpdatePropertyCache()
 								#product = Chem.MolFromSmiles(Chem.MolToSmiles(product, isomericSmiles = True))
 								Draw.MolToFile(product, '{}/rxn_{}/outcome_{}_product_{}.png'.format(folder, i, j, k), size=(250,250))
 							except Exception as e:
