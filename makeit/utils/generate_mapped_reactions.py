@@ -204,14 +204,22 @@ def get_changed_atoms(reactants, products):
 	# Find differences 
 	changed_atoms = []
 	changed_atom_tags = []
-	print(reac_atom_tags)
-	print(prod_atom_tags)
+	#print(reac_atom_tags)
+	#print(prod_atom_tags)
+
 	# Product atoms that are different from reactant atom equivalent
 	for i, prod_tag in enumerate(prod_atom_tags):
+
 		for j, reac_tag in enumerate(reac_atom_tags):
 			if reac_tag != prod_tag: continue
 			if reac_tag not in changed_atom_tags: # don't bother comparing if we know this atom changes
+				# If atom changed, add
 				if atoms_are_different(prod_atoms[i], reac_atoms[j]):
+					changed_atoms.append(reac_atoms[j])
+					changed_atom_tags.append(reac_tag)
+					break
+				# If reac_tag appears multiple times, add (need for stoichometry > 1)
+				if prod_atom_tags.count(reac_tag) > 1:
 					changed_atoms.append(reac_atoms[j])
 					changed_atom_tags.append(reac_tag)
 					break
@@ -273,7 +281,7 @@ def expand_atoms_to_use(mol, atoms_to_use, groups = []):
 		# Look for all nearest neighbors of the currently-included atoms
 		for neighbor in atom.GetNeighbors():
 			# Evaluate nearest neighbor atom to determine what should be included
-			new_atoms_to_use = expand_atoms_to_use_atom(mol, new_atoms_to_use, neighbor.GetIdx(), groups = [])
+			new_atoms_to_use = expand_atoms_to_use_atom(mol, new_atoms_to_use, neighbor.GetIdx(), groups = groups)
 			
 	return new_atoms_to_use
 
@@ -287,17 +295,44 @@ def expand_atoms_to_use_atom(mol, atoms_to_use, atom_idx, groups = []):
 		return atoms_to_use
 	
 	# Append additional atom regardless
+	#if not atom_is_boring:
+	#	atoms_to_use.append(atom_idx)
 	atoms_to_use.append(atom_idx)
 
 	# See if this atom belongs to any groups
 	for group in groups:
-		if atom_idx in group:
+		if int(atom_idx) in group: # int correction
+			if v: print('added group centered at {}'.format(atom_idx))
 			# Add the whole list, redundancies don't matter
 			atoms_to_use.extend(list(group)) 
 
 	return atoms_to_use
 
-def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0, get_groups = False):
+def atom_is_boring(mol, atom_idx):
+	'''This function takes an RDKit molecule and an atom Idx and determines
+	if the proposed atom to add to a reaction core is 'boring' - that is, if
+	it is an ordinary sp3 carbon with no heteroatom neighbors. If the atom seems 
+	unimportant for the reaction to occur, then it is not added.'''
+
+	atom = mol.GetAtomWithIdx(atom_idx)
+	# If it's not carbon, it might be important
+	if atom.AtomicNum() != 6: return False
+	# If its neighbors aren't just other carbons, it might be important
+	for neighbor in atom.GetNeighbors():
+		if neighbor.AtomicNum() != 6: return False
+	# If it has more than just single bonds, it might be important
+	for bond in atom.GetBonds():
+		if bond.GetBondTypeAsDouble() != 1.0: return False
+	# If it's charged, it might be important
+	if atom.GetFormalCharge() != 0: return False
+
+	#print('Found a boring atom!')
+	raw_input('Pausing')
+
+	return True
+
+def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0, 
+	get_groups = False, expansion = []):
 	'''Given a list of RDKit mols and a list of changed atom tags, this function
 	computes the SMILES string of molecular fragments using MolFragmentToSmiles 
 	for all changed fragments'''
@@ -321,11 +356,32 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0, get_gro
 
 		# Check neighbors (any atom)
 		for k in range(radius):
-			atoms_to_use = expand_atoms_to_use(mol, atoms_to_use, groups)
+			atoms_to_use = expand_atoms_to_use(mol, atoms_to_use, groups = groups)
+
+		# Check expansion (when calculating for products only)
+		if expansion:
+			for atom in mol.GetAtoms():
+				if ':' in atom.GetSmarts():
+					if atom.GetSmarts().split(':')[1][:-1] in expansion:
+						atoms_to_use.append(atom.GetIdx())
+						continue
 
 		if not atoms_to_use: continue
 		fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, allHsExplicit = True) + ').'
 	return fragments[:-1]
+
+def expand_changed_atom_tags(changed_atom_tags, reactant_fragments):
+	'''Given a list of changed atom tags (numbers as strings) and a string consisting
+	of the reactant_fragments to include in the reaction transform, this function 
+	adds any tagged atoms found in the reactant side of the template to the 
+	changed_atom_tags list so that those tagged atoms are included in the products'''
+
+	atom_tags_in_reactant_fragments = re.findall('\:([[0-9]+)\]', reactant_fragments)
+	for atom_tag in atom_tags_in_reactant_fragments:
+		if atom_tag not in changed_atom_tags:
+			changed_atom_tags.append(atom_tag)
+			#print('expanded to include {}'.format(atom_tag))
+	return changed_atom_tags
 
 def get_special_groups(mol):
 	'''Given an RDKit molecule, this function returns a list of tuples, where
@@ -333,7 +389,23 @@ def get_special_groups(mol):
 	be included in a fragment all together. This should only be done for the 
 	reactants, otherwise the products might end up with mapping mismatches'''
 
-	return []
+	# Define templates, based on Functional_Group_Hierarchy.txt from Greg Laandrum
+	group_templates = [ 
+		'C(=O)Cl', # acid chloride
+		'C(=O)[O;H,-]', # carboxylic acid
+		'[$(S-!@[#6])](=O)(=O)(Cl)', # sulfonyl chloride
+		'[$(B-!@[#6])](O)(O)', # boronic acid
+		'[$(N-!@[#6])](=!@C=!@O)', # isocyanate
+		'[N;H0;$(N-[#6]);D2]=[N;D2]=[N;D1]', # azide
+		'O=C1N(Br)C(=O)CC1' # SMILES for NBS brominating agent
+		]
+
+	# Build list
+	groups = []
+	for template in group_templates:
+		matches = mol.GetSubstructMatches(Chem.MolFromSmarts(template))
+		groups.extend(list(matches))
+	return groups
 
 def mol_list_to_inchi(mols):
 	'''List of RDKit molecules to InChI string separated by ++'''
@@ -361,7 +433,7 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 	for i, line in enumerate(data_fid):
 
 		# Are we done?
-		if i == (N - 1):
+		if i == N:
 			break
 
 		if v: 
@@ -396,10 +468,18 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 				os.makedirs('{}/rxn_{}'.format(folder, i))
 			draw_reaction_smiles(reaction_smiles, fpath = '{}/rxn_{}/rxn_{}.png'.format(folder, i, i))
 
-		# Get fragments
+		# Get fragments for reactants
 		if v: print('Using radius {} to build fragments'.format(radius))
-		reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags, radius = radius, get_groups = True)
-		product_fragments  = get_fragments_for_changed_atoms(products,  changed_atom_tags, radius = radius)
+		reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags, 
+			radius = radius, get_groups = True)
+		print('reactant fragments: {}'.format(reactant_fragments))
+		# Get fragments for products 
+		# (WITHOUT matching groups but WITH the addition of reactant fragments)
+		product_fragments  = get_fragments_for_changed_atoms(products, changed_atom_tags, 
+			radius = 0, expansion = expand_changed_atom_tags(changed_atom_tags, reactant_fragments))
+		print('product fragments before expansion: {}'.format(product_fragments))
+
+
 
 		# Report transform
 		rxn_string = '{}>>{}'.format(reactant_fragments, product_fragments)
@@ -474,7 +554,7 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 			print('{}/{}'.format(i, N))
 
 		# Pause
-		raw_input('Enter anything to continue...')
+		#raw_input('Enter anything to continue...')
 
 	print('...finished looking through {} reaction records'.format(N))
 
