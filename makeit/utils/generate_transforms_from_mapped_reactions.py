@@ -166,6 +166,7 @@ def get_tagged_atoms_from_mol(mol):
 def atoms_are_different(atom1, atom2, level = 1):
 	'''Compares two RDKit atoms based on basic properties'''
 
+	if atom1.GetSmarts() != atom2.GetSmarts(): return True # should be very general
 	if atom1.GetAtomicNum() != atom2.GetAtomicNum(): return True # must be true for atom mapping
 	if atom1.GetTotalNumHs() != atom2.GetTotalNumHs(): return True
 	if atom1.GetFormalCharge() != atom2.GetFormalCharge(): return True
@@ -256,10 +257,12 @@ def draw_reaction_smiles(rxn_smiles, fpath = 'test.png'):
 		fpath2 = fpath.replace('.', '_clean.')
 		new_rxn_string = ''
 		for i in range(rxn.GetNumReactantTemplates()):
-			new_rxn_string += Chem.MolToSmiles(Chem.MolFromTPLBlock(Chem.MolToTPLBlock(rxn.GetReactantTemplate(i))), isomericSmiles = True) + '.'
+			mol = rxn.GetReactantTemplate(i); mol.SetProp('_Name', 'temp')
+			new_rxn_string += Chem.MolToSmiles(Chem.MolFromTPLBlock(Chem.MolToTPLBlock(mol)), isomericSmiles = True) + '.'
 		new_rxn_string = new_rxn_string[:-1] + '>>'
 		for j in range(rxn.GetNumProductTemplates()):
-			new_rxn_string += Chem.MolToSmiles(Chem.MolFromTPLBlock(Chem.MolToTPLBlock(rxn.GetProductTemplate(j))), isomericSmiles = True) + '.'
+			mol = rxn.GetReactantTemplate(j); mol.SetProp('_Name', 'temp')
+			new_rxn_string += Chem.MolToSmiles(Chem.MolFromTPLBlock(Chem.MolToTPLBlock(mol)), isomericSmiles = True) + '.'
 		rxn2 = AllChem.ReactionFromSmarts(new_rxn_string[:-1])
 		opts.noCarbonSymbols = True
 		img = Draw.ReactionToImage(rxn2, subImgSize = (300, 300), highlightAtoms = [], options = opts)
@@ -269,7 +272,7 @@ def draw_reaction_smiles(rxn_smiles, fpath = 'test.png'):
 
 	return
 
-def expand_atoms_to_use(mol, atoms_to_use, groups = []):
+def expand_atoms_to_use(mol, atoms_to_use, groups = [], symbol_replacements = []):
 	'''Given an RDKit molecule and a list of AtomIdX which should be included
 	in the reaction, this function expands the list of AtomIdXs to include one 
 	nearest neighbor with special consideration of (a) unimportant neighbors and
@@ -284,66 +287,95 @@ def expand_atoms_to_use(mol, atoms_to_use, groups = []):
 		# Look for all nearest neighbors of the currently-included atoms
 		for neighbor in atom.GetNeighbors():
 			# Evaluate nearest neighbor atom to determine what should be included
-			new_atoms_to_use = expand_atoms_to_use_atom(mol, new_atoms_to_use, neighbor.GetIdx(), groups = groups)
+			new_atoms_to_use, symbol_replacements = \
+					expand_atoms_to_use_atom(mol, new_atoms_to_use, neighbor.GetIdx(), 
+						groups = groups, symbol_replacements = symbol_replacements)
 			
-	return new_atoms_to_use
+	return new_atoms_to_use, symbol_replacements
 
-def expand_atoms_to_use_atom(mol, atoms_to_use, atom_idx, groups = []):
+def expand_atoms_to_use_atom(mol, atoms_to_use, atom_idx, groups = [], symbol_replacements = []):
 	'''Given an RDKit molecule and a list of AtomIdx which should be included
 	in the reaction, this function extends the list of atoms_to_use by considering 
 	a candidate atom extension, atom_idx'''
 
 	# Skip current candidate atom if it is already included
 	if atom_idx in atoms_to_use:
-		return atoms_to_use
+		return atoms_to_use, symbol_replacements
 	
-	# Append additional atom if it isn't an unchanged sp3 carbon
-	#if not atom_is_boring:
-	
+	# Include this atom no matter what
 	atoms_to_use.append(atom_idx)
 
 	# See if this atom belongs to any groups
+	found_in_group = False
 	for group in groups:
 		if int(atom_idx) in group: # int correction
 			if v: print('added group centered at {}'.format(atom_idx))
 			# Add the whole list, redundancies don't matter
 			atoms_to_use.extend(list(group)) 
+			found_in_group = True
 
-	return atoms_to_use
+	# How do we add an atom that wasn't in an identified important functional group?
+	# Develop special SMARTS symbol
+	if not found_in_group:		
+		symbol_replacements.append((atom_idx, convert_atom_to_wildcard(mol.GetAtomWithIdx(atom_idx))))
 
-def atom_is_boring(mol, atom_idx):
-	'''This function takes an RDKit molecule and an atom Idx and determines
-	if the proposed atom to add to a reaction core is 'boring' - that is, if
-	it is an ordinary sp3 carbon with no heteroatom neighbors. If the atom seems 
-	unimportant for the reaction to occur, then it is not added.'''
+	return atoms_to_use, symbol_replacements
 
-	atom = mol.GetAtomWithIdx(atom_idx)
-	# If it's not carbon, it might be important
-	if atom.AtomicNum() != 6: return False
-	# If its neighbors aren't just other carbons, it might be important
-	for neighbor in atom.GetNeighbors():
-		if neighbor.AtomicNum() != 6: return False
-	# If it has more than just single bonds, it might be important
-	for bond in atom.GetBonds():
-		if bond.GetBondTypeAsDouble() != 1.0: return False
-	# If it's charged, it might be important
-	if atom.GetFormalCharge() != 0: return False
+def convert_atom_to_wildcard(atom):
+	'''This function takes an RDKit atom and turns it into a wildcard 
+	using hard-coded generalization rules. This function should be used
+	when candidate atoms are used to extend the reaction core for higher
+	generalizability'''
 
-	#print('Found a boring atom!')
-	raw_input('Pausing')
+	# Is this a terminal atom? We can tell if the degree is one
+	if atom.GetDegree() == 1:
+		return atom.GetSmarts()
 
-	return True
+	# Initialize
+	symbol = '['
+
+	# Add atom primitive (don't use COMPLETE wildcards)
+	if atom.GetAtomicNum() != 6:
+		symbol += '#{};'.format(atom.GetAtomicNum())
+	elif atom.GetIsAromatic():
+		symbol += 'c;'
+	else:
+		symbol += 'C;'
+
+	# Charge is important
+	if atom.GetFormalCharge() != 0:
+		charges = re.search('([-+]+[1-9]?)', atom.GetSmarts())
+		if charges: symbol += charges.group() + ';'
+
+	# Strip extra semicolon
+	if symbol[-1] == ';': symbol = symbol[:-1]
+
+	# Close with label or with bracket
+	label = re.search('\:[0-9]+\]', atom.GetSmarts())
+	if label: 
+		symbol += label.group()
+	else:
+		symbol += ']'
+
+	if v: 
+		if symbol != atom.GetSmarts():
+			print('Improved generality of atom SMARTS {} -> {}'.format(atom.GetSmarts(), symbol))
+
+	return symbol
 
 def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0, 
-	get_groups = False, expansion = []):
+	category = 'reactants', expansion = []):
 	'''Given a list of RDKit mols and a list of changed atom tags, this function
 	computes the SMILES string of molecular fragments using MolFragmentToSmiles 
 	for all changed fragments'''
 
 	fragments = ''
 	for mol in mols:
+		# Initialize list of replacement symbols (updated during expansion)
+		symbol_replacements = []
+
 		# Are we looking for groups? (reactants only)
-		if get_groups:
+		if category == 'reactants':
 			groups = get_special_groups(mol)
 		else:
 			groups = []
@@ -355,22 +387,46 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 			if ':' in atom.GetSmarts():
 				if atom.GetSmarts().split(':')[1][:-1] in changed_atom_tags:
 					atoms_to_use.append(atom.GetIdx())
+					# Be explicit when there are no hydrogens
+					if atom.GetTotalNumHs() == 0:
+						symbol = atom.GetSmarts()
+						if ':' in symbol: # stick H0 before label
+							symbol = symbol.replace(':', ';H0:')
+						else: # stick before end
+							symbol = symbol.replace(']', ';H0]')
+						symbol_replacements.append((atom.GetIdx(), symbol))
+						# print('Being explicit about H0!!!!')
 					continue
 
 		# Check neighbors (any atom)
 		for k in range(radius):
-			atoms_to_use = expand_atoms_to_use(mol, atoms_to_use, groups = groups)
+			atoms_to_use, symbol_replacements = expand_atoms_to_use(mol, atoms_to_use, 
+				groups = groups, symbol_replacements = symbol_replacements)
 
-		# Check expansion (when calculating for products only)
-		if expansion:
-			for atom in mol.GetAtoms():
-				if ':' in atom.GetSmarts():
-					if atom.GetSmarts().split(':')[1][:-1] in expansion:
-						atoms_to_use.append(atom.GetIdx())
-						continue
+		if category == 'products':
+			# Add extra labels to include (for products only)
+			if expansion:
+				for atom in mol.GetAtoms():
+					if ':' in atom.GetSmarts():
+						label = atom.GetSmarts().split(':')[1][:-1]
+						if label in expansion and label not in changed_atom_tags:
+							atoms_to_use.append(atom.GetIdx())
+							# Make the expansion a wildcard
+							symbol_replacements.append((atom.GetIdx(), '[*:{}]'.format(label)))	
+
+		# Define new symbols to replace terminal species with wildcards
+		# (don't want to restrict templates too strictly)
+		symbols = [atom.GetSmarts() for atom in mol.GetAtoms()]
+		for (i, symbol) in symbol_replacements:
+			symbols[i] = symbol
 
 		if not atoms_to_use: continue
-		fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, allHsExplicit = True, allBondsExplicit = True, isomericSmiles = True) + ').'
+		# if v:
+		# 	print('~~ replacement for this ' + category[:-1])
+		# 	print('{} -> {}'.format([mol.GetAtomWithIdx(x).GetSmarts() for (x, s) in symbol_replacements], 
+		# 		                    [s for (x, s) in symbol_replacements]))
+		fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, 
+			atomSymbols = symbols, allHsExplicit = True, allBondsExplicit = True) + ').'
 	return fragments[:-1]
 
 def expand_changed_atom_tags(changed_atom_tags, reactant_fragments):
@@ -474,12 +530,13 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 		# Get fragments for reactants
 		if v: print('Using radius {} to build fragments'.format(radius))
 		reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags, 
-			radius = radius, get_groups = True)
+			radius = radius, expansion = [], category = 'reactants')
 		#print('reactant fragments: {}'.format(reactant_fragments))
 		# Get fragments for products 
 		# (WITHOUT matching groups but WITH the addition of reactant fragments)
 		product_fragments  = get_fragments_for_changed_atoms(products, changed_atom_tags, 
-			radius = 0, expansion = expand_changed_atom_tags(changed_atom_tags, reactant_fragments))
+			radius = 0, expansion = expand_changed_atom_tags(changed_atom_tags, reactant_fragments),
+			category = 'products')
 		#print('product fragments before expansion: {}'.format(product_fragments))
 
 
@@ -553,9 +610,9 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 			continue
 
 
-		# Report progress
-		if (i % 1000) == 0:
-			print('{}/{}'.format(i, N))
+		# # Report progress
+		# if (i % 1000) == 0:
+		# 	print('{}/{}'.format(i, N))
 
 		# Pause
 		if v: raw_input('Enter anything to continue...')
