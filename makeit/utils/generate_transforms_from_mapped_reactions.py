@@ -2,6 +2,7 @@
 # reaction SMILES strings only (for now)
 
 from __future__ import print_function
+import argparse
 from numpy.random import shuffle # for random selection
 import rdkit.Chem as Chem          # molecule building
 from rdkit.Chem import AllChem
@@ -572,22 +573,20 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 
 
 if __name__ == '__main__':
-	if len(sys.argv) < 2:
-		print('Usage: {} "data.rsmi" [max # records] [radius]'.format(sys.argv[0]))
-		quit(1)
 
-	# Verbose?
-	if '-v' in sys.argv: 
-		v = True
-		sys.argv.remove('-v')
-	else:
-		v = False
+	parser = argparse.ArgumentParser()
+	parser.add_argument('data_file', type = str, 
+		 				help = 'File where each line is an atom-mapped smiles reaction')
+	parser.add_argument('-v', type = bool, default = False,
+						help = 'Verbose printing (incl. saving images); defaults to False')
+	parser.add_argument('-o', '--out', type = str, default = 'all_transforms.txt',
+						help = 'File to output SMARTS transforms to; '
+						'defaults to all_transforms.txt')
+	parser.add_argument('-n', '--num', type = int, default = 50,
+						help = 'Maximum number of records to examine; defaults to 50')
+	parser.add_argument('-r', '--radius', type = int, default = 1,
+						help = 'Radius used for including neighbors; defaults to 1')
+	args = parser.parse_args()
 
-	# Run 
-	if len(sys.argv) >= 4:
-		main(sys.argv[1], N = int(sys.argv[2]), radius = int(sys.argv[3]))
-	elif len(sys.argv) >= 3:
-		main(sys.argv[1], N = int(sys.argv[2]))
-	else:
-		main(sys.argv[1])
-
+	v = args.v
+	main(args.data_file, N = args.num, radius = args.radius)
