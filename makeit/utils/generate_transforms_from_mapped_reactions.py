@@ -407,12 +407,13 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 			# Add extra labels to include (for products only)
 			if expansion:
 				for atom in mol.GetAtoms():
-					if ':' in atom.GetSmarts():
-						label = atom.GetSmarts().split(':')[1][:-1]
-						if label in expansion and label not in changed_atom_tags:
-							atoms_to_use.append(atom.GetIdx())
-							# Make the expansion a wildcard
-							symbol_replacements.append((atom.GetIdx(), '[*:{}]'.format(label)))	
+					if ':' not in atom.GetSmarts(): continue
+					label = atom.GetSmarts().split(':')[1][:-1]
+					if label in expansion and label not in changed_atom_tags:
+						atoms_to_use.append(atom.GetIdx())
+						# Make the expansion a wildcard
+						symbol_replacements.append((atom.GetIdx(), convert_atom_to_wildcard(atom)))	
+						if v: print('expanded label {} to wildcard in products'.format(label))
 
 		# Define new symbols to replace terminal species with wildcards
 		# (don't want to restrict templates too strictly)
@@ -435,12 +436,13 @@ def expand_changed_atom_tags(changed_atom_tags, reactant_fragments):
 	adds any tagged atoms found in the reactant side of the template to the 
 	changed_atom_tags list so that those tagged atoms are included in the products'''
 
+	expansion = []
 	atom_tags_in_reactant_fragments = re.findall('\:([[0-9]+)\]', reactant_fragments)
 	for atom_tag in atom_tags_in_reactant_fragments:
 		if atom_tag not in changed_atom_tags:
-			changed_atom_tags.append(atom_tag)
-			#print('expanded to include {}'.format(atom_tag))
-	return changed_atom_tags
+			expansion.append(atom_tag)
+	if v: print('after building reactant fragments, additional labels included: {}'.format(expansion))
+	return expansion
 
 def get_special_groups(mol):
 	'''Given an RDKit molecule, this function returns a list of tuples, where
@@ -475,7 +477,7 @@ def mol_list_from_inchi(inchis):
 	'''InChI string separated by ++ to list of RDKit molecules'''
 	return [Chem.MolFromInchi(inchi.strip()) for inchi in inchis.split('++')]
 
-def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
+def main(db_fpath, N = 15, out_fpath = 'tforms.txt'):
 	'''Read reactions from Lowe's patent reaction SMILES'''
 
 	# Open file
@@ -486,7 +488,8 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 	total_correct = 0 # actual products predicted
 	total_precise = 0 # ONLY actual products predicted
 
-	out_fid = open('test/transforms/all_transforms.txt', 'w')
+	out_fid = open(out_fpath, 'w')
+	folder = os.path.dirname(out_fpath)
 
 	# Look for entries
 	for i, line in enumerate(data_fid):
@@ -528,30 +531,25 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 			draw_reaction_smiles(reaction_smiles, fpath = '{}/rxn_{}/rxn_{}.png'.format(folder, i, i))
 
 		# Get fragments for reactants
-		if v: print('Using radius {} to build fragments'.format(radius))
 		reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags, 
-			radius = radius, expansion = [], category = 'reactants')
-		#print('reactant fragments: {}'.format(reactant_fragments))
+			radius = 1, expansion = [], category = 'reactants')
 		# Get fragments for products 
 		# (WITHOUT matching groups but WITH the addition of reactant fragments)
 		product_fragments  = get_fragments_for_changed_atoms(products, changed_atom_tags, 
 			radius = 0, expansion = expand_changed_atom_tags(changed_atom_tags, reactant_fragments),
 			category = 'products')
-		#print('product fragments before expansion: {}'.format(product_fragments))
-
-
 
 		# Report transform
 		rxn_string = '{}>>{}'.format(reactant_fragments, product_fragments)
-		if v: print('Overall fragment transform: {}'.format(rxn_string))
+		if v: print('\nOverall fragment transform: {}'.format(rxn_string))
 
 		# Load into RDKit
 		rxn = AllChem.ReactionFromSmarts(rxn_string)
 
-		# Analyze
-		if v: 
-			print('Original number of reactants: {}'.format(len(reactants)))
-			print('Number of reactants in transform: {}'.format(rxn.GetNumReactantTemplates()))
+		# # Analyze
+		# if v: 
+		# 	print('Original number of reactants: {}'.format(len(reactants)))
+		# 	print('Number of reactants in transform: {}'.format(rxn.GetNumReactantTemplates()))
 
 		# Run reaction
 		try:
@@ -561,12 +559,12 @@ def main(db_fpath, N = 15, radius = 1, folder = 'test/transforms'):
 			for combination in combinations:
 				outcomes = rxn.RunReactants(list(combination))
 				if not outcomes: continue
-				if v: print('\nFor reactants {}'.format([Chem.MolToSmiles(mol) for mol in combination]))
+				#if v: print('\nFor reactants {}'.format([Chem.MolToSmiles(mol) for mol in combination]))
 				for j, outcome in enumerate(outcomes):
-					if v: print('- outcome {}/{}'.format(j + 1, len(outcomes)))
+					#if v: print('- outcome {}/{}'.format(j + 1, len(outcomes)))
 					for k, product in enumerate(outcome):
 						if v: 
-							print('  - product {}: {}'.format(k, Chem.MolToSmiles(product, isomericSmiles = True)))
+							#print('  - product {}: {}'.format(k, Chem.MolToSmiles(product, isomericSmiles = True)))
 							try:
 								Chem.SanitizeMol(product)
 								product.UpdatePropertyCache()
@@ -641,9 +639,7 @@ if __name__ == '__main__':
 						'defaults to all_transforms.txt')
 	parser.add_argument('-n', '--num', type = int, default = 50,
 						help = 'Maximum number of records to examine; defaults to 50')
-	parser.add_argument('-r', '--radius', type = int, default = 1,
-						help = 'Radius used for including neighbors; defaults to 1')
 	args = parser.parse_args()
 
 	v = args.v
-	main(args.data_file, N = args.num, radius = args.radius)
+	main(args.data_file, N = args.num, out_fpath = args.out)
