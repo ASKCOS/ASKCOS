@@ -85,17 +85,17 @@ def StitchPILsHorizontally(imgs):
 	vertically centered.'''
 
 	# Create blank image (def: transparent white)
-	heights = [img.size[0] for img in imgs]
+	heights = [img.size[1] for img in imgs]
 	height = max(heights)
-	widths = [img.size[1] for img in imgs]
+	widths = [img.size[0] for img in imgs]
 	width = sum(widths)
-	res = Image.new('RGBA', (height, width), (255, 255, 255, 0))
+	res = Image.new('RGBA', (width, height), (255, 255, 255, 255))
 
 	# Add in sub-images
 	for i, img in enumerate(imgs):
 		offset_x = sum(widths[:i]) # left to right
 		offset_y = (height - heights[i]) / 2
-		res.paste(img, (offset_y, offset_x))
+		res.paste(img, (offset_x, offset_y))
 
 	return res
 
@@ -116,14 +116,14 @@ def ReactionToImage(rxn, **kwargs):
 		mols.append(mol)
 
 	# Generate images for all molecules/arrow
-	imgs = [TrimImgByWhite(MolToImage(mol), padding = 15) for mol in mols]
+	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = False), padding = 15) for mol in mols]
 	for i, img in enumerate(imgs):
 		img.save('{}.png'.format(i))
 
 	# Combine
 	return StitchPILsHorizontally(imgs)
 
-def ReactionStringToImage(rxn_string, strip = False, **kwargs):
+def ReactionStringToImage(rxn_string, strip = True, **kwargs):
 	'''This function takes a SMILES rxn_string as input, not an 
 	RDKit reaction object, and draws it.'''
 
@@ -134,25 +134,22 @@ def ReactionStringToImage(rxn_string, strip = False, **kwargs):
 
 	# Stich together mols (ignore agents)
 	mols = reactants + [None] + products
-	if strip: mols = [Chem.MolFromInchi(Chem.MolToInchi(mol)) for mol in mols]
+	[mol.UpdatePropertyCache(False) for mol in mols if mol]
+	if strip: mols = [Chem.MolFromInchi(Chem.MolToInchi(mol)) if mol else None for mol in mols]
 
 	# Generate images
-	imgs = [TrimImgByWhite(MolToImage(mol), padding = 15) for mol in mols]
+	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = False), padding = 15) for mol in mols]
 
 	# Combine
 	return StitchPILsHorizontally(imgs)
 
 
-mol = Chem.MolFromSmiles('[C:1][C:4]OCCN')
-fpath = 'test_mol.png'
-img = MolToImage(mol)
-img.save('test.png')
-img_cropped = TrimImgByWhite(img, padding = 15)
-img_cropped.save('test_crop.png')
-rxn_string = '[C:1]/[C:2]=[C:3]/[C:5][C:4]>>[C:1][C:2]\[C:3]=[C:4]\[C:5]'
-rxn = AllChem.ReactionFromSmarts(rxn_string)
-rxn_image = ReactionToImage(rxn)
-rxn_image.save('test_rxn.png')
+if __name__ == '__main__':
 
-rxn_image_from_string = ReactionStringToImage(rxn_string)
-rxn_image_from_string.save('test_rxn_string.png')
+	# Simple test cases
+	rxn_string = '[F:1][c:2]1[cH:10][cH:9][c:5]([C:6]([NH2:8])=[S:7])[cH:4][cH:3]1.Br[CH2:12][C:13]([c:15]1[cH:20][cH:19][c:18]([Br:21])[cH:17][cH:16]1)=O>CCO>[F:1][c:2]1[cH:10][cH:9][c:5](-[c:6]2[s:7][cH:12][c:13](-[c:15]3[cH:20][cH:19][c:18]([Br:21])[cH:17][cH:16]3)[n:8]2)[cH:4][cH:3]1'
+	rxn = AllChem.ReactionFromSmarts(rxn_string)
+	rxn_image = ReactionToImage(rxn)
+	rxn_image.save('test_rxn.png')
+	rxn_image_string = ReactionStringToImage(rxn_string, strip = True)
+	rxn_image_string.save('test_rxn_string.png')
