@@ -6,6 +6,7 @@ from collections import defaultdict
 from rdkit.Chem.Draw.cairoCanvas import Canvas 
 import os
 import numpy as np
+import re
 
 '''
 Many of these functions are taken from RDKit.
@@ -99,9 +100,37 @@ def StitchPILsHorizontally(imgs):
 
 	return res
 
-def ReactionToImage(rxn, **kwargs):
+def CheckAtomForGeneralization(atom):
+	'''Given an RDKit atom, this function determines if that atom's SMART 
+	representation was likely a result of generalization. This assumes that
+	the transform string was generated using explicit Hs with aliphatic 
+	carbons as C, aromatic carbons as c, and non-carbons as #N where N is the 
+	atomic number of the generalized species.'''
+
+	smarts = atom.GetSmarts()
+	# Check if this was a result of generalization
+	# non-carbon atom, generlized
+	if '#' in smarts: 
+		atomSymbol = atom.GetSymbol()
+		atom.SetAtomicNum(0)
+		atom.SetProp('dummyLabel', '[{}]'.format(atomSymbol))
+		atom.UpdatePropertyCache()
+	# aliphatic carbon, generalized (all non-generalized use explicit Hs)
+	elif '[C' in smarts and 'H' not in smarts:
+		atom.SetAtomicNum(0)
+		atom.SetProp('dummyLabel', 'C[al]')
+		atom.UpdatePropertyCache()
+	elif '[c' in smarts and 'H' not in smarts:
+		atom.SetAtomicNum(0)
+		atom.SetProp('dummyLabel', 'C[ar]')
+		atom.UpdatePropertyCache()
+
+
+def ReactionToImage(rxn, dummyAtoms = False, options = None, **kwargs):
 	'''Modification of RDKit's ReactionToImage to allow for each molecule 
-	to have a different drawn size. rxn is an RDKit reaction object'''
+	to have a different drawn size. rxn is an RDKit reaction object
+
+	warning: this function adds hydrogens as it sees fit'''
 
 	# Extract mols from reaction
 	mols = []
@@ -109,21 +138,23 @@ def ReactionToImage(rxn, **kwargs):
 		mol = rxn.GetReactantTemplate(i)
 		mol.UpdatePropertyCache(False)
 		mols.append(mol)
+		if dummyAtoms: [CheckAtomForGeneralization(atom) for atom in mol.GetAtoms()]
+
+
 	mols.append(None) # placeholder for arrow
 	for j in range(rxn.GetNumProductTemplates()):
 		mol = rxn.GetProductTemplate(j)
 		mol.UpdatePropertyCache(False)
 		mols.append(mol)
+		if dummyAtoms: [CheckAtomForGeneralization(atom) for atom in mol.GetAtoms()]
 
 	# Generate images for all molecules/arrow
-	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = False), padding = 15) for mol in mols]
-	for i, img in enumerate(imgs):
-		img.save('{}.png'.format(i))
+	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = False, options = options), padding = 15) for mol in mols]
 
 	# Combine
 	return StitchPILsHorizontally(imgs)
 
-def ReactionStringToImage(rxn_string, strip = True, **kwargs):
+def ReactionStringToImage(rxn_string, strip = True, update = True, options = None, **kwargs):
 	'''This function takes a SMILES rxn_string as input, not an 
 	RDKit reaction object, and draws it.'''
 
@@ -134,22 +165,35 @@ def ReactionStringToImage(rxn_string, strip = True, **kwargs):
 
 	# Stich together mols (ignore agents)
 	mols = reactants + [None] + products
-	[mol.UpdatePropertyCache(False) for mol in mols if mol]
+	if update: [mol.UpdatePropertyCache(False) for mol in mols if mol]
 	if strip: mols = [Chem.MolFromInchi(Chem.MolToInchi(mol)) if mol else None for mol in mols]
 
 	# Generate images
-	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = False), padding = 15) for mol in mols]
+	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = False, options = options), padding = 15) for mol in mols]
 
 	# Combine
 	return StitchPILsHorizontally(imgs)
 
+def TransformStringToImage(transform, **kwargs):
+	'''Wrapper function meant to take a SMARTS transform and return a PIL image
+	of that transform.
+
+	TODO: Need to improve generalization visually! Right now it still shows'''
+
+	options = defaultDrawOptions()
+	options.dotsPerAngstrom = 50
+	rxn = AllChem.ReactionFromSmarts(transform)
+	return ReactionToImage(rxn, dummyAtoms = True, options = options, **kwargs)
 
 if __name__ == '__main__':
 
 	# Simple test cases
-	rxn_string = '[F:1][c:2]1[cH:10][cH:9][c:5]([C:6]([NH2:8])=[S:7])[cH:4][cH:3]1.Br[CH2:12][C:13]([c:15]1[cH:20][cH:19][c:18]([Br:21])[cH:17][cH:16]1)=O>CCO>[F:1][c:2]1[cH:10][cH:9][c:5](-[c:6]2[s:7][cH:12][c:13](-[c:15]3[cH:20][cH:19][c:18]([Br:21])[cH:17][cH:16]3)[n:8]2)[cH:4][cH:3]1'
+	rxn_string = '[Na+].[CH3:2][C:3](=[O:5])[O-].[CH3:6][c:7]1[cH:12][cH:11][cH:10][cH:9][cH:8]1>>CN3[C@H]1CC[C@@H]3C[C@@H](C1)OC(=O)C(CO)c2ccccc2.[c:7]1([CH3:6])[c:12]([C:3]([c:2]2[cH:11][cH:12][cH:7][cH:8][c:9]2[CH3:10])=[O:5])[cH:11][cH:10][cH:9][cH:8]1'
 	rxn = AllChem.ReactionFromSmarts(rxn_string)
 	rxn_image = ReactionToImage(rxn)
 	rxn_image.save('test_rxn.png')
 	rxn_image_string = ReactionStringToImage(rxn_string, strip = True)
 	rxn_image_string.save('test_rxn_string.png')
+	tform = '([O;H0:3]=[C;H0:4](-[C:5])-[NH:2]-[C:1])>>([C:1]-[NH2:2]).([OH:3]-[C;H0:4](=O)-[C:5])'
+	img = TransformStringToImage(tform)
+	img.save('transform.png')
