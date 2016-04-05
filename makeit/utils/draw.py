@@ -32,6 +32,12 @@ def defaultDrawOptions():
 	opts.wedgeBonds = True
 	return opts
 
+def StripAlphaFromImage(img):
+	'''This function takes an RGBA PIL image and returns an RGB image'''
+	
+	if len(img.split()) == 3: return img
+	return Image.merge('RGB', img.split()[:3])
+
 def MolToImage(mol, max_size = (1000, 1000), kekulize = True, options = None,
 	canvas = None, **kwargs):
 	'''Wrapper for RDKit's MolToImage. If mol == None, an arrow is drawn'''
