@@ -128,6 +128,9 @@ def main(tform_file, target_smiles, folder, label = '', ext = 'jpg'):
 
 	# Get molecule and re-write SMILES
 	mol = Chem.MolFromSmiles(target_smiles)
+	if not mol:
+		print('error: could not parse target_smiles: {}'.format(target_smiles))
+		quit(1)
 	Chem.SanitizeMol(mol)
 	target_smiles = Chem.MolToSmiles(mol, isomericSmiles = True)
 
