@@ -8,6 +8,7 @@ import rdkit.Chem as Chem          # molecule building
 from rdkit.Chem import AllChem
 from collections import defaultdict
 import rdkit.Chem.Draw as Draw
+from rdkit import RDLogger
 import datetime # for info files
 import json # for dumping
 import sys  # for commanad line
@@ -135,11 +136,6 @@ def bond_to_label(bond):
 # 	# Merge 
 # 	return '{}>{}>{}'.format(reactants, agents, products)
 
-def map_reaction(reactants, products):
-	'''Re-assigns atom numbers for reactants and products to reflect most likely
-	atom mapping'''
-	# TODO
-	return reactants, products
 
 def get_tagged_atoms_from_mols(mols):
 	'''Takes a list of RDKit molecules and returns total list of
@@ -458,7 +454,8 @@ def get_special_groups(mol):
 		'[$(B-!@[#6])](O)(O)', # boronic acid
 		'[$(N-!@[#6])](=!@C=!@O)', # isocyanate
 		'[N;H0;$(N-[#6]);D2]=[N;D2]=[N;D1]', # azide
-		'O=C1N(Br)C(=O)CC1' # SMILES for NBS brominating agent
+		'O=C1N(Br)C(=O)CC1', # SMILES for NBS brominating agent
+		'C=O' # carbonyl
 		]
 
 	# Build list
@@ -476,6 +473,7 @@ def mol_list_to_inchi(mols):
 def mol_list_from_inchi(inchis):
 	'''InChI string separated by ++ to list of RDKit molecules'''
 	return [Chem.MolFromInchi(inchi.strip()) for inchi in inchis.split('++')]
+
 
 def main(db_fpath, N = 15, out_fpath = 'tforms.txt'):
 	'''Read reactions from Lowe's patent reaction SMILES'''
@@ -513,9 +511,6 @@ def main(db_fpath, N = 15, out_fpath = 'tforms.txt'):
 				print('Could not parse all molecules in reaction, skipping')
 				raw_input('Enter anything to continue...')
 			continue
-
-		# Map atoms
-		reactants, products = map_reaction(reactants, products)
 
 		# Calculate changed atoms
 		changed_atoms, changed_atom_tags, err = get_changed_atoms(reactants, products)
@@ -615,7 +610,7 @@ def main(db_fpath, N = 15, out_fpath = 'tforms.txt'):
 		# Pause
 		if v: raw_input('Enter anything to continue...')
 
-	print('...finished looking through {} reaction records'.format(N))
+	print('...finished looking through {} reaction records'.format(min([N, i])))
 
 	print('Correct product predictions in {}/{} ({}%) cases'.format(total_correct, 
 		total_templates, total_correct * 100.0 / total_templates))
@@ -642,4 +637,7 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 
 	v = args.v
+	lg = RDLogger.logger()
+	if not v: lg.setLevel(RDLogger.ERROR)
+
 	main(args.data_file, N = args.num, out_fpath = args.out)
