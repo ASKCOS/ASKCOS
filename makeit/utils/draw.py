@@ -34,7 +34,7 @@ def defaultDrawOptions():
 
 def StripAlphaFromImage(img):
 	'''This function takes an RGBA PIL image and returns an RGB image'''
-	
+
 	if len(img.split()) == 3: return img
 	return Image.merge('RGB', img.split()[:3])
 
@@ -190,6 +190,18 @@ def TransformStringToImage(transform, **kwargs):
 	options.dotsPerAngstrom = 50
 	rxn = AllChem.ReactionFromSmarts(transform)
 	return ReactionToImage(rxn, dummyAtoms = True, options = options, **kwargs)
+
+def MolsSmilesToImage(smiles, options = None, **kwargs):
+	'''This function takes a SMILES string of one or more molecules
+	and generates a combined image for that molecule set.'''
+
+	# Generate mols
+	mols = mols_from_smiles_list(smiles.split('.'))
+	# Generate images
+	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = False, options = options), padding = 15) for mol in mols]
+	# Combine
+	return StitchPILsHorizontally(imgs)
+
 
 if __name__ == '__main__':
 

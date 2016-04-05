@@ -11,9 +11,13 @@ def convert_to_retro(transform):
 	retrosynthesis. Only transforms with a single product are kept, since 
 	retrosyntheses should have a single reactant (and split it up accordingly).'''
 	
+	# Split up original transform
 	reactants = transform.split('>>')[0]
 	products  = transform.split('>>')[1]
 	if ').(' in products: return None # Multiple product mols
+
+	# Don't force the "products" of a retrosynthesis to be two different molecules!
+	reactants = reactants[1:-1].replace(').(', '.')
 	return '>>'.join([products, reactants])
 
 def main(tform_in, tform_out):
