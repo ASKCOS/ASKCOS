@@ -20,8 +20,10 @@ def load_transforms(tform_file):
 			smarts = line_split[1]
 
 			for force_intramolecular in [False, True]:
-				# Force grouped products?
-				if force_intramolecular: smarts = smarts.replace('>>', '>>(') + ')'
+				# Force grouped products? Only if multiple products!
+				if force_intramolecular: 
+					if '.' not in smarts.split('>>')[1]: continue
+					smarts = smarts.replace('>>', '>>(') + ')'
 
 				# Get transform as RDKit reaction
 				rxn = AllChem.ReactionFromSmarts(smarts)
@@ -45,7 +47,7 @@ def load_transforms(tform_file):
 	print('Successfully loaded {} out of {} transforms'.format(len(rxns), i ))
 	return rxns, scores, tforms
 
-def save_retrosynthesis(precursors, folder, target_smiles, n = 50, label = '', ext = 'jpg'):
+def save_retrosynthesis(precursors, folder, target_smiles, transforms = {}, n = 50, label = '', ext = 'jpg'):
 	'''This function generates an html page for the single step'''
 
 	# Prepare folders
@@ -105,6 +107,9 @@ def save_retrosynthesis(precursors, folder, target_smiles, n = 50, label = '', e
 			out_fid.write('\t\t\t\t<td align="center">\n')
 			out_fid.write('\t\t\t\t\t<font face="Courier New, Courier monospace">{}</font><br>\n'.format(precursor))
 			out_fid.write('\t\t\t\t\t<img src="media/precursor{}_score{}.{}">\n'.format(i, precursors[precursor], ext))
+			if precursor in transforms:
+				for transform in transforms[precursor]:
+					out_fid.write('\t\t\t\t\t<br><font face="Courier New, Courier monospace">{}</font>\n'.format(transform))
 			out_fid.write('\t\t\t\t</td>\n')
 			out_fid.write('\t\t\t\t<td align="center">{}</td>\n'.format(precursors[precursor]))
 			out_fid.write('\t\t\t</tr>\n')
@@ -115,7 +120,7 @@ def save_retrosynthesis(precursors, folder, target_smiles, n = 50, label = '', e
 		out_fid.write('</html>\n')
 
 
-def main(tform_file, target_smiles, folder, label = '', ext = 'jpg'):
+def main(tform_file, target_smiles, folder, label = '', ext = 'jpg', max_n = 50):
 	'''Given a SMILES string representation of a molecule and a list of 
 	one-step retrosynthesis transforms, this function generates a list 
 	of unique reactant sets that could feasibly make the target molecule 
@@ -135,6 +140,7 @@ def main(tform_file, target_smiles, folder, label = '', ext = 'jpg'):
 	target_smiles = Chem.MolToSmiles(mol, isomericSmiles = True)
 
 	precursors = {}
+	transforms = {} # transforms used to get to that precursor
 	for i, rxn in enumerate(rxns):
 		outcomes = rxn.RunReactants([mol])
 		if not outcomes: continue
@@ -155,8 +161,12 @@ def main(tform_file, target_smiles, folder, label = '', ext = 'jpg'):
 				precursors[precursor] = scores[i]
 			else:
 				precursors[precursor] += scores[i]
+			if precursor not in transforms:
+				transforms[precursor] = [tforms[i]]
+			else:
+				if tforms[i] not in transforms[precursor]: transforms[precursor].append(tforms[i])
 
-	save_retrosynthesis(precursors, folder, target_smiles, label = label, ext = ext)
+	save_retrosynthesis(precursors, folder, target_smiles, transforms = transforms, label = label, ext = ext, n = max_n)
 
 
 if __name__ == '__main__':
@@ -175,7 +185,9 @@ if __name__ == '__main__':
 		  				help = 'Extension of images; defaults to jpg')
 	parser.add_argument('-v', type = bool, default = False,
 						help = 'Verbose printing; defaults to False')
+	parser.add_argument('-m', '--max_n', type = int, default = 50,
+						help = 'Maximum number of precursors to save; defaults to 50.')
 	args = parser.parse_args()
 
 	v = args.v
-	main(args.tform_file, args.smiles, args.out, label = args.name, ext = args.ext)
+	main(args.tform_file, args.smiles, args.out, label = args.name, ext = args.ext, max_n = args.max_n)
