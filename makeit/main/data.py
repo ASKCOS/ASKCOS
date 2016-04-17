@@ -224,18 +224,22 @@ def get_data_full(data_label = '', shuffle_seed = None, batch_size = 1,
 		print('Split data into {} folds'.format(folds))
 		print('...using fold {}'.format(this_fold + 1))
 
-		# Recombine into validation (this_fold), training (everything else), and testing (same as validation)
+		# Recombine into training and testing
 		mols_train   = [x for fold in (folded_mols[:this_fold] + folded_mols[(this_fold + 1):])     for x in fold]
 		y_train      = [x for fold in (folded_y[:this_fold] + folded_y[(this_fold + 1):])           for x in fold]
 		smiles_train = [x for fold in (folded_smiles[:this_fold] + folded_smiles[(this_fold + 1):]) for x in fold]
-		# Validation is just this fold
-		mols_val     = folded_mols[this_fold]
-		y_val        = folded_y[this_fold]
-		smiles_val   = folded_smiles[this_fold]
-		# Test is a copy of validation
-		mols_test    = mols_val[:]
-		y_test       = y_val[:]
-		smiles_test  = smiles_val[:]
+		# Test is this_fold
+		mols_test    = folded_mols[this_fold]
+		y_test       = folded_y[this_fold]
+		smiles_test  = folded_smiles[this_fold]
+
+		# Define validation set as random 10% of training
+		training_indices = range(len(mols_train))
+		np.random.shuffle(training_indices)
+		split = int(len(training_indices) * 0.9)
+		mols_train,   mols_val    = mols_train[:split],   mols_train[split:]
+		y_train,      y_val       = y_train[:split],      y_train[split:]
+		smiles_train, smiles_val  = smiles_train[:split], smiles_train[split:]
 
 	else:
 		print('Must specify a data_split type of "ratio" or "cv"')
