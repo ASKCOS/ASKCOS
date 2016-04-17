@@ -55,7 +55,7 @@ class GraphFP(Layer):
 		self.scale_output = scale_output
 		self.padding = padding
 
-		# Regularizers
+		# Regularizers (currently broken)
 		self.inner_regularizer = regularizers.get(inner_regularizer)
 		self.output_regularizer = regularizers.get(output_regularizer)
 
@@ -65,8 +65,6 @@ class GraphFP(Layer):
 			kwargs['input_shape'] = (None, None, None,) # 3D tensor for each input
 		self.input = K.placeholder(ndim = 4)
 		super(GraphFP, self).__init__(**kwargs)
-		# self.input = K.variable(molToGraph(MolFromSmiles('CC')).dump_as_tensor()) # override?
-		# self.input.name = 'placeholder_input'
 
 
 	def build(self):
@@ -78,9 +76,11 @@ class GraphFP(Layer):
 		W_inner = self.init_inner((self.inner_dim, self.inner_dim))
 		b_inner = K.zeros((1, self.inner_dim))
 		# Initialize weights tensor 
-		self.W_inner = K.variable(T.tile(W_inner, (self.depth + 1, 1, 1)).eval())
+		self.W_inner = K.variable(T.tile(W_inner, (self.depth + 1, 1, 1)).eval() + \
+			initializations.uniform((self.depth + 1, self.inner_dim, self.inner_dim)).eval())
 		self.W_inner.name = 'T:W_inner'
-		self.b_inner = K.variable(T.tile(b_inner, (self.depth + 1, 1, 1)).eval())
+		self.b_inner = K.variable(T.tile(b_inner, (self.depth + 1, 1, 1)).eval()  + \
+			initializations.uniform((self.depth + 1, 1, self.inner_dim)).eval())
 		self.b_inner.name = 'T:b_inner'
 		# # Concatenate third dimension (depth) so different layers can have 
 		# # different weights. Now, self.W_inner[#,:,:] corresponds to the 
@@ -161,8 +161,7 @@ class GraphFP(Layer):
 		# Iterate through different depths, updating attributes each time
 		for depth in range(self.depth):
 			# print('depth {} fp: {}'.format(depth, fp.eval()))
-			depth = depth + 1 # correct for zero-indexing
-			(attributes, graph) = self.attributes_update(attributes, depth, original_graph, original_graph, bonds)
+			(attributes, graph) = self.attributes_update(attributes, depth + 1, original_graph, original_graph, bonds)
 			presum_fp_new = self.attributes_to_fp_contribution(attributes, depth)
 			presum_fp_new.name = 'presum_fp_new contribution'
 			fp = fp + K.sum(presum_fp_new, axis = 0) 
