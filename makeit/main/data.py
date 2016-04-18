@@ -237,9 +237,9 @@ def get_data_full(data_label = '', shuffle_seed = None, batch_size = 1,
 		training_indices = range(len(mols_train))
 		np.random.shuffle(training_indices)
 		split = int(len(training_indices) * 0.9)
-		mols_train,   mols_val    = mols_train[:split],   mols_train[split:]
-		y_train,      y_val       = y_train[:split],      y_train[split:]
-		smiles_train, smiles_val  = smiles_train[:split], smiles_train[split:]
+		mols_train,   mols_val    = [mols_train[i] for i in training_indices[:split]],   [mols_train[i] for i in training_indices[split:]]
+		y_train,      y_val       = [y_train[i] for i in training_indices[:split]],      [y_train[i] for i in training_indices[split:]]
+		smiles_train, smiles_val  = [smiles_train[i] for i in training_indices[:split]], [smiles_train[i] for i in training_indices[split:]]
 
 	else:
 		print('Must specify a data_split type of "ratio" or "cv"')
