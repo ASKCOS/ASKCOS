@@ -8,7 +8,7 @@ import json
 
 def get_data_full(data_label = '', shuffle_seed = None, batch_size = 1, 
 	data_split = 'ratio', cv_folds = '1/1', solvent = '1-octanol',
-	truncate_to = None, training_ratio = 0.8):
+	truncate_to = None, training_ratio = 0.9):
 	'''This is a helper script to read the data .json object and return
 	the training and test data sets separately. This is to allow for an
 	already-trained model to be evaluated using the test data (i.e., which
@@ -133,7 +133,9 @@ def get_data_full(data_label = '', shuffle_seed = None, batch_size = 1,
 						continue
 
 				# Molecule first (most likely to fail)
-				mol_tensor = molToGraph(Chem.MolFromSmiles(row[smiles_index])).dump_as_tensor()
+				mol = Chem.MolFromSmiles(row[smiles_index])
+				Chem.SanitizeMol(mol)
+				mol_tensor = molToGraph(mol).dump_as_tensor()
 				this_y = y_func(float(row[y_index]))
 				mols.append(mol_tensor)
 				y.append(this_y) # Measured log(solubility M/L)
@@ -236,7 +238,7 @@ def get_data_full(data_label = '', shuffle_seed = None, batch_size = 1,
 		# Define validation set as random 10% of training
 		training_indices = range(len(mols_train))
 		np.random.shuffle(training_indices)
-		split = int(len(training_indices) * 0.9)
+		split = int(len(training_indices) * training_ratio)
 		mols_train,   mols_val    = [mols_train[i] for i in training_indices[:split]],   [mols_train[i] for i in training_indices[split:]]
 		y_train,      y_val       = [y_train[i] for i in training_indices[:split]],      [y_train[i] for i in training_indices[split:]]
 		smiles_train, smiles_val  = [smiles_train[i] for i in training_indices[:split]], [smiles_train[i] for i in training_indices[split:]]
