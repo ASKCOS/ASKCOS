@@ -69,6 +69,26 @@ def get_data_full(data_label = '', shuffle_seed = None, batch_size = 1,
 		def y_func(x): return x
 		y_label = 'log10(octanol sol (M))'
 
+	# McDonagh 100 aqueous solubilities
+	elif data_label in ['mcdonagh', 'McDonagh']:
+		dset = 'mcdonagh'
+		data_fpath = os.path.join(data_froot, 'McDonagh.csv')
+		ftype = 'csv'
+		smiles_index = 4
+		y_index = 2
+		def y_func(x): return x
+		y_label = 'log10(aqueous sol (M))'
+
+	# Buonaiuto from ONS octanol
+	elif data_label in ['buonaiuto']:
+		dset = 'buonaiuto'
+		data_fpath = os.path.join(data_froot, 'Buonaiuto.csv')
+		ftype = 'csv'
+		smiles_index = 4
+		y_index = 12
+		def y_func(x): return x
+		y_label = 'log10(octanol sol (M))'
+
 	# Other?
 	else:
 		print('Unrecognized data_label {}'.format(data_label))
@@ -218,6 +238,7 @@ def get_data_full(data_label = '', shuffle_seed = None, batch_size = 1,
 
 		# Get target size of each fold
 		N = len(mols)
+		print('Total of {} mols'.format(N))
 		target_fold_size = int(np.ceil(float(N) / folds))
 		# Split up data
 		folded_mols 	= [mols[x:x+target_fold_size]   for x in range(0, N, target_fold_size)]

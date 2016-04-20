@@ -60,8 +60,10 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2,
 		output_regularizer = output_regularizer))
 	print('    model: added GraphFP layer ({} -> {})'.format('mol', embedding_size))
 	if hidden > 0:
+		model.add(Dropout(0.3))
+		print('    model: Added Dropout(0.3)')
 		model.add(Dense(hidden, activation = hidden_activation))
-		print('    model: added tanh Dense layer (-> {})'.format(hidden))
+		print('    model: added {} Dense layer (-> {})'.format(hidden_activation, hidden))
 		model.add(Dropout(0.3))
 		print('    model: added Dropout(0.3)')
 	model.add(Dense(1, activation = output_activation))

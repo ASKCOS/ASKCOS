@@ -42,7 +42,7 @@ class GraphFP(Layer):
 	def __init__(self, output_dim, inner_dim, depth = 2, init_output='uniform', 
 			activation_output='softmax', init_inner='identity',
 			activation_inner='linear', inner_regularizer=None, 
-			output_regularizer=None, scale_output=0.05, padding=False, **kwargs):
+			output_regularizer=None, scale_output=0.01, padding=False, **kwargs):
 		if depth < 1:
 			quit('Cannot use GraphFP with depth zero')
 		self.init_output = initializations.get(init_output)
@@ -108,6 +108,10 @@ class GraphFP(Layer):
 		# 	self.regularizers.append(self.output_regularizer)
 
 		# Pack params
+		self.trainable_weights = [self.W_inner, 
+					   self.b_inner,
+					   self.W_output,
+					   self.b_output]
 		self.params = [self.W_inner, 
 					   self.b_inner,
 					   self.W_output,
