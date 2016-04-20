@@ -52,10 +52,7 @@ for fold_num in range(1, N_folds + 1):
 	data_kwargs['cv_folds'] = '{}/{}'.format(fold_num, N_folds)
 	(train, val, test) = get_data_full(**data_kwargs)
 	if len(val['mols']) != 0:
-		print('warning: validation data should be empty in CV right now')
-		print(len(val))
-		raw_input('Pausing...')
-		quit(1)
+		raise ValueError('Validation data should be empty in CV right now!')
 
 	# Fix random subsets for INTERNAL performance testing
 	training_indices = range(len(train['mols']))
@@ -64,8 +61,12 @@ for fold_num in range(1, N_folds + 1):
 	for i in range(3):
 		np.random.shuffle(training_indices)
 		split = int(len(training_indices) * 0.8)
-		internal_trainings.append(dict(train.items()[:split]))
-		internal_testings.append(dict(train.items()[split:]))
+		internal_trainings.append(
+			dict((key, val[:split]) for key, val in train.iteritems())
+		) 
+		internal_testings.append(
+			dict((key, val[split:]) for key, val in train.iteritems())
+		)
 	print('Generated 3 internal training/testing splits')
 
 	# Randomly select hyperparameters
@@ -73,11 +74,11 @@ for fold_num in range(1, N_folds + 1):
 	mse_sets = []
 	for i in range(3):
 		A = np.power(10., np.random.uniform(-4., -1.))
-		decay = np.random.uniform(10., 80.)
+		decay = np.random.uniform(20., 80.)
 		params = {
 			'lr_func': 'float({} * np.exp(- epoch / {}))'.format(A, decay),
-			'drop_1': np.random.uniform(0., 0.5),
-			'drop_2': np.random.uniform(0., 0.5)
+			'drop_1': np.random.uniform(0., 0.7) ** 2,
+			'drop_2': np.random.uniform(0., 0.7) ** 2
 		}
 		param_sets.append(params)
 		mse_sets.append([])
@@ -95,7 +96,7 @@ for fold_num in range(1, N_folds + 1):
 			train_kwargs = {
 				'patience': 1000000,
 				'batch_size': 10,
-				'nb_epoch': 100,
+				'nb_epoch': 150,
 				'lr_func': params['lr_func']
 			}
 
@@ -106,6 +107,7 @@ for fold_num in range(1, N_folds + 1):
 			# Save MSE
 			if not val_loss: val_loss = [99999999]
 			mse_sets[i].append(val_loss[-1])
+			print('  internal training {}/{} -> mse = {}'.format(j+1, len(internal_trainings), val_loss[-1]))
 
 		# Average out MSE from internal tests
 		mse_sets[i] = np.mean(mse_sets[i])
@@ -120,6 +122,10 @@ for fold_num in range(1, N_folds + 1):
 	residuals = None
 	for best, i in enumerate(indices_best):
 		params = param_sets[i]
+
+		# Record
+		with open(os.path.join(this_fpath, 'model{}.params'.format(best)), 'w') as fid:
+			fid.write(str(params))
 
 		# Reset model with these parameters
 		model = reset_layers.reset(model)
