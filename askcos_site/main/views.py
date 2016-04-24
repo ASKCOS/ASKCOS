@@ -75,24 +75,10 @@ def retro_target(request, smiles, max_n = 50):
 	result = Transformer.perform(smiles)
 	context['precursors'] = result.return_top(n = 50)
 
-	# # Find all one-step precursors and load into dict
-	# import makeit.utils.test_retrosynthesis_transforms as retro_script
-	# from django.conf import settings
-	# (precursor_dict, target_smiles, transform_dict) = \
-	# 	retro_script.main(settings.TFORM_FILE, smiles) 
-	# precursors = []
-	# for (i, precursor) in enumerate(sorted(precursor_dict, key = precursor_dict.get, reverse = True)):
-	# 	precursors.append({
-	# 		'rank': i + 1,
-	# 		'smiles': precursor,
-	# 		'smiles_split': precursor.split('.'),
-	# 		'score': precursor_dict[precursor],
-	# 		'tforms': transform_dict[precursor],
-	# 		})
-	# 	if i + 1 == max_n: 
-	# 		context['warn'] = 'Results truncated to top 50'
-	# 		break
-	# context['precursors'] = precursors
+	# Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
+	for (i, precursor) in enumerate(context['precursors']):
+		context['precursors'][i]['tforms'] = \
+			[Transformer.lookup_id(x) for x in precursor['tforms']]
 
 	return render(request, 'retro.html', context)
 

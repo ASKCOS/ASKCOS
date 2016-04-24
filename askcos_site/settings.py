@@ -13,13 +13,6 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 PROJECT_PATH = os.path.dirname(__file__)
 
-# # Add necessary scripts
-# import sys
-# sys.path.append(os.path.expanduser('~/ML Chemistry/Make-It'))
-# sys.path.append(os.path.expanduser('~/rdkit'))
-import rdkit
-import makeit
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
@@ -133,8 +126,7 @@ MEDIA_ROOT = os.path.join(PROJECT_PATH, 'media/')
 MEDIA_URL = '/media/'
 
 # Miscellanious
-TFORM_FILE = os.path.expanduser('~/ML Chemistry/Make-It/test/transforms/full_lowe_transforms_consolidated_retro.txt')
 RETRO_TRANSFORMS = {
     'database': 'askcos_transforms',
-    'collection': 'chematica',
+    'collection': 'lowe',
 }
