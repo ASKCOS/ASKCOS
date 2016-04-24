@@ -58,7 +58,8 @@ for fold_num in range(1, N_folds + 1):
 	training_indices = range(len(train['mols']))
 	internal_trainings = []
 	internal_testings = []
-	for i in range(3):
+	N_internals = 3
+	for i in range(N_internals):
 		np.random.shuffle(training_indices)
 		split = int(len(training_indices) * 0.8)
 		internal_trainings.append(
@@ -67,22 +68,23 @@ for fold_num in range(1, N_folds + 1):
 		internal_testings.append(
 			dict((key, val[split:]) for key, val in train.iteritems())
 		)
-	print('Generated 3 internal training/testing splits')
+	print('Generated {} internal training/testing splits'.format(N_internals))
 
 	# Randomly select hyperparameters
 	param_sets = []
 	mse_sets = []
-	for i in range(3):
-		A = np.power(10., np.random.uniform(-4., -1.))
-		decay = np.random.uniform(20., 80.)
+	N_trials = 5
+	for i in range(N_trials):
+		A = np.power(10., np.random.uniform(-3.5, -1.5))
+		decay = np.random.uniform(40., 100.)
 		params = {
 			'lr_func': 'float({} * np.exp(- epoch / {}))'.format(A, decay),
-			'drop_1': np.random.uniform(0., 0.7) ** 2,
-			'drop_2': np.random.uniform(0., 0.7) ** 2
+			'drop_1': np.random.uniform(0., 0.7) ** 3,
+			'drop_2': np.random.uniform(0., 0.7) ** 3
 		}
 		param_sets.append(params)
 		mse_sets.append([])
-		print('Generated random conditions for trial {}'.format(i))
+		print('Generated random conditions for trial {}/{}'.format(i+1, N_trials))
 		print(params)
 
 		# Try for however many internal trainings specified
@@ -94,9 +96,9 @@ for fold_num in range(1, N_folds + 1):
 
 			# Defining training parameters
 			train_kwargs = {
-				'patience': 1000000,
+				'patience': -1,
 				'batch_size': 10,
-				'nb_epoch': 150,
+				'nb_epoch': 175,
 				'lr_func': params['lr_func']
 			}
 
@@ -111,12 +113,20 @@ for fold_num in range(1, N_folds + 1):
 
 		# Average out MSE from internal tests
 		mse_sets[i] = np.mean(mse_sets[i])
-		print('Average results of internal trainings, mse = '.format(mse_sets[i]))
+		print('Average results of internal trainings, mse = {}'.format(mse_sets[i]))
 
 	print('Finished all parameter sets, averaged MSEs:')
 	print(mse_sets)
-	# Find highest ~2~ performing parameter sets
-	indices_best = np.array(mse_sets).argsort()[-2:][::-1]
+
+	# Record
+	with open(os.path.join(this_fpath, 'param_performance.txt'), 'w') as fid:
+		for i in range(len(mse_sets)):
+			fid.write('{}\t{}\n'.format(mse_sets[i], param_sets[i]))
+
+
+	# Find highest performing parameter sets
+	N_best = 3
+	indices_best = np.array(mse_sets).argsort()[-N_best:][::-1]
 
 	# Train on full data using best parameters
 	residuals = None
@@ -134,26 +144,29 @@ for fold_num in range(1, N_folds + 1):
 
 		# Defining training parameters
 		train_kwargs = {
-			'patience': 1000000,
+			'patience': -1,
 			'batch_size': 10,
-			'nb_epoch': 100,
+			'nb_epoch': 175,
 			'lr_func': params['lr_func']
 		}
 
 		# Train using internal test as validation
-		this_data = (train, {}, {})
+		a = np.array([])
+		dummy_data = {'mols':a, 'y':a, 'smiles':a}
+		this_data = (train, dummy_data, dummy_data)
 		(model, loss, val_loss) = train_model(model, this_data, **train_kwargs)
 
 		# Test
-		this_data = (train, {}, test)
+		this_data = (train, dummy_data, test)
 		(_, _, test_with_resids) = test_model(model, this_data, fpath = this_fpath, 
-			tstamp = 'params{}'.format(best), batch_size = 10)
+			tstamp = 'model{}'.format(best), batch_size = 10)
 
 		# Save running average of residuals
-		if not residuals:
+		if type(residuals) is type(None):
 			residuals = test['residuals']
 		else:
 			residuals = ((residuals * best) + test['residuals']) / (best + 1)
+			print('pausing...')
 
 	# Use averaged residuals to back out averaged test file
 	with open(os.path.join(this_fpath, 'averaged.test'), 'w') as fid:

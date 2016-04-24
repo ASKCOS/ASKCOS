@@ -69,9 +69,10 @@ def test_model(model, data, fpath, tstamp = 'no_time', batch_size = 128):
 			y_test_pred.append(spred)
 
 	else: # PADDED
-		y_train_pred = model.predict(np.array(mols_train), batch_size = batch_size, verbose = 1)[:, 0]
-		y_val_pred = model.predict(np.array(mols_val), batch_size = batch_size, verbose = 1)[:, 0]
-		y_test_pred = model.predict(np.array(mols_test), batch_size = batch_size, verbose = 1)[:, 0]
+		y_train_pred = np.array([]); y_val_pred = np.array([]); y_test_pred = np.array([])
+		if mols_train: y_train_pred = model.predict(np.array(mols_train), batch_size = batch_size, verbose = 1)[:, 0]
+		if mols_val: y_val_pred = model.predict(np.array(mols_val), batch_size = batch_size, verbose = 1)[:, 0]
+		if mols_test: y_test_pred = model.predict(np.array(mols_test), batch_size = batch_size, verbose = 1)[:, 0]
 
 	def round3(x):
 		return int(x * 1000) / 1000.0
@@ -173,9 +174,9 @@ def test_model(model, data, fpath, tstamp = 'no_time', batch_size = 128):
 	else:
 
 		# Create plots for datasets
-		parity_plot(y_train, y_train_pred, 'train')
-		parity_plot(y_val, y_val_pred, 'val')
-		parity_plot(y_test, y_test_pred, 'test')
+		if y_train: parity_plot(y_train, y_train_pred, 'train')
+		if y_val: parity_plot(y_val, y_val_pred, 'val')
+		if y_test: parity_plot(y_test, y_test_pred, 'test')
 
 	train['residuals'] = np.array(y_train) - np.array(y_train_pred)
 	val['residuals'] = np.array(y_val) - np.array(y_val_pred)

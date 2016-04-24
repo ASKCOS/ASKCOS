@@ -205,16 +205,29 @@ def train_model(model, data, nb_epoch = 0, batch_size = 1, lr_func = '0.01', pat
 						break
 
 		else: # PADDED VALUES 
-			mols = np.vstack((mols_train, mols_val))
-			y = np.concatenate((y_train, y_val))
-			hist = model.fit(mols, y, 
-				nb_epoch = nb_epoch, 
-				batch_size = batch_size, 
-				validation_split = (1 - float(len(mols_train))/(len(mols_val) + len(mols_train))),
-				verbose = 1,
-				callbacks = [LearningRateScheduler(lr), EarlyStopping(patience = patience, verbose = 1)])	
-			loss = hist.history['loss']
-			val_loss = hist.history['val_loss']
+			callbacks = [LearningRateScheduler(lr)]
+			if patience != -1:
+				callbacks.append(EarlyStopping(patience = patience, verbose = 1))
+
+			if mols_val:
+				mols = np.vstack((mols_train, mols_val))
+				y = np.concatenate((y_train, y_val))
+				hist = model.fit(mols, y, 
+					nb_epoch = nb_epoch, 
+					batch_size = batch_size, 
+					validation_split = (1 - float(len(mols_train))/(len(mols_val) + len(mols_train))),
+					verbose = 1,
+					callbacks = callbacks)	
+			else:
+				hist = model.fit(np.array(mols_train), np.array(y_train), 
+					nb_epoch = nb_epoch, 
+					batch_size = batch_size, 
+					verbose = 1,
+					callbacks = callbacks)	
+			
+			loss = []; val_loss = []
+			if 'loss' in hist.history: loss = hist.history['loss']
+			if 'val_loss' in hist.history: val_loss = hist.history['val_loss']
 
 	except KeyboardInterrupt:
 		print('terminated training early (intentionally)')
