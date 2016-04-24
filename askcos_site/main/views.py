@@ -77,8 +77,7 @@ def retro_target(request, smiles, max_n = 50):
 
 	# Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
 	for (i, precursor) in enumerate(context['precursors']):
-		context['precursors'][i]['tforms'] = \
-			[Transformer.lookup_id(x) for x in precursor['tforms']]
+		context['precursors'][i]['tforms'] = [Transformer.lookup_id(_id) for _id in precursor['tforms']]
 
 	return render(request, 'retro.html', context)
 
@@ -88,6 +87,56 @@ def draw_smiles(request, smiles):
 	'''
 	from makeit.retro.draw import MolsSmilesToImage
 	response = HttpResponse(content_type = 'img/png')
-	MolsSmilesToImage(smiles).save(response, 'png')
+	MolsSmilesToImage(str(smiles)).save(response, 'png')
 	return response
 
+def draw_smiles_page(request, smiles):
+	'''
+	Same as draw_smiles but loads as an indepdent page
+	'''
+	context = {
+		'image_url': reverse('draw_smiles', kwargs={'smiles':smiles}),
+		'label_title': 'SMILES',
+		'label': smiles,
+	}
+	return render(request, 'image.html', context)
+
+def draw_template(request, template):
+	'''
+	Returns a png response for a reaction SMARTS template
+	'''
+	from makeit.retro.draw import TransformStringToImage
+	response = HttpResponse(content_type = 'img/png')
+	TransformStringToImage(str(template)).save(response, 'png')
+	return response
+
+def draw_template_page(request, template):
+	'''
+	Same as draw_template but loads as an indepdent page
+	'''
+	context = {
+		'image_url': reverse('draw_template', kwargs={'template':template}),
+		'label_title': 'SMARTS template',
+		'label': template,
+	}
+	return render(request, 'image.html', context)
+
+def draw_reaction(request, smiles):
+	'''
+	Returns a png response for a SMILES reaction string
+	'''
+	from makeit.retro.draw import ReactionStringToImage
+	response = HttpResponse(content_type = 'img/png')
+	ReactionStringToImage(str(smiles)).save(response, 'png')
+	return response
+
+def draw_reaction_page(request, smiles):
+	'''
+	Same as draw_reaction but loads as an indepdent page
+	'''
+	context = {
+		'image_url': reverse('draw_reaction', kwargs={'smiles':smiles}),
+		'label_title': 'Reaction SMILES',
+		'label': smiles,
+	}
+	return render(request, 'image.html', context)

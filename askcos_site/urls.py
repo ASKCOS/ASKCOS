@@ -29,4 +29,9 @@ urlpatterns += [
 
     # Drawing
     url(ur'^draw/smiles/(?P<smiles>.+)$', main.views.draw_smiles, name = 'draw_smiles'),
+    url(ur'^draw/smiles_page/(?P<smiles>.+)$', main.views.draw_smiles_page, name = 'draw_smiles_page'),
+    url(ur'^draw/template/(?P<template>.+)$', main.views.draw_template, name = 'draw_template'),
+    url(ur'^draw/template_page/(?P<template>.+)$', main.views.draw_template_page, name = 'draw_template_page'),
+    url(ur'^draw/reaction/(?P<smiles>.+)$', main.views.draw_reaction, name = 'draw_reaction'),
+    url(ur'^draw/reaction_page/(?P<smiles>.+)$', main.views.draw_reaction_page, name = 'draw_reaction_page'),
 ]

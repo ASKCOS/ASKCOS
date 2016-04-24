@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Image{% endblock %}
+{% block page_title %}Image{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block page_body %}
+
+{% if err %}
+<div class="error">{{ err }}</div>
+{% endif %}
+{% if warn %}
+<div class="warning">{{ warn }}</div>
+{% endif %}
+
+<h4>
+	{% if label_title %}{{ label_title }}: {% endif %}
+	{% if label %}<font class="smiles">{{ label }}</font><br>{% endif %}
+</h4>
+
+{% if image_url %}
+<img src="{{ image_url }}" >
+{% endif %}
+
+{% endblock %}

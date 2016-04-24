@@ -70,7 +70,9 @@
 				<div id='tforms{{ precursor.rank }}' style='display:none'>
 				<font class="smiles"><b>Based on retrosynthetic transform template(s):</b></font><br>
 				{% for tform in precursor.tforms %}
-					<font class="smiles">{{ tform }}</font>{% if not forloop.last %}<br>{% endif %}
+					<font class="smiles">
+						<a href="{% url 'main.views.draw_template_page' tform %}">{{ tform }}</a>
+					</font>{% if not forloop.last %}<br>{% endif %}
 				{% endfor %}
 				</div>
 			</td>
