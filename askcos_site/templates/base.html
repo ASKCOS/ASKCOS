@@ -1,0 +1,55 @@
+{% load staticfiles %}
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>{% block title %}ASKCOS{% endblock %}</title>
+    <link href="{% static 'default.css' %}" rel="stylesheet" type="text/css"/>
+    <script src="{% static 'default.js' %}"></script>
+</head>
+
+<body>
+
+<div id="document">
+    <div id="sidebar">
+        <div id="logo">
+        {% block sidebar_logo %}<a href="{% url 'main.views.index' %}"><img src="media/logo.png" alt="ASKCOS"/></a>{% endblock %}
+        </div>
+        
+        {% block sidebar_items %}{% endblock %}
+
+        <p>
+        <a href="{% url 'main.views.retro' %}">
+        <div class="biglink">Retrosynthesis</div></a>
+        <div class="linkdesc">Build a synthesis plan one disconnect at a time</div>
+        </p>
+    </div>
+
+    <div id="mainbar">
+        <div id="main">
+            <div id="navbar">
+                <a href="{% url 'main.views.index' %}">ASKCOS</a> &raquo;
+                {% block navbar_items %}{% endblock %}
+            </div>
+
+            <div id="contents">
+                <h1>{% block page_title %}ASKCOS{% endblock %}</h1>
+
+                {% block page_body %}ASKCOS{% endblock %}
+            </div>
+            
+        </div>
+
+        <div id="footer">
+            {% block footer %}
+            Copyright &copy; 2016,
+            Created using <a href="http://www.djangoproject.com/">Django</a>.
+            {% endblock %}
+        </div>
+        
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Retrosynthesis Planner{% endblock %}
+{% block page_title %}Retrosynthesis Planner{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'main.views.retro' %}">Retro</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block page_body %}
+
+<p>Begin by entering in the SMILES string of the target molecule.</p>
+
+{% if err %}
+<div class="error">{{ err }}</div>
+{% endif %}
+{% if warn %}
+<div class="warning">{{ warn }}</div>
+{% endif %}
+
+<form method="post" id="smiles_form" action="{% url 'retro_home' %}">
+<table>
+{{ form.as_table }}
+	<th>{% csrf_token %}</th>
+	<td>
+		<input type="submit" value="Search" name="search">
+	</td>
+</table>
+</form>
+
+{% if suggestions %}
+	<h4>Suggestions from the proposal:</h4>
+	<table>
+	{% for suggestion in suggestions %}
+		<tr>
+			<td><a href="{% url 'retro_target' suggestion.smiles %}">{{ suggestion.name }}</a></td>
+			<td><img src="{% url 'draw_smiles' suggestion.smiles %}"></td>
+		</tr>
+	{% endfor %}
+	</table>
+
+
+{% endif %}
+
+{% if target %}
+	<h4>Target molecule: <font class="smiles">{{ target.smiles }}</font></h4>
+	<img src="{{ target.img }}">
+
+	<table class="table_precursors">
+		<tr>
+			<th>Rank</th>
+			<th><font class="smiles">Precursor(s)</font></th>
+			<th>Score</th>
+		</tr>
+		{% for precursor in precursors %}
+		<tr>
+			<td>{{ precursor.rank }}</td>
+			<td>
+				{% for mol in precursor.smiles_split %}
+				<font class="smiles">
+					<a href="{% url 'retro_target' mol %}">{{ mol }}</a>
+				</font>
+				{% if not forloop.last %} + {% endif %}{% endfor %}
+				<br>
+				<a><img src="{% url 'draw_smiles' precursor.smiles %}" onclick="toggle_visibility('tforms{{ precursor.rank }}');"></a>
+				<div id='tforms{{ precursor.rank }}' style='display:none'>
+				<font class="smiles"><b>Based on retrosynthetic transform template(s):</b></font><br>
+				{% for tform in precursor.tforms %}
+					<font class="smiles">{{ tform }}</font>{% if not forloop.last %}<br>{% endif %}
+				{% endfor %}
+				</div>
+			</td>
+			<td>{{ precursor.score }}</td>
+		</tr>
+		{% endfor %}
+	</table>
+{% endif %}
+
+{% endblock %}
+
+<p onclick="toggle_visibility('testhidden');"><a>Click me!</a></p>
+<div id='testhidden' style='display:none'>hidden</div>

@@ -1,0 +1,290 @@
+body {
+    font-family: sans-serif;
+    font-size: 10pt;
+    margin: 0;
+}
+
+/* Colors */
+
+body, #document {
+    background-color: #F0F0F0;
+}
+
+#main {
+    background-color: #FFFFFF;
+    border: 1px solid #993333;
+    border-right: 0px;
+}
+
+h1, h2, h3 {
+      color: #333333;
+}
+a, #logo {
+    color: #993333;
+}
+
+#navbar {
+    border-bottom: 1px solid #993333;
+}
+
+/* Hyperlinks */
+
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.biglink {
+    font-size: 150%;
+    text-align: center;
+}
+
+/* Headings */
+
+h1, h2, h3 {
+    margin: 0pt 0pt 12pt 0pt;
+    font-weight: normal;
+}
+
+h1 {
+    font-size: 200%;
+}
+
+h2 {
+    font-size: 150%;
+}
+
+h3 {
+    font-size: 125%;
+}
+
+/* Document structure */
+
+#document {
+    width: 100%;
+}
+
+#sidebar {
+    float: left;
+    width: 180px;
+    padding: 4px;
+}
+
+#logo {
+    text-align: center;
+    font-size: 150%;
+    font-weight: bold;
+}
+
+#mainbar {
+    margin: 0px 0px 0px 190px;
+    padding: 0px;
+}
+
+#navbar {
+    font-size: 80%;
+}
+
+#navbar, #main, #contents {
+    padding: 4px;
+}
+
+html, body, #document, #mainbar {
+    height: 100%;
+}
+#main {
+    min-height: 90%;
+}
+
+/* Header and footer */
+
+#header, #footer {
+    padding: 4px 8px 4px 8px;
+    font-size: 80%;
+}
+
+#header, #footer {
+    text-align: right;
+}
+
+#footer {
+    text-align: center;
+}
+
+/* Sidebar list */
+
+#sidebar .icon {
+    float: left;
+}
+
+#sidebar .biglink {
+    font-size: 120%;
+    font-weight: bold;
+    text-align: left;
+    vertical-align: bottom;
+}
+
+#sidebar .linkdesc {
+    font-size: 90%;
+    text-align: left;
+    vertical-align: top;
+    font-style: italic;
+}
+
+#sidebar img {
+    padding:10px;
+}
+
+/* Database styles */
+
+div.error {
+    color: #993333;
+    border: 2px solid #993333;
+    padding: 0.5em;
+    margin: 0.5em;
+}
+
+div.warning {
+    color: #9F6000;
+    border: 2px solid #9F6000;
+    padding: 0.5em;
+    margin: 0.5em;
+}
+
+.comment, .history {
+    width: 100%;
+    background-color: #EEEEEE;
+    padding: 2px;
+    margin: 2px 0px 2px 0px;
+}
+
+td.commentText p, td.historyText p {
+    margin: 0px;
+}
+
+.commentIcon, .historyIcon {
+    padding: 0 4px 0 0;
+    vertical-align: middle;
+}
+
+.commentText, .historyText {
+    width: 100%;
+}
+
+.commentMeta, .historyMeta {
+    font-size: 80%;
+    color: #808080;
+}
+
+table.data {
+    width: 100%;
+}
+
+table.data td.heading {
+    text-align: center;
+    font-weight: normal;
+    text-decoration: underline;
+    width: 100%;
+}
+
+table.data td.key {
+    text-align: right;
+    font-weight: bold;
+    vertical-align: top;
+    width: 50%;
+}
+
+table.data td.value {
+    text-align: left;
+    width: 50%;
+}
+
+.avatar img {
+    vertical-align: middle;
+}
+
+table.thermoData, table.kineticsData {
+    width: 100%;
+}
+
+table.thermoData tr td , table.kineticsData tr td {
+    border-bottom: 1px solid #808080;
+}
+
+table.thermoData th, table.kineticsData th {
+    text-align: left;
+}
+
+.reactants img, .products img {
+    vertical-align: middle;
+}
+
+td.reactants {
+    text-align: right;
+}
+
+td.products {
+    text-align: left;
+}
+
+td.reactionArrow {
+    font-size: 125%;
+    text-align: center;
+    vertical-align: middle;
+}
+
+table.reference {
+    margin-bottom: 1em;
+}
+
+table.reference td.label {
+    font-weight: bold;
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+table.reference td.section {
+    text-decoration: underline;
+    font-weight: bold;
+    text-align: left;
+    padding-top: 1em;
+}
+
+table.reference td p {
+    margin: 0px;
+}
+
+table.KineticsData {
+    margin: auto;
+}
+
+#entry_form label {
+    display: block;
+    font-weight: bold;
+}
+#entry_form li {
+    list-style: none;
+}
+#entry_form .data_entry {
+    font-family: 'Menlo', 'Andalae Mono', 'Lucida Console', 'Monaco', monospace;
+}
+#entry_form .change_summary{
+    width: 100%;
+}
+
+
+/* Smiles */
+
+font.smiles {
+    font-family: 'Courier New';
+}
+
+/* Retrosynthesis */
+
+.table_precursors tr {
+    text-align: center;
+}
