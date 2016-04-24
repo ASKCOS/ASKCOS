@@ -197,6 +197,27 @@ def atomAttributes(atom):
 	# Add boolean if aromatic atom
 	attributes.append(atom.GetIsAromatic())
 
+	# ## FUNCTIONAL
+	# acid_matches = atom.GetOwningMol().GetSubstructMatches(AllChem.MolFromSmarts('[!H0;F,Cl,Br,I,N+,$([OH]-*=[!#6]),+]'))
+	# if (atom.GetIdx(),) in acid_matches:
+	# 	attributes.append(1)
+	# else:
+	# 	attributes.append(0)
+
+	# hbd_matches = atom.GetOwningMol().GetSubstructMatches(AllChem.MolFromSmarts('[!$([#6,H0,-,-2,-3])]'))
+	# if (atom.GetIdx(),) in hbd_matches:
+	# 	attributes.append(1)
+	# else:
+	# 	attributes.append(0)
+
+	# hba_matches = atom.GetOwningMol().GetSubstructMatches(AllChem.MolFromSmarts('[!H0;#7,#8,#9]'))
+	# if (atom.GetIdx(),) in hba_matches:
+	# 	attributes.append(1)
+	# else:
+	# 	attributes.append(0)
+
+
+
 	return np.array(attributes, dtype = att_dtype)
 
 def oneHotVector(val, lst):

@@ -3,9 +3,10 @@ import argparse
 import rdkit.Chem as Chem          # molecule building
 from rdkit.Chem import AllChem
 from makeit.utils.draw import *
+import numpy as np
 import os
 
-def load_transforms(tform_file):
+def load_transforms(tform_file, v = False):
 	'''This function loads retrosynthetic transforms from a text file, 
 	where each line consists of '# \t SMARTS_string \t score'. For now,
 	the score is the frequency of that transform's occurrence in the 
@@ -120,7 +121,7 @@ def save_retrosynthesis(precursors, folder, target_smiles, transforms = {}, n = 
 		out_fid.write('</html>\n')
 
 
-def main(tform_file, target_smiles, folder, label = '', ext = 'jpg', max_n = 50):
+def main(tform_file, target_smiles, v = False):
 	'''Given a SMILES string representation of a molecule and a list of 
 	one-step retrosynthesis transforms, this function generates a list 
 	of unique reactant sets that could feasibly make the target molecule 
@@ -129,7 +130,7 @@ def main(tform_file, target_smiles, folder, label = '', ext = 'jpg', max_n = 50)
 	scores are simply added.'''
 
 	# Load data
-	rxns, scores, tforms = load_transforms(tform_file)
+	rxns, scores, tforms = load_transforms(tform_file, v = v)
 
 	# Get molecule and re-write SMILES
 	mol = Chem.MolFromSmiles(target_smiles)
@@ -153,7 +154,8 @@ def main(tform_file, target_smiles, folder, label = '', ext = 'jpg', max_n = 50)
 					print('warning: could not sanitize products from transform {}'.format(tforms[i]))
 					[print('    {}'.format(Chem.MolToSmiles(x, isomericSmiles = True))) for x in outcome]
 				continue
-			precursor = ' + '.join(sorted([Chem.MolToSmiles(x, isomericSmiles = True) for x in outcome]))
+
+			precursor = '.'.join(sorted([Chem.MolToSmiles(x, isomericSmiles = True) for x in outcome]))
 			if v: 
 				print('Candidate precursors ({}) found with score {}'.format(precursor, scores[i]))
 				print('using transform: {}'.format(tforms[i]))
@@ -166,7 +168,25 @@ def main(tform_file, target_smiles, folder, label = '', ext = 'jpg', max_n = 50)
 			else:
 				if tforms[i] not in transforms[precursor]: transforms[precursor].append(tforms[i])
 
-	save_retrosynthesis(precursors, folder, target_smiles, transforms = transforms, label = label, ext = ext, n = max_n)
+			# More sophisticated scoring?
+			outcome = [Chem.MolFromSmiles(x) for x in precursor.split('.')]
+			total_atoms = [x.GetNumHeavyAtoms() for x in outcome]
+			ring_atoms = [sum([a.IsInRing() for a in x.GetAtoms()])	for x in outcome]
+			chiral_centers = [len(Chem.FindMolChiralCenters(x)) for x in outcome]
+			precursors[precursor] = - 1.00 * np.sum(np.power(total_atoms, 3.0)) \
+									- 5.00 * np.sum(np.power(ring_atoms, 1.0)) \
+									- 0.00 * np.sum(np.power(chiral_centers, 2.0))
+
+			# if precursors[precursor] in [ -8060.0, -3020.0]:
+			# 	print(total_atoms)
+			# 	print(ring_atoms)
+			# 	print(chiral_centers)
+			# 	print(precursors[precursor])
+			# 	raw_input('Pause')
+
+
+
+	return (precursors, target_smiles, transforms)
 
 
 if __name__ == '__main__':
@@ -190,4 +210,6 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 
 	v = args.v
-	main(args.tform_file, args.smiles, args.out, label = args.name, ext = args.ext, max_n = args.max_n)
+	(precursors, target_smiles, transforms) = main(args.tform_file, args.smiles, v = args.v)
+
+	save_retrosynthesis(precursors, args.out, target_smiles, transforms = transforms, label = args.name, ext = args.ext, max_n = args.max_n)
