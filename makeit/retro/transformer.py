@@ -1,5 +1,6 @@
 import rdkit.Chem as Chem          
 from rdkit.Chem import AllChem
+import numpy as np
 
 class Transformer:
 	'''
@@ -36,7 +37,10 @@ class Transformer:
 			}
 
 			# Define reaction in RDKit and validate
-			rxn = AllChem.ReactionFromSmarts(str(template['reaction_smarts']))
+			try:
+				rxn = AllChem.ReactionFromSmarts(str(template['reaction_smarts']))
+			except:
+				continue
 			if rxn.Validate() != (0, 0): continue
 			template['rxn'] = rxn
 
@@ -59,7 +63,10 @@ class Transformer:
 
 		# Try each in turn
 		for template in self.templates:
-			outcomes = template['rxn'].RunReactants([mol])
+			try:
+				outcomes = template['rxn'].RunReactants([mol])
+			except Exception as e:
+				print('warning: {}'.format(e))
 			if not outcomes: continue
 			for j, outcome in enumerate(outcomes):
 				try:
@@ -113,8 +120,8 @@ class RetroResult:
 		sorted by descending score
 		'''
 		top = []
-		for (i, precursor) in enumerate(sorted(self.precursors, key = self.precursors.retroscore, reverse = True)):
-			precursors.append({
+		for (i, precursor) in enumerate(sorted(self.precursors, key = lambda x: x.retroscore, reverse = True)):
+			top.append({
 				'rank': i + 1,
 				'smiles': '.'.join(precursor.smiles_list),
 				'smiles_split': precursor.smiles_list,
@@ -123,7 +130,7 @@ class RetroResult:
 				})
 			if i + 1 == n: 
 				break
-		return precursors
+		return top
 
 class RetroPrecursor:
 	'''
