@@ -60,7 +60,6 @@ def MolToImage(mol, max_size = (1000, 1000), kekulize = True, options = None,
 			canvas.flush() 
 		else: 
 			canvas.save()
-		img.save('test_arrow.png')
 		return img
 
 def TrimImgByWhite(img, padding = 0):

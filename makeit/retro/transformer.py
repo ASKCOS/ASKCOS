@@ -24,28 +24,38 @@ class Transformer:
 		for document in collection.find():
 			# Skip if no reaction SMARTS
 			if 'reaction_smarts' not in document: continue
+			reaction_smarts = document['reaction_smarts'] if 'reaction_smarts' in document else ''
+			if not reaction_smarts: continue
 
-			# Define dictionary
-			template = {
-				'name': 				document['name'] if 'name' in document else '',
-				'reaction_smarts': 		document['reaction_smarts'] if 'reaction_smarts' in document else '',
-				'incompatible_groups': 	document['incompatible_groups'] if 'incompatible_groups' in document else [],
-				'reference': 			document['reference'] if 'reference' in document else '',
-				'rxn_example': 			document['rxn_example'] if 'rxn_example' in document else '',
-				'explicit_H': 			document['explicit_H'] if 'explicit_H' in document else False,
-				'_id':	 				document['_id'] if '_id' in document else -1,
-			}
+			for force_intramolecular in [False, True]:
+				# Force grouped products? Only if multiple products!
+				if force_intramolecular: 
+					if '.' in reaction_smarts.split('>>')[1]:
+						reaction_smarts = reaction_smarts.replace('>>', '>>(') + ')'
+					else:
+						pass
 
-			# Define reaction in RDKit and validate
-			try:
-				rxn = AllChem.ReactionFromSmarts(str(template['reaction_smarts']))
-			except:
-				continue
-			if rxn.Validate() != (0, 0): continue
-			template['rxn'] = rxn
+				# Define dictionary
+				template = {
+					'name': 				document['name'] if 'name' in document else '',
+					'reaction_smarts': 		reaction_smarts,
+					'incompatible_groups': 	document['incompatible_groups'] if 'incompatible_groups' in document else [],
+					'reference': 			document['reference'] if 'reference' in document else '',
+					'rxn_example': 			document['rxn_example'] if 'rxn_example' in document else '',
+					'explicit_H': 			document['explicit_H'] if 'explicit_H' in document else False,
+					'_id':	 				document['_id'] if '_id' in document else -1,
+				}
 
-			# Add to list
-			self.templates.append(template)
+				# Define reaction in RDKit and validate
+				try:
+					rxn = AllChem.ReactionFromSmarts(str(template['reaction_smarts']))
+				except:
+					continue
+				if rxn.Validate() != (0, 0): continue
+				template['rxn'] = rxn
+
+				# Add to list
+				self.templates.append(template)
 		self.num_templates = len(self.templates)
 
 	def perform(self, smiles):
@@ -57,6 +67,7 @@ class Transformer:
 
 		# Define mol to operate on
 		mol = Chem.MolFromSmiles(smiles)
+		smiles = Chem.MolToSmiles(mol, isomericSmiles = True) # to canonicalize
 
 		# Initialize results object
 		result = RetroResult(smiles)
@@ -78,6 +89,7 @@ class Transformer:
 					smiles_list = sorted([Chem.MolToSmiles(x, isomericSmiles = True) for x in outcome]),
 					template_id = template['_id']
 				)
+				if '.'.join(precursor.smiles_list) == smiles: continue # no transformation
 				result.add_precursor(precursor)
 
 		return result
@@ -150,6 +162,6 @@ class RetroPrecursor:
 		total_atoms = [x.GetNumHeavyAtoms() for x in mols]
 		ring_atoms = [sum([a.IsInRing() for a in x.GetAtoms()])	for x in mols]
 		chiral_centers = [len(Chem.FindMolChiralCenters(x)) for x in mols]
-		self.retroscore = - 1.00 * np.sum(np.power(total_atoms, 3.0)) \
-								- 5.00 * np.sum(np.power(ring_atoms, 1.0)) \
+		self.retroscore = - 1.00 * np.sum(np.power(total_atoms, 1.5)) \
+								- 5.00 * np.sum(np.power(ring_atoms, 1.5)) \
 								- 0.00 * np.sum(np.power(chiral_centers, 2.0))
