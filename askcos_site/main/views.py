@@ -1,5 +1,7 @@
 from django.shortcuts import render, HttpResponse, redirect
 from django.core.urlresolvers import reverse
+from django.contrib.auth.decorators import login_required
+import django.contrib.auth.views
 from forms import SmilesInputForm
 
 # Define transformer
@@ -10,6 +12,7 @@ collection = database[settings.RETRO_TRANSFORMS['collection']]
 import makeit.retro.transformer as transformer 
 Transformer = transformer.Transformer()
 Transformer.load(collection)
+print('Loaded {} templates'.format(Transformer.num_templates))
 
 def index(request):
 	'''
@@ -17,6 +20,19 @@ def index(request):
 	'''
 	return render(request, 'index.html')
 
+def login(request):
+	'''
+	User login
+	'''
+	return django.contrib.auth.views.login(request, template_name = 'login.html')
+
+def logout(request):
+	'''
+	User logout
+	'''
+	return django.contrib.auth.views.logout(request, template_name = 'logout.html')
+
+@login_required
 def retro(request):
 	'''
 	Retrosynthesis homepage
@@ -55,6 +71,7 @@ def retro(request):
 	]
 	return render(request, 'retro.html', context)
 
+@login_required
 def retro_target(request, smiles, max_n = 50):
 	'''
 	Given a target molecule, render page
@@ -72,15 +89,17 @@ def retro_target(request, smiles, max_n = 50):
 	}
 
 	# Perform retrosynthesis
-	result = Transformer.perform(smiles)
+	result = Transformer.perform_retro(smiles)
 	context['precursors'] = result.return_top(n = 50)
 
 	# Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
 	for (i, precursor) in enumerate(context['precursors']):
-		context['precursors'][i]['tforms'] = [Transformer.lookup_id(_id) for _id in precursor['tforms']]
+		context['precursors'][i]['tforms'] = \
+			[Transformer.lookup_id(_id) for _id in precursor['tforms']]
 
 	return render(request, 'retro.html', context)
 
+@login_required
 def draw_smiles(request, smiles):
 	'''
 	Returns a png response for a target smiles
@@ -90,6 +109,7 @@ def draw_smiles(request, smiles):
 	MolsSmilesToImage(str(smiles)).save(response, 'png')
 	return response
 
+@login_required
 def draw_smiles_page(request, smiles):
 	'''
 	Same as draw_smiles but loads as an indepdent page
@@ -101,6 +121,7 @@ def draw_smiles_page(request, smiles):
 	}
 	return render(request, 'image.html', context)
 
+@login_required
 def draw_template(request, template):
 	'''
 	Returns a png response for a reaction SMARTS template
@@ -110,6 +131,7 @@ def draw_template(request, template):
 	TransformStringToImage(str(template)).save(response, 'png')
 	return response
 
+@login_required
 def draw_template_page(request, template):
 	'''
 	Same as draw_template but loads as an indepdent page
@@ -121,6 +143,7 @@ def draw_template_page(request, template):
 	}
 	return render(request, 'image.html', context)
 
+@login_required
 def draw_reaction(request, smiles):
 	'''
 	Returns a png response for a SMILES reaction string
@@ -130,6 +153,7 @@ def draw_reaction(request, smiles):
 	ReactionStringToImage(str(smiles)).save(response, 'png')
 	return response
 
+@login_required
 def draw_reaction_page(request, smiles):
 	'''
 	Same as draw_reaction but loads as an indepdent page

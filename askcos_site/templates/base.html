@@ -28,6 +28,13 @@
     </div>
 
     <div id="mainbar">
+        <div id="header">
+            {% if user.is_authenticated %}
+            {{ user.username }} | <a href="{% url 'logout' %}">Logout</a>
+            {% else %}
+            <a href="{% url 'login' %}?next={{ request.path }}">Log in</a>
+            {% endif %}
+        </div>
         <div id="main">
             <div id="navbar">
                 <a href="{% url 'main.views.index' %}">ASKCOS</a> &raquo;

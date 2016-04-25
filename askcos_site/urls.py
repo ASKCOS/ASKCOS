@@ -1,9 +1,9 @@
 from django.conf.urls import patterns, include, url
 from django.conf import settings
 from django.conf.urls.static import static
-
 from django.contrib import admin
 admin.autodiscover()
+import django.contrib.auth.urls
 
 import main.views
 
@@ -19,6 +19,10 @@ urlpatterns += [
 
     # Admin page
     url(r'^admin/', include(admin.site.urls)),
+
+    # User pages
+    url(r'^login$', main.views.login, name = 'login'),
+    url(r'^logout$', main.views.logout, name = 'logout'),
 
     # Homepage
     url(r'^$', main.views.index),
