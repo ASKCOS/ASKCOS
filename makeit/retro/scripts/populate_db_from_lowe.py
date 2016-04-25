@@ -21,8 +21,6 @@ from pymongo import MongoClient    # mongodb plugin
 client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
 db = client['askcos_transforms']
 collection = db['lowe']
-result = collection.delete_many({})
-print('Cleared {} entries from collection'.format(result.deleted_count))
 
 def mols_from_smiles_list(all_smiles):
 	'''Given a list of smiles strings, this function creates rdkit
@@ -462,10 +460,14 @@ def convert_to_retro(transform):
 	# Split up original transform
 	reactants = transform.split('>>')[0]
 	products  = transform.split('>>')[1]
-	if ').(' in products: return None # Multiple product mols
+
+	# Don't force products to be from different molecules (?)
+	# -> any reaction template can be intramolecular (might remove later)
+	products = products[1:-1].replace(').(', '.')
 
 	# Don't force the "products" of a retrosynthesis to be two different molecules!
 	reactants = reactants[1:-1].replace(').(', '.')
+
 	return '>>'.join([products, reactants])
 
 def main(db_fpath, N = 15, folder = ''):
@@ -479,165 +481,171 @@ def main(db_fpath, N = 15, folder = ''):
 	total_correct = 0 # actual products predicted
 	total_precise = 0 # ONLY actual products predicted
 
-	# Look for entries
-	for i, line in enumerate(data_fid):
+	try: # to allow breaking
+		# Look for entries
+		for i, line in enumerate(data_fid):
 
-		# Are we done?
-		if i == N:
-			break
+			# Are we done?
+			if i == N:
+				break
 
-		if v: 
-			print('##################################')
-			print('###        RXN {}'.format(i))
-			print('##################################')
+			if v: 
+				print('##################################')
+				print('###        RXN {}'.format(i))
+				print('##################################')
 
-		# Unpack
-		reaction_smiles = line.split('\t')[0].split(' ')[0] # remove fragment portion, too
-		reactants, agents, products = [mols_from_smiles_list(x) for x in 
-										[mols.split('.') for mols in reaction_smiles.split('>')]]
-		# if 'Mg' in reaction_smiles.split('>')[2]:
-		# 	print('Found Mg in product!')
-		# 	print(reaction_smiles)
-		# 	v = True
-		# 	raw_input('Pausing...')
-		# else: 
-		# 	v = False
+			# Unpack
+			reaction_smiles = line.split('\t')[0].split(' ')[0] # remove fragment portion, too
+			reactants, agents, products = [mols_from_smiles_list(x) for x in 
+											[mols.split('.') for mols in reaction_smiles.split('>')]]
+			# if 'Mg' in reaction_smiles.split('>')[2]:
+			# 	print('Found Mg in product!')
+			# 	print(reaction_smiles)
+			# 	v = True
+			# 	raw_input('Pausing...')
+			# else: 
+			# 	v = False
 
-		if None in reactants + agents + products: 
+			if None in reactants + agents + products: 
+				if v: 
+					print(reaction_smiles)
+					print('Could not parse all molecules in reaction, skipping')
+					raw_input('Enter anything to continue...')
+				continue
+
+			# Calculate changed atoms
+			changed_atoms, changed_atom_tags, err = get_changed_atoms(reactants, products)
+			if err: 
+				if v: print('skipping')
+				continue
+
+			# Draw
 			if v: 
 				print(reaction_smiles)
-				print('Could not parse all molecules in reaction, skipping')
-				raw_input('Enter anything to continue...')
-			continue
+				if not os.path.exists('{}/rxn_{}'.format(folder, i)):
+					os.makedirs('{}/rxn_{}'.format(folder, i))
+				draw_reaction_smiles(reaction_smiles, fpath = '{}/rxn_{}/rxn_{}.png'.format(folder, i, i))
 
-		# Calculate changed atoms
-		changed_atoms, changed_atom_tags, err = get_changed_atoms(reactants, products)
-		if err: 
-			if v: print('skipping')
-			continue
+			# Get fragments for reactants
+			reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags, 
+				radius = 1, expansion = [], category = 'reactants')
+			# Get fragments for products 
+			# (WITHOUT matching groups but WITH the addition of reactant fragments)
+			product_fragments  = get_fragments_for_changed_atoms(products, changed_atom_tags, 
+				radius = 0, expansion = expand_changed_atom_tags(changed_atom_tags, reactant_fragments),
+				category = 'products')
 
-		# Draw
-		if v: 
-			print(reaction_smiles)
-			if not os.path.exists('{}/rxn_{}'.format(folder, i)):
-				os.makedirs('{}/rxn_{}'.format(folder, i))
-			draw_reaction_smiles(reaction_smiles, fpath = '{}/rxn_{}/rxn_{}.png'.format(folder, i, i))
+			# Report transform
+			rxn_string = '{}>>{}'.format(reactant_fragments, product_fragments)
+			if v: print('\nOverall fragment transform: {}'.format(rxn_string))
 
-		# Get fragments for reactants
-		reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags, 
-			radius = 1, expansion = [], category = 'reactants')
-		# Get fragments for products 
-		# (WITHOUT matching groups but WITH the addition of reactant fragments)
-		product_fragments  = get_fragments_for_changed_atoms(products, changed_atom_tags, 
-			radius = 0, expansion = expand_changed_atom_tags(changed_atom_tags, reactant_fragments),
-			category = 'products')
+			# Load into RDKit
+			rxn = AllChem.ReactionFromSmarts(rxn_string)
+			if rxn.Validate()[1] != 0: continue
 
-		# Report transform
-		rxn_string = '{}>>{}'.format(reactant_fragments, product_fragments)
-		if v: print('\nOverall fragment transform: {}'.format(rxn_string))
+			# # Analyze
+			# if v: 
+			# 	print('Original number of reactants: {}'.format(len(reactants)))
+			# 	print('Number of reactants in transform: {}'.format(rxn.GetNumReactantTemplates()))
 
-		# Load into RDKit
-		rxn = AllChem.ReactionFromSmarts(rxn_string)
+			# Run reaction
+			try:
+				# Try all combinations of reactants that fit template
+				combinations = itertools.combinations(reactants, rxn.GetNumReactantTemplates())
+				unique_product_sets = []
+				for combination in combinations:
+					outcomes = rxn.RunReactants(list(combination))
+					if not outcomes: continue
+					#if v: print('\nFor reactants {}'.format([Chem.MolToSmiles(mol) for mol in combination]))
+					for j, outcome in enumerate(outcomes):
+						#if v: print('- outcome {}/{}'.format(j + 1, len(outcomes)))
+						for k, product in enumerate(outcome):
+							if v: 
+								#print('  - product {}: {}'.format(k, Chem.MolToSmiles(product, isomericSmiles = True)))
+								try:
+									Chem.SanitizeMol(product)
+									product.UpdatePropertyCache()
+									#product = Chem.MolFromSmiles(Chem.MolToSmiles(product, isomericSmiles = True))
+									Draw.MolToFile(product, '{}/rxn_{}/outcome_{}_product_{}.png'.format(folder, i, j, k), size=(250,250))
+								except Exception as e:
+									print('warning: could not draw {}: {}'.format(Chem.MolToSmiles(product, isomericSmiles = True), e))
+						product_set = mol_list_to_inchi(outcome)
+						if product_set not in unique_product_sets:
+							unique_product_sets.append(product_set)
 
-		# # Analyze
-		# if v: 
-		# 	print('Original number of reactants: {}'.format(len(reactants)))
-		# 	print('Number of reactants in transform: {}'.format(rxn.GetNumReactantTemplates()))
+				if v: 
+					print('\nExpctd {}'.format(mol_list_to_inchi(products)))
+					for product_set in unique_product_sets:
+						print('Found  {}'.format(product_set))
 
-		# Run reaction
-		try:
-			# Try all combinations of reactants that fit template
-			combinations = itertools.combinations(reactants, rxn.GetNumReactantTemplates())
-			unique_product_sets = []
-			for combination in combinations:
-				outcomes = rxn.RunReactants(list(combination))
-				if not outcomes: continue
-				#if v: print('\nFor reactants {}'.format([Chem.MolToSmiles(mol) for mol in combination]))
-				for j, outcome in enumerate(outcomes):
-					#if v: print('- outcome {}/{}'.format(j + 1, len(outcomes)))
-					for k, product in enumerate(outcome):
-						if v: 
-							#print('  - product {}: {}'.format(k, Chem.MolToSmiles(product, isomericSmiles = True)))
-							try:
-								Chem.SanitizeMol(product)
-								product.UpdatePropertyCache()
-								#product = Chem.MolFromSmiles(Chem.MolToSmiles(product, isomericSmiles = True))
-								Draw.MolToFile(product, '{}/rxn_{}/outcome_{}_product_{}.png'.format(folder, i, j, k), size=(250,250))
-							except Exception as e:
-								print('warning: could not draw {}: {}'.format(Chem.MolToSmiles(product, isomericSmiles = True), e))
-					product_set = mol_list_to_inchi(outcome)
-					if product_set not in unique_product_sets:
-						unique_product_sets.append(product_set)
-
-			if v: 
-				print('\nExpctd {}'.format(mol_list_to_inchi(products)))
-				for product_set in unique_product_sets:
-					print('Found  {}'.format(product_set))
-
-			if mol_list_to_inchi(products) in unique_product_sets:
-				if v: print('\nSuccessfully found true products!')
-				total_correct += 1
-				if len(unique_product_sets) > 1:
-					if v: print('...but also found {} more'.format(len(unique_product_sets) - 1))
-				else:
-					total_precise += 1
-
-					# Valid reaction!
-					rxn_canonical = canonicalize_transform(rxn_string)
-					retro_canonical = convert_to_retro(rxn_canonical)
-
-					# Is this old?
-					doc = collection.find_one({'reaction_smarts': retro_canonical})
-
-					if doc:
-						# Old
-						collection.update_one(
-							{'_id': doc['_id']},
-							{
-								'$set': {'count': doc['count'] + 1}
-							}
-
-						)
+				if mol_list_to_inchi(products) in unique_product_sets:
+					if v: print('\nSuccessfully found true products!')
+					total_correct += 1
+					if len(unique_product_sets) > 1:
+						if v: print('...but also found {} more'.format(len(unique_product_sets) - 1))
 					else:
-						# New
-						result = collection.insert_one(
-							{
-								'name': '',
-								'reaction_smarts': retro_canonical,
-								'rxn_example': reaction_smiles,
-								'reference': line.split('\t')[1],
-								'explicit_H': False,
-								'count': 1,
-							}
-						)
-						print('Created database entry {}'.format(result.inserted_id))
+						total_precise += 1
 
-			else:
-				if v: print('\nDid not find true products')
-				if len(unique_product_sets) > 1:
-					if v: print('...but found {} unexpected ones'.format(len(unique_product_sets)))
+						# Valid reaction!
+						rxn_canonical = canonicalize_transform(rxn_string)
+						retro_canonical = convert_to_retro(rxn_canonical)
+
+						# Is this old?
+						doc = collection.find_one({'reaction_smarts': retro_canonical})
+
+						if doc:
+							# Old
+							collection.update_one(
+								{'_id': doc['_id']},
+								{
+									'$set': {'count': doc['count'] + 1}
+								}
+
+							)
+						else:
+							# New
+							result = collection.insert_one(
+								{
+									'name': '',
+									'reaction_smarts': retro_canonical,
+									'rxn_example': reaction_smiles,
+									'reference': line.split('\t')[1],
+									'explicit_H': False,
+									'count': 1,
+								}
+							)
+							#print('Created database entry {}'.format(result.inserted_id))
+
+				else:
+					if v: print('\nDid not find true products')
+					if len(unique_product_sets) > 1:
+						if v: print('...but found {} unexpected ones'.format(len(unique_product_sets)))
+				
+				total_templates += 1
+				if v: 
+					draw_reaction_smiles(rxn_string, fpath = '{}/rxn_{}/tform_{}.png'.format(folder, i, i))
+					with open('{}/rxn_{}/tform_{}.txt'.format(folder, i, i), 'w') as tform_fid:
+						tform_fid.write(rxn_string)
 			
-			total_templates += 1
-			if v: 
-				draw_reaction_smiles(rxn_string, fpath = '{}/rxn_{}/tform_{}.png'.format(folder, i, i))
-				with open('{}/rxn_{}/tform_{}.txt'.format(folder, i, i), 'w') as tform_fid:
-					tform_fid.write(rxn_string)
-		
-		except Exception as e:
-			print(e)
-			if v: 
-				print(e)
-				print('skipping')
-				raw_input('Enter anything to continue')
-			continue
+			except Exception as e:
+				if v: 
+					print(e)
+					print('skipping')
+					raw_input('Enter anything to continue')
+				continue
 
 
-		# # Report progress
-		# if (i % 1000) == 0:
-		# 	print('{}/{}'.format(i, N))
+			# Report progress
+			if (i % 1000) == 0:
+				print('{}/{}'.format(i, N))
 
-		# Pause
-		if v: raw_input('Enter anything to continue...')
+			# Pause
+			if v: raw_input('Enter anything to continue...')
+
+	except KeyboardInterrupt:
+		print('Stopped early!')		
+	except Exception as e:
+		print(e)
 
 	print('...finished looking through {} reaction records'.format(min([N, i])))
 
@@ -665,6 +673,11 @@ if __name__ == '__main__':
 
 	v = args.v
 	lg = RDLogger.logger()
-	if not v: lg.setLevel(RDLogger.ERROR)
+	if not v: lg.setLevel(4)
+
+	clear = raw_input('Do you want to clear the {} existing templates? '.format(collection.find().count()))
+	if clear in ['y', 'Y', 'yes', '1', 'Yes']:
+		result = collection.delete_many({})
+		print('Cleared {} entries from collection'.format(result.deleted_count))
 
 	main(args.data_file, N = args.num, folder = args.out)

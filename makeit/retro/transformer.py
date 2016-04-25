@@ -12,7 +12,7 @@ class Transformer:
 		self.source = None
 		self.templates = []
 
-	def load(self, collection):
+	def load(self, collection, mincount = 2):
 		'''
 		Loads the object from a MongoDB collection containing transform
 		template records.
@@ -20,45 +20,48 @@ class Transformer:
 		# Save collection source
 		self.source = collection
 
+		if mincount and 'count' in collection.find_one(): 
+			filter_dict = {'count': { '$gt': 2}}
+		else: 
+			filter_dict = {}
+
 		# Look for all templates in collection
-		for document in collection.find():
+		for document in collection.find(filter_dict):
 			# Skip if no reaction SMARTS
 			if 'reaction_smarts' not in document: continue
-			reaction_smarts = document['reaction_smarts'] if 'reaction_smarts' in document else ''
+			reaction_smarts = document['reaction_smarts']
 			if not reaction_smarts: continue
 
-			for force_intramolecular in [False, True]:
-				# Force grouped products? Only if multiple products!
-				if force_intramolecular: 
-					if '.' in reaction_smarts.split('>>')[1]:
-						reaction_smarts = reaction_smarts.replace('>>', '>>(') + ')'
-					else:
-						pass
+			# Define dictionary
+			template = {
+				'name': 				document['name'] if 'name' in document else '',
+				'reaction_smarts': 		reaction_smarts,
+				'incompatible_groups': 	document['incompatible_groups'] if 'incompatible_groups' in document else [],
+				'reference': 			document['reference'] if 'reference' in document else '',
+				'rxn_example': 			document['rxn_example'] if 'rxn_example' in document else '',
+				'explicit_H': 			document['explicit_H'] if 'explicit_H' in document else False,
+				'_id':	 				document['_id'] if '_id' in document else -1,
+				'product_smiles':		document['product_smiles'] if 'product_smiles' in document else [],
+			}
 
-				# Define dictionary
-				template = {
-					'name': 				document['name'] if 'name' in document else '',
-					'reaction_smarts': 		reaction_smarts,
-					'incompatible_groups': 	document['incompatible_groups'] if 'incompatible_groups' in document else [],
-					'reference': 			document['reference'] if 'reference' in document else '',
-					'rxn_example': 			document['rxn_example'] if 'rxn_example' in document else '',
-					'explicit_H': 			document['explicit_H'] if 'explicit_H' in document else False,
-					'_id':	 				document['_id'] if '_id' in document else -1,
-				}
+			if 'count' in document: template['count'] = document['count']
 
-				# Define reaction in RDKit and validate
-				try:
-					rxn = AllChem.ReactionFromSmarts(str(template['reaction_smarts']))
-				except:
-					continue
-				if rxn.Validate() != (0, 0): continue
-				template['rxn'] = rxn
+			# Define reaction in RDKit and validate
+			try:
+				# Force products to be one molecule (not really, but for bookkeeping)
+				if '.' in reaction_smarts.split('>>')[1]:
+					reaction_smarts = reaction_smarts.replace('>>', '>>(') + ')'
+				rxn = AllChem.ReactionFromSmarts(str(reaction_smarts))
+			except:
+				continue
+			if rxn.Validate() != (0, 0): continue
+			template['rxn'] = rxn
 
-				# Add to list
-				self.templates.append(template)
+			# Add to list
+			self.templates.append(template)
 		self.num_templates = len(self.templates)
 
-	def perform(self, smiles):
+	def perform_retro(self, smiles):
 		'''
 		Performs a one-step retrosynthesis given a SMILES string of a
 		target molecule by applying each transformation template
@@ -75,23 +78,83 @@ class Transformer:
 		# Try each in turn
 		for template in self.templates:
 			try:
-				outcomes = template['rxn'].RunReactants([mol])
+				byproducts = [Chem.MolFromSmiles(x) for x in template['product_smiles']]
+				outcomes = template['rxn'].RunReactants([mol] + byproducts)
 			except Exception as e:
 				print('warning: {}'.format(e))
+				print(template['reaction_smarts'])
 			if not outcomes: continue
 			for j, outcome in enumerate(outcomes):
 				try:
 					[x.UpdatePropertyCache() for x in outcome]
 					[Chem.SanitizeMol(x) for x in outcome]
-				except:
+				except Exception as e:
+					print(e)
 					continue
+				smiles_list = []
+				for x in outcome: 
+					smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = True).split('.'))
 				precursor = RetroPrecursor(
-					smiles_list = sorted([Chem.MolToSmiles(x, isomericSmiles = True) for x in outcome]),
+					smiles_list = sorted(smiles_list),
 					template_id = template['_id']
 				)
 				if '.'.join(precursor.smiles_list) == smiles: continue # no transformation
 				result.add_precursor(precursor)
 
+		return result
+
+	def perform_forward(self, smiles):
+		'''
+		Performs a forward synthesis (i.e., reaction enumeration) given
+		a SMILES string by applying each transformation template in 
+		reverse sequentially
+		'''
+
+		# Define pseudo-molecule (single molecule) to operate on
+		mol = Chem.MolFromSmiles(smiles)
+		smiles = '.'.join(sorted(Chem.MolToSmiles(mol, isomericSmiles = True).split('.')))
+
+		# Initialize results object
+		result = ForwardResult(smiles)
+
+		# Try each in turn
+		for template in self.templates:
+			# Need to generate reaction
+			# only retrosynthesis direction is saved as RDKit ChemicalReaction
+			products, reactants = template['reaction_smarts'].split('>>')
+			reaction_smarts = '(' + reactants + ')>>(' + products + ')'
+			# Define reaction in RDKit and validate
+			try:
+				rxn = AllChem.ReactionFromSmarts(reaction_smarts)
+			except Exception as e:
+				print('Could not parse forward reaction: {}'.format(reaction_smarts))
+				continue
+			if rxn.Validate() != (0, 0): continue
+
+			# Perform
+			try:
+				outcomes = rxn.RunReactants([mol])
+			except Exception as e:
+				print('warning: {}'.format(e))
+				print(reaction_smarts)
+			if not outcomes: continue
+			for j, outcome in enumerate(outcomes):
+				try:
+					[x.UpdatePropertyCache() for x in outcome]
+					[Chem.SanitizeMol(x) for x in outcome]
+				except Exception as e:
+					print(e)
+					continue
+				smiles_list = []
+				for x in outcome: 
+					smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = True).split('.'))
+				product = ForwardProduct(
+					smiles_list = sorted(smiles_list),
+					template_id = template['_id']
+				)
+				if '.'.join(product.smiles_list) == smiles: continue # no transformation
+				result.add_product(product)
+		
 		return result
 
 	def lookup_id(self, template_id):
@@ -100,7 +163,57 @@ class Transformer:
 		'''
 		for template in self.templates:
 			if template['_id'] == template_id:
-				return template['reaction_smarts']
+				return template
+
+class ForwardResult:
+	'''
+	A class to store the results of a one-step forward synthesis.
+	'''
+
+	def __init__(self, smiles):
+		self.smiles = smiles 
+		self.products = []
+
+	def add_product(self, product):
+		'''
+		Adds a product to the product set if it is a new product
+		'''
+		# Check if it is new or old
+		for old_product in self.products:
+			if product.smiles_list == old_product.smiles_list:
+				# Just add this template_id
+				old_product.template_ids = list(set(old_product.template_ids + 
+													product.template_ids))
+				return
+		# New!
+		self.products.append(product)
+
+	def return_top(self, n = 50):
+		'''
+		Returns the top n products as a list of dictionaries, 
+		sorted by descending score
+		'''
+		top = []
+		np.random.shuffle(self.products)
+		for (i, product) in enumerate(self.products):
+			top.append({
+				'rank': i + 1,
+				'smiles': '.'.join(product.smiles_list),
+				'smiles_split': product.smiles_list,
+				'score': 0,
+				'tforms': product.template_ids,
+				})
+			if i + 1 == n: 
+				break
+		return top
+
+class ForwardProduct:
+	'''
+	A class to store a single forward product for reaction enumeration
+	'''
+	def __init__(self, smiles_list = [], template_id = -1):
+		self.smiles_list = smiles_list
+		self.template_ids = [template_id]
 
 class RetroResult:
 	'''
