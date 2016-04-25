@@ -73,14 +73,14 @@ for fold_num in range(1, N_folds + 1):
 	# Randomly select hyperparameters
 	param_sets = []
 	mse_sets = []
-	N_trials = 5
+	N_trials = 10
 	for i in range(N_trials):
 		A = np.power(10., np.random.uniform(-3.5, -1.5))
-		decay = np.random.uniform(40., 100.)
+		decay = np.random.uniform(20., 50.)
 		params = {
 			'lr_func': 'float({} * np.exp(- epoch / {}))'.format(A, decay),
-			'drop_1': np.random.uniform(0., 0.7) ** 3,
-			'drop_2': np.random.uniform(0., 0.7) ** 3
+			'drop_1': 0.0, #np.random.uniform(0., 0.01) ** 3,
+			'drop_2': np.random.uniform(0., 0.5),
 		}
 		param_sets.append(params)
 		mse_sets.append([])
@@ -98,7 +98,7 @@ for fold_num in range(1, N_folds + 1):
 			train_kwargs = {
 				'patience': -1,
 				'batch_size': 10,
-				'nb_epoch': 175,
+				'nb_epoch': 150,
 				'lr_func': params['lr_func']
 			}
 
@@ -125,7 +125,7 @@ for fold_num in range(1, N_folds + 1):
 
 
 	# Find highest performing parameter sets
-	N_best = 3
+	N_best = 2
 	indices_best = np.array(mse_sets).argsort()[-N_best:][::-1]
 
 	# Train on full data using best parameters
@@ -146,7 +146,7 @@ for fold_num in range(1, N_folds + 1):
 		train_kwargs = {
 			'patience': -1,
 			'batch_size': 10,
-			'nb_epoch': 175,
+			'nb_epoch': 150,
 			'lr_func': params['lr_func']
 		}
 
