@@ -2,7 +2,7 @@ from django.shortcuts import render, HttpResponse, redirect
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
 import django.contrib.auth.views
-from forms import SmilesInputForm
+from forms import SmilesInputForm, is_valid_smiles
 
 # Define transformer
 from db import db_client
@@ -46,7 +46,10 @@ def retro(request):
 		else:
 			# Identify target
 			smiles = context['form'].cleaned_data['smiles']
-			return redirect('retro_target', smiles = smiles)
+			if is_valid_smiles(smiles):
+				return redirect('retro_target', smiles = smiles)
+			else:
+				context['err'] = 'Invalid SMILES string: {}'.format(smiles)
 	else:
 		context['form'] = SmilesInputForm()
 
@@ -98,6 +101,59 @@ def retro_target(request, smiles, max_n = 50):
 			[Transformer.lookup_id(_id) for _id in precursor['tforms']]
 
 	return render(request, 'retro.html', context)
+
+@login_required
+def synth(request):
+	'''
+	Forward synthesis homepage
+	'''
+	context = {}
+
+	if request.method == 'POST':
+		context['form'] = SmilesInputForm(request.POST) 
+		if not context['form'].is_valid():
+			context['err'] = 'Could not parse!'
+		else:
+			# Identify target
+			smiles = context['form'].cleaned_data['smiles']
+			if is_valid_smiles(smiles):
+				return redirect('synth_target', smiles = smiles)
+			else:
+				context['err'] = 'Invalid SMILES string: {}'.format(smiles)
+	else:
+		context['form'] = SmilesInputForm()
+
+	return render(request, 'synth.html', context)
+
+@login_required
+def synth_target(request, smiles, max_n = 50):
+	'''
+	Given a set of reactants as a single SMILES string, find products
+	'''
+
+
+
+	# Render form with target
+	context = {}
+	context['form'] = SmilesInputForm({'smiles': smiles})
+
+	# Look up target
+	smiles_img = reverse('draw_smiles', kwargs={'smiles':smiles})
+	context['target'] = {
+		'smiles': smiles,
+		'img': smiles_img
+	}
+
+	# Perform forward synthesis
+	result = Transformer.perform_forward(smiles)
+	context['products'] = result.return_top(n = 50)
+	print(context['products'])
+	# Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
+	for (i, product) in enumerate(context['products']):
+		context['products'][i]['tforms'] = \
+			[Transformer.lookup_id(_id) for _id in product['tforms']]
+
+	return render(request, 'synth.html', context)
 
 @login_required
 def draw_smiles(request, smiles):

@@ -80,15 +80,12 @@ WSGI_APPLICATION = 'askcos_site.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.',
-#         'NAME': '',
-#         'PASSWORD': '',
-#         'HOST': '',
-#         'PORT': '',
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'db.sqlite3',
+    }
+}
 # AUTHENTICATION_BACKENDS = (
 #     'mongoengine.django.auth.MongoEngineBackend',
 # )
@@ -128,5 +125,9 @@ MEDIA_URL = '/media/'
 # Miscellanious
 RETRO_TRANSFORMS = {
     'database': 'askcos_transforms',
-    'collection': 'lowe',
+    'collection': 'lowe', # 'lowe' or 'chematica'
 }
+
+# LOGIN
+LOGIN_URL = '/login'
+LOGIN_REDIRECT_URL = '/'

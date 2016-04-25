@@ -71,7 +71,7 @@
 				<font class="smiles"><b>Based on retrosynthetic transform template(s):</b></font><br>
 				{% for tform in precursor.tforms %}
 					<font class="smiles">
-						<a href="{% url 'main.views.draw_template_page' tform %}">{{ tform }}</a>
+						<a href="{% url 'main.views.draw_template_page' tform.reaction_smarts %}">{{ tform.reaction_smarts }}</a>{% if tform.count %} ({{ tform.count }} examples){% endif %}
 					</font>{% if not forloop.last %}<br>{% endif %}
 				{% endfor %}
 				</div>

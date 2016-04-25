@@ -31,6 +31,10 @@ urlpatterns += [
     url(r'^retro/$', main.views.retro, name = 'retro_home'),
     url(ur'^retro/target=(?P<smiles>.+)$', main.views.retro_target, name = 'retro_target'),
 
+    # Forward synthesis
+    url(r'^synth/$', main.views.synth, name = 'synth_home'),
+    url(ur'^synth/target=(?P<smiles>.+)$', main.views.synth_target, name = 'synth_target'),
+
     # Drawing
     url(ur'^draw/smiles/(?P<smiles>.+)$', main.views.draw_smiles, name = 'draw_smiles'),
     url(ur'^draw/smiles_page/(?P<smiles>.+)$', main.views.draw_smiles_page, name = 'draw_smiles_page'),
