@@ -12,7 +12,7 @@ class Transformer:
 		self.source = None
 		self.templates = []
 
-	def load(self, collection, mincount = 2):
+	def load(self, collection, mincount = 3):
 		'''
 		Loads the object from a MongoDB collection containing transform
 		template records.
@@ -29,7 +29,7 @@ class Transformer:
 		for document in collection.find(filter_dict):
 			# Skip if no reaction SMARTS
 			if 'reaction_smarts' not in document: continue
-			reaction_smarts = document['reaction_smarts']
+			reaction_smarts = str(document['reaction_smarts'])
 			if not reaction_smarts: continue
 
 			# Define dictionary
@@ -41,10 +41,16 @@ class Transformer:
 				'rxn_example': 			document['rxn_example'] if 'rxn_example' in document else '',
 				'explicit_H': 			document['explicit_H'] if 'explicit_H' in document else False,
 				'_id':	 				document['_id'] if '_id' in document else -1,
-				'product_smiles':		document['product_smiles'] if 'product_smiles' in document else [],
+				'product_smiles':		document['product_smiles'] if 'product_smiles' in document else [],			
 			}
 
-			if 'count' in document: template['count'] = document['count']
+			# Frequency/popularity score
+			if 'count' in document: 
+				template['count'] = document['count']
+			elif 'popularity' in document:
+				template['count'] = document['popularity']
+			else:
+				template['count'] = 1
 
 			# Define reaction in RDKit and validate
 			try:
@@ -127,6 +133,7 @@ class Transformer:
 			try:
 				rxn = AllChem.ReactionFromSmarts(reaction_smarts)
 			except Exception as e:
+				print(e)
 				print('Could not parse forward reaction: {}'.format(reaction_smarts))
 				continue
 			if rxn.Validate() != (0, 0): continue
@@ -150,7 +157,8 @@ class Transformer:
 					smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = True).split('.'))
 				product = ForwardProduct(
 					smiles_list = sorted(smiles_list),
-					template_id = template['_id']
+					template_id = template['_id'],
+					score = template['count'],
 				)
 				if '.'.join(product.smiles_list) == smiles: continue # no transformation
 				result.add_product(product)
@@ -181,9 +189,10 @@ class ForwardResult:
 		# Check if it is new or old
 		for old_product in self.products:
 			if product.smiles_list == old_product.smiles_list:
-				# Just add this template_id
+				# Just add this template_id and score
 				old_product.template_ids = list(set(old_product.template_ids + 
 													product.template_ids))
+				old_product.synthscore += product.synthscore
 				return
 		# New!
 		self.products.append(product)
@@ -194,13 +203,12 @@ class ForwardResult:
 		sorted by descending score
 		'''
 		top = []
-		np.random.shuffle(self.products)
-		for (i, product) in enumerate(self.products):
+		for (i, product) in enumerate(sorted(self.products, key = lambda x: x.synthscore, reverse = True)):
 			top.append({
 				'rank': i + 1,
 				'smiles': '.'.join(product.smiles_list),
 				'smiles_split': product.smiles_list,
-				'score': 0,
+				'score': product.synthscore,
 				'tforms': product.template_ids,
 				})
 			if i + 1 == n: 
@@ -211,9 +219,10 @@ class ForwardProduct:
 	'''
 	A class to store a single forward product for reaction enumeration
 	'''
-	def __init__(self, smiles_list = [], template_id = -1):
+	def __init__(self, smiles_list = [], template_id = -1, score = 0):
 		self.smiles_list = smiles_list
 		self.template_ids = [template_id]
+		self.synthscore = score
 
 class RetroResult:
 	'''
