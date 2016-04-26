@@ -614,7 +614,7 @@ def main(db_fpath, N = 15, folder = ''):
 									'count': 1,
 								}
 							)
-							#print('Created database entry {}'.format(result.inserted_id))
+							print('Created database entry {}'.format(result.inserted_id))
 
 				else:
 					if v: print('\nDid not find true products')
@@ -636,7 +636,7 @@ def main(db_fpath, N = 15, folder = ''):
 
 
 			# Report progress
-			if (i % 1000) == 0:
+			if (i % 100) == 0:
 				print('{}/{}'.format(i, N))
 
 			# Pause
