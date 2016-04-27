@@ -12,7 +12,7 @@ class Transformer:
 		self.source = None
 		self.templates = []
 
-	def load(self, collection, mincount = 3):
+	def load(self, collection, mincount = 4):
 		'''
 		Loads the object from a MongoDB collection containing transform
 		template records.
@@ -21,7 +21,7 @@ class Transformer:
 		self.source = collection
 
 		if mincount and 'count' in collection.find_one(): 
-			filter_dict = {'count': { '$gt': 2}}
+			filter_dict = {'count': { '$gt': mincount}}
 		else: 
 			filter_dict = {}
 
@@ -54,9 +54,8 @@ class Transformer:
 
 			# Define reaction in RDKit and validate
 			try:
-				# Force products to be one molecule (not really, but for bookkeeping)
-				if '.' in reaction_smarts.split('>>')[1]:
-					reaction_smarts = reaction_smarts.replace('>>', '>>(') + ')'
+				# Force reactants and products to be one molecule (not really, but for bookkeeping)
+				reaction_smarts = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
 				rxn = AllChem.ReactionFromSmarts(str(reaction_smarts))
 			except:
 				continue
@@ -89,6 +88,7 @@ class Transformer:
 			except Exception as e:
 				print('warning: {}'.format(e))
 				print(template['reaction_smarts'])
+				continue
 			if not outcomes: continue
 			for j, outcome in enumerate(outcomes):
 				try:
@@ -102,7 +102,8 @@ class Transformer:
 					smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = True).split('.'))
 				precursor = RetroPrecursor(
 					smiles_list = sorted(smiles_list),
-					template_id = template['_id']
+					template_id = template['_id'],
+					num_examples = template['count'],
 				)
 				if '.'.join(precursor.smiles_list) == smiles: continue # no transformation
 				result.add_precursor(precursor)
@@ -158,7 +159,7 @@ class Transformer:
 				product = ForwardProduct(
 					smiles_list = sorted(smiles_list),
 					template_id = template['_id'],
-					score = template['count'],
+					num_examples = template['count'],
 				)
 				if '.'.join(product.smiles_list) == smiles: continue # no transformation
 				result.add_product(product)
@@ -192,7 +193,7 @@ class ForwardResult:
 				# Just add this template_id and score
 				old_product.template_ids = list(set(old_product.template_ids + 
 													product.template_ids))
-				old_product.synthscore += product.synthscore
+				old_product.num_examples += product.num_examples
 				return
 		# New!
 		self.products.append(product)
@@ -203,12 +204,12 @@ class ForwardResult:
 		sorted by descending score
 		'''
 		top = []
-		for (i, product) in enumerate(sorted(self.products, key = lambda x: x.synthscore, reverse = True)):
+		for (i, product) in enumerate(sorted(self.products, key = lambda x: x.num_examples, reverse = True)):
 			top.append({
 				'rank': i + 1,
 				'smiles': '.'.join(product.smiles_list),
 				'smiles_split': product.smiles_list,
-				'score': product.synthscore,
+				'num_examples': product.num_examples,
 				'tforms': product.template_ids,
 				})
 			if i + 1 == n: 
@@ -219,10 +220,10 @@ class ForwardProduct:
 	'''
 	A class to store a single forward product for reaction enumeration
 	'''
-	def __init__(self, smiles_list = [], template_id = -1, score = 0):
+	def __init__(self, smiles_list = [], template_id = -1, num_examples = 0):
 		self.smiles_list = smiles_list
 		self.template_ids = [template_id]
-		self.synthscore = score
+		self.num_examples = num_examples
 
 class RetroResult:
 	'''
@@ -243,6 +244,7 @@ class RetroResult:
 				# Just need to add the fact that this template_id can make it
 				old_precursor.template_ids = list(set(old_precursor.template_ids + 
 					                                  precursor.template_ids))
+				old_precursor.num_examples += precursor.num_examples
 				return
 		# New! Need to score and add to list
 		precursor.score()
@@ -254,12 +256,14 @@ class RetroResult:
 		sorted by descending score
 		'''
 		top = []
-		for (i, precursor) in enumerate(sorted(self.precursors, key = lambda x: x.retroscore, reverse = True)):
+		for (i, precursor) in enumerate(sorted(self.precursors, \
+				key = lambda x: (x.retroscore, x.num_examples), reverse = True)):
 			top.append({
 				'rank': i + 1,
 				'smiles': '.'.join(precursor.smiles_list),
 				'smiles_split': precursor.smiles_list,
 				'score': precursor.retroscore,
+				'num_examples': precursor.num_examples,
 				'tforms': precursor.template_ids,
 				})
 			if i + 1 == n: 
@@ -271,8 +275,9 @@ class RetroPrecursor:
 	A class to store a single set of precursor(s) for a retrosynthesis
 	does NOT contain the target molecule information
 	'''
-	def __init__(self, smiles_list = [], template_id = -1):
+	def __init__(self, smiles_list = [], template_id = -1, num_examples = 0):
 		self.retroscore = 0
+		self.num_examples = num_examples
 		self.smiles_list = smiles_list
 		self.template_ids = [template_id]
 
@@ -285,5 +290,5 @@ class RetroPrecursor:
 		ring_atoms = [sum([a.IsInRing() for a in x.GetAtoms()])	for x in mols]
 		chiral_centers = [len(Chem.FindMolChiralCenters(x)) for x in mols]
 		self.retroscore = - 1.00 * np.sum(np.power(total_atoms, 1.5)) \
-								- 5.00 * np.sum(np.power(ring_atoms, 1.5)) \
+								- 2.00 * np.sum(np.power(ring_atoms, 1.5)) \
 								- 0.00 * np.sum(np.power(chiral_centers, 2.0))
