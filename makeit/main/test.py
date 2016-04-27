@@ -174,9 +174,15 @@ def test_model(model, data, fpath, tstamp = 'no_time', batch_size = 128):
 	else:
 
 		# Create plots for datasets
-		if y_train: parity_plot(y_train, y_train_pred, 'train')
-		if y_val: parity_plot(y_val, y_val_pred, 'val')
-		if y_test: parity_plot(y_test, y_test_pred, 'test')
+		if y_train: 
+			try: parity_plot(y_train, y_train_pred, 'train')
+			except: pass
+		if y_val: 
+			try: parity_plot(y_val, y_val_pred, 'val')
+			except: pass
+		if y_test: 
+			try: parity_plot(y_test, y_test_pred, 'test')
+			except: pass
 
 	train['residuals'] = np.array(y_train) - np.array(y_train_pred)
 	val['residuals'] = np.array(y_val) - np.array(y_val_pred)
