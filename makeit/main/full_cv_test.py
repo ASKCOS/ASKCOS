@@ -47,6 +47,8 @@ for fold_num in range(1, N_folds + 1):
 	print('On fold {}'.format(fold_num))
 	this_fpath = os.path.join(fpath, 'fold{}'.format(fold_num))
 	os.makedirs(this_fpath)
+	temp_fpath = os.path.join(this_fpath, 'temp')
+	os.makedirs(temp_fpath)
 	
 	# Get data
 	data_kwargs['cv_folds'] = '{}/{}'.format(fold_num, N_folds)
@@ -98,7 +100,7 @@ for fold_num in range(1, N_folds + 1):
 			train_kwargs = {
 				'patience': -1,
 				'batch_size': 10,
-				'nb_epoch': 150,
+				'nb_epoch': 5,
 				'lr_func': params['lr_func']
 			}
 
@@ -111,6 +113,10 @@ for fold_num in range(1, N_folds + 1):
 			mse_sets[i].append(val_loss[-1])
 			print('  internal training {}/{} -> mse = {}'.format(j+1, len(internal_trainings), val_loss[-1]))
 
+			# Save weights to params###_model###.h5
+			model.save_weights(os.path.join(temp_fpath, 'params{}_model{}.h5'.format(i, j)))
+			print('Saved weights at {}'.format(os.path.join(temp_fpath, 'params{}_model{}.h5'.format(i, j))))
+
 		# Average out MSE from internal tests
 		mse_sets[i] = np.mean(mse_sets[i])
 		print('Average results of internal trainings, mse = {}'.format(mse_sets[i]))
@@ -118,23 +124,24 @@ for fold_num in range(1, N_folds + 1):
 	print('Finished all parameter sets, averaged MSEs:')
 	print(mse_sets)
 
+	# Find highest performing parameter sets (LOWEST error)
+	N_best = 2
+	indices_best = np.array(mse_sets).argsort()[:N_best]
+
 	# Record
 	with open(os.path.join(this_fpath, 'param_performance.txt'), 'w') as fid:
 		for i in range(len(mse_sets)):
-			fid.write('{}\t{}\n'.format(mse_sets[i], param_sets[i]))
-
-
-	# Find highest performing parameter sets
-	N_best = 2
-	indices_best = np.array(mse_sets).argsort()[-N_best:][::-1]
+			using = '*** using in final prediction' if i in indices_best else ''
+			fid.write('{}\t{}\t{}\n'.format(mse_sets[i], param_sets[i], using))
 
 	# Train on full data using best parameters
 	residuals = None
+	num_avg = 0
 	for best, i in enumerate(indices_best):
 		params = param_sets[i]
 
 		# Record
-		with open(os.path.join(this_fpath, 'model{}.params'.format(best)), 'w') as fid:
+		with open(os.path.join(this_fpath, 'params{}.params'.format(best)), 'w') as fid:
 			fid.write(str(params))
 
 		# Reset model with these parameters
@@ -142,31 +149,38 @@ for fold_num in range(1, N_folds + 1):
 		model.layers[1].p = params['drop_1']
 		model.layers[3].p = params['drop_2']
 
-		# Defining training parameters
-		train_kwargs = {
-			'patience': -1,
-			'batch_size': 10,
-			'nb_epoch': 150,
-			'lr_func': params['lr_func']
-		}
+		# # Defining training parameters
+		# train_kwargs = {
+		# 	'patience': -1,
+		# 	'batch_size': 10,
+		# 	'nb_epoch': 150,
+		# 	'lr_func': params['lr_func']
+		# }
 
-		# Train using internal test as validation
-		a = np.array([])
-		dummy_data = {'mols':a, 'y':a, 'smiles':a}
-		this_data = (train, dummy_data, dummy_data)
-		(model, loss, val_loss) = train_model(model, this_data, **train_kwargs)
+		# # Train using internal test as validation
+		# a = np.array([])
+		# dummy_data = {'mols':a, 'y':a, 'smiles':a}
+		# this_data = (train, dummy_data, dummy_data)
+		# (model, loss, val_loss) = train_model(model, this_data, **train_kwargs)
 
-		# Test
-		this_data = (train, dummy_data, test)
-		(_, _, test_with_resids) = test_model(model, this_data, fpath = this_fpath, 
-			tstamp = 'model{}'.format(best), batch_size = 10)
+		# For each of our internally-trained models:
+		for j in range(len(internal_trainings)):
+			# Load saved weights
+			model.load_weights(os.path.join(temp_fpath, 'params{}_model{}.h5'.format(i, j)))
 
-		# Save running average of residuals
-		if type(residuals) is type(None):
-			residuals = test['residuals']
-		else:
-			residuals = ((residuals * best) + test['residuals']) / (best + 1)
-			print('pausing...')
+			# Test
+			a = np.array([])
+			dummy_data = {'mols':a, 'y':a, 'smiles':a}
+			this_data = (dummy_data, dummy_data, test)
+			(_, _, test_with_resids) = test_model(model, this_data, fpath = temp_fpath, 
+				tstamp = 'params{}_model{}'.format(i, j), batch_size = train_kwargs['batch_size'])
+
+			# Save running average of residuals
+			if type(residuals) is type(None):
+				residuals = test['residuals']
+			else:
+				residuals = ((residuals * num_avg) + test['residuals']) / (num_avg + 1)
+			num_avg += 1
 
 	# Use averaged residuals to back out averaged test file
 	with open(os.path.join(this_fpath, 'averaged.test'), 'w') as fid:

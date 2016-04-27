@@ -5,3 +5,4 @@
 
 # Bad large data
 makeit/data/chemical_names_*
+test/*

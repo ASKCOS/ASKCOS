@@ -39,7 +39,7 @@ def test_model(model, data, fpath, tstamp = 'no_time', batch_size = 128):
 	mols_train = train['mols']; y_train = train['y']; smiles_train = train['smiles']
 	mols_val   = val['mols'];   y_val   = val['y'];   smiles_val   = val['smiles']
 	mols_test  = test['mols'];  y_test  = test['y'];  smiles_test  = test['smiles']
-	y_label = train['y_label']
+	y_label = test['y_label']
 
 	# Fit (allows keyboard interrupts in the middle)
 	# Because molecular graph tensors are different sizes based on N_atoms, can only do one at a time
