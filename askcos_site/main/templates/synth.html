@@ -40,7 +40,7 @@
 		<tr>
 			<th>Rank</th>
 			<th><font class="smiles">Product(s)</font></th>
-			<th>Score</th>
+			<th># Ex.</th>
 		</tr>
 		{% for product in products %}
 		<tr>
@@ -65,7 +65,7 @@
 				{% endfor %}
 				</div>
 			</td>
-			<td>{{ product.score }}</td>
+			<td>{{ product.num_examples }}</td>
 		</tr>
 		{% endfor %}
 	</table>

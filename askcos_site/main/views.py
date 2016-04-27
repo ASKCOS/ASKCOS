@@ -96,6 +96,7 @@ def retro_target(request, smiles, max_n = 50):
 	context['precursors'] = result.return_top(n = 50)
 
 	# Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
+	# Also add up total number of examples
 	for (i, precursor) in enumerate(context['precursors']):
 		context['precursors'][i]['tforms'] = \
 			[Transformer.lookup_id(_id) for _id in precursor['tforms']]
