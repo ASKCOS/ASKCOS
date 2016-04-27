@@ -113,6 +113,7 @@ def CheckAtomForGeneralization(atom):
 	atomic number of the generalized species.'''
 
 	smarts = atom.GetSmarts()
+
 	# Check if this was a result of generalization
 	# non-carbon atom, generlized
 	if '#' in smarts: 
@@ -130,13 +131,16 @@ def CheckAtomForGeneralization(atom):
 		atom.SetProp('dummyLabel', 'C[ar]')
 		atom.UpdatePropertyCache()
 
+	# Clear atom map number of 0 -> this is a dummy assignment!
+	if atom.GetProp('molAtomMapNumber') == '0':
+			atom.ClearProp('molAtomMapNumber')
+
 
 def ReactionToImage(rxn, dummyAtoms = False, options = None, **kwargs):
 	'''Modification of RDKit's ReactionToImage to allow for each molecule 
 	to have a different drawn size. rxn is an RDKit reaction object
 
 	warning: this function adds hydrogens as it sees fit'''
-
 	# Extract mols from reaction
 	mols = []
 	for i in range(rxn.GetNumReactantTemplates()):
@@ -187,6 +191,14 @@ def TransformStringToImage(transform, **kwargs):
 
 	options = defaultDrawOptions()
 	options.dotsPerAngstrom = 50
+
+	# To generalize un-mapped atoms in transform, need to identify square brackets
+	# without colon in the middle (e.g., [C]) and replace with dummy label [C:0] so
+	# generalization display works
+	old_tags = re.findall('\[[^:]+\]', transform) 
+	for old_tag in old_tags:
+		new_tag = old_tag.replace(']', ':0]')
+		transform = transform.replace(old_tag, new_tag)
 	rxn = AllChem.ReactionFromSmarts(transform)
 	return ReactionToImage(rxn, dummyAtoms = True, options = options, **kwargs)
 
