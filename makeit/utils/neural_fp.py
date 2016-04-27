@@ -49,6 +49,8 @@ class Graph():
 		# Bad input handling
 		if not self.nodes:
 			raise(ValueError, 'Error generating tensor for graph with no nodes')
+		if not self.edges:
+			raise(ValueError, 'Need at least one bond!')
 
 		N_nodes = len(self.nodes)
 		N_features = sizeAttributeVector()
