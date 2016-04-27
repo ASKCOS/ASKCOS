@@ -17,6 +17,17 @@ def get_counts(collection):
 		counts[i] = doc['count'] if 'count' in doc else 0
 	return counts[counts != 0]
 
+def get_counts_templates(collection):
+	'''
+	Gets the 'counts' and 'reaction_smarts' field for all entries 
+	in a MongoDB collection
+	'''
+	docs = range(collection.find().count())
+	for (i, doc) in enumerate(collection.find()):
+		docs[i] = (doc['count'] if 'count' in doc else 0, \
+			       doc['reaction_smarts'] if 'reaction_smarts' in doc else '')
+	return [x for x in docs if x[0] != 0 and x[1] != '']
+
 def probability_v_rank(counts, out = None):
 	'''
 	Plots the probability (normalized frequency) versus rank for an
@@ -61,7 +72,19 @@ def probability_v_rank(counts, out = None):
 		fig.savefig(os.path.join(out, 'count_rank.png'))
 	plt.show()
 
+	return
+
+def top_templates(docs, out, n = 10):
+	'''
+	Finds the top ten transformation templates
+	'''
+	sorted_docs = sorted(docs, key = lambda x: x[0], reverse = True)
+	with open(os.path.join(out, 'top_{}.txt'.format(n)), 'w') as fid:
+		for i in range(n):
+			fid.write('{}\t{}\n'.format(sorted_docs[i][0], sorted_docs[i][1]))
+	return 
+
 if __name__ == '__main__':
 	out_folder = os.path.join(os.path.dirname(__file__), 'output')
-	counts = get_counts(collection)
-	probability_v_rank(counts, out = out_folder)
+	probability_v_rank(get_counts(collection), out = out_folder)
+	top_templates(get_counts_templates(collection), out_folder, n = 10)
