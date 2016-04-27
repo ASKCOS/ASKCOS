@@ -77,7 +77,7 @@ for fold_num in range(1, N_folds + 1):
 	mse_sets = []
 	N_trials = 10
 	for i in range(N_trials):
-		A = np.power(10., np.random.uniform(-3.5, -2.0))
+		A = np.power(10., np.random.uniform(-2.5, -1.5))
 		decay = np.random.uniform(20., 50.)
 		params = {
 			'lr_func': 'float({} * np.exp(- epoch / {}))'.format(A, decay),
