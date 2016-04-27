@@ -132,7 +132,8 @@ def CheckAtomForGeneralization(atom):
 		atom.UpdatePropertyCache()
 
 	# Clear atom map number of 0 -> this is a dummy assignment!
-	if atom.GetProp('molAtomMapNumber') == '0':
+	if 'molAtomMapNumber' in atom.GetPropNames():
+		if atom.GetProp('molAtomMapNumber') == '0':
 			atom.ClearProp('molAtomMapNumber')
 
 
