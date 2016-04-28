@@ -20,7 +20,10 @@ import itertools
 from pymongo import MongoClient    # mongodb plugin
 client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
 db = client['askcos_transforms']
-collection = db['lowe']
+template_collection = db['lowe']
+db = client['reaction_examples']
+example_collection = db['lowe_1976-2013_USPTOgrants']
+
 
 def mols_from_smiles_list(all_smiles):
 	'''Given a list of smiles strings, this function creates rdkit
@@ -369,6 +372,7 @@ def get_special_groups(mol):
 		'O=C1N(Br)C(=O)CC1', # NBS brominating agent
 		'C=O', # carbonyl
 		'ClS(Cl)=O', # thionyl chloride
+		'[Mg][Br]', # grinard (non-disassociated)
 		]
 
 	# Build list
@@ -470,20 +474,21 @@ def convert_to_retro(transform):
 
 	return '>>'.join([products, reactants])
 
-def main(db_fpath, N = 15, folder = ''):
+def main(N = 15, folder = ''):
 	'''Read reactions from Lowe's patent reaction SMILES'''
 	global v
 	# Open file
-	data_fid = open(db_fpath, 'r')
 
 	# Define scoring variables
 	total_templates = 0 # total reactions simulated (excludes skipped)
 	total_correct = 0 # actual products predicted
 	total_precise = 0 # ONLY actual products predicted
 
+	N = min([N, reaction_collection.find().count()])
+
 	try: # to allow breaking
 		# Look for entries
-		for i, line in enumerate(data_fid):
+		for i, example_doc in enumerate(reaction_collection.find()):
 
 			# Are we done?
 			if i == N:
@@ -495,7 +500,7 @@ def main(db_fpath, N = 15, folder = ''):
 				print('##################################')
 
 			# Unpack
-			reaction_smiles = line.split('\t')[0].split(' ')[0] # remove fragment portion, too
+			reaction_smiles = example_doc['reaction_smiles']
 			reactants, agents, products = [mols_from_smiles_list(x) for x in 
 											[mols.split('.') for mols in reaction_smiles.split('>')]]
 			# if 'Mg' in reaction_smiles.split('>')[2]:
@@ -586,35 +591,38 @@ def main(db_fpath, N = 15, folder = ''):
 					else:
 						total_precise += 1
 
-						# Valid reaction!
-						rxn_canonical = canonicalize_transform(rxn_string)
-						retro_canonical = convert_to_retro(rxn_canonical)
+					# Valid reaction!
+					rxn_canonical = canonicalize_transform(rxn_string)
+					retro_canonical = convert_to_retro(rxn_canonical)
 
-						# Is this old?
-						doc = collection.find_one({'reaction_smarts': retro_canonical})
+					# Is this old?
+					doc = template_collection.find_one({'reaction_smarts': retro_canonical})
 
-						if doc:
-							# Old
-							collection.update_one(
-								{'_id': doc['_id']},
-								{
-									'$set': {'count': doc['count'] + 1}
+					if doc:
+						# Old
+						template_collection.update_one(
+							{'_id': doc['_id']},
+							{
+								'$set': {
+									'count': doc['count'] + 1,
+									'references': doc['references'].append(example_doc['reference']),
 								}
+							}
 
-							)
-						else:
-							# New
-							result = collection.insert_one(
-								{
-									'name': '',
-									'reaction_smarts': retro_canonical,
-									'rxn_example': reaction_smiles,
-									'reference': line.split('\t')[1],
-									'explicit_H': False,
-									'count': 1,
-								}
-							)
-							print('Created database entry {}'.format(result.inserted_id))
+						)
+					else:
+						# New
+						result = template_collection.insert_one(
+							{
+								'name': '',
+								'reaction_smarts': retro_canonical,
+								'rxn_example': reaction_smiles,
+								'references': [example_doc['reference']],
+								'explicit_H': False,
+								'count': 1,
+							}
+						)
+						print('Created database entry {}'.format(result.inserted_id))
 
 				else:
 					if v: print('\nDid not find true products')
@@ -653,7 +661,7 @@ def main(db_fpath, N = 15, folder = ''):
 		total_templates, total_correct * 100.0 / total_templates))
 	print('Specific product predictions in {}/{} ({}%) cases'.format(total_precise, 
 		total_templates, total_precise * 100.0 / total_templates))
-	print('Created {} database entries'.format(collection.find().count()))
+	print('Created {} database entries'.format(template_collection.find().count()))
 
 	return True
 
@@ -661,8 +669,6 @@ def main(db_fpath, N = 15, folder = ''):
 if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument('data_file', type = str, 
-		 				help = 'File where each line is an atom-mapped smiles reaction')
 	parser.add_argument('-v', type = bool, default = False,
 						help = 'Verbose printing (incl. saving images); defaults to False')
 	parser.add_argument('-o', '--out', type = str, default = '',
@@ -675,9 +681,9 @@ if __name__ == '__main__':
 	lg = RDLogger.logger()
 	if not v: lg.setLevel(4)
 
-	clear = raw_input('Do you want to clear the {} existing templates? '.format(collection.find().count()))
+	clear = raw_input('Do you want to clear the {} existing templates? '.format(template_collection.find().count()))
 	if clear in ['y', 'Y', 'yes', '1', 'Yes']:
-		result = collection.delete_many({})
+		result = template_collection.delete_many({})
 		print('Cleared {} entries from collection'.format(result.deleted_count))
 
-	main(args.data_file, N = args.num, folder = args.out)
+	main(N = args.num, folder = args.out)
