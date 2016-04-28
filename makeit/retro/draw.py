@@ -122,11 +122,11 @@ def CheckAtomForGeneralization(atom):
 		atom.SetProp('dummyLabel', '[{}]'.format(atomSymbol))
 		atom.UpdatePropertyCache()
 	# aliphatic carbon, generalized (all non-generalized use explicit Hs)
-	elif '[C' in smarts and 'H' not in smarts:
+	elif '[C:' in smarts and 'H' not in smarts:
 		atom.SetAtomicNum(0)
 		atom.SetProp('dummyLabel', 'C[al]')
 		atom.UpdatePropertyCache()
-	elif '[c' in smarts and 'H' not in smarts:
+	elif '[c:' in smarts and 'H' not in smarts:
 		atom.SetAtomicNum(0)
 		atom.SetProp('dummyLabel', 'C[ar]')
 		atom.UpdatePropertyCache()
