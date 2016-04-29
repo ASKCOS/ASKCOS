@@ -159,10 +159,24 @@ def get_data_full(data_label = '', shuffle_seed = None, batch_size = 1,
 				this_y = y_func(float(row[y_index]))
 				mols.append(mol_tensor)
 				y.append(this_y) # Measured log(solubility M/L)
-				smiles.append(row[smiles_index]) # Smiles
+				smiles.append(Chem.MolToSmiles(mol, allBondsExplicit = True, isomericSmiles = True)) # Smiles
+
+				# Check for redundancies
+				if smiles.count(smiles[-1]) > 1:
+					print('**** DUPLICATE ENTRY ****')
+					print(row)
+					print(smiles[-1])
+
+					indices = [x for x in range(len(smiles)) if smiles[x] == smiles[-1]]
+					print('Original value: {}'.format(y[indices[0]]))
+					y[indices[0]] = (y[indices[0]] + this_y) / 2.
+					print('Averaged value: {}'.format(y[indices[0]]))
+					
+					del y[-1]
+					del smiles[-1]
+					del mols[-1]
 			except:
 				print('Failed to generate graph for {}, y: {}'.format(row[smiles_index], row[y_index]))
-
 	elif ftype == 'sdf':
 		np.random.shuffle(data_indeces)
 		for j, i in enumerate(data_indeces):
