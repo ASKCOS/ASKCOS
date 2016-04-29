@@ -18,7 +18,7 @@ import os
 def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2, 
 	scale_output = 0.05, padding = True, inner_reg_l2 = 0.0, output_reg_l2 = 0.0,
 	hidden = 0, loss = 'mse', class_mode = 'categorical', hidden_activation = 'tanh',
-	output_activation = 'linear'):
+	output_activation = 'linear', dr1 = 0.1, dr2 = 0.3):
 	'''Generates simple embedding model to use molecular tensor as
 	input in order to predict a single-valued output (i.e., yield)
 
@@ -60,12 +60,14 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2,
 		output_regularizer = output_regularizer))
 	print('    model: added GraphFP layer ({} -> {})'.format('mol', embedding_size))
 	if hidden > 0:
-		model.add(Dropout(0.3))
-		print('    model: Added Dropout(0.3)')
+		if dr1 > 0:
+			model.add(Dropout(dr1))
+			print('    model: Added Dropout({})'.format(dr1))
 		model.add(Dense(hidden, activation = hidden_activation))
 		print('    model: added {} Dense layer (-> {})'.format(hidden_activation, hidden))
-		model.add(Dropout(0.3))
-		print('    model: added Dropout(0.3)')
+		if dr2 > 0:
+			model.add(Dropout(dr2))
+			print('    model: added Dropout({})'.format(dr2))
 	model.add(Dense(1, activation = output_activation))
 	print('    model: added lin Dense layer (-> {})'.format(1))
 
