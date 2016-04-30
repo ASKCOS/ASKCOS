@@ -89,6 +89,15 @@ def get_data_full(data_label = '', shuffle_seed = None, batch_size = 1,
 		def y_func(x): return x
 		y_label = 'log10(octanol sol (M))'
 
+	elif data_label in ['bradley_good']:
+		dset = 'bradley_good'
+		data_fpath = os.path.join(data_froot, 'BradleyDoublePlusGoodMeltingPointDataset.csv')
+		ftype = 'csv'
+		smiles_index = 2
+		y_index = 3
+		def y_func(x): return x
+		y_label = 'Tm (deg C)'
+		
 	# Other?
 	else:
 		print('Unrecognized data_label {}'.format(data_label))
