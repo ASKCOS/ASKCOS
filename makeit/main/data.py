@@ -278,6 +278,10 @@ def get_data_full(data_label = '', shuffle_seed = None, batch_size = 1,
 		y_train,      y_val       = [y_train[i] for i in training_indices[:split]],      [y_train[i] for i in training_indices[split:]]
 		smiles_train, smiles_val  = [smiles_train[i] for i in training_indices[:split]], [smiles_train[i] for i in training_indices[split:]]
 
+		print('Total training: {}'.format(len(mols_train)))
+		print('Total validation: {}'.format(len(mols_val)))
+		print('Total testing: {}'.format(len(mols_test)))
+
 	else:
 		print('Must specify a data_split type of "ratio" or "cv"')
 		quit(1)

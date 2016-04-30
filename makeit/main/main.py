@@ -67,7 +67,11 @@ if __name__ == '__main__':
 				kwargs['depth'] = int(kwargs['depth'])
 			if 'scale_output' in kwargs: 
 				kwargs['scale_output'] = float(kwargs['scale_output'])
-
+			if 'dr1' in kwargs:
+				kwargs['dr1'] = float(kwargs['dr1'])
+			if 'dr2' in kwargs:
+				kwargs['dr2'] = float(kwargs['dr2'])
+				
 			model = build_model(**kwargs)
 			print('...built untrained model')
 		except KeyboardInterrupt:

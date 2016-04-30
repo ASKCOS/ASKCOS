@@ -9,6 +9,7 @@ import datetime
 import json
 import sys
 import os
+import time
 
 from makeit.main.core import build_model, train_model, save_model
 from makeit.main.test import test_model, test_reactions, test_activations, test_embeddings_demo, test_predictions
@@ -113,6 +114,8 @@ if __name__ == '__main__':
 		data_kwargs['batch_size'] = int(config['TRAINING']['batch_size'])
 	if 'shuffle_seed' in data_kwargs:
 		data_kwargs['shuffle_seed'] = int(data_kwargs['shuffle_seed'])
+	else:
+		data_kwargs['shuffle_seed'] = int(time.time())
 	if 'truncate_to' in data_kwargs:
 		data_kwargs['truncate_to'] = int(data_kwargs['truncate_to'])
 	if 'training_ratio' in data_kwargs:

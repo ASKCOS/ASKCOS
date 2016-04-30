@@ -199,12 +199,16 @@ def train_model(model, data, nb_epoch = 0, batch_size = 1, lr_func = '0.01', pat
 				if np.mean(this_val_loss) < prev_best_val_loss:
 					wait = 0
 					prev_best_val_loss = np.mean(this_val_loss)
+					if patience == -1:
+						model.save_weights('best.h5', overwrite=True)
 				else:
 					wait = wait + 1
 					print('{} epochs without val_loss progress'.format(wait))
 					if wait == patience:
 						print('stopping early!')
 						break
+			if patience == -1:
+				model.load_weights('best.h5')
 
 		else: # PADDED VALUES 
 			callbacks = [LearningRateScheduler(lr)]
