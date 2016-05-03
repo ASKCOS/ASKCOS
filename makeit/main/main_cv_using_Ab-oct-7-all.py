@@ -10,6 +10,7 @@ import json
 import sys
 import os
 import time
+import numpy as np
 
 from makeit.main.core import build_model, train_model, save_model
 from makeit.main.test import test_model, test_reactions, test_activations, test_embeddings_demo, test_predictions
