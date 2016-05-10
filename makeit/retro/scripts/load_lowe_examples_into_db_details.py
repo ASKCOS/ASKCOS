@@ -27,7 +27,7 @@ def doc_to_dic(document):
 	'''Converts a parsed XML file to a dictionary using relevant fields'''
 	dic = {}
 	dic['reaction_smiles'] = \
-		document.getElementsByTagName('dl:reactionSmiles')[0].firstChild.nodeValue
+		str(document.getElementsByTagName('dl:reactionSmiles')[0].firstChild.nodeValue)
 	products = []
 	for node in document.getElementsByTagName('product'):
 		products.append(mol_to_dic(node, withAmounts = True))
@@ -62,7 +62,7 @@ def mol_to_dic(node, withAmounts = False):
 	dictionary'''
 	dic = {}
 	# Get name
-	dic['name'] = node.getElementsByTagName('name')[0].firstChild.nodeValue
+	dic['name'] = str(node.getElementsByTagName('name')[0].firstChild.nodeValue)
 	# If exact entity match, more data is available
 	#print(node.toprettyxml())
 	#entityType = node.getElementsByTagName('dl:entityType')[0].firstChild.nodeValue
@@ -96,9 +96,9 @@ def mol_to_dic(node, withAmounts = False):
 			for child in node.getElementsByTagName('amount')
 		}
 		if 'unit:percentYield' in amounts.keys():
-			dic['yield'] = amounts['unit:percentYield']
+			dic['yield'] = float(amounts['unit:percentYield'])
 		if 'unit:g' in amounts.keys():
-			dic['amount(g)'] = amounts['unit:g']
+			dic['amount(g)'] = float(amounts['unit:g'])
 	return dic
 
 def main(db_fpath, N = 15):

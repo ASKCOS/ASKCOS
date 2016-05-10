@@ -38,6 +38,7 @@ class Transformer:
 				'reaction_smarts': 		reaction_smarts,
 				'incompatible_groups': 	document['incompatible_groups'] if 'incompatible_groups' in document else [],
 				'reference': 			document['reference'] if 'reference' in document else '',
+				'references':			document['references'] if 'references' in document else [],
 				'rxn_example': 			document['rxn_example'] if 'rxn_example' in document else '',
 				'explicit_H': 			document['explicit_H'] if 'explicit_H' in document else False,
 				'_id':	 				document['_id'] if '_id' in document else -1,
