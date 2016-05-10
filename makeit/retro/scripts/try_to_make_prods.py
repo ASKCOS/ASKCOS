@@ -4,6 +4,7 @@ import matplotlib
 import matplotlib.pyplot as plt    # for visualization
 import os                          # for saving
 matplotlib.rc('font', **{'size': 18})
+from makeit.retro.draw import ReactionStringToImage
 
 # DATABASE
 from pymongo import MongoClient    # mongodb plugin
@@ -22,7 +23,8 @@ print('Loaded {} templates'.format(Transformer.num_templates))
 N = reactions.count()
 rxn_successful = 0; rxn_unsuccessful = 0;
 for i, reaction in enumerate(reactions.find({'products': {'$size': 1}})):
-	if i == 10: 
+	if i < 64: continue
+	if i == 65: 
 		N = i
 		break
 
@@ -41,9 +43,18 @@ for i, reaction in enumerate(reactions.find({'products': {'$size': 1}})):
 			break
 	if success:
 		rxn_successful += 1
+
+		rxn_str = '.'.join(all_smiles) + '>>' + reaction['products'][0]['smiles']
+		img = ReactionStringToImage(rxn_str)
+		img.save('test/rxn_test/{}_succeeded.png'.format(i))
 	else:
 		rxn_unsuccessful += 1
-		print reaction
+
+		rxn_str = '.'.join(all_smiles) + '>>' + reaction['products'][0]['smiles']
+		img = ReactionStringToImage(rxn_str)
+		img.save('test/rxn_test/{}_failed.png'.format(i))
+
+		print(reaction)
 
 print('Out of {} reactions:'.format(N))
 print('  {} successful'.format(rxn_successful))

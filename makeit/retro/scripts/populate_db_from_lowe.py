@@ -15,12 +15,13 @@ import sys  # for commanad line
 import os   # for file paths
 import re 
 import itertools
+from makeit.retro.draw import *
 
 # DATABASE
 from pymongo import MongoClient    # mongodb plugin
 client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
 db = client['askcos_transforms']
-template_collection = db['lowe']
+template_collection = db['lowe_refs_devel']
 db = client['reaction_examples']
 example_collection = db['lowe_1976-2013_USPTOgrants']
 
@@ -39,8 +40,13 @@ def bond_to_label(bond):
 	the most important attributes'''
 	# atoms = sorted([atom_to_label(bond.GetBeginAtom().GetIdx()), \
 	# 			    atom_to_label(bond.GetEndAtom().GetIdx())])
-	atoms = sorted([bond.GetBeginAtom().GetAtomicNum(), \
-					bond.GetEndAtom().GetAtomicNum()])
+	a1_label = str(bond.GetBeginAtom().GetAtomicNum())
+	a2_label = str(bond.GetEndAtom().GetAtomicNum())
+	if bond.GetBeginAtom().HasProp('molAtomMapNumber'):
+		a1_label += bond.GetBeginAtom().GetProp('molAtomMapNumber')
+	if bond.GetEndAtom().HasProp('molAtomMapNumber'):
+		a2_label += bond.GetEndAtom().GetProp('molAtomMapNumber')
+	atoms = sorted([a1_label, a2_label])
 
 	return '{}{}{}'.format(atoms[0], bond.GetSmarts(), atoms[1])
 
@@ -298,15 +304,24 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 			if ':' in atom.GetSmarts():
 				if atom.GetSmarts().split(':')[1][:-1] in changed_atom_tags:
 					atoms_to_use.append(atom.GetIdx())
-					# Be explicit when there are no hydrogens
+					symbol = atom.GetSmarts()
+					# CUSTOM SYMBOL CHANGES
 					if atom.GetTotalNumHs() == 0:
-						symbol = atom.GetSmarts()
+						# Be explicit when there are no hydrogens
 						if ':' in symbol: # stick H0 before label
 							symbol = symbol.replace(':', ';H0:')
 						else: # stick before end
 							symbol = symbol.replace(']', ';H0]')
-						symbol_replacements.append((atom.GetIdx(), symbol))
+						
 						# print('Being explicit about H0!!!!')
+					if atom.GetFormalCharge() == 0:
+						# Also be explicit when there is no charge
+						if ':' in symbol: 
+							symbol = symbol.replace(':', ';+0:')
+						else:
+							symbol = symbol.replace(']', ';+0]')
+					if symbol != atom.GetSmarts():
+						symbol_replacements.append((atom.GetIdx(), symbol))
 					continue
 
 		# Check neighbors (any atom)
@@ -373,6 +388,8 @@ def get_special_groups(mol):
 		'C=O', # carbonyl
 		'ClS(Cl)=O', # thionyl chloride
 		'[Mg][Br]', # grinard (non-disassociated)
+		'[#6]S(=O)(=O)[O]', # RSO3 leaving group
+		'[O]S(=O)(=O)[O]', # SO4 group
 		]
 
 	# Build list
@@ -484,15 +501,19 @@ def main(N = 15, folder = ''):
 	total_correct = 0 # actual products predicted
 	total_precise = 0 # ONLY actual products predicted
 
-	N = min([N, reaction_collection.find().count()])
+	N = min([N, example_collection.find().count()])
 
 	try: # to allow breaking
 		# Look for entries
-		for i, example_doc in enumerate(reaction_collection.find()):
+		for i, example_doc in enumerate(example_collection.find()):
+
 
 			# Are we done?
 			if i == N:
 				break
+
+			if i != 567: continue
+
 
 			if v: 
 				print('##################################')
@@ -503,19 +524,24 @@ def main(N = 15, folder = ''):
 			reaction_smiles = example_doc['reaction_smiles']
 			reactants, agents, products = [mols_from_smiles_list(x) for x in 
 											[mols.split('.') for mols in reaction_smiles.split('>')]]
-			# if 'Mg' in reaction_smiles.split('>')[2]:
-			# 	print('Found Mg in product!')
-			# 	print(reaction_smiles)
-			# 	v = True
-			# 	raw_input('Pausing...')
-			# else: 
-			# 	v = False
+			[Chem.SanitizeMol(mol) for mol in reactants + agents + products]
 
-			if None in reactants + agents + products: 
+
+			# Get unique InChi for products we are looking for
+			# remove cases where product shows up
+			product_inchis_split = mol_list_to_inchi(products).split(' ++ ')
+			for reactant in reactants:
+				reactant_inchi = mol_list_to_inchi([reactant])
+				if reactant_inchi in product_inchis_split:
+					product_inchis_split.remove(reactant_inchi)
+			product_inchis = ' ++ '.join(product_inchis_split)
+
+			if v: print(reaction_smiles)
+			if None in reactants + agents + products or not product_inchis: 
 				if v: 
 					print(reaction_smiles)
 					print('Could not parse all molecules in reaction, skipping')
-					raw_input('Enter anything to continue...')
+					#raw_input('Enter anything to continue...')
 				continue
 
 			# Calculate changed atoms
@@ -524,12 +550,12 @@ def main(N = 15, folder = ''):
 				if v: print('skipping')
 				continue
 
-			# Draw
-			if v: 
-				print(reaction_smiles)
-				if not os.path.exists('{}/rxn_{}'.format(folder, i)):
-					os.makedirs('{}/rxn_{}'.format(folder, i))
-				draw_reaction_smiles(reaction_smiles, fpath = '{}/rxn_{}/rxn_{}.png'.format(folder, i, i))
+			# # Draw
+			# if v: 
+			# 	print(reaction_smiles)
+			# 	if not os.path.exists('{}/rxn_{}'.format(folder, i)):
+			# 		os.makedirs('{}/rxn_{}'.format(folder, i))
+			# 	draw_reaction_smiles(reaction_smiles, fpath = '{}/rxn_{}/rxn_{}.png'.format(folder, i, i))
 
 			# Get fragments for reactants
 			reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags, 
@@ -565,25 +591,39 @@ def main(N = 15, folder = ''):
 					for j, outcome in enumerate(outcomes):
 						#if v: print('- outcome {}/{}'.format(j + 1, len(outcomes)))
 						for k, product in enumerate(outcome):
+							print('~~prod: {}'.format(Chem.MolToSmiles(product)))
+							try:
+								Chem.SanitizeMol(product)
+								product.UpdatePropertyCache()
+							except Exception as e:
+								print('warning: {}'.format(e))
 							if v: 
 								#print('  - product {}: {}'.format(k, Chem.MolToSmiles(product, isomericSmiles = True)))
 								try:
-									Chem.SanitizeMol(product)
-									product.UpdatePropertyCache()
+									pass
 									#product = Chem.MolFromSmiles(Chem.MolToSmiles(product, isomericSmiles = True))
-									Draw.MolToFile(product, '{}/rxn_{}/outcome_{}_product_{}.png'.format(folder, i, j, k), size=(250,250))
+									# Draw.MolToFile(product, '{}/rxn_{}/outcome_{}_product_{}.png'.format(folder, i, j, k), size=(250,250))
 								except Exception as e:
 									print('warning: could not draw {}: {}'.format(Chem.MolToSmiles(product, isomericSmiles = True), e))
-						product_set = mol_list_to_inchi(outcome)
+
+						# Remove untransformed products
+						product_set_split = mol_list_to_inchi(outcome).split(' ++ ')
+						for reactant in reactants:
+							reactant_inchi = mol_list_to_inchi([reactant])
+							if reactant_inchi in product_set_split:
+								product_set_split.remove(reactant_inchi)
+						product_set = ' ++ '.join(product_set_split)
+
+
 						if product_set not in unique_product_sets:
 							unique_product_sets.append(product_set)
 
 				if v: 
-					print('\nExpctd {}'.format(mol_list_to_inchi(products)))
+					print('\nExpctd {}'.format(product_inchis))
 					for product_set in unique_product_sets:
 						print('Found  {}'.format(product_set))
 
-				if mol_list_to_inchi(products) in unique_product_sets:
+				if product_inchis in unique_product_sets:
 					if v: print('\nSuccessfully found true products!')
 					total_correct += 1
 					if len(unique_product_sets) > 1:
@@ -603,10 +643,12 @@ def main(N = 15, folder = ''):
 						template_collection.update_one(
 							{'_id': doc['_id']},
 							{
-								'$set': {
-									'count': doc['count'] + 1,
-									'references': doc['references'].append(example_doc['reference']),
-								}
+								'$inc': {
+									'count': 1,
+								},
+								'$addToSet': {
+									'references': example_doc['_id'],
+								},
 							}
 
 						)
@@ -617,7 +659,7 @@ def main(N = 15, folder = ''):
 								'name': '',
 								'reaction_smarts': retro_canonical,
 								'rxn_example': reaction_smiles,
-								'references': [example_doc['reference']],
+								'references': [example_doc['_id']],
 								'explicit_H': False,
 								'count': 1,
 							}
@@ -628,18 +670,25 @@ def main(N = 15, folder = ''):
 					if v: print('\nDid not find true products')
 					if len(unique_product_sets) > 1:
 						if v: print('...but found {} unexpected ones'.format(len(unique_product_sets)))
-				
+					if v: 
+						img = TransformStringToImage(rxn_string)
+						img.save('test/transform_rxns/{}.png'.format(i))
+						img = ReactionStringToImage(reaction_smiles)
+						img.save('test/transform_rxns/{}_rxn.png'.format(i))
+						with open('test/transform_rxns/{}_tform.txt'.format(i), 'w') as tform_fid:
+							tform_fid.write(rxn_string)
+						with open('test/transform_rxns/{}_rxn.txt'.format(i), 'w') as tform_fid:
+							tform_fid.write(reaction_smiles)
+
 				total_templates += 1
-				if v: 
-					draw_reaction_smiles(rxn_string, fpath = '{}/rxn_{}/tform_{}.png'.format(folder, i, i))
-					with open('{}/rxn_{}/tform_{}.txt'.format(folder, i, i), 'w') as tform_fid:
-						tform_fid.write(rxn_string)
+
+
 			
 			except Exception as e:
 				if v: 
 					print(e)
 					print('skipping')
-					raw_input('Enter anything to continue')
+					#raw_input('Enter anything to continue')
 				continue
 
 
@@ -648,7 +697,7 @@ def main(N = 15, folder = ''):
 				print('{}/{}'.format(i, N))
 
 			# Pause
-			if v: raw_input('Enter anything to continue...')
+			#if v: raw_input('Enter anything to continue...')
 
 	except KeyboardInterrupt:
 		print('Stopped early!')		
