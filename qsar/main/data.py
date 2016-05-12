@@ -167,8 +167,8 @@ def get_data_one(data_label = '', shuffle_seed = None, batch_size = 1,
 		ftype = 'csv'
 		smiles_index = 1
 		y_index = 3
-		def y_func(x): return x
-		y_label = 'Tm (deg C)'
+		def y_func(x): return x / 50.
+		y_label = 'Tm / 50 (deg C)'
 		
 	# Other?
 	else:
