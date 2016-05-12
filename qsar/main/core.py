@@ -15,6 +15,14 @@ import sys
 import os
 
 
+import keras.backend as K
+import theano.tensor as T
+K.is_nan = T.isnan 
+K.logical_not = lambda x: 1 - x
+def mse_no_NaN(y_true, y_pred):
+	'''For each sample, sum squared error ignoring NaN values'''
+	return K.sum(K.square(K.switch(K.logical_not(K.is_nan(y_true)), y_true, y_pred) - y_pred), axis = -1)
+
 def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2, 
 	scale_output = 0.05, padding = True, inner_reg_l2 = 0.0, output_reg_l2 = 0.0,
 	hidden = 0, loss = 'mse', hidden_activation = 'tanh',
@@ -83,17 +91,10 @@ def build_model(embedding_size = 100, lr = 0.01, optimizer = 'adam', depth = 2,
 
 	# Custom loss to filter out NaN
 	if loss == 'custom':
-		import keras.backend as K
-		import theano.tensor as T
-		K.is_nan = T.isnan 
-		K.logical_not = lambda x: 1 - x
-		def loss(y_true, y_pred):
-			'''For each sample, sum squared error ignoring NaN values'''
-			return K.sum(K.square(K.switch(K.logical_not(K.is_nan(y_true)), y_true, y_pred) - y_pred), axis = -1)
+		loss = mse_no_NaN
 
 	print('compiling...',)
-	model.compile(loss = loss, optimizer = optimizer, metrics=['mean_squared_error'],
-				sample_weight_mode = sample_weight_mode)
+	model.compile(loss = loss, optimizer = optimizer, sample_weight_mode = sample_weight_mode)
 	print('done')
 
 	return model
@@ -189,17 +190,20 @@ def train_model(model, data, nb_epoch = 0, batch_size = 1, lr_func = '0.01', pat
 				np.random.shuffle(training_order)
 				for j in training_order:
 					single_mol_as_array = np.array(mols_train[j:j+1])
-					single_y_as_array = np.array(y_train[j:j+1])
+					single_y_as_array = np.reshape(y_train[j], (1, -1))
 					sloss = model.train_on_batch(single_mol_as_array, single_y_as_array)
 					# print('single loss: {}'.format(sloss))
 					this_loss.append(sloss)
 				
 				# Run through testing set
-				print('Testing...')
+				print('Validating..')
 				for j in range(len(mols_val)):
 					single_mol_as_array = np.array(mols_val[j:j+1])
-					spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
-					sloss = (spred - y_val[j]) ** 2
+					single_y_as_array = np.reshape(y_val[j], (1, -1))
+					sloss = model.test_on_batch(single_mol_as_array, single_y_as_array)
+					# print('---')
+					# print('spred: {}'.format(spred))
+					# print('strue: {}'.format(y_val[j]))
 					# print('single loss: {}'.format(sloss))
 					this_val_loss.append(sloss)
 				

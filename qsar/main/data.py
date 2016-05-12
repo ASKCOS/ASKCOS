@@ -6,7 +6,52 @@ import csv
 import json
 
 
-def get_data_full(data_label = '', shuffle_seed = None, batch_size = 1, 
+def get_data_full(data_label = '', **kwargs):
+	'''Wrapper for get_data_full, which allows for multiple datasets to
+	be concatenated as a multi-target problem'''
+
+	all_data = ()
+	for data_label in data_label.split(','):
+		data = get_data_one(data_label = data_label, **kwargs)
+		if all_data:
+			all_data = merge_data(all_data, data)
+		else:
+			all_data = data
+
+	print('AFTER MERGING DATASETS...')
+	print('# training: {}'.format(len(all_data[0]['y'])))
+	print('# validation: {}'.format(len(all_data[1]['y'])))
+	print('# testing: {}'.format(len(all_data[2]['y'])))
+
+	return all_data
+
+def merge_data(data1, data2):
+	'''Combines two sets of data for multi-target prediction'''
+
+	# Iterate over train, validate, test
+	for i in range(3):
+
+		if 'y' not in data2[i]: continue
+		if len(data2[i]['y']) == 0: continue
+
+		# Just append/extend mols, smiles, label
+		data1[i]['mols'].extend(data2[i]['mols'])
+		data1[i]['smiles'].extend(data2[i]['smiles'])
+
+		# Not the first merge
+		if type(data1[i]['y_label']) == type(list):
+			data1[i]['y_label'].extend(data2[i]['y_label'])
+		else: # First merge
+			data1[i]['y_label'] = [data1[i]['y_label'], data2[i]['y_label']]
+		
+		# Now y values
+		example_y = data1[i]['y'][0]
+		data1[i]['y'] = [np.append(x, np.nan) for x in data1[i]['y']]
+		data1[i]['y'].extend([np.append(example_y * np.nan, x) for x in data2[i]['y']])
+
+	return data1
+
+def get_data_one(data_label = '', shuffle_seed = None, batch_size = 1, 
 	data_split = 'ratio', cv_folds = '1/1', solvent = '1-octanol',
 	truncate_to = None, training_ratio = 0.9):
 	'''This is a helper script to read the data .json object and return
@@ -94,6 +139,33 @@ def get_data_full(data_label = '', shuffle_seed = None, batch_size = 1,
 		data_fpath = os.path.join(data_froot, 'BradleyDoublePlusGoodMeltingPointDataset.csv')
 		ftype = 'csv'
 		smiles_index = 2
+		y_index = 3
+		def y_func(x): return x
+		y_label = 'Tm (deg C)'
+
+	elif data_label in ['kew_aq', 'mitchell_aq', 'kew_logs', 'mitchell_logs']:
+		dset = 'kew_logS'
+		data_fpath = os.path.join(data_froot, 'Mitchell-names-smiles-data-references.csv')
+		ftype = 'csv'
+		smiles_index = 1
+		y_index = 2
+		def y_func(x): return x
+		y_label = 'log10(aqueous sol (M))'
+
+	elif data_label in ['kew_logp', 'mitchell_logp']:
+		dset = 'kew_logP'
+		data_fpath = os.path.join(data_froot, 'Mitchell-names-smiles-data-references.csv')
+		ftype = 'csv'
+		smiles_index = 1
+		y_index = 4
+		def y_func(x): return x
+		y_label = 'log10(oct/aq partition)'
+
+	elif data_label in ['kew_tm', 'mitchell_tm']:
+		dset = 'kew_tm'
+		data_fpath = os.path.join(data_froot, 'Mitchell-names-smiles-data-references.csv')
+		ftype = 'csv'
+		smiles_index = 1
 		y_index = 3
 		def y_func(x): return x
 		y_label = 'Tm (deg C)'

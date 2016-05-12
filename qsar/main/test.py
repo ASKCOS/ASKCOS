@@ -52,26 +52,26 @@ def test_model(model, data, fpath, tstamp = 'no_time', batch_size = 128):
 		for j in range(len(mols_train)):
 			single_mol_as_array = np.array(mols_train[j:j+1])
 			single_y_as_array = np.array(y_train[j:j+1])
-			spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
+			spred = model.predict_on_batch(single_mol_as_array)
 			y_train_pred.append(spred)
 
 		# Run through validation set
 		for j in range(len(mols_val)):
 			single_mol_as_array = np.array(mols_val[j:j+1])
-			spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
+			spred = model.predict_on_batch(single_mol_as_array)
 			y_val_pred.append(spred)
 
 		# Run through testing set
 		for j in range(len(mols_test)):
 			single_mol_as_array = np.array(mols_test[j:j+1])
-			spred = float(model.predict_on_batch(single_mol_as_array)[0][0][0])
+			spred = model.predict_on_batch(single_mol_as_array)
 			y_test_pred.append(spred)
 
 	else: # PADDED
 		y_train_pred = np.array([]); y_val_pred = np.array([]); y_test_pred = np.array([])
-		if mols_train: y_train_pred = model.predict(np.array(mols_train), batch_size = batch_size, verbose = 1)[:, 0]
-		if mols_val: y_val_pred = model.predict(np.array(mols_val), batch_size = batch_size, verbose = 1)[:, 0]
-		if mols_test: y_test_pred = model.predict(np.array(mols_test), batch_size = batch_size, verbose = 1)[:, 0]
+		if mols_train: y_train_pred = model.predict(np.array(mols_train), batch_size = batch_size, verbose = 1)
+		if mols_val: y_val_pred = model.predict(np.array(mols_val), batch_size = batch_size, verbose = 1)
+		if mols_test: y_test_pred = model.predict(np.array(mols_test), batch_size = batch_size, verbose = 1)
 
 	def round3(x):
 		return int(x * 1000) / 1000.0
@@ -81,7 +81,12 @@ def test_model(model, data, fpath, tstamp = 'no_time', batch_size = 128):
 			print('skipping parity plot for empty dataset')
 			return
 
-		# Calculate some stats
+		# Trim it to recorded values (not NaN)
+		true = np.array(true).flatten()
+		pred = np.array(pred).flatten()
+		pred = pred[~np.isnan(true)]
+		true = true[~np.isnan(true)]
+
 		min_y = np.min((true, pred))
 		max_y = np.max((true, pred))
 		mse = stats.mse(true, pred)
@@ -171,17 +176,33 @@ def test_model(model, data, fpath, tstamp = 'no_time', batch_size = 128):
 			fid.write('test\t' + '\t'.join(['{}'.format(x) for x in [N, TP, TN, FP, FN, SEN, SPEC, BAC, Q]]) + '\n')
 
 	else:
+		num_targets = 1
 
 		# Create plots for datasets
 		if y_train: 
-			try: parity_plot(y_train, y_train_pred, 'train')
-			except: pass
+			if type(y_train[0]) != type(0.): num_targets = len(y_train[0])
+			if num_targets > 1:
+				print('Number of targets: {}'.format(num_targets))
+				for i in range(num_targets):
+					parity_plot([x[i] for x in y_train], [x[0, i] for x in y_train_pred], 'train - ' + y_label[i])
+			else:
+				parity_plot(y_train, y_train_pred, 'train')
 		if y_val: 
-			try: parity_plot(y_val, y_val_pred, 'val')
-			except: pass
+			if type(y_val[0]) != type(0.): num_targets = len(y_val[0])
+			if num_targets > 1:
+				print('Number of targets: {}'.format(num_targets))
+				for i in range(num_targets):
+					parity_plot([x[i] for x in y_val], [x[0, i] for x in y_val_pred], 'val - ' + y_label[i])
+			else:
+				parity_plot(y_val, y_val_pred, 'test')
 		if y_test: 
-			try: parity_plot(y_test, y_test_pred, 'test')
-			except: pass
+			if type(y_test[0]) != type(0.): num_targets = len(y_test[0])
+			if num_targets > 1:
+				print('Number of targets: {}'.format(num_targets))
+				for i in range(num_targets):
+					parity_plot([x[i] for x in y_test], [x[0, i] for x in y_test_pred], 'test - ' + y_label[i])
+			else:
+				parity_plot(y_test, y_test_pred, 'test')
 
 	train['residuals'] = np.array(y_train) - np.array(y_train_pred)
 	val['residuals'] = np.array(y_val) - np.array(y_val_pred)
