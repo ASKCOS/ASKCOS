@@ -81,41 +81,44 @@ def test_model(model, data, fpath, tstamp = 'no_time', batch_size = 128):
 			print('skipping parity plot for empty dataset')
 			return
 
-		# Trim it to recorded values (not NaN)
-		true = np.array(true).flatten()
-		pred = np.array(pred).flatten()
-		pred = pred[~np.isnan(true)]
-		true = true[~np.isnan(true)]
+		try:
+			# Trim it to recorded values (not NaN)
+			true = np.array(true).flatten()
+			pred = np.array(pred).flatten()
+			pred = pred[~np.isnan(true)]
+			true = true[~np.isnan(true)]
 
-		min_y = np.min((true, pred))
-		max_y = np.max((true, pred))
-		mse = stats.mse(true, pred)
-		mae = stats.mae(true, pred)
-		q = stats.q(true, pred)
-		(r2, a) = stats.linreg(true, pred) # predicted v observed
-		(r2p, ap) = stats.linreg(pred, true) # observed v predicted
+			min_y = np.min((true, pred))
+			max_y = np.max((true, pred))
+			mse = stats.mse(true, pred)
+			mae = stats.mae(true, pred)
+			q = stats.q(true, pred)
+			(r2, a) = stats.linreg(true, pred) # predicted v observed
+			(r2p, ap) = stats.linreg(pred, true) # observed v predicted
 
-		# Create parity plot
-		plt.scatter(true, pred, alpha = 0.5)
-		plt.xlabel('Actual {}'.format(y_label))
-		plt.ylabel('Predicted {}'.format(y_label))
-		plt.title('Parity plot for {} ({} set, N = {})'.format(y_label, set_label, len(true)) + 
-			'\nMSE = {}, MAE = {}, q = {}'.format(round3(mse), round3(mae), round3(q)) + 
-			'\na = {}, r^2 = {}'.format(round3(a), round3(r2)) + 
-			'\na` = {}, r^2` = {}'.format(round3(ap), round3(r2p)))
-		plt.grid(True)
-		plt.plot(true, true * a, 'r--')
-		plt.axis([min_y, max_y, min_y, max_y])	
-		plt.savefig(test_fpath + ' {}.png'.format(set_label), bbox_inches = 'tight')
-		plt.clf()
+			# Create parity plot
+			plt.scatter(true, pred, alpha = 0.5)
+			plt.xlabel('Actual {}'.format(y_label))
+			plt.ylabel('Predicted {}'.format(y_label))
+			plt.title('Parity plot for {} ({} set, N = {})'.format(y_label, set_label, len(true)) + 
+				'\nMSE = {}, MAE = {}, q = {}'.format(round3(mse), round3(mae), round3(q)) + 
+				'\na = {}, r^2 = {}'.format(round3(a), round3(r2)) + 
+				'\na` = {}, r^2` = {}'.format(round3(ap), round3(r2p)))
+			plt.grid(True)
+			plt.plot(true, true * a, 'r--')
+			plt.axis([min_y, max_y, min_y, max_y])	
+			plt.savefig(test_fpath + ' {}.png'.format(set_label), bbox_inches = 'tight')
+			plt.clf()
 
-		# Print
-		print('{}:'.format(set_label))
-		print('  mse = {}, mae = {}'.format(mse, mae))
-		print('  q = {}'.format(q))
-		print('  r2 through origin = {} (pred v. true), {} (true v. pred)'.format(r2, r2p))
-		print('  slope through origin = {} (pred v. true), {} (true v. pred)'.format(a[0], ap[0]))
-
+			# Print
+			print('{}:'.format(set_label))
+			print('  mse = {}, mae = {}'.format(mse, mae))
+			print('  q = {}'.format(q))
+			print('  r2 through origin = {} (pred v. true), {} (true v. pred)'.format(r2, r2p))
+			print('  slope through origin = {} (pred v. true), {} (true v. pred)'.format(a[0], ap[0]))
+		except:
+			pass
+			
 	def score_classification(actual, predicted):
 		'''Given two numpy boolean vectors, calculates various performance measures'''
 		if actual.shape != predicted.shape:
