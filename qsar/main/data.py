@@ -39,8 +39,8 @@ def merge_data(data1, data2):
 		data1[i]['smiles'].extend(data2[i]['smiles'])
 
 		# Not the first merge
-		if type(data1[i]['y_label']) == type(list):
-			data1[i]['y_label'].extend(data2[i]['y_label'])
+		if type(data1[i]['y_label']) == type([]):
+			data1[i]['y_label'].append(data2[i]['y_label'])
 		else: # First merge
 			data1[i]['y_label'] = [data1[i]['y_label'], data2[i]['y_label']]
 		
@@ -167,8 +167,8 @@ def get_data_one(data_label = '', shuffle_seed = None, batch_size = 1,
 		ftype = 'csv'
 		smiles_index = 1
 		y_index = 3
-		def y_func(x): return x
-		y_label = 'Tm (deg C)'
+		def y_func(x): return x / 50.
+		y_label = 'Tm / 50 (deg C)'
 		
 	# Other?
 	else:
