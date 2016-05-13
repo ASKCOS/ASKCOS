@@ -514,7 +514,7 @@ def main(N = 15, folder = ''):
 				break
 
 			# if i < 185100: continue
-			
+
 			# KNOWN ISSUES
 			if i > 13700 and i < 13800: continue
 			if i == 23862: continue
@@ -528,11 +528,11 @@ def main(N = 15, folder = ''):
 				print('###        RXN {}'.format(i))
 				print('##################################')
 
-			# Unpack
-			reaction_smiles = example_doc['reaction_smiles']
-			reactants, agents, products = [mols_from_smiles_list(x) for x in 
-											[mols.split('.') for mols in reaction_smiles.split('>')]]
 			try:
+				# Unpack
+				reaction_smiles = example_doc['reaction_smiles']
+				reactants, agents, products = [mols_from_smiles_list(x) for x in 
+											[mols.split('.') for mols in reaction_smiles.split('>')]]
 				[Chem.SanitizeMol(mol) for mol in reactants + agents + products]
 			except:
 				# can't sanitize -> skip
