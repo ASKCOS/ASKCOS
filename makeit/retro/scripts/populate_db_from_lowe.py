@@ -497,7 +497,7 @@ def main(N = 15, folder = ''):
 	# Open file
 
 	# Define scoring variables
-	total_templates = 0 # total reactions simulated (excludes skipped)
+	total_attempted = 0 # total reactions simulated (excludes skipped)
 	total_correct = 0 # actual products predicted
 	total_precise = 0 # ONLY actual products predicted
 
@@ -510,10 +510,18 @@ def main(N = 15, folder = ''):
 
 			# Are we done?
 			if i == N:
+				i -= 1
 				break
 
-			if i != 567: continue
-
+			# if i < 185100: continue
+			
+			# KNOWN ISSUES
+			if i > 13700 and i < 13800: continue
+			if i == 23862: continue
+			if i == 56781: continue
+			if i > 87600 and i < 87700: continue
+			if i > 88200 and i < 88300: continue
+			if i > 185000 and i < 185100: continue
 
 			if v: 
 				print('##################################')
@@ -524,7 +532,11 @@ def main(N = 15, folder = ''):
 			reaction_smiles = example_doc['reaction_smiles']
 			reactants, agents, products = [mols_from_smiles_list(x) for x in 
 											[mols.split('.') for mols in reaction_smiles.split('>')]]
-			[Chem.SanitizeMol(mol) for mol in reactants + agents + products]
+			try:
+				[Chem.SanitizeMol(mol) for mol in reactants + agents + products]
+			except:
+				# can't sanitize -> skip
+				continue
 
 
 			# Get unique InChi for products we are looking for
@@ -591,7 +603,7 @@ def main(N = 15, folder = ''):
 					for j, outcome in enumerate(outcomes):
 						#if v: print('- outcome {}/{}'.format(j + 1, len(outcomes)))
 						for k, product in enumerate(outcome):
-							print('~~prod: {}'.format(Chem.MolToSmiles(product)))
+							if v: print('~~prod: {}'.format(Chem.MolToSmiles(product)))
 							try:
 								Chem.SanitizeMol(product)
 								product.UpdatePropertyCache()
@@ -664,7 +676,7 @@ def main(N = 15, folder = ''):
 								'count': 1,
 							}
 						)
-						print('Created database entry {}'.format(result.inserted_id))
+						#print('Created database entry {}'.format(result.inserted_id))
 
 				else:
 					if v: print('\nDid not find true products')
@@ -680,7 +692,7 @@ def main(N = 15, folder = ''):
 						with open('test/transform_rxns/{}_rxn.txt'.format(i), 'w') as tform_fid:
 							tform_fid.write(reaction_smiles)
 
-				total_templates += 1
+				total_attempted += 1
 
 
 			
@@ -704,12 +716,15 @@ def main(N = 15, folder = ''):
 	except Exception as e:
 		print(e)
 
-	print('...finished looking through {} reaction records'.format(min([N, i])))
+	total_examples = i + 1
+	print('...finished looking through {} reaction records'.format(min([N, i + 1])))
 
+	print('Error-free parsing in {}/{} ({}%) cases'.format(total_attempted, 
+		total_examples, total_attempted * 100.0 / total_examples))
 	print('Correct product predictions in {}/{} ({}%) cases'.format(total_correct, 
-		total_templates, total_correct * 100.0 / total_templates))
+		total_examples, total_correct * 100.0 / total_examples))
 	print('Specific product predictions in {}/{} ({}%) cases'.format(total_precise, 
-		total_templates, total_precise * 100.0 / total_templates))
+		total_examples, total_precise * 100.0 / total_examples))
 	print('Created {} database entries'.format(template_collection.find().count()))
 
 	return True
