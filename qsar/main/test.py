@@ -315,15 +315,16 @@ def test_embeddings_demo(model, data, fpath):
 	y_label = train['y_label']
 
 	# Define function to test embedding
-	tf = K.function([model.layers[0].input], 
-		model.layers[0].get_output(train = False))
+	x = K.placeholder(ndim = 4)
+	tf = K.function([x], 
+		model.layers[0].call(x))
 
 	# Define function to save image
 	def embedding_to_png(embedding, label, fpath):
 		print(embedding)
 		print(embedding.shape)
 		fig = plt.figure(figsize=(20,0.5))
-		plt.pcolor(embedding, vmin = 0, vmax = 1)
+		plt.pcolor(embedding, vmin = 0, vmax = 1, cmap = plt.get_cmap('Greens'))
 		plt.title('{}'.format(label))
 		# cbar = plt.colorbar()
 		plt.gca().yaxis.set_visible(False)
