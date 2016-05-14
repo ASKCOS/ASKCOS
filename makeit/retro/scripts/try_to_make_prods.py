@@ -5,6 +5,15 @@ import matplotlib.pyplot as plt    # for visualization
 import os                          # for saving
 matplotlib.rc('font', **{'size': 18})
 from makeit.retro.draw import ReactionStringToImage
+import sys
+
+# NUMBER TO TRY
+N = int(sys.argv[1])
+
+# SILENCE RDKIT WARNINGS
+from rdkit import RDLogger
+lg = RDLogger.logger()
+lg.setLevel(4)
 
 # DATABASE
 from pymongo import MongoClient    # mongodb plugin
@@ -14,47 +23,55 @@ reactions = db['lowe_1976-2013_USPTOgrants_reactions']
 
 import makeit.retro.transformer as transformer 
 db = client['askcos_transforms']
-templates = db['lowe']
+templates = db['lowe_refs']
 Transformer = transformer.Transformer()
 Transformer.load(templates)
 print('Loaded {} templates'.format(Transformer.num_templates))
 
 # Iterate through all examples and see if we made it
-N = reactions.count()
 rxn_successful = 0; rxn_unsuccessful = 0;
-for i, reaction in enumerate(reactions.find({'products': {'$size': 1}})):
-	if i < 64: continue
-	if i == 65: 
-		N = i
-		break
+try:
+	for i, reaction in enumerate(reactions.find({'products': {'$size': 1}}, no_cursor_timeout=True)):
 
-	all_smiles =  [x['smiles'] for x in reaction['reactants']]
-	if 'catalysts' in reaction:
-		all_smiles += [x['smiles'] for x in reaction['catalysts']] 
-	if 'spectators' in reaction:
-		all_smiles += [x['smiles'] for x in reaction['spectators']] 
-
-	result = Transformer.perform_forward('.'.join(all_smiles))
-
-	success = False
-	for product in sorted(result.products, key = lambda x: x.num_examples, reverse = True):
-		if '.'.join(product.smiles_list) == reaction['products'][0]['smiles']:
-			success = True
+		# if i < 64: continue
+		if i == N: 
+			N = i
 			break
-	if success:
-		rxn_successful += 1
 
-		rxn_str = '.'.join(all_smiles) + '>>' + reaction['products'][0]['smiles']
-		img = ReactionStringToImage(rxn_str)
-		img.save('test/rxn_test/{}_succeeded.png'.format(i))
-	else:
-		rxn_unsuccessful += 1
+		print('#########')
+		print('## RXN {}'.format(i))
+		print('#########')
 
-		rxn_str = '.'.join(all_smiles) + '>>' + reaction['products'][0]['smiles']
-		img = ReactionStringToImage(rxn_str)
-		img.save('test/rxn_test/{}_failed.png'.format(i))
+		all_smiles =  [x['smiles'] for x in reaction['reactants']]
+		if 'catalysts' in reaction:
+			all_smiles += [x['smiles'] for x in reaction['catalysts']] 
+		if 'spectators' in reaction:
+			all_smiles += [x['smiles'] for x in reaction['spectators']] 
 
-		print(reaction)
+		result = Transformer.perform_forward('.'.join(all_smiles))
+
+		success = False
+		for product in sorted(result.products, key = lambda x: x.num_examples, reverse = True):
+			if '.'.join(product.smiles_list) == reaction['products'][0]['smiles']:
+				success = True
+				break
+		if success:
+			rxn_successful += 1
+
+			# rxn_str = '.'.join(all_smiles) + '>>' + reaction['products'][0]['smiles']
+			# img = ReactionStringToImage(rxn_str)
+			# img.save('test/rxn_test/{}_succeeded.png'.format(i))
+		else:
+			rxn_unsuccessful += 1
+
+			# rxn_str = '.'.join(all_smiles) + '>>' + reaction['products'][0]['smiles']
+			# img = ReactionStringToImage(rxn_str)
+			# img.save('test/rxn_test/{}_failed.png'.format(i))
+
+			print(reaction)
+except KeyboardInterrupt:
+	print('terminated early')
+	N = i
 
 print('Out of {} reactions:'.format(N))
 print('  {} successful'.format(rxn_successful))

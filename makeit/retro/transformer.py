@@ -56,12 +56,33 @@ class Transformer:
 			# Define reaction in RDKit and validate
 			try:
 				# Force reactants and products to be one molecule (not really, but for bookkeeping)
-				reaction_smarts = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
-				rxn = AllChem.ReactionFromSmarts(str(reaction_smarts))
-			except:
-				continue
-			if rxn.Validate() != (0, 0): continue
-			template['rxn'] = rxn
+				reaction_smarts_retro = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
+				rxn = AllChem.ReactionFromSmarts(str(reaction_smarts_retro))
+				#if rxn.Validate() == (0, 0):
+				if rxn.Validate()[1] == 0: 
+					template['rxn'] = rxn
+				else:
+					template['rxn'] = None
+			except Exception as e:
+				print('Couldnt load retro: {}: {}'.format(reaction_smarts_retro, e))
+				template['rxn'] = None
+
+			# Define forward version, too
+			try:
+				products, reactants = reaction_smarts.split('>>')
+				reaction_smarts_forward = '(' + reactants + ')>>(' + products + ')'
+				rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_forward)
+				#if rxn_f.Validate() == (0, 0):
+				if rxn_f.Validate()[1] == 0:
+					template['rxn_f'] = rxn_f
+				else:
+					template['rxn_f'] = None
+			except Exception as e:
+				print('Couldnt load forward: {}: {}'.format(reaction_smarts_forward, e))
+				template['rxn_f'] = None
+
+			# Need to have either a retro or forward reaction be valid
+			if not template['rxn'] and not template['rxn_f']: continue
 
 			# Add to list
 			self.templates.append(template)
@@ -127,32 +148,20 @@ class Transformer:
 
 		# Try each in turn
 		for template in self.templates:
-			# Need to generate reaction
-			# only retrosynthesis direction is saved as RDKit ChemicalReaction
-			products, reactants = template['reaction_smarts'].split('>>')
-			reaction_smarts = '(' + reactants + ')>>(' + products + ')'
-			# Define reaction in RDKit and validate
-			try:
-				rxn = AllChem.ReactionFromSmarts(reaction_smarts)
-			except Exception as e:
-				print(e)
-				print('Could not parse forward reaction: {}'.format(reaction_smarts))
-				continue
-			if rxn.Validate() != (0, 0): continue
-
 			# Perform
 			try:
-				outcomes = rxn.RunReactants([mol])
+				outcomes = template['rxn_f'].RunReactants([mol])
 			except Exception as e:
-				print('warning: {}'.format(e))
-				print(reaction_smarts)
+				#print('Forward warning: {}'.format(e))
+				continue
+				#print('Retro version of reaction: {}'.format(template['reaction_smarts']))
 			if not outcomes: continue
 			for j, outcome in enumerate(outcomes):
 				try:
 					[x.UpdatePropertyCache() for x in outcome]
 					[Chem.SanitizeMol(x) for x in outcome]
 				except Exception as e:
-					print(e)
+					#print(e)
 					continue
 				smiles_list = []
 				for x in outcome: 

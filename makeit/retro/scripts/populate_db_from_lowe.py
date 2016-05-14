@@ -505,7 +505,7 @@ def main(N = 15, folder = ''):
 
 	try: # to allow breaking
 		# Look for entries
-		for i, example_doc in enumerate(example_collection.find()):
+		for i, example_doc in enumerate(example_collection.find(no_cursor_timeout=True)):
 
 
 			# Are we done?
@@ -513,12 +513,12 @@ def main(N = 15, folder = ''):
 				i -= 1
 				break
 
-			# if i < 185100: continue
+			# if i < 440378: continue
 
 			# KNOWN ISSUES
 			if i > 13700 and i < 13800: continue
-			if i == 23862: continue
-			if i == 56781: continue
+			if i > 23860 and i < 23863: continue
+			if i > 56778 and i < 56782: continue
 			if i > 87600 and i < 87700: continue
 			if i > 88200 and i < 88300: continue
 			if i > 185000 and i < 185100: continue
@@ -530,7 +530,7 @@ def main(N = 15, folder = ''):
 
 			try:
 				# Unpack
-				reaction_smiles = example_doc['reaction_smiles']
+				reaction_smiles = str(example_doc['reaction_smiles'])
 				reactants, agents, products = [mols_from_smiles_list(x) for x in 
 											[mols.split('.') for mols in reaction_smiles.split('>')]]
 				[Chem.SanitizeMol(mol) for mol in reactants + agents + products]
@@ -707,6 +707,8 @@ def main(N = 15, folder = ''):
 			# Report progress
 			if (i % 100) == 0:
 				print('{}/{}'.format(i, N))
+				with open('populated_up_to.txt', 'a') as fid:
+					fid.write('i = {}\n'.format(i))
 
 			# Pause
 			#if v: raw_input('Enter anything to continue...')
