@@ -132,11 +132,15 @@ class Transformer:
 
 		return result
 
-	def perform_forward(self, smiles):
+	def perform_forward(self, smiles, stop_if = None):
 		'''
 		Performs a forward synthesis (i.e., reaction enumeration) given
 		a SMILES string by applying each transformation template in 
 		reverse sequentially
+
+		stop_if - can be used for testing product matching based on 
+		if the isomericSmiles matches with one of the products. It terminates
+		early instead of going through all of the templates and returns True.
 		'''
 
 		# Define pseudo-molecule (single molecule) to operate on
@@ -172,6 +176,12 @@ class Transformer:
 					num_examples = template['count'],
 				)
 				if '.'.join(product.smiles_list) == smiles: continue # no transformation
+				
+				# Early termination?
+				if stop_if:
+					if stop_if in product.smiles_list: 
+						print('Found true product - skipping remaining templates to apply')
+						return True
 				result.add_product(product)
 		
 		return result

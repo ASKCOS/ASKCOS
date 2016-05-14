@@ -48,13 +48,17 @@ try:
 		if 'spectators' in reaction:
 			all_smiles += [x['smiles'] for x in reaction['spectators']] 
 
-		result = Transformer.perform_forward('.'.join(all_smiles))
+		result = Transformer.perform_forward('.'.join(all_smiles), stop_if = reaction['products'][0]['smiles'])
+		if result == True:
+			success = True
+		else:
+			success = False
 
-		success = False
-		for product in sorted(result.products, key = lambda x: x.num_examples, reverse = True):
-			if '.'.join(product.smiles_list) == reaction['products'][0]['smiles']:
-				success = True
-				break
+		# success = False
+		# for product in sorted(result.products, key = lambda x: x.num_examples, reverse = True):
+		# 	if '.'.join(product.smiles_list) == reaction['products'][0]['smiles']:
+		# 		success = True
+		# 		break
 		if success:
 			rxn_successful += 1
 
