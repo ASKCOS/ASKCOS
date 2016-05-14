@@ -182,8 +182,13 @@ class Transformer:
 					if stop_if in product.smiles_list: 
 						print('Found true product - skipping remaining templates to apply')
 						return True
-				result.add_product(product)
-		
+				# If not early termination, we want to keep all products
+				else:
+					result.add_product(product)
+		# Were we trying to stop early?
+		if stop_if: 
+			return False
+		# Otherwise, return the full list of products
 		return result
 
 	def lookup_id(self, template_id):

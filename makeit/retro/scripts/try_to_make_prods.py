@@ -50,29 +50,11 @@ try:
 
 		result = Transformer.perform_forward('.'.join(all_smiles), stop_if = reaction['products'][0]['smiles'])
 		if result == True:
-			success = True
-		else:
-			success = False
-
-		# success = False
-		# for product in sorted(result.products, key = lambda x: x.num_examples, reverse = True):
-		# 	if '.'.join(product.smiles_list) == reaction['products'][0]['smiles']:
-		# 		success = True
-		# 		break
-		if success:
 			rxn_successful += 1
-
-			# rxn_str = '.'.join(all_smiles) + '>>' + reaction['products'][0]['smiles']
-			# img = ReactionStringToImage(rxn_str)
-			# img.save('test/rxn_test/{}_succeeded.png'.format(i))
 		else:
 			rxn_unsuccessful += 1
-
-			# rxn_str = '.'.join(all_smiles) + '>>' + reaction['products'][0]['smiles']
-			# img = ReactionStringToImage(rxn_str)
-			# img.save('test/rxn_test/{}_failed.png'.format(i))
-
 			print(reaction)
+
 except KeyboardInterrupt:
 	print('terminated early')
 	N = i
