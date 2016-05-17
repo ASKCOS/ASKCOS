@@ -23,7 +23,7 @@ reactions = db['lowe_1976-2013_USPTOgrants_reactions']
 
 import makeit.retro.transformer as transformer 
 db = client['askcos_transforms']
-templates = db['lowe_refs']
+templates = db['lowe_refs_general']
 Transformer = transformer.Transformer()
 Transformer.load(templates)
 print('Loaded {} templates'.format(Transformer.num_templates))
@@ -34,6 +34,7 @@ try:
 	for i, reaction in enumerate(reactions.find({'products': {'$size': 1}}, no_cursor_timeout=True)):
 
 		# if i < 64: continue
+		#if i < 1000: continue
 		if i == N: 
 			N = i
 			break

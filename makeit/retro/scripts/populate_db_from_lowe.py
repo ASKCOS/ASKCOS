@@ -21,7 +21,8 @@ from makeit.retro.draw import *
 from pymongo import MongoClient    # mongodb plugin
 client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
 db = client['askcos_transforms']
-template_collection = db['lowe_refs_devel']
+template_collection_name = 'lowe_refs_general'
+template_collection = db[template_collection_name]
 db = client['reaction_examples']
 example_collection = db['lowe_1976-2013_USPTOgrants']
 
@@ -151,36 +152,6 @@ def get_changed_atoms(reactants, products):
 
 	return changed_atoms, changed_atom_tags, err
 
-def draw_reaction_smiles(rxn_smiles, fpath = 'test.png'):
-
-	opts = Draw.DrawingOptions()
-	opts.elemDict = defaultdict(lambda: (0,0,0))
-	opts.noCarbonSymbols = False
-	opts.selectColor = (1, 0, 0)
-
-	rxn = AllChem.ReactionFromSmarts(rxn_smiles)
-	img = Draw.ReactionToImage(rxn, subImgSize = (300, 300), highlightAtoms = [], options = opts)
-	img.save(fpath)
-
-	try:
-		fpath2 = fpath.replace('.', '_clean.')
-		new_rxn_string = ''
-		for i in range(rxn.GetNumReactantTemplates()):
-			mol = rxn.GetReactantTemplate(i); mol.SetProp('_Name', 'temp')
-			new_rxn_string += Chem.MolToSmiles(Chem.MolFromTPLBlock(Chem.MolToTPLBlock(mol)), isomericSmiles = True) + '.'
-		new_rxn_string = new_rxn_string[:-1] + '>>'
-		for j in range(rxn.GetNumProductTemplates()):
-			mol = rxn.GetReactantTemplate(j); mol.SetProp('_Name', 'temp')
-			new_rxn_string += Chem.MolToSmiles(Chem.MolFromTPLBlock(Chem.MolToTPLBlock(mol)), isomericSmiles = True) + '.'
-		rxn2 = AllChem.ReactionFromSmarts(new_rxn_string[:-1])
-		opts.noCarbonSymbols = True
-		img = Draw.ReactionToImage(rxn2, subImgSize = (300, 300), highlightAtoms = [], options = opts)
-		img.save(fpath2)
-	except Exception as e:
-		if v: print('warning: failed to draw clean transform')
-
-	return
-
 def expand_atoms_to_use(mol, atoms_to_use, groups = [], symbol_replacements = []):
 	'''Given an RDKit molecule and a list of AtomIdX which should be included
 	in the reaction, this function expands the list of AtomIdXs to include one 
@@ -210,9 +181,6 @@ def expand_atoms_to_use_atom(mol, atoms_to_use, atom_idx, groups = [], symbol_re
 	# Skip current candidate atom if it is already included
 	if atom_idx in atoms_to_use:
 		return atoms_to_use, symbol_replacements
-	
-	# Include this atom no matter what
-	atoms_to_use.append(atom_idx)
 
 	# See if this atom belongs to any groups
 	found_in_group = False
@@ -222,11 +190,16 @@ def expand_atoms_to_use_atom(mol, atoms_to_use, atom_idx, groups = [], symbol_re
 			# Add the whole list, redundancies don't matter
 			atoms_to_use.extend(list(group)) 
 			found_in_group = True
-
+	if found_in_group:	return atoms_to_use, symbol_replacements
+		
 	# How do we add an atom that wasn't in an identified important functional group?
 	# Develop special SMARTS symbol
-	if not found_in_group:		
-		symbol_replacements.append((atom_idx, convert_atom_to_wildcard(mol.GetAtomWithIdx(atom_idx))))
+
+	# Include this atom
+	atoms_to_use.append(atom_idx)
+
+	# Look for replacements
+	symbol_replacements.append((atom_idx, convert_atom_to_wildcard(mol.GetAtomWithIdx(atom_idx))))
 
 	return atoms_to_use, symbol_replacements
 
@@ -236,17 +209,17 @@ def convert_atom_to_wildcard(atom):
 	when candidate atoms are used to extend the reaction core for higher
 	generalizability'''
 
-	# Is this a terminal atom? We can tell if the degree is one
-	if atom.GetDegree() == 1:
-		return atom.GetSmarts()
-		# # Be explicit about number of hydrogens (since it's terminal!)
-		# smarts = atom.GetSmarts()
-		# if ':' in atom.GetSmarts():
-		# 	return smarts.replace(':', ';H{}:'.format(atom.GetTotalNumHs()))
-		# elif ']' in atom.GetSmarts():
-		# 	return smarts.replace(']', ';H{}]'.format(atom.GetTotalNumHs()))
-		# else:
-		# 	return '[' + smarts + ';H{}]'.format(atom.GetTotalNumHs())
+	if SUPER_GENERAL_TEMPLATES:
+		if ':' in atom.GetSmarts():
+			# Fully generalize atom-mappped neighbors because they are aren't a leaving group
+			label = re.search('\:[0-9]+\]', atom.GetSmarts())
+			return '[*{}'.format(label.group())
+
+	if not SUPER_GENERAL_TEMPLATES:
+
+		# Is this a terminal atom? We can tell if the degree is one
+		if atom.GetDegree() == 1:
+			return atom.GetSmarts()
 
 	# Initialize
 	symbol = '['
@@ -259,10 +232,11 @@ def convert_atom_to_wildcard(atom):
 	else:
 		symbol += 'C;'
 
-	# Charge is important
-	if atom.GetFormalCharge() != 0:
-		charges = re.search('([-+]+[1-9]?)', atom.GetSmarts())
-		if charges: symbol += charges.group() + ';'
+	if not SUPER_GENERAL_TEMPLATES:
+		# Charge is important
+		if atom.GetFormalCharge() != 0:
+			charges = re.search('([-+]+[1-9]?)', atom.GetSmarts())
+			if charges: symbol += charges.group() + ';'
 
 	# Strip extra semicolon
 	if symbol[-1] == ';': symbol = symbol[:-1]
@@ -320,6 +294,16 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 							symbol = symbol.replace(':', ';+0:')
 						else:
 							symbol = symbol.replace(']', ';+0]')
+					if atom.GetChiralTag() != Chem.rdchem.ChiralType.CHI_UNSPECIFIED:
+						# Be explicit when there is a tetrahedral chiral tag
+						if atom.GetChiralTag() == Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW:
+							tag = '@'
+						elif atom.GetChiralTag() == Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW:
+							tag = '@@'
+						if ':' in symbol:
+							symbol = symbol.replace(':', ';{}:'.format(tag))
+						else:
+							symbol = symbol.replace(']', ';{}]'.format(tag))
 					if symbol != atom.GetSmarts():
 						symbol_replacements.append((atom.GetIdx(), symbol))
 					continue
@@ -353,7 +337,8 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 		# 	print('{} -> {}'.format([mol.GetAtomWithIdx(x).GetSmarts() for (x, s) in symbol_replacements], 
 		# 		                    [s for (x, s) in symbol_replacements]))
 		fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, 
-			atomSymbols = symbols, allHsExplicit = True, allBondsExplicit = True) + ').'
+			atomSymbols = symbols, allHsExplicit = True, 
+			isomericSmiles = True, allBondsExplicit = True) + ').'
 	return fragments[:-1]
 
 def expand_changed_atom_tags(changed_atom_tags, reactant_fragments):
@@ -501,22 +486,24 @@ def main(N = 15, folder = ''):
 	total_correct = 0 # actual products predicted
 	total_precise = 0 # ONLY actual products predicted
 
-	N = min([N, example_collection.find().count()])
+	N = min([N, example_collection.count()])
 
 	try: # to allow breaking
 		# Look for entries
-		for i, example_doc in enumerate(example_collection.find(no_cursor_timeout=True)):
-
+		i = -1
+		for example_doc in example_collection.find(no_cursor_timeout=True):
+			i += 1
 
 			# Are we done?
 			if i == N:
 				i -= 1
 				break
 
-			# if i < 440378: continue
+			#if i < 3928: continue
 
 			# KNOWN ISSUES
 			if i > 13700 and i < 13800: continue
+			if i > 23283 and i < 23285: continue
 			if i > 23860 and i < 23863: continue
 			if i > 56778 and i < 56782: continue
 			if i > 87600 and i < 87700: continue
@@ -562,13 +549,6 @@ def main(N = 15, folder = ''):
 				if v: print('skipping')
 				continue
 
-			# # Draw
-			# if v: 
-			# 	print(reaction_smiles)
-			# 	if not os.path.exists('{}/rxn_{}'.format(folder, i)):
-			# 		os.makedirs('{}/rxn_{}'.format(folder, i))
-			# 	draw_reaction_smiles(reaction_smiles, fpath = '{}/rxn_{}/rxn_{}.png'.format(folder, i, i))
-
 			# Get fragments for reactants
 			reactant_fragments = get_fragments_for_changed_atoms(reactants, changed_atom_tags, 
 				radius = 1, expansion = [], category = 'reactants')
@@ -585,6 +565,7 @@ def main(N = 15, folder = ''):
 			# Load into RDKit
 			rxn = AllChem.ReactionFromSmarts(rxn_string)
 			if rxn.Validate()[1] != 0: continue
+			# print('here')
 
 			# # Analyze
 			# if v: 
@@ -593,56 +574,72 @@ def main(N = 15, folder = ''):
 
 			# Run reaction
 			try:
-				# Try all combinations of reactants that fit template
-				combinations = itertools.combinations(reactants, rxn.GetNumReactantTemplates())
-				unique_product_sets = []
-				for combination in combinations:
-					outcomes = rxn.RunReactants(list(combination))
-					if not outcomes: continue
-					#if v: print('\nFor reactants {}'.format([Chem.MolToSmiles(mol) for mol in combination]))
-					for j, outcome in enumerate(outcomes):
-						#if v: print('- outcome {}/{}'.format(j + 1, len(outcomes)))
-						for k, product in enumerate(outcome):
-							if v: print('~~prod: {}'.format(Chem.MolToSmiles(product)))
-							try:
-								Chem.SanitizeMol(product)
-								product.UpdatePropertyCache()
-							except Exception as e:
-								print('warning: {}'.format(e))
-							if v: 
-								#print('  - product {}: {}'.format(k, Chem.MolToSmiles(product, isomericSmiles = True)))
+				correct = False
+				if not DO_NOT_TEST:
+					# Try all combinations of reactants that fit template
+					combinations = itertools.combinations(reactants, rxn.GetNumReactantTemplates())
+					unique_product_sets = []
+					for combination in combinations:
+						outcomes = rxn.RunReactants(list(combination))
+						if not outcomes: continue
+						#if v: print('\nFor reactants {}'.format([Chem.MolToSmiles(mol) for mol in combination]))
+						for j, outcome in enumerate(outcomes):
+							#if v: print('- outcome {}/{}'.format(j + 1, len(outcomes)))
+							for k, product in enumerate(outcome):
+								if v: print('~~prod: {}'.format(Chem.MolToSmiles(product)))
 								try:
-									pass
-									#product = Chem.MolFromSmiles(Chem.MolToSmiles(product, isomericSmiles = True))
-									# Draw.MolToFile(product, '{}/rxn_{}/outcome_{}_product_{}.png'.format(folder, i, j, k), size=(250,250))
+									Chem.SanitizeMol(product)
+									product.UpdatePropertyCache()
 								except Exception as e:
-									print('warning: could not draw {}: {}'.format(Chem.MolToSmiles(product, isomericSmiles = True), e))
+									print('warning: {}'.format(e))
+								if v: 
+									#print('  - product {}: {}'.format(k, Chem.MolToSmiles(product, isomericSmiles = True)))
+									try:
+										pass
+										#product = Chem.MolFromSmiles(Chem.MolToSmiles(product, isomericSmiles = True))
+										# Draw.MolToFile(product, '{}/rxn_{}/outcome_{}_product_{}.png'.format(folder, i, j, k), size=(250,250))
+									except Exception as e:
+										print('warning: could not draw {}: {}'.format(Chem.MolToSmiles(product, isomericSmiles = True), e))
 
-						# Remove untransformed products
-						product_set_split = mol_list_to_inchi(outcome).split(' ++ ')
-						for reactant in reactants:
-							reactant_inchi = mol_list_to_inchi([reactant])
-							if reactant_inchi in product_set_split:
-								product_set_split.remove(reactant_inchi)
-						product_set = ' ++ '.join(product_set_split)
+							# Remove untransformed products
+							product_set_split = mol_list_to_inchi(outcome).split(' ++ ')
+							for reactant in reactants:
+								reactant_inchi = mol_list_to_inchi([reactant])
+								if reactant_inchi in product_set_split:
+									product_set_split.remove(reactant_inchi)
+							product_set = ' ++ '.join(product_set_split)
 
+							if product_set not in unique_product_sets:
+								unique_product_sets.append(product_set)
 
-						if product_set not in unique_product_sets:
-							unique_product_sets.append(product_set)
+					if v: 
+						print('\nExpctd {}'.format(product_inchis))
+						for product_set in unique_product_sets:
+							print('Found  {}'.format(product_set))
 
-				if v: 
-					print('\nExpctd {}'.format(product_inchis))
-					for product_set in unique_product_sets:
-						print('Found  {}'.format(product_set))
-
-				if product_inchis in unique_product_sets:
-					if v: print('\nSuccessfully found true products!')
-					total_correct += 1
-					if len(unique_product_sets) > 1:
-						if v: print('...but also found {} more'.format(len(unique_product_sets) - 1))
+					if product_inchis in unique_product_sets:
+						if v: print('\nSuccessfully found true products!')
+						correct = True
+						total_correct += 1
+						if len(unique_product_sets) > 1:
+							if v: print('...but also found {} more'.format(len(unique_product_sets) - 1))
+						else:
+							total_precise += 1
 					else:
-						total_precise += 1
-
+						if v: print('\nDid not find true products')
+						if len(unique_product_sets) > 1:
+							if v: print('...but found {} unexpected ones'.format(len(unique_product_sets)))
+						if v: 
+							img = TransformStringToImage(rxn_string)
+							img.save('test/transform_rxns/{}.png'.format(i))
+							img = ReactionStringToImage(reaction_smiles, strip = False)
+							img.save('test/transform_rxns/{}_rxn.png'.format(i))
+							with open('test/transform_rxns/{}_tform.txt'.format(i), 'w') as tform_fid:
+								tform_fid.write(rxn_string)
+							with open('test/transform_rxns/{}_rxn.txt'.format(i), 'w') as tform_fid:
+								tform_fid.write(reaction_smiles)
+					
+				if correct or DO_NOT_TEST:	
 					# Valid reaction!
 					rxn_canonical = canonicalize_transform(rxn_string)
 					retro_canonical = convert_to_retro(rxn_canonical)
@@ -662,7 +659,6 @@ def main(N = 15, folder = ''):
 									'references': example_doc['_id'],
 								},
 							}
-
 						)
 					else:
 						# New
@@ -678,23 +674,7 @@ def main(N = 15, folder = ''):
 						)
 						#print('Created database entry {}'.format(result.inserted_id))
 
-				else:
-					if v: print('\nDid not find true products')
-					if len(unique_product_sets) > 1:
-						if v: print('...but found {} unexpected ones'.format(len(unique_product_sets)))
-					if v: 
-						img = TransformStringToImage(rxn_string)
-						img.save('test/transform_rxns/{}.png'.format(i))
-						img = ReactionStringToImage(reaction_smiles)
-						img.save('test/transform_rxns/{}_rxn.png'.format(i))
-						with open('test/transform_rxns/{}_tform.txt'.format(i), 'w') as tform_fid:
-							tform_fid.write(rxn_string)
-						with open('test/transform_rxns/{}_rxn.txt'.format(i), 'w') as tform_fid:
-							tform_fid.write(reaction_smiles)
-
 				total_attempted += 1
-
-
 			
 			except Exception as e:
 				if v: 
@@ -741,13 +721,19 @@ if __name__ == '__main__':
 						help = 'Folder to output images to if verbose')
 	parser.add_argument('-n', '--num', type = int, default = 50,
 						help = 'Maximum number of records to examine; defaults to 50')
+	parser.add_argument('-g', '--general', type = bool, default = False,
+						help = 'Use incredibly general templates; defaults to False')
+	parser.add_argument('-t', '--test', type = bool, default = True,
+						help = 'Whether to *skip* testing; defaults to True')
 	args = parser.parse_args()
 
 	v = args.v
 	lg = RDLogger.logger()
 	if not v: lg.setLevel(4)
+	SUPER_GENERAL_TEMPLATES = bool(args.general)
+	DO_NOT_TEST = bool(args.test)
 
-	clear = raw_input('Do you want to clear the {} existing templates? '.format(template_collection.find().count()))
+	clear = raw_input('Do you want to clear the {} existing templates in {}? '.format(template_collection.find().count(), template_collection_name))
 	if clear in ['y', 'Y', 'yes', '1', 'Yes']:
 		result = template_collection.delete_many({})
 		print('Cleared {} entries from collection'.format(result.deleted_count))
