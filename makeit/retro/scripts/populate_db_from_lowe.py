@@ -2,6 +2,7 @@
 # reaction SMILES strings only (for now)
 
 from __future__ import print_function
+from global_config import USE_STEREOCHEMISTRY
 import argparse
 from numpy.random import shuffle # for random selection
 import rdkit.Chem as Chem          # molecule building
@@ -294,16 +295,17 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 							symbol = symbol.replace(':', ';+0:')
 						else:
 							symbol = symbol.replace(']', ';+0]')
-					if atom.GetChiralTag() != Chem.rdchem.ChiralType.CHI_UNSPECIFIED:
-						# Be explicit when there is a tetrahedral chiral tag
-						if atom.GetChiralTag() == Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW:
-							tag = '@'
-						elif atom.GetChiralTag() == Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW:
-							tag = '@@'
-						if ':' in symbol:
-							symbol = symbol.replace(':', ';{}:'.format(tag))
-						else:
-							symbol = symbol.replace(']', ';{}]'.format(tag))
+					if USE_STEREOCHEMISTRY:
+						atom.GetChiralTag() != Chem.rdchem.ChiralType.CHI_UNSPECIFIED:
+							# Be explicit when there is a tetrahedral chiral tag
+							if atom.GetChiralTag() == Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW:
+								tag = '@'
+							elif atom.GetChiralTag() == Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW:
+								tag = '@@'
+							if ':' in symbol:
+								symbol = symbol.replace(':', ';{}:'.format(tag))
+							else:
+								symbol = symbol.replace(']', ';{}]'.format(tag))
 					if symbol != atom.GetSmarts():
 						symbol_replacements.append((atom.GetIdx(), symbol))
 					continue
@@ -338,7 +340,7 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 		# 		                    [s for (x, s) in symbol_replacements]))
 		fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, 
 			atomSymbols = symbols, allHsExplicit = True, 
-			isomericSmiles = True, allBondsExplicit = True) + ').'
+			isomericSmiles = USE_STEREOCHEMISTRY, allBondsExplicit = True) + ').'
 	return fragments[:-1]
 
 def expand_changed_atom_tags(changed_atom_tags, reactant_fragments):
@@ -599,7 +601,7 @@ def main(N = 15, folder = ''):
 										#product = Chem.MolFromSmiles(Chem.MolToSmiles(product, isomericSmiles = True))
 										# Draw.MolToFile(product, '{}/rxn_{}/outcome_{}_product_{}.png'.format(folder, i, j, k), size=(250,250))
 									except Exception as e:
-										print('warning: could not draw {}: {}'.format(Chem.MolToSmiles(product, isomericSmiles = True), e))
+										print('warning: could not draw {}: {}'.format(Chem.MolToSmiles(product, isomericSmiles = USE_STEREOCHEMISTRY), e))
 
 							# Remove untransformed products
 							product_set_split = mol_list_to_inchi(outcome).split(' ++ ')

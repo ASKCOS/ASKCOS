@@ -1,4 +1,5 @@
 from __future__ import print_function
+from global_config import USE_STEREOCHEMISTRY
 import rdkit.Chem as Chem          
 from rdkit.Chem import AllChem
 import numpy as np
@@ -113,7 +114,7 @@ class Transformer:
 
 		# Define mol to operate on
 		mol = Chem.MolFromSmiles(smiles)
-		smiles = Chem.MolToSmiles(mol, isomericSmiles = True) # to canonicalize
+		smiles = Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY) # to canonicalize
 
 		# Initialize results object
 		result = RetroResult(smiles)
@@ -137,7 +138,7 @@ class Transformer:
 					continue
 				smiles_list = []
 				for x in outcome: 
-					smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = True).split('.'))
+					smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = USE_STEREOCHEMISTRY).split('.'))
 				precursor = RetroPrecursor(
 					smiles_list = sorted(smiles_list),
 					template_id = template['_id'],
@@ -161,7 +162,7 @@ class Transformer:
 
 		# Define pseudo-molecule (single molecule) to operate on
 		mol = Chem.MolFromSmiles(smiles)
-		smiles = '.'.join(sorted(Chem.MolToSmiles(mol, isomericSmiles = True).split('.')))
+		smiles = '.'.join(sorted(Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY).split('.')))
 
 		# Initialize results object
 		result = ForwardResult(smiles)
@@ -185,7 +186,7 @@ class Transformer:
 					continue
 				smiles_list = []
 				for x in outcome: 
-					smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = True).split('.'))
+					smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = USE_STEREOCHEMISTRY).split('.'))
 				product = ForwardProduct(
 					smiles_list = sorted(smiles_list),
 					template_id = template['_id'],

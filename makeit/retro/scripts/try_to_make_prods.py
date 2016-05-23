@@ -1,5 +1,6 @@
 # Import relevant packages
 from __future__ import print_function
+from global_config import USE_STEREOCHEMISTRY
 import argparse
 import numpy as np     	      	   # for simple calculations
 import matplotlib
@@ -8,9 +9,6 @@ import os                          # for saving
 matplotlib.rc('font', **{'size': 18})
 from makeit.retro.draw import ReactionStringToImage
 import sys
-
-# NUMBER TO TRY
-N = int(sys.argv[1])
 
 if __name__ == '__main__':
 
@@ -36,6 +34,8 @@ if __name__ == '__main__':
 	from rdkit import RDLogger
 	lg = RDLogger.logger()
 	if not v: lg.setLevel(4)
+
+	N = int(args.num)
 
 	# DATABASE
 	from pymongo import MongoClient    # mongodb plugin
