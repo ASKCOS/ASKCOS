@@ -1,3 +1,4 @@
+from __future__ import print_function
 import rdkit.Chem as Chem          
 from rdkit.Chem import AllChem
 import numpy as np
@@ -11,8 +12,10 @@ class Transformer:
 	def __init__(self):
 		self.source = None
 		self.templates = []
+		self.has_synth = False
+		self.has_retro = False
 
-	def load(self, collection, mincount = 4):
+	def load(self, collection, mincount = 4, get_retro = True, get_synth = True):
 		'''
 		Loads the object from a MongoDB collection containing transform
 		template records.
@@ -20,8 +23,12 @@ class Transformer:
 		# Save collection source
 		self.source = collection
 
+		# Save get_retro/get_synth:
+		if get_retro: self.has_retro = True
+		if get_synth: self.has_synth = True
+
 		if mincount and 'count' in collection.find_one(): 
-			filter_dict = {'count': { '$gt': mincount}}
+			filter_dict = {'count': { '$gte': mincount}}
 		else: 
 			filter_dict = {}
 
@@ -54,35 +61,44 @@ class Transformer:
 				template['count'] = 1
 
 			# Define reaction in RDKit and validate
-			try:
-				# Force reactants and products to be one molecule (not really, but for bookkeeping)
-				reaction_smarts_retro = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
-				rxn = AllChem.ReactionFromSmarts(str(reaction_smarts_retro))
-				#if rxn.Validate() == (0, 0):
-				if rxn.Validate()[1] == 0: 
-					template['rxn'] = rxn
-				else:
+			if get_retro:
+				try:
+					# Force reactants and products to be one molecule (not really, but for bookkeeping)
+					reaction_smarts_retro = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
+					rxn = AllChem.ReactionFromSmarts(str(reaction_smarts_retro))
+					#if rxn.Validate() == (0, 0):
+					if rxn.Validate()[1] == 0: 
+						template['rxn'] = rxn
+					else:
+						template['rxn'] = None
+				except Exception as e:
+					print('Couldnt load retro: {}: {}'.format(reaction_smarts_retro, e))
 					template['rxn'] = None
-			except Exception as e:
-				print('Couldnt load retro: {}: {}'.format(reaction_smarts_retro, e))
-				template['rxn'] = None
 
 			# Define forward version, too
-			try:
-				products, reactants = reaction_smarts.split('>>')
-				reaction_smarts_forward = '(' + reactants + ')>>(' + products + ')'
-				rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_forward)
-				#if rxn_f.Validate() == (0, 0):
-				if rxn_f.Validate()[1] == 0:
-					template['rxn_f'] = rxn_f
-				else:
+			if get_synth:
+				try:
+					products, reactants = reaction_smarts.split('>>')
+					reaction_smarts_forward = '(' + reactants + ')>>(' + products + ')'
+					rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_forward)
+					#if rxn_f.Validate() == (0, 0):
+					if rxn_f.Validate()[1] == 0:
+						template['rxn_f'] = rxn_f
+					else:
+						template['rxn_f'] = None
+				except Exception as e:
+					print('Couldnt load forward: {}: {}'.format(reaction_smarts_forward, e))
 					template['rxn_f'] = None
-			except Exception as e:
-				print('Couldnt load forward: {}: {}'.format(reaction_smarts_forward, e))
-				template['rxn_f'] = None
 
 			# Need to have either a retro or forward reaction be valid
-			if not template['rxn'] and not template['rxn_f']: continue
+			if get_retro and get_synth:
+				if not template['rxn'] and not template['rxn_f']: continue
+			elif get_retro:
+				if not template['rxn']: continue
+			elif get_synth: 
+				if not template['rxn_f']: continue
+			else:
+				raise ValueError('Cannot run Transformer.load() with get_retro = get_synth = False')
 
 			# Add to list
 			self.templates.append(template)

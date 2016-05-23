@@ -113,3 +113,10 @@ folder = os.path.dirname(fname)
 plt.savefig(os.path.join(folder, 'avgmax5_boxed_similarity.png'), bbox_inches = 'tight')
 plt.show()
 plt.clf()
+
+means = [np.mean(y) for y in ys]
+stds = [np.std(y) for y in ys]
+with open(fname + '.data', 'w') as fid:
+	fid.write('Center of bin (average of top 5 similarity scores)\tMAE\tAE(stdev)')
+	for i in range(len(xs)):
+		fid.write('{}\t{}\t{}\n'.format(xs[i], means[i], stds[i]))

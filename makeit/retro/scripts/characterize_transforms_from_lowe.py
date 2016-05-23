@@ -1,12 +1,7 @@
+from __future__ import print_function
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-
-# DATABASE
-from pymongo import MongoClient    # mongodb plugin
-client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
-db = client['askcos_transforms']
-collection = db['lowe']
 
 def get_counts(collection):
 	'''
@@ -52,7 +47,7 @@ def probability_v_rank(counts, out = None):
 	plt.title('Transform templates extracted from Lowe database')
 	plt.grid(True)
 	if out:
-		fig.savefig(os.path.join(out, 'prob_rank.png'))
+		fig.savefig(out + ' prob_rank.png')
 	plt.show()
 
 	# Count
@@ -69,7 +64,7 @@ def probability_v_rank(counts, out = None):
 	plt.title('Transform templates extracted from Lowe database')
 	plt.grid(True)
 	if out:
-		fig.savefig(os.path.join(out, 'count_rank.png'))
+		fig.savefig(out + ' count_rank.png')
 	plt.show()
 
 	return
@@ -79,12 +74,20 @@ def top_templates(docs, out, n = 10):
 	Finds the top ten transformation templates
 	'''
 	sorted_docs = sorted(docs, key = lambda x: x[0], reverse = True)
-	with open(os.path.join(out, 'top_{}.txt'.format(n)), 'w') as fid:
+	with open(out + ' top_{}.txt'.format(n), 'w') as fid:
 		for i in range(n):
 			fid.write('{}\t{}\n'.format(sorted_docs[i][0], sorted_docs[i][1]))
 	return 
 
 if __name__ == '__main__':
 	out_folder = os.path.join(os.path.dirname(__file__), 'output')
-	probability_v_rank(get_counts(collection), out = out_folder)
-	top_templates(get_counts_templates(collection), out_folder, n = 10)
+
+	# DATABASE
+	from pymongo import MongoClient    # mongodb plugin
+	client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
+	db = client['askcos_transforms']
+	collection_name = 'lowe_refs_general'
+	collection = db[collection_name]
+
+	probability_v_rank(get_counts(collection), out = os.path.join(out_folder, collection_name))
+	top_templates(get_counts_templates(collection), os.path.join(out_folder, collection_name), n = 10)

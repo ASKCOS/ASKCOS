@@ -326,6 +326,14 @@ def convert_atom_to_wildcard(atom):
 	# Is this a terminal atom? We can tell if the degree is one
 	if atom.GetDegree() == 1:
 		return atom.GetSmarts()
+		# # Be explicit about number of hydrogens (since it's terminal!)
+		# smarts = atom.GetSmarts()
+		# if ':' in atom.GetSmarts():
+		# 	return smarts.replace(':', ';H{}:'.format(atom.GetTotalNumHs()))
+		# elif ']' in atom.GetSmarts():
+		# 	return smarts.replace(']', ';H{}]'.format(atom.GetTotalNumHs()))
+		# else:
+		# 	return '[' + smarts + ';H{}]'.format(atom.GetTotalNumHs())
 
 	# Initialize
 	symbol = '['
@@ -454,8 +462,9 @@ def get_special_groups(mol):
 		'[$(B-!@[#6])](O)(O)', # boronic acid
 		'[$(N-!@[#6])](=!@C=!@O)', # isocyanate
 		'[N;H0;$(N-[#6]);D2]=[N;D2]=[N;D1]', # azide
-		'O=C1N(Br)C(=O)CC1', # SMILES for NBS brominating agent
-		'C=O' # carbonyl
+		'O=C1N(Br)C(=O)CC1', # NBS brominating agent
+		'C=O', # carbonyl
+		'ClS(Cl)=O', # thionyl chloride
 		]
 
 	# Build list
@@ -477,7 +486,7 @@ def mol_list_from_inchi(inchis):
 
 def main(db_fpath, N = 15, out_fpath = 'tforms.txt'):
 	'''Read reactions from Lowe's patent reaction SMILES'''
-
+	global v
 	# Open file
 	data_fid = open(db_fpath, 'r')
 
@@ -505,6 +514,14 @@ def main(db_fpath, N = 15, out_fpath = 'tforms.txt'):
 		reaction_smiles = line.split('\t')[0].split(' ')[0] # remove fragment portion, too
 		reactants, agents, products = [mols_from_smiles_list(x) for x in 
 										[mols.split('.') for mols in reaction_smiles.split('>')]]
+		if 'Mg' in reaction_smiles.split('>')[2]:
+			print('Found Mg in product!')
+			print(reaction_smiles)
+			v = True
+			raw_input('Pausing...')
+		else: 
+			v = False
+
 		if None in reactants + agents + products: 
 			if v: 
 				print(reaction_smiles)

@@ -240,7 +240,7 @@ def get_data_one(data_label = '', shuffle_seed = None, batch_size = 1,
 				this_y = y_func(float(row[y_index]))
 				mols.append(mol_tensor)
 				y.append(this_y) # Measured log(solubility M/L)
-				smiles.append(Chem.MolToSmiles(mol, allBondsExplicit = True, isomericSmiles = True)) # Smiles
+				smiles.append(Chem.MolToSmiles(mol, isomericSmiles = True)) # Smiles
 
 				# Check for redundancies
 				if smiles.count(smiles[-1]) > 1:

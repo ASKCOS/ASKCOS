@@ -26,7 +26,7 @@ def defaultDrawOptions():
 	default drawing options.'''
 
 	opts = Draw.DrawingOptions()
-	opts.elemDict = defaultdict(lambda: (0,0,0)) # all atoms are black
+	#opts.elemDict = defaultdict(lambda: (0,0,0)) # all atoms are black
 	opts.noCarbonSymbols = True
 	opts.selectColor = (1, 0, 0)
 	opts.wedgeBonds = True

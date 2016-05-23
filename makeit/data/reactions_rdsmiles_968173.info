@@ -1,0 +1,11 @@
+reactions_rdsmiles_968173.json generated at UTC 2016-02-29 22:31:17.210110
+
+File details
+------------
+Found 968173 random reactions from database satisfying the following criteria:
+- >=1 reactant, product
+for the associated chemicals...
+- chemical['smiles'] == True
+- can be parsed by RDKit
+Data list consists of entries:
+  [[str(reacSMILES), ...], [str(prodSMILES)]]

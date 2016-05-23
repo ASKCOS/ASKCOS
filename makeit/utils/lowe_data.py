@@ -1,4 +1,5 @@
 # Utilities for using the Daniel Lowe patent data
+
 from __future__ import print_function
 import os
 from xml.dom import minidom
