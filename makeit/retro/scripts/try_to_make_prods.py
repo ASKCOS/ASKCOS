@@ -9,6 +9,7 @@ import rdkit.Chem as Chem
 import os                          # for saving
 matplotlib.rc('font', **{'size': 18})
 from makeit.retro.draw import ReactionStringToImage
+from makeit.retro.canonicalization import SmilesFixer
 import sys
 import re
 
@@ -90,6 +91,7 @@ if __name__ == '__main__':
 
 
 	rxn_successful = 0; rxn_unsuccessful = 0;
+	smilesfixer = SmilesFixer()
 	try:
 		for i, reaction in generator:
 			if i == N: 
@@ -100,21 +102,17 @@ if __name__ == '__main__':
 			print('## RXN {}'.format(i))
 			print('#########')
 
-			# print(reaction)
-
-			# raw_input('pause')
-			# continue
-
-			all_smiles =  [x['smiles'] for x in reaction['reactants']]
+			all_smiles =  [smilesfixer.fix_smiles(x['smiles']) for x in reaction['reactants']]
 			if 'catalysts' in reaction:
-				all_smiles += [x['smiles'] for x in reaction['catalysts']] 
+				all_smiles += [smilesfixer.fix_smiles(x['smiles']) for x in reaction['catalysts']] 
 			if 'spectators' in reaction:
-				all_smiles += [x['smiles'] for x in reaction['spectators']] 
+				all_smiles += [smilesfixer.fix_smiles(x['smiles']) for x in reaction['spectators']] 
 
 			mol = Chem.MolFromSmiles(reaction['products'][0]['smiles'])
 			if mol:
 				product_smiles = Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY)
-				result = Transformer.perform_forward('.'.join(all_smiles), stop_if = product_smiles)
+				result = Transformer.perform_forward('.'.join(all_smiles), 
+					stop_if = smilesfixer.fix_smiles(product_smiles))
 			else: 
 				result = False
 
