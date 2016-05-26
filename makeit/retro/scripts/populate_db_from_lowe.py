@@ -22,7 +22,7 @@ from makeit.retro.draw import *
 from pymongo import MongoClient    # mongodb plugin
 client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
 db = client['askcos_transforms']
-template_collection_name = 'lowe_refs_general'
+template_collection_name = 'lowe_refs_general_v2'
 template_collection = db[template_collection_name]
 db = client['reaction_examples']
 example_collection = db['lowe_1976-2013_USPTOgrants']
@@ -296,7 +296,7 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 						else:
 							symbol = symbol.replace(']', ';+0]')
 					if USE_STEREOCHEMISTRY:
-						atom.GetChiralTag() != Chem.rdchem.ChiralType.CHI_UNSPECIFIED:
+						if atom.GetChiralTag() != Chem.rdchem.ChiralType.CHI_UNSPECIFIED:
 							# Be explicit when there is a tetrahedral chiral tag
 							if atom.GetChiralTag() == Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW:
 								tag = '@'
@@ -362,6 +362,8 @@ def get_special_groups(mol):
 	each tuple contains the AtomIdx's for a special group of atoms which should 
 	be included in a fragment all together. This should only be done for the 
 	reactants, otherwise the products might end up with mapping mismatches'''
+
+	if SUPER_GENERAL_TEMPLATES: return []
 
 	# Define templates, based on Functional_Group_Hierarchy.txt from Greg Laandrum
 	group_templates = [ 
@@ -724,7 +726,8 @@ if __name__ == '__main__':
 	parser.add_argument('-n', '--num', type = int, default = 50,
 						help = 'Maximum number of records to examine; defaults to 50')
 	parser.add_argument('-g', '--general', type = bool, default = False,
-						help = 'Use incredibly general templates; defaults to False')
+						help = 'Use incredibly general templates; defaults to False\n' + 
+						'Only appropriate for forward enumeration')
 	parser.add_argument('-t', '--test', type = bool, default = True,
 						help = 'Whether to *skip* testing; defaults to True')
 	args = parser.parse_args()

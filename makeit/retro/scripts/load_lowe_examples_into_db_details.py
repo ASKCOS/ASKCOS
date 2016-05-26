@@ -4,6 +4,7 @@
 from __future__ import print_function
 import argparse
 from numpy.random import shuffle # for random selection
+from numpy.random import random
 import rdkit.Chem as Chem          # molecule building
 from rdkit.Chem import AllChem
 from collections import defaultdict
@@ -118,6 +119,7 @@ def main(db_fpath, N = 15):
 			document = minidom.parse(rxn)
 			try:
 				dic = doc_to_dic(document)
+				dic['random'] = random()
 				documents.append(dic)
 			except ValueError as e:
 				print(e)
