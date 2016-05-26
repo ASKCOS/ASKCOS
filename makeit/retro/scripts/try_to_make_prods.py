@@ -10,6 +10,7 @@ import os                          # for saving
 matplotlib.rc('font', **{'size': 18})
 from makeit.retro.draw import ReactionStringToImage
 import sys
+import re
 
 if __name__ == '__main__':
 
@@ -74,8 +75,9 @@ if __name__ == '__main__':
 						fid.write('{}'.format(seed))
 			def get_rand(self):
 				'''Random WITHOUT replacement'''
-				for i in range(reactions.find({'products': {'$size': 1}}).count()):
+				while True:
 					doc = reactions.find({'products': {'$size': 1}, \
+						'products.0.smiles': {'$not': re.compile('.*\..*')},
 						'random': { '$gte': np.random.random()}}).sort('random', 1).limit(1)[0]
 					if doc['_id'] in self.done_ids: continue
 					self.done_ids.append(doc['_id'])
@@ -83,13 +85,13 @@ if __name__ == '__main__':
 		randomizer = Randomizer()
 		generator = enumerate(randomizer.get_rand())
 	else:
-		generator = enumerate(reactions.find({'products': {'$size': 1}}, no_cursor_timeout=True))
+		generator = enumerate(reactions.find({'products': {'$size': 1}, \
+			'products.0.smiles': {'$not': re.compile('.*\..*')}}, no_cursor_timeout=True))
 
 
 	rxn_successful = 0; rxn_unsuccessful = 0;
 	try:
 		for i, reaction in generator:
-
 			if i == N: 
 				N = i
 				break
@@ -97,6 +99,11 @@ if __name__ == '__main__':
 			print('#########')
 			print('## RXN {}'.format(i))
 			print('#########')
+
+			# print(reaction)
+
+			# raw_input('pause')
+			# continue
 
 			all_smiles =  [x['smiles'] for x in reaction['reactants']]
 			if 'catalysts' in reaction:
