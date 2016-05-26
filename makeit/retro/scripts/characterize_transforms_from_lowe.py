@@ -48,7 +48,8 @@ def probability_v_rank(counts, out = None):
 	plt.grid(True)
 	if out:
 		fig.savefig(out + ' prob_rank.png')
-	plt.show()
+		np.savetxt(out + ' probs.txt', sorted(probs, reverse = True))
+	# plt.show()
 
 	# Count
 	fig = plt.figure()
@@ -65,7 +66,10 @@ def probability_v_rank(counts, out = None):
 	plt.grid(True)
 	if out:
 		fig.savefig(out + ' count_rank.png')
-	plt.show()
+		np.savetxt(out + ' counts.txt', sorted(counts, reverse = True))
+	# plt.show()
+
+
 
 	return
 
@@ -86,7 +90,9 @@ if __name__ == '__main__':
 	from pymongo import MongoClient    # mongodb plugin
 	client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
 	db = client['askcos_transforms']
+	collection_name = 'lowe'
 	collection_name = 'lowe_refs_general'
+	collection_name = 'lowe_refs_general_v2'
 	collection = db[collection_name]
 
 	probability_v_rank(get_counts(collection), out = os.path.join(out_folder, collection_name))

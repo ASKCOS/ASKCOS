@@ -105,6 +105,15 @@ class Transformer:
 			self.templates.append(template)
 		self.num_templates = len(self.templates)
 
+	def reorder(self):
+		'''
+		Re-orders the list of templates (self.templates) according to 
+		field 'count' in descending order. This means we will apply the
+		most popular templates first
+		'''
+		self.templates[:] = [x for x in sorted(self.templates, key = lambda z: z['count'], reverse = True)]
+
+
 	def perform_retro(self, smiles):
 		'''
 		Performs a one-step retrosynthesis given a SMILES string of a

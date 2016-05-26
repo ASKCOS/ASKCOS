@@ -5,6 +5,7 @@ import argparse
 import numpy as np     	      	   # for simple calculations
 import matplotlib
 import matplotlib.pyplot as plt    # for visualization
+import rdkit.Chem as Chem
 import os                          # for saving
 matplotlib.rc('font', **{'size': 18})
 from makeit.retro.draw import ReactionStringToImage
@@ -20,13 +21,15 @@ if __name__ == '__main__':
 	parser.add_argument('-n', '--num', type = int, default = 50,
 						help = 'Maximum number of records to examine; defaults to 50')
 	parser.add_argument('-e', '--examples', type = str, default = 'lowe_1976-2013_USPTOgrants_reactions',
-						help = 'Name of reaction example collection, defaults to Lowe USPTO grants')
+						help = 'Name of reaction example collection, defaults to Lowe USPTO grants reactions')
 	parser.add_argument('-t', '--templates', type = str, default = 'lowe_refs_general',
 						help = 'Name of reaction template collection, defaults to lowe_refs_general')
 	parser.add_argument('--mincount', type = int, default = 2, 
 						help = 'Minimum count of reaction templates to use, defaults to 2')
-	# parser.add_argument('-s', '--shuffle', type = bool, default = True,
-	# 					help = 'Shuffle reaction example database? defaults to True')
+	parser.add_argument('-s', '--shuffle', type = bool, default = True,
+						help = 'Shuffle reaction example database? defaults to True')
+	parser.add_argument('--seed', type = int, default = None,
+						help = 'Seed for random number generator')
 
 	args = parser.parse_args()
 
@@ -50,17 +53,43 @@ if __name__ == '__main__':
 	Transformer.load(templates, mincount = args.mincount, get_retro = False, get_synth = True)
 	print('Out of {} database templates,'.format(templates.count()))
 	print('Loaded {} templates'.format(Transformer.num_templates))
+	Transformer.reorder()
+	print('Sorted by count, descending')
 
 	# Iterate through all examples and see if we made it
-	# matched_docs = reactions.find({'products': {'$size': 1}}, no_cursor_timeout=True)
-	# ids = [x['_id'] for x in matched_docs]
-	# if bool(args.shuffle):
-	# 	np.shuffle(ids)	
+
+
+	# Define generator
+	if bool(args.shuffle):
+		class Randomizer():
+			def __init__(self):
+				self.done_ids = []
+				if args.seed:
+					seed = int(args.seed)
+				else:
+					seed = np.random.randint(10000)
+				np.random.seed(seed)
+				if args.out:
+					with open(os.path.join(args.out, 'seed.txt'), 'w') as fid:
+						fid.write('{}'.format(seed))
+			def get_rand(self):
+				'''Random WITHOUT replacement'''
+				for i in range(reactions.find({'products': {'$size': 1}}).count()):
+					doc = reactions.find({'products': {'$size': 1}, \
+						'random': { '$gte': np.random.random()}}).sort('random', 1).limit(1)[0]
+					if doc['_id'] in self.done_ids: continue
+					self.done_ids.append(doc['_id'])
+					yield doc
+		randomizer = Randomizer()
+		generator = enumerate(randomizer.get_rand())
+	else:
+		generator = enumerate(reactions.find({'products': {'$size': 1}}, no_cursor_timeout=True))
+
+
 	rxn_successful = 0; rxn_unsuccessful = 0;
 	try:
-		for i, reaction in enumerate(reactions.find({'products': {'$size': 1}}, no_cursor_timeout=True)):
-			# if i < 64: continue
-			#if i < 1000: continue
+		for i, reaction in generator:
+
 			if i == N: 
 				N = i
 				break
@@ -75,7 +104,13 @@ if __name__ == '__main__':
 			if 'spectators' in reaction:
 				all_smiles += [x['smiles'] for x in reaction['spectators']] 
 
-			result = Transformer.perform_forward('.'.join(all_smiles), stop_if = reaction['products'][0]['smiles'])
+			mol = Chem.MolFromSmiles(reaction['products'][0]['smiles'])
+			if mol:
+				product_smiles = Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY)
+				result = Transformer.perform_forward('.'.join(all_smiles), stop_if = product_smiles)
+			else: 
+				result = False
+
 			if result == True:
 				rxn_successful += 1
 			else:
@@ -84,7 +119,7 @@ if __name__ == '__main__':
 				print(reaction)
 				if args.out:
 					img = ReactionStringToImage(reaction['reaction_smiles'].split(' ')[0])
-					img.save(os.path.join(args.out, '{}_failed.png'.format(i)))
+					img.save(os.path.join(args.out, '{}_failed_{}.png'.format(i, str(reaction['_id']))))
 
 	except KeyboardInterrupt:
 		print('terminated early')
