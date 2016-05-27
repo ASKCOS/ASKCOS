@@ -10,12 +10,31 @@ class SmilesFixer():
 	'''
 	def __init__(self):
 		self.rxns = [
-			# Double bonds on aromatic rings
-			AllChem.ReactionFromSmarts('[NH0:1]=[c:2][nH:3]>>[NH:1][c:2][nH0:3]'),
-			AllChem.ReactionFromSmarts('[NH1:1]=[c:2][nH:3]>>[NH2:1][c:2][nH0:3]'),
+			# Double bonds on aromatic rings (dist 1)
+			AllChem.ReactionFromSmarts('[NH0:1]=[a:2][nH:3]>>[NH:1][a:2][nH0:3]'),
+			AllChem.ReactionFromSmarts('[NH1:1]=[a:2][nH:3]>>[NH2:1][a:2][nH0:3]'),
+			AllChem.ReactionFromSmarts('[OH0:1]=[a:2][nH:3]>>[OH:1][a:2][nH0:3]'),
+			# Double bonds on aromatic rings (dist 2)
+			AllChem.ReactionFromSmarts('[NH0:1]=[a:2][a:4][nH:3]>>[NH:1][a:2][a:4][nH0:3]'),
+			AllChem.ReactionFromSmarts('[NH1:1]=[a:2][a:4][nH:3]>>[NH2:1][a:2][a:4][nH0:3]'),
+			AllChem.ReactionFromSmarts('[OH0:1]=[a:2][a:4][nH:3]>>[OH:1][a:2][a:4][nH0:3]'),
+			# Double bonds on aromatic rings (dist 2)
+			AllChem.ReactionFromSmarts('[NH0:1]=[a:2][a:4][a:5][nH:3]>>[NH:1][a:2][a:4][a:5][nH0:3]'),
+			AllChem.ReactionFromSmarts('[NH1:1]=[a:2][a:4][a:5][nH:3]>>[NH2:1][a:2][a:4][a:5][nH0:3]'),
+			AllChem.ReactionFromSmarts('[OH0:1]=[a:2][a:4][a:5][nH:3]>>[OH:1][a:2][a:4][a:5][nH0:3]'),
 			# Iminol / amide 
 			AllChem.ReactionFromSmarts('[NH0:1]=[C:2]-[OH:3]>>[NH1:1]-[C:2]=[OH0:3]'),
-			AllChem.ReactionFromSmarts('[NH1:1]=[C:2]-[OH:3]>>[NH2:1]-[C:2]=[OH0:3]')
+			AllChem.ReactionFromSmarts('[NH1:1]=[C:2]-[OH:3]>>[NH2:1]-[C:2]=[OH0:3]'),
+			# Thiourea
+			AllChem.ReactionFromSmarts('[NH0:1]=[C:2]-[SH:3]>>[NH1:1]-[C:2]=[SH0:3]'),
+			AllChem.ReactionFromSmarts('[NH1:1]=[C:2]-[SH:3]>>[NH2:1]-[C:2]=[SH0:3]'),
+			# Azide
+			AllChem.ReactionFromSmarts('[NH0:1][NH0:2]=[NH0;-:3]>>[NH0;-:1]=[NH0;+:2]=[NH0;-:3]'),
+			# Cyanide salts
+			AllChem.ReactionFromSmarts('([K,Na;H1:1].[C;X1;H0:2]#[N:3])>>[*;H0:1][*:2]#[N:3]'),
+			AllChem.ReactionFromSmarts('([Cu:1].[C;X1;H0:2]#[N:3])>>[*:1][*:2]#[N:3]'),
+			# Grinards
+			AllChem.ReactionFromSmarts('([MgH+:1].[C;v3:2][*:3])>>[Mg+:1][*:2][*:3]')
 		]
 
 	def fix_smiles(self, old_smiles):
