@@ -22,7 +22,7 @@ from makeit.retro.draw import *
 from pymongo import MongoClient    # mongodb plugin
 client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
 db = client['askcos_transforms']
-template_collection_name = 'lowe_refs_general_v2'
+template_collection_name = 'lowe_refs_general_v3'
 template_collection = db[template_collection_name]
 db = client['reaction_examples']
 example_collection = db['lowe_1976-2013_USPTOgrants']
@@ -338,9 +338,17 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 		# 	print('~~ replacement for this ' + category[:-1])
 		# 	print('{} -> {}'.format([mol.GetAtomWithIdx(x).GetSmarts() for (x, s) in symbol_replacements], 
 		# 		                    [s for (x, s) in symbol_replacements]))
-		fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, 
+		# Remove molAtomMapNumber before canonicalization
+		[x.ClearProp('molAtomMapNumber') for x in mol.GetAtoms()]
+		if not USE_CUSTOM_RDKIT:
+			fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, 
 			atomSymbols = symbols, allHsExplicit = True, 
 			isomericSmiles = USE_STEREOCHEMISTRY, allBondsExplicit = True) + ').'
+		else:
+			fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, 
+			atomSymbols = symbols, allHsExplicit = True, 
+			isomericSmiles = USE_STEREOCHEMISTRY, allBondsExplicit = True,
+			ignoreAtomMapping = True) + ').'
 	return fragments[:-1]
 
 def expand_changed_atom_tags(changed_atom_tags, reactant_fragments):
@@ -648,6 +656,14 @@ def main(N = 15, folder = ''):
 					rxn_canonical = canonicalize_transform(rxn_string)
 					retro_canonical = convert_to_retro(rxn_canonical)
 
+					# # DEBUG
+					# if retro_canonical == '[*:2]-[OH;+0:1]>>[C]-[O;H0;+0:1]-[*:2]' or \
+					# 		retro_canonical == '[OH;+0:1]-[*:2]>>[C]-[O;H0;+0:1]-[*:2]':
+					# 	print(retro_canonical)
+					# 	raw_input('Pausing...')
+					# print(retro_canonical)
+					# continue
+
 					# Is this old?
 					doc = template_collection.find_one({'reaction_smarts': retro_canonical})
 
@@ -725,11 +741,13 @@ if __name__ == '__main__':
 						help = 'Folder to output images to if verbose')
 	parser.add_argument('-n', '--num', type = int, default = 50,
 						help = 'Maximum number of records to examine; defaults to 50')
-	parser.add_argument('-g', '--general', type = bool, default = False,
-						help = 'Use incredibly general templates; defaults to False\n' + 
+	parser.add_argument('-g', '--general', type = bool, default = True,
+						help = 'Use incredibly general templates; defaults to True\n' + 
 						'Only appropriate for forward enumeration')
 	parser.add_argument('-t', '--test', type = bool, default = True,
 						help = 'Whether to *skip* testing; defaults to True')
+	parser.add_argument('--custom_rdkit', type = bool, default = False,
+						help = 'Whether using versino of rdkit with ignoreAtomMapping; defaults to False')
 	args = parser.parse_args()
 
 	v = args.v
@@ -737,6 +755,7 @@ if __name__ == '__main__':
 	if not v: lg.setLevel(4)
 	SUPER_GENERAL_TEMPLATES = bool(args.general)
 	DO_NOT_TEST = bool(args.test)
+	USE_CUSTOM_RDKIT = bool(args.custom_rdkit)
 
 	clear = raw_input('Do you want to clear the {} existing templates in {}? '.format(template_collection.find().count(), template_collection_name))
 	if clear in ['y', 'Y', 'yes', '1', 'Yes']:
