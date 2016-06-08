@@ -10,6 +10,8 @@ def get_counts(collection):
 	counts = np.zeros((collection.find().count(), 1)).flatten()
 	for (i, doc) in enumerate(collection.find()):
 		counts[i] = doc['count'] if 'count' in doc else 0
+	print('Total counts: {}'.format(sum(counts)))
+	print('Total number of templates: {}'.format(sum(counts != 0)))
 	return counts[counts != 0]
 
 def get_counts_templates(collection):
@@ -69,8 +71,6 @@ def probability_v_rank(counts, out = None):
 		np.savetxt(out + ' counts.txt', sorted(counts, reverse = True))
 	# plt.show()
 
-
-
 	return
 
 def top_templates(docs, out, n = 10):
@@ -93,6 +93,7 @@ if __name__ == '__main__':
 	collection_name = 'lowe'
 	collection_name = 'lowe_refs_general'
 	collection_name = 'lowe_refs_general_v2'
+	collection_name = 'lowe_refs_general_v3'
 	collection = db[collection_name]
 
 	probability_v_rank(get_counts(collection), out = os.path.join(out_folder, collection_name))

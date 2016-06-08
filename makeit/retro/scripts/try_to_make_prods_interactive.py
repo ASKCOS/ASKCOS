@@ -6,6 +6,7 @@ import numpy as np     	      	   # for simple calculations
 import matplotlib
 import matplotlib.pyplot as plt    # for visualization
 import os                          # for saving
+import rdkit.Chem as Chem
 matplotlib.rc('font', **{'size': 18})
 from makeit.retro.draw import ReactionStringToImage, MolsSmilesToImage
 import sys
@@ -24,7 +25,7 @@ if __name__ == '__main__':
 
 	args = parser.parse_args()
 
-	v = args.v
+	v = bool(args.v)
 	from rdkit import RDLogger
 	lg = RDLogger.logger()
 	if not v: lg.setLevel(4)
@@ -55,6 +56,14 @@ if __name__ == '__main__':
 
 		try:
 			try:
+				mol = Chem.MolFromSmiles(reactant_smiles_string.strip())
+				[x.SetProp('molAtomMapNumber', str(i)) for (i, x) in enumerate(mol.GetAtoms())]
+				reactant_smiles_string = Chem.MolToSmiles(mol, isomericSmiles = True)
+				print('(with maps) {}'.format(reactant_smiles_string))
+			except Exception as e:
+				print('Error! {}'.format(e))
+				continue
+			try:
 				out_folder = os.path.join(args.out, reactant_smiles_string)
 				os.mkdir(out_folder)
 			except:
@@ -63,10 +72,14 @@ if __name__ == '__main__':
 			img = ReactionStringToImage(reactant_smiles_string + '>>')
 			img.save(os.path.join(out_folder, 'reactants.png'))
 
-			for product in result.return_top(n = n_top):
-				img = MolsSmilesToImage(product['smiles'])
-				img.save(os.path.join(out_folder, 
-					'rank{}_score{}.png'.format(product['rank'], product['num_examples'])))
+			
+			for i, product in enumerate(result.return_top(n = n_top)):
+				print('{}. {}'.format(i+1, product['smiles']))
+				if v:
+					img = MolsSmilesToImage(product['smiles'])
+					img.save(os.path.join(out_folder, 
+						'rank{}_score{}.png'.format(product['rank'], product['num_examples'])))
+
 
 			print('Total of {} possible products'.format(len(result.products)))
 

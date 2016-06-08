@@ -32,6 +32,8 @@ if __name__ == '__main__':
 						help = 'Shuffle reaction example database? defaults to True')
 	parser.add_argument('--seed', type = int, default = None,
 						help = 'Seed for random number generator')
+	parser.add_argument('--rxnsmiles', type = bool, default = False,
+						help = 'Use reaction_smiles for species, not pre-parsed')
 
 	args = parser.parse_args()
 
@@ -94,27 +96,41 @@ if __name__ == '__main__':
 	smilesfixer = SmilesFixer()
 	try:
 		for i, reaction in generator:
+
 			if i == N: 
 				N = i
 				break
+
+			# if i == 259:
+			# 	print(reaction)
+			# continue
 
 			print('#########')
 			print('## RXN {}'.format(i))
 			print('#########')
 
-			all_smiles =  [smilesfixer.fix_smiles(x['smiles']) for x in reaction['reactants']]
-			if 'catalysts' in reaction:
-				all_smiles += [smilesfixer.fix_smiles(x['smiles']) for x in reaction['catalysts']] 
-			if 'spectators' in reaction:
-				all_smiles += [smilesfixer.fix_smiles(x['smiles']) for x in reaction['spectators']] 
-
-			mol = Chem.MolFromSmiles(reaction['products'][0]['smiles'])
+			if bool(args.rxnsmiles):
+				rxn_smiles = reaction['reaction_smiles'].split(' ')[0]
+				all_smiles = [smilesfixer.fix_smiles(x) for x in rxn_smiles.split('>')[0].split('.')]
+				mol = Chem.MolFromSmiles(rxn_smiles.split('>')[2])
+			else:
+				all_smiles =  [smilesfixer.fix_smiles(x['smiles']) for x in reaction['reactants']]
+				if 'catalysts' in reaction:
+					all_smiles += [smilesfixer.fix_smiles(x['smiles']) for x in reaction['catalysts']] 
+				if 'spectators' in reaction:
+					all_smiles += [smilesfixer.fix_smiles(x['smiles']) for x in reaction['spectators']] 
+				mol = Chem.MolFromSmiles(reaction['products'][0]['smiles'])
+			
 			if mol:
-				product_smiles = Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY)
+				[x.ClearProp('molAtomMapNumber') for x in mol.GetAtoms()] # remove atom mapping
+				print('REACTANTS: {}'.format('.'.join(all_smiles)))
+				print('PRODUCT: {}'.format(Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY)))
+				product_smiles = smilesfixer.fix_smiles(Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY))
 				result = Transformer.perform_forward('.'.join(all_smiles), 
-					stop_if = smilesfixer.fix_smiles(product_smiles))
+					stop_if = product_smiles, progbar = True)
 			else: 
 				result = False
+				print('Could not parse product')
 
 			if result == True:
 				rxn_successful += 1
@@ -133,3 +149,5 @@ if __name__ == '__main__':
 	print('Out of {} reactions:'.format(N))
 	print('  {} successful'.format(rxn_successful))
 	print('  {} unsuccessful'.format(rxn_unsuccessful))
+
+	del Transformer
