@@ -140,8 +140,12 @@ class Transformer:
 			if not outcomes: continue
 			for j, outcome in enumerate(outcomes):
 				try:
-					[x.UpdatePropertyCache() for x in outcome]
-					[Chem.SanitizeMol(x) for x in outcome]
+					for x in outcome:
+						x.UpdatePropertyCache()
+						Chem.SanitizeMol(x)
+						[a.SetProp('molAtomMapNumber', a.GetProp('old_molAtomMapNumber')) \
+							for (i, a) in enumerate(x.GetAtoms()) \
+							if 'old_molAtomMapNumber' in a.GetPropsAsDict()]
 				except Exception as e:
 					print(e)
 					continue
@@ -158,7 +162,7 @@ class Transformer:
 
 		return result
 
-	def perform_forward(self, smiles, stop_if = None):
+	def perform_forward(self, smiles, stop_if = None, progbar = False):
 		'''
 		Performs a forward synthesis (i.e., reaction enumeration) given
 		a SMILES string by applying each transformation template in 
@@ -176,8 +180,15 @@ class Transformer:
 		# Initialize results object
 		result = ForwardResult(smiles)
 
+		# Draw?
+		if progbar:
+			from tqdm import tqdm
+			generator = tqdm(self.templates)
+		else:
+			generator = self.templates
+
 		# Try each in turn
-		for template in self.templates:
+		for template in generator:
 			# Perform
 			try:
 				outcomes = template['rxn_f'].RunReactants([mol])
@@ -188,8 +199,12 @@ class Transformer:
 			if not outcomes: continue
 			for j, outcome in enumerate(outcomes):
 				try:
-					[x.UpdatePropertyCache() for x in outcome]
-					[Chem.SanitizeMol(x) for x in outcome]
+					for x in outcome:
+						x.UpdatePropertyCache()
+						Chem.SanitizeMol(x)
+						[a.SetProp('molAtomMapNumber', a.GetProp('old_molAtomMapNumber')) \
+							for (i, a) in enumerate(x.GetAtoms()) \
+							if 'old_molAtomMapNumber' in a.GetPropsAsDict()]
 				except Exception as e:
 					#print(e)
 					continue
