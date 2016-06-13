@@ -57,7 +57,7 @@ if __name__ == '__main__':
 		try:
 			try:
 				mol = Chem.MolFromSmiles(reactant_smiles_string.strip())
-				[x.SetProp('molAtomMapNumber', str(i)) for (i, x) in enumerate(mol.GetAtoms())]
+				[x.SetProp('molAtomMapNumber', str(i+1)) for (i, x) in enumerate(mol.GetAtoms())]
 				reactant_smiles_string = Chem.MolToSmiles(mol, isomericSmiles = True)
 				print('(with maps) {}'.format(reactant_smiles_string))
 			except Exception as e:
@@ -75,6 +75,7 @@ if __name__ == '__main__':
 			
 			for i, product in enumerate(result.return_top(n = n_top)):
 				print('{}. {}'.format(i+1, product['smiles']))
+				print('    ({})'.format(Transformer.lookup_id(product['tforms'][0])['reaction_smarts']))
 				if v:
 					img = MolsSmilesToImage(product['smiles'])
 					img.save(os.path.join(out_folder, 

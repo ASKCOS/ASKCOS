@@ -16,6 +16,11 @@ class Transformer:
 		self.has_synth = False
 		self.has_retro = False
 
+
+		# MEMORY LEAK DEBUG
+		from pympler.tracker import SummaryTracker
+		self.tracker = SummaryTracker()
+
 	def load(self, collection, mincount = 4, get_retro = True, get_synth = True):
 		'''
 		Loads the object from a MongoDB collection containing transform

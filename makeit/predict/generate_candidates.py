@@ -7,10 +7,13 @@ import os                          # for saving
 import sys
 import rdkit.Chem as Chem
 import makeit.retro.transformer as transformer 
+from makeit.retro.canonicalization import SmilesFixer
 from pymongo import MongoClient    # mongodb plugin
+import re
 
-def main(template_collection = 'lowe_refs_general_v3', USE_REACTIONSMILES = True,
-		mincount = 4, n_max = 50, seed = None, outfile = '.'):
+def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lowe_1976-2013_USPTOgrants_reactions',
+		candidate_collection = 'candidates', USE_REACTIONSMILES = True, mincount = 4, n_max = 50, seed = None, 
+		outfile = '.'):
 
 	from rdkit import RDLogger
 	lg = RDLogger.logger()
@@ -26,12 +29,17 @@ def main(template_collection = 'lowe_refs_general_v3', USE_REACTIONSMILES = True
 	Transformer.reorder()
 	print('Sorted by count, descending')
 
+	db = client['reaction_examples']
+	reactions = db[reaction_collection]
+
+	db = client['prediction']
+	candidates = db[candidate_collection]
+
+
 	# Define generator
 	class Randomizer():
-		def __init__(self):
+		def __init__(self, seed):
 			self.done_ids = []
-			if seed == None:
-				seed = np.random.randint(10000)
 			np.random.seed(seed)
 			if outfile:
 				with open(os.path.join(outfile, 'seed.txt'), 'w') as fid:
@@ -45,10 +53,16 @@ def main(template_collection = 'lowe_refs_general_v3', USE_REACTIONSMILES = True
 				if doc['_id'] in self.done_ids: continue
 				self.done_ids.append(doc['_id'])
 				yield doc
-	randomizer = Randomizer()
+
+	if seed == None:
+		seed = np.random.randint(10000)
+	else:
+		seed = int(seed)
+	randomizer = Randomizer(seed)
 	generator = enumerate(randomizer.get_rand())
 
 	smilesfixer = SmilesFixer()
+
 	try:
 		for i, reaction in generator:
 
@@ -86,7 +100,23 @@ def main(template_collection = 'lowe_refs_general_v3', USE_REACTIONSMILES = True
 				print('True product found!')
 			else:
 				print('True product not found...')
-				raw_input('Pausing...')
+			print('{} candidates'.format(len(result.products)))
+			
+			# Prepare doc and insert
+			doc = {
+				'reaction_collection': reaction_collection,
+				'reaction_id': reaction['_id'],
+				'reactant_smiles': '.'.join(all_smiles),
+				'product_smiles_candidates': ['.'.join(product.smiles_list) for product in result.products],
+				'product_smiles_true': target_smiles,
+				'found': found_true,
+				'num_candidates': len(result.products),
+			}
+			result = candidates.insert(doc)
+
+			# MEMORY LEAK DEBUG
+			Transformer.tracker.print_diff()
+
 	except Exception as e:
 		print('Error! {}'.format(e))
 
@@ -94,4 +124,26 @@ def main(template_collection = 'lowe_refs_general_v3', USE_REACTIONSMILES = True
 
 
 if __name__ == '__main__':
-	main()
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-v', type = bool, default = False,
+						help = 'Verbose printing; defaults to False')
+	parser.add_argument('-n', '--num', type = int, default = 50,
+						help = 'Maximum number of records to examine; defaults to 50')
+	parser.add_argument('--reaction_collection', type = str, default = 'lowe_1976-2013_USPTOgrants_reactions',
+						help = 'Collection of reaction_examples to use; defaults to lowe_1976-2013_USPTOgrants_reactions')
+	parser.add_argument('--template_collection', type = str, default = 'lowe_refs_general_v3',
+						help = 'Collection of templates to use; defaults to lowe_refs_general_v3')
+	parser.add_argument('--candidate_collection', type = str, default = 'candidates', 
+						help = 'Collection of candidates to write to; defaults to candidates')
+	parser.add_argument('--seed', type = int, default = None,
+						help = 'Seed for random number generator')
+	parser.add_argument('--rxnsmiles', type = bool, default = True,
+						help = 'Use reaction_smiles for species, not pre-parsed; defaults to true')
+	parser.add_argument('--mincount', type = int, default = 4,
+						help = 'Minimum template count to include in transforms; defaults to 4')
+	args = parser.parse_args()
+
+
+	main(template_collection = args.template_collection, reaction_collection = args.reaction_collection,
+		candidate_collection = args.candidate_collection, seed = args.seed, n_max = int(args.num), 
+		mincount = int(args.mincount), USE_REACTIONSMILES = bool(args.rxnsmiles))
