@@ -10,7 +10,7 @@ import os
 from makeit.embedding.descriptors import rxn_level_descriptors
 from keras.preprocessing.sequence import pad_sequences
 
-def get_candidates(n = 2, seed = None, outfile = '.'):
+def get_candidates(n = 2, seed = None, outfile = '.', single_only = False):
 	'''
 	Pull n example reactions, their candidates, and the true answer
 	'''
@@ -34,11 +34,18 @@ def get_candidates(n = 2, seed = None, outfile = '.'):
 		def get_rand(self):
 			'''Random WITHOUT replacement'''
 			while True:
-				doc = examples.find({'found': True, \
-					'random': { '$gte': np.random.random()}}).sort('random', 1).limit(1)[0]
-				if doc['_id'] in self.done_ids: continue
-				self.done_ids.append(doc['_id'])
-				yield doc
+				try:
+					doc = examples.find({'found': True, \
+						'random': { '$gte': np.random.random()}}).sort('random', 1).limit(1)
+					if not doc: continue
+					if doc[0]['_id'] in self.done_ids: continue
+					self.done_ids.append(doc[0]['_id'])
+					yield doc[0]
+				except KeyboardInterrupt:
+					print('Terminated early')
+					quit(1)
+				except:
+					pass
 
 	if seed == None:
 		seed = np.random.randint(10000)
@@ -53,11 +60,24 @@ def get_candidates(n = 2, seed = None, outfile = '.'):
 	for i, reaction in generator:
 		if i == n: break
 
+		candidate_products = reaction['product_smiles_candidates']
+		if single_only: # reduce product list to LONGEST component (SMILES)
+			candidate_products_brief = list(set(
+				[max(candidates.split('.'), key=len) \
+					for candidates in candidate_products] 
+			))
+			print('Reduced {} candidates to {}'.format(len(candidate_products), len(candidate_products_brief)))
+			del candidate_products
+			candidate_products = candidate_products_brief
+
 		strings = [str(reaction['reactant_smiles']) + '>>' + str(x) \
-			for x in reaction['product_smiles_candidates']]
-		bools = [reaction['product_smiles_true'] in x \
-				for x in reaction['product_smiles_candidates']]
+			for x in candidate_products]
+		bools = [reaction['product_smiles_true'] == x \
+				for x in candidate_products]
 		print('rxn. {} : {} true entries'.format(i, sum(bools)))
+		if sum(bools) == 0:
+			print('##### True product not found / filtered out #####')
+			continue
 		reaction_strings.append(
 			[x for (y, x) in sorted(zip(bools, strings))]
 		)
@@ -88,7 +108,8 @@ def simple_embedding(reaction_strings, reaction_true_onehot, padUpTo = 10000):
 	return x, y
 
 if __name__ == '__main__':
-	reaction_strings, reaction_true_onehot = get_candidates(n = 15)
+	single_only = True # whether to reduce product candidates to longest product only
+	reaction_strings, reaction_true_onehot = get_candidates(n = 350, single_only = single_only)
 	# for i, example in  enumerate(reaction_true_onehot):
 		# print('rxn {}. {} true candidates'.format(i, sum(example)))
 		# #print([reaction_strings[i][j] for j, o in enumerate(example) if o])
@@ -96,7 +117,7 @@ if __name__ == '__main__':
 	# for example in x:
 	# 	print(example.shape)
 
-	with open('x_coo.dat', 'wb') as outfile:
+	with open('x_coo{}.dat'.format(single_only * '_singleonly'), 'wb') as outfile:
 		pickle.dump(x, outfile, pickle.HIGHEST_PROTOCOL)
-	with open('y_coo.dat', 'wb') as outfile:
+	with open('y_coo{}.dat'.format(single_only * '_singleonly'), 'wb') as outfile:
 		pickle.dump(y, outfile, pickle.HIGHEST_PROTOCOL)
