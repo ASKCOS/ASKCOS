@@ -3,6 +3,7 @@ from __future__ import print_function
 from global_config import USE_STEREOCHEMISTRY
 import numpy as np
 import os
+import sys
 from keras import backend as K 
 from keras.models import Sequential
 from keras.layers import Dense, Activation
@@ -10,6 +11,7 @@ from keras.layers.core import Flatten, Permute, Reshape, Dropout
 from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import *
 from keras.layers.convolutional import Convolution1D, Convolution2D
+from keras.regularizers import l2
 from makeit.predict.preprocess_candidates import *
 import theano.tensor as T
 from scipy.sparse import coo_matrix
@@ -30,12 +32,16 @@ def build(N_e = 2048, N_h1 = 100, N_h2 = 50, N_c = 10000, inner_act = 'tanh',
 	model = Sequential()
 
 	# Time distributed dense
-	model.add(TimeDistributed(Dense(N_h1, activation = inner_act), input_shape = (N_c, N_e)))
+	model.add(TimeDistributed(
+		Dense(N_h1, activation = inner_act, W_regularizer = l2(0.001)), 
+		input_shape = (N_c, N_e))
+	)
 	model.add(Dropout(dr))
 
 	# Time distributed dense
-	model.add(TimeDistributed(Dense(N_h2, activation = inner_act)))
-	model.add(Dropout(dr))
+	if N_h2 > 0:
+		model.add(TimeDistributed(Dense(N_h2, activation = inner_act)))
+		model.add(Dropout(dr))
 
 	# Time distributed dense
 	model.add(TimeDistributed(Dense(1, activation = 'linear')))
@@ -57,7 +63,7 @@ def build(N_e = 2048, N_h1 = 100, N_h2 = 50, N_c = 10000, inner_act = 'tanh',
 
 def train(model, x, y):
 
-	nb_epoch = 500
+	nb_epoch = 100
 	batch_size = 40
 
 	try:
@@ -75,6 +81,11 @@ def train(model, x, y):
 
 if __name__ == '__main__':
 
+	if len(sys.argv) >= 2:
+		tag = '_' + sys.argv[1].strip()
+	else:
+		tag = ''
+
 	# Data must be pre-padded
 	with open('x_coo_singleonly.dat', 'rb') as infile:
 		x = pickle.load(infile)
@@ -91,16 +102,16 @@ if __name__ == '__main__':
 
 	model = build(N_c = N_c)
 	hist = train(model, x, y)
-	model.save_weights('weights.h5')
+	model.save_weights('weights{}.h5'.format(tag))
 
 	# y_pred = model.predict(x)
 	# print(y_pred[0])
 
 	# Save
-	with open('model.json', 'w') as outfile:
+	with open('model{}.json'.format(tag), 'w') as outfile:
 		outfile.write(model.to_json()) 
 	if hist:
-		with open('hist.csv', 'w') as outfile:
+		with open('hist{}.csv'.format(tag), 'w') as outfile:
 			outfile.write(','.join(hist.history.keys()) + '\n')
 			for i in range(len(hist.history.values()[0])):
 				outfile.write(','.join([str(x[i]) for x in hist.history.values()]) + '\n')
