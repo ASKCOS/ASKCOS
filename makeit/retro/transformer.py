@@ -17,9 +17,9 @@ class Transformer:
 		self.has_retro = False
 
 
-		# MEMORY LEAK DEBUG
-		from pympler.tracker import SummaryTracker
-		self.tracker = SummaryTracker()
+		# # MEMORY LEAK DEBUG
+		# from pympler.tracker import SummaryTracker
+		# self.tracker = SummaryTracker()
 
 	def load(self, collection, mincount = 4, get_retro = True, get_synth = True):
 		'''
@@ -167,7 +167,7 @@ class Transformer:
 
 		return result
 
-	def perform_forward(self, smiles, stop_if = None, progbar = False):
+	def perform_forward(self, smiles, stop_if = None, progbar = False, singleonly = False):
 		'''
 		Performs a forward synthesis (i.e., reaction enumeration) given
 		a SMILES string by applying each transformation template in 
@@ -216,6 +216,8 @@ class Transformer:
 				smiles_list = []
 				for x in outcome: 
 					smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = USE_STEREOCHEMISTRY).split('.'))
+				# Reduce to largest (longest) product only?
+				if singleonly: smiles_list = [max(smiles_list, key = len)]
 				product = ForwardProduct(
 					smiles_list = sorted(smiles_list),
 					template_id = template['_id'],

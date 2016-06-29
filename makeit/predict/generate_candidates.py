@@ -10,10 +10,11 @@ import makeit.retro.transformer as transformer
 from makeit.retro.canonicalization import SmilesFixer
 from pymongo import MongoClient    # mongodb plugin
 import re
+import time
 
 def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lowe_1976-2013_USPTOgrants_reactions',
 		candidate_collection = 'candidates', USE_REACTIONSMILES = True, mincount = 4, n_max = 50, seed = None, 
-		outfile = '.'):
+		outfile = '.', singleonly = True):
 
 	from rdkit import RDLogger
 	lg = RDLogger.logger()
@@ -63,8 +64,16 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 
 	smilesfixer = SmilesFixer()
 
+	# LOGGING
+	flog = open('GENERATE_CANDIDATES_LOG_{}.txt'.format(seed), 'w')
+	flog.write('mincount: {}\n'.format(mincount))
+	flog.write('number of templates: {}\n'.format(Transformer.num_templates))
+
 	try:
 		for i, reaction in generator:
+
+			# LOGGING
+			start_time = time.time()
 
 			if i == n_max: 
 				break
@@ -84,13 +93,17 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 				if 'spectators' in reaction:
 					all_smiles += [smilesfixer.fix_smiles(x['smiles']) for x in reaction['spectators']] 
 				mol = Chem.MolFromSmiles(reaction['products'][0]['smiles'])
-			
+
+			# LOGGING
+			n_reactant_atoms = sum([len(Chem.MolFromSmiles(x).GetAtoms()) for x in all_smiles])
+			print('Number of reactant atoms: {}'.format(n_reactant_atoms))
+
 			if mol:
 				[x.ClearProp('molAtomMapNumber') for x in mol.GetAtoms()] # remove atom mapping
 				print('REACTANTS: {}'.format('.'.join(all_smiles)))
 				print('PRODUCT: {}'.format(Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY)))
 				target_smiles = smilesfixer.fix_smiles(Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY))
-				result = Transformer.perform_forward('.'.join(all_smiles), progbar = True)
+				result = Transformer.perform_forward('.'.join(all_smiles), progbar = True, singleonly = singleonly)
 
 			found_true = False
 			for product in result.products:
@@ -101,7 +114,7 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 			else:
 				print('True product not found...')
 			print('{} candidates'.format(len(result.products)))
-			
+
 			# Prepare doc and insert
 			doc = {
 				'reaction_collection': reaction_collection,
@@ -112,15 +125,22 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 				'found': found_true,
 				'num_candidates': len(result.products),
 			}
-			result = candidates.insert(doc)
+			res = candidates.insert(doc)
 
-			# MEMORY LEAK DEBUG
-			Transformer.tracker.print_diff()
+			# # MEMORY LEAK DEBUG
+			# Transformer.tracker.print_diff()
+
+			# LOGGING
+			end_time = time.time()
+			print('time: {}'.format(end_time - start_time))
+			unique_candidates = len(set([max(product.smiles_list, key = len) for product in result.products]))
+			print('unique candidates using longest prod: {}'.format(unique_candidates))
+			flog.write('{}\t{}\t{}\t{}\t{}\n'.format(i, n_reactant_atoms, len(result.products), unique_candidates, end_time - start_time))
 
 	except Exception as e:
 		print('Error! {}'.format(e))
 
-
+	flog.close()
 
 
 if __name__ == '__main__':
@@ -141,9 +161,10 @@ if __name__ == '__main__':
 						help = 'Use reaction_smiles for species, not pre-parsed; defaults to true')
 	parser.add_argument('--mincount', type = int, default = 4,
 						help = 'Minimum template count to include in transforms; defaults to 4')
+	parser.add_argument('--singleonly', type = bool, default = True)
 	args = parser.parse_args()
 
 
 	main(template_collection = args.template_collection, reaction_collection = args.reaction_collection,
 		candidate_collection = args.candidate_collection, seed = args.seed, n_max = int(args.num), 
-		mincount = int(args.mincount), USE_REACTIONSMILES = bool(args.rxnsmiles))
+		mincount = int(args.mincount), USE_REACTIONSMILES = bool(args.rxnsmiles), singleonly = bool(args.singleonly))
