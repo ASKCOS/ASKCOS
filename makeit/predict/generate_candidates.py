@@ -14,7 +14,7 @@ import time
 
 def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lowe_1976-2013_USPTOgrants_reactions',
 		candidate_collection = 'candidates', USE_REACTIONSMILES = True, mincount = 4, n_max = 50, seed = None, 
-		outfile = '.', singleonly = True):
+		outfile = '.', singleonly = True, check = True):
 
 	from rdkit import RDLogger
 	lg = RDLogger.logger()
@@ -36,11 +36,18 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 	db = client['prediction']
 	candidates = db[candidate_collection]
 
+	if check:
+		done_ids = [doc['reaction_id'] for doc in candidates.find(
+			{'reaction_collection': reaction_collection, 'found': True}
+		)]
+
+	else:
+		done_ids = []
 
 	# Define generator
 	class Randomizer():
-		def __init__(self, seed):
-			self.done_ids = []
+		def __init__(self, seed, done_ids = []):
+			self.done_ids = done_ids
 			np.random.seed(seed)
 			if outfile:
 				with open(os.path.join(outfile, 'seed.txt'), 'w') as fid:
@@ -59,7 +66,7 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 		seed = np.random.randint(10000)
 	else:
 		seed = int(seed)
-	randomizer = Randomizer(seed)
+	randomizer = Randomizer(seed, done_ids = done_ids)
 	generator = enumerate(randomizer.get_rand())
 
 	smilesfixer = SmilesFixer()
@@ -161,10 +168,14 @@ if __name__ == '__main__':
 						help = 'Use reaction_smiles for species, not pre-parsed; defaults to true')
 	parser.add_argument('--mincount', type = int, default = 4,
 						help = 'Minimum template count to include in transforms; defaults to 4')
-	parser.add_argument('--singleonly', type = bool, default = True)
+	parser.add_argument('--singleonly', type = bool, default = True,
+						help = 'Whether to record major product only; defaults to True')
+	parser.add_argument('--check', type = bool, default = True,
+						help = 'Whether to check current collection to see if reaction example has been done')
 	args = parser.parse_args()
 
 
 	main(template_collection = args.template_collection, reaction_collection = args.reaction_collection,
 		candidate_collection = args.candidate_collection, seed = args.seed, n_max = int(args.num), 
-		mincount = int(args.mincount), USE_REACTIONSMILES = bool(args.rxnsmiles), singleonly = bool(args.singleonly))
+		mincount = int(args.mincount), USE_REACTIONSMILES = bool(args.rxnsmiles), singleonly = bool(args.singleonly),
+		check = args.check)
