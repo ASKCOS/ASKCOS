@@ -7,13 +7,14 @@ import cPickle as pickle
 import rdkit.Chem as Chem
 import rdkit.Chem.AllChem as AllChem
 import os
+import sys
 from makeit.embedding.descriptors import rxn_level_descriptors
 from keras.preprocessing.sequence import pad_sequences
 import time
 
 FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
 
-def get_candidates(n = 2, seed = None, outfile = '.', single_only = False, shuffle = False):
+def get_candidates(n = 2, seed = None, outfile = '.', single_only = False, shuffle = False, skip = 0):
 	'''
 	Pull n example reactions, their candidates, and the true answer
 	'''
@@ -65,7 +66,8 @@ def get_candidates(n = 2, seed = None, outfile = '.', single_only = False, shuff
 	reaction_true_onehot = []
 	reaction_true = []
 	for i, reaction in generator:
-		if i == n: break
+		if i < skip: continue
+		if i == skip + n: break
 
 		candidate_products = reaction['product_smiles_candidates']
 		if single_only: # reduce product list to LONGEST component (SMILES)
@@ -117,11 +119,14 @@ def simple_embedding(reaction_strings, reaction_true_onehot, padUpTo = 10000):
 
 if __name__ == '__main__':
 	single_only = True # whether to reduce product candidates to longest product only
-	n = 20
+	n = 500
 	padUpTo = 500
 	shuffle = False
+	skip = 500
+	if len(sys.argv >= 2):
+		skip = int(sys.argv[1])
 
-	reaction_strings, reaction_true_onehot, reaction_true = get_candidates(n = n, single_only = single_only, shuffle = shuffle)
+	reaction_strings, reaction_true_onehot, reaction_true = get_candidates(n = n, single_only = single_only, shuffle = shuffle, skip = skip)
 	# for i, example in  enumerate(reaction_true_onehot):
 		# print('rxn {}. {} true candidates'.format(i, sum(example)))
 		# #print([reaction_strings[i][j] for j, o in enumerate(example) if o])
@@ -129,7 +134,7 @@ if __name__ == '__main__':
 	# for example in x:
 	# 	print(example.shape)
 
-	rounded_time = int(time.time())
+	rounded_time = '{}-{}'.format(skip, skip + n - 1)
 
 	with open(os.path.join(FROOT, 'x_coo_{}{}.dat'.format(rounded_time, single_only * '_singleonly')), 'wb') as outfile:
 		pickle.dump(x, outfile, pickle.HIGHEST_PROTOCOL)
