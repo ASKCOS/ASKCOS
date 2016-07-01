@@ -3,8 +3,17 @@ import rdkit.Chem.Descriptors as Descriptors
 import rdkit.Chem.rdMolDescriptors as rdMolDescriptors
 import rdkit.Chem.EState as EState
 import rdkit.Chem.rdPartialCharges as rdPartialCharges
+import rdkit.Chem.rdChemReactions as rdRxns
 
 att_dtype = np.float32
+
+def rxn_level_descriptors(rxn):
+	'''
+	Given an RDKit reaction, returns a reaction fingerprint as a numpy array
+	**for very basic testing**
+	'''
+	settings = rdRxns.ReactionFingerprintParams()
+	return np.array(rdRxns.CreateStructuralFingerprintForReaction(rxn, settings))
 
 def mol_level_descriptors(mol):
 	'''
