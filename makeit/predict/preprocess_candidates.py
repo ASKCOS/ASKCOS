@@ -123,9 +123,9 @@ if __name__ == '__main__':
 	padUpTo = 500
 	shuffle = False
 	skip = 500
-	if len(sys.argv >= 2):
+	if len(sys.argv) >= 2:
 		n = int(sys.argv[1])
-	if len(sys.argv >= 3):
+	if len(sys.argv) >= 3:
 		skip = int(sys.argv[2])
 
 	reaction_strings, reaction_true_onehot, reaction_true = get_candidates(n = n, single_only = single_only, shuffle = shuffle, skip = skip)
