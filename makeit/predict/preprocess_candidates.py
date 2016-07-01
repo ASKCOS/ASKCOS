@@ -9,8 +9,11 @@ import rdkit.Chem.AllChem as AllChem
 import os
 from makeit.embedding.descriptors import rxn_level_descriptors
 from keras.preprocessing.sequence import pad_sequences
+import time
 
-def get_candidates(n = 2, seed = None, outfile = '.', single_only = False):
+FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
+
+def get_candidates(n = 2, seed = None, outfile = '.', single_only = False, shuffle = False):
 	'''
 	Pull n example reactions, their candidates, and the true answer
 	'''
@@ -52,11 +55,15 @@ def get_candidates(n = 2, seed = None, outfile = '.', single_only = False):
 	else:
 		seed = int(seed)
 	randomizer = Randomizer(seed)
-	generator = enumerate(randomizer.get_rand())
+	if shuffle:
+		generator = enumerate(randomizer.get_rand())
+	else:
+		generator = enumerate(examples.find({'found': True}))
 
 	# Initialize (this is not the best way to do this...)
 	reaction_strings = []
 	reaction_true_onehot = []
+	reaction_true = []
 	for i, reaction in generator:
 		if i == n: break
 
@@ -84,8 +91,9 @@ def get_candidates(n = 2, seed = None, outfile = '.', single_only = False):
 		reaction_true_onehot.append(
 			[y for (y, x) in sorted(zip(bools, strings))]
 		)
+		reaction_true.append(str(reaction['reactant_smiles']) + '>>' + str(reaction['product_smiles_true']))
 
-	return reaction_strings, reaction_true_onehot
+	return reaction_strings, reaction_true_onehot, reaction_true
 
 def simple_embedding(reaction_strings, reaction_true_onehot, padUpTo = 10000):
 	x = []
@@ -109,15 +117,23 @@ def simple_embedding(reaction_strings, reaction_true_onehot, padUpTo = 10000):
 
 if __name__ == '__main__':
 	single_only = True # whether to reduce product candidates to longest product only
-	reaction_strings, reaction_true_onehot = get_candidates(n = 350, single_only = single_only)
+	n = 20
+	padUpTo = 500
+	shuffle = False
+
+	reaction_strings, reaction_true_onehot, reaction_true = get_candidates(n = n, single_only = single_only, shuffle = shuffle)
 	# for i, example in  enumerate(reaction_true_onehot):
 		# print('rxn {}. {} true candidates'.format(i, sum(example)))
 		# #print([reaction_strings[i][j] for j, o in enumerate(example) if o])
-	x, y = simple_embedding(reaction_strings, reaction_true_onehot, padUpTo = 500)
+	x, y = simple_embedding(reaction_strings, reaction_true_onehot, padUpTo = padUpTo)
 	# for example in x:
 	# 	print(example.shape)
 
-	with open('x_coo{}.dat'.format(single_only * '_singleonly'), 'wb') as outfile:
+	rounded_time = int(time.time())
+
+	with open(os.path.join(FROOT, 'x_coo_{}{}.dat'.format(rounded_time, single_only * '_singleonly')), 'wb') as outfile:
 		pickle.dump(x, outfile, pickle.HIGHEST_PROTOCOL)
-	with open('y_coo{}.dat'.format(single_only * '_singleonly'), 'wb') as outfile:
+	with open(os.path.join(FROOT, 'y_coo_{}{}.dat'.format(rounded_time, single_only * '_singleonly')), 'wb') as outfile:
 		pickle.dump(y, outfile, pickle.HIGHEST_PROTOCOL)
+	with open(os.path.join(FROOT, 'z_rxns_{}.dat'.format(rounded_time)), 'wb') as outfile:
+		pickle.dump(reaction_true, outfile, pickle.HIGHEST_PROTOCOL)
