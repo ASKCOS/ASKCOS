@@ -104,6 +104,9 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 			# LOGGING
 			n_reactant_atoms = sum([len(Chem.MolFromSmiles(x).GetAtoms()) for x in all_smiles])
 			print('Number of reactant atoms: {}'.format(n_reactant_atoms))
+			if n_reactant_atoms > 200:
+				print('Skipping huge molecule!')
+				continue
 
 			if mol:
 				[x.ClearProp('molAtomMapNumber') for x in mol.GetAtoms()] # remove atom mapping
