@@ -124,7 +124,9 @@ if __name__ == '__main__':
 	shuffle = False
 	skip = 500
 	if len(sys.argv >= 2):
-		skip = int(sys.argv[1])
+		n = int(sys.argv[1])
+	if len(sys.argv >= 3):
+		skip = int(sys.argv[2])
 
 	reaction_strings, reaction_true_onehot, reaction_true = get_candidates(n = n, single_only = single_only, shuffle = shuffle, skip = skip)
 	# for i, example in  enumerate(reaction_true_onehot):
