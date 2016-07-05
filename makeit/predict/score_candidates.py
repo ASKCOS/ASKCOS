@@ -204,6 +204,8 @@ if __name__ == '__main__':
 						help = 'Number of hidden nodes in first layer')
 	parser.add_argument('--Nh2', type = int, default = 0,
 						help = 'Number of hidden nodes in second layer')
+	parser.add_argument('--Nh3', type = int, default = 0,
+						help = 'Number of hidden nodes in third layer')
 	parser.add_argument('--tag', type = str, default = int(time.time()),
 						help = 'Tag for this model')
 	parser.add_argument('--retrain', type = bool, default = False,
@@ -214,15 +216,15 @@ if __name__ == '__main__':
 		                help = 'Data folder with x*, y*, and z* data files')
 	args = parser.parse_args()
 
-	x_files = [os.path.join(args.data, dfile) \
+	x_files = sorted([os.path.join(args.data, dfile) \
 					for dfile in os.listdir(args.data) \
-					if dfile[0] == 'x']
-	y_files = [os.path.join(args.data, dfile) \
+					if dfile[0] == 'x'])
+	y_files = sorted([os.path.join(args.data, dfile) \
 					for dfile in os.listdir(args.data) \
-					if dfile[0] == 'y']
-	z_files = [os.path.join(args.data, dfile) \
+					if dfile[0] == 'y'])
+	z_files = sorted([os.path.join(args.data, dfile) \
 					for dfile in os.listdir(args.data) \
-					if dfile[0] == 'z']
+					if dfile[0] == 'z'])
 	print(x_files)
 	print(y_files)
 	print(z_files)
@@ -231,6 +233,7 @@ if __name__ == '__main__':
 	batch_size = int(args.batch_size)
 	N_h1 = int(args.Nh1)
 	N_h2 = int(args.Nh2)
+	N_h3 = int(args.Nh3)
 	N_c = 500
 
 	tag = args.tag
@@ -248,7 +251,7 @@ if __name__ == '__main__':
 		)
 		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
 	else:
-		model = build(N_c = N_c, N_h2 = N_h2)
+		model = build(N_c = N_c, N_h2 = N_h2, N_h3 = N_h3)
 	
 	if bool(args.test):
 		pred_histogram(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
