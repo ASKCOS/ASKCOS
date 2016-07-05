@@ -21,7 +21,7 @@ import matplotlib
 import matplotlib.pyplot as plt    # for visualization
 
 
-def build(N_e = 2048, N_h1 = 100, N_h2 = 50, N_c = 10000, inner_act = 'tanh',
+def build(N_e = 2048, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 10000, inner_act = 'tanh',
 		dr = 0.5):
 	'''
 	Builds the feed forward model.
@@ -46,6 +46,13 @@ def build(N_e = 2048, N_h1 = 100, N_h2 = 50, N_c = 10000, inner_act = 'tanh',
 	if N_h2 > 0:
 		model.add(TimeDistributed(
 			Dense(N_h2, activation = inner_act, W_regularizer = l2(0.01))
+		))
+		model.add(Dropout(dr))
+
+	# Time distributed dense
+	if N_h3 > 0:
+		model.add(TimeDistributed(
+			Dense(N_h3, activation = inner_act, W_regularizer = l2(0.01))
 		))
 		model.add(Dropout(dr))
 
@@ -167,17 +174,19 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 
 	def histogram(array, title, label, acc):
 		acc = int(acc * 1000)/1000. # round3
-
-		# Visualize in histogram
-		weights = np.ones_like(array) / len(array)
-		plt.clf()
-		n, bins, patches = plt.hist(array, np.arange(0, 1, 0.02), facecolor = 'blue', alpha = 0.5, weights = weights)
-		plt.xlabel('Assigned probability to true product')
-		plt.ylabel('Normalized frequency')
-		plt.title('Histogram of pseudo-probabilities - {} (N={},acc={})'.format(title, len(array), acc))
-		plt.axis([0, 1, 0, 1])
-		plt.grid(True)
-		plt.savefig(os.path.join(FROOT, label), bbox_inches = 'tight')
+		try:
+			# Visualize in histogram
+			weights = np.ones_like(array) / len(array)
+			plt.clf()
+			n, bins, patches = plt.hist(array, np.arange(0, 1, 0.02), facecolor = 'blue', alpha = 0.5, weights = weights)
+			plt.xlabel('Assigned probability to true product')
+			plt.ylabel('Normalized frequency')
+			plt.title('Histogram of pseudo-probabilities - {} (N={},acc={})'.format(title, len(array), acc))
+			plt.axis([0, 1, 0, 1])
+			plt.grid(True)
+			plt.savefig(os.path.join(FROOT, label), bbox_inches = 'tight')
+		except:
+			pass
 
 	histogram(train_preds, 'TRAIN', 'training{}.png'.format(tag), train_acc)
 	histogram(val_preds, 'VAL', 'validation{}.png'.format(tag), val_acc)
