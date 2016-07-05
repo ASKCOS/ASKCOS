@@ -78,7 +78,7 @@ def train(model, x_files, y_files, tag = '', split_ratio = 0.8):
 			print('>>> Epoch {}/{} <<<'.format(epoch + 1, nb_epoch))
 			# Get each set of data
 			for fnum in range(len(x_files)):
-				print('Loaded file set {} for training/validation'.format(fnum))
+				print('Running file set {} for training/validation'.format(fnum))
 				with open(x_files[fnum], 'rb') as infile:
 					x = pickle.load(infile)
 					x = [np.array(coo_matrix((a[0], (a[1], a[2])), shape = a[3]).todense()) for a in x]
@@ -92,10 +92,14 @@ def train(model, x_files, y_files, tag = '', split_ratio = 0.8):
 					nb_epoch = 1, 
 					batch_size = batch_size, 
 					validation_split = (1 - split_ratio),
-					verbose = 1)
+					verbose = False)
 
 				hist_fid.write('{},{},{},{},{},{}\n'.format(
-					nb_epoch + 1, fnum, hist.history['loss'][0], hist.history['val_loss'][0],
+					epoch + 1, fnum, hist.history['loss'][0], hist.history['val_loss'][0],
+					hist.history['acc'][0], hist.history['val_acc'][0]
+				))
+				print('loss: {}, val_loss: {}, acc: {}, val_acc: {}'.format(
+					hist.history['loss'][0], hist.history['val_loss'][0],
 					hist.history['acc'][0], hist.history['val_acc'][0]
 				))
 	except KeyboardInterrupt:
@@ -197,14 +201,22 @@ if __name__ == '__main__':
 		                help = 'Retrain with loaded weights')
 	parser.add_argument('--test', type = bool, default = False,
 						help = 'Test model only')
+	parser.add_argument('data', type = str,
+		                help = 'Data folder with x*, y*, and z* data files')
 	args = parser.parse_args()
 
-	x_files = ['makeit/predict/data/x_coo_0-499_singleonly.dat',
-	           'makeit/predict/data/x_coo_500-999_singleonly.dat']
-	y_files = ['makeit/predict/data/y_coo_0-499_singleonly.dat',
-	           'makeit/predict/data/y_coo_500-999_singleonly.dat']
-	z_files = ['makeit/predict/data/z_rxns_0-499.dat',
-	           'makeit/predict/data/z_rxns_500-999.dat']
+	x_files = [os.path.join(args.data, dfile) \
+					for dfile in os.listdir(args.data) \
+					if dfile[0] == 'x']
+	y_files = [os.path.join(args.data, dfile) \
+					for dfile in os.listdir(args.data) \
+					if dfile[0] == 'y']
+	z_files = [os.path.join(args.data, dfile) \
+					for dfile in os.listdir(args.data) \
+					if dfile[0] == 'z']
+	print(x_files)
+	print(y_files)
+	print(z_files)
 
 	nb_epoch = int(args.nb_epoch)
 	batch_size = int(args.batch_size)
