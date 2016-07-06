@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt    # for visualization
 
 
 def build(N_e = 2048, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 10000, inner_act = 'tanh',
-		dr = 0.5):
+		dr = 0.5, l2v = 0.01):
 	'''
 	Builds the feed forward model.
 
@@ -37,7 +37,7 @@ def build(N_e = 2048, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 10000, inner_act = 
 
 	# Time distributed dense
 	model.add(TimeDistributed(
-		Dense(N_h1, activation = inner_act, W_regularizer = l2(0.01)), 
+		Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)), 
 		input_shape = (N_c, N_e)
 	))
 	model.add(Dropout(dr))
@@ -45,20 +45,20 @@ def build(N_e = 2048, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 10000, inner_act = 
 	# Time distributed dense
 	if N_h2 > 0:
 		model.add(TimeDistributed(
-			Dense(N_h2, activation = inner_act, W_regularizer = l2(0.01))
+			Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v))
 		))
 		model.add(Dropout(dr))
 
 	# Time distributed dense
 	if N_h3 > 0:
 		model.add(TimeDistributed(
-			Dense(N_h3, activation = inner_act, W_regularizer = l2(0.01))
+			Dense(N_h3, activation = inner_act, W_regularizer = l2(l2v))
 		))
 		model.add(Dropout(dr))
 
 	# Time distributed dense
 	model.add(TimeDistributed(
-		Dense(1, activation = 'linear', W_regularizer = l2(0.01))
+		Dense(1, activation = 'linear', W_regularizer = l2(l2v))
 	))
 
 	# Flatten to 1 x N_c
@@ -212,6 +212,8 @@ if __name__ == '__main__':
 		                help = 'Retrain with loaded weights')
 	parser.add_argument('--test', type = bool, default = False,
 						help = 'Test model only')
+	parser.add_argument('--l2', type = float, default = 0.01,
+						help = 'l2 regularization parameter for each Dense layer')
 	parser.add_argument('data', type = str,
 		                help = 'Data folder with x*, y*, and z* data files')
 	args = parser.parse_args()
@@ -234,6 +236,7 @@ if __name__ == '__main__':
 	N_h1 = int(args.Nh1)
 	N_h2 = int(args.Nh2)
 	N_h3 = int(args.Nh3)
+	l2v = float(args.l2)
 	N_c = 500
 
 	tag = args.tag
@@ -251,7 +254,7 @@ if __name__ == '__main__':
 		)
 		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
 	else:
-		model = build(N_c = N_c, N_h2 = N_h2, N_h3 = N_h3)
+		model = build(N_c = N_c, N_h2 = N_h2, N_h3 = N_h3, l2v = l2v)
 	
 	if bool(args.test):
 		pred_histogram(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
