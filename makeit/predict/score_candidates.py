@@ -147,6 +147,7 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 			z = pickle.load(infile)
 
 		preds = model.predict(x, batch_size = batch_size)
+		trueprobs = []
 
 		for i in range(preds.shape[0]): 
 			pred = preds[i, :] # Iterate through each sample
