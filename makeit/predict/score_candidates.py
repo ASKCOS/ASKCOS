@@ -21,8 +21,8 @@ import matplotlib
 import matplotlib.pyplot as plt    # for visualization
 
 
-def build(N_e = 2048, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 10000, inner_act = 'tanh',
-		dr = 0.5, l2v = 0.01):
+def build(N_e = 2048, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 500, inner_act = 'tanh',
+		dr = 0.5, l2v = 0.01, lr = 0.0003):
 	'''
 	Builds the feed forward model.
 
@@ -68,7 +68,7 @@ def build(N_e = 2048, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 10000, inner_act = 
 	model.add(Activation('softmax'))
 
 	# Now compile
-	sgd = SGD(lr = 0.0003, decay = 1e-4, momentum = 0.9)
+	sgd = SGD(lr = lr, decay = 1e-4, momentum = 0.9)
 	# model.compile(loss = 'binary_crossentropy', optimizer = sgd, 
 	# 	metrics = ['binary_accuracy'])
 	model.compile(loss = 'categorical_crossentropy', optimizer = sgd, 
@@ -214,9 +214,13 @@ if __name__ == '__main__':
 	parser.add_argument('--test', type = bool, default = False,
 						help = 'Test model only')
 	parser.add_argument('--l2', type = float, default = 0.01,
-						help = 'l2 regularization parameter for each Dense layer')
+						help = 'l2 regularization parameter for each Dense layer, default 0.01')
 	parser.add_argument('data', type = str,
 		                help = 'Data folder with x*, y*, and z* data files')
+	parser.add_argument('--lr', type = float, default = 0.0003, 
+						help = 'Learning rate, default 0.0003')
+	parser.add_argument('--dr', type = float, default = 0.5,
+						help = 'Dropout rate, default 0.5')
 	args = parser.parse_args()
 
 	x_files = sorted([os.path.join(args.data, dfile) \
@@ -238,6 +242,8 @@ if __name__ == '__main__':
 	N_h2 = int(args.Nh2)
 	N_h3 = int(args.Nh3)
 	l2v = float(args.l2)
+	lr = float(args.lr)
+	dr = float(args.dr)
 	N_c = 500
 
 	tag = args.tag
@@ -255,7 +261,7 @@ if __name__ == '__main__':
 		)
 		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
 	else:
-		model = build(N_c = N_c, N_h2 = N_h2, N_h3 = N_h3, l2v = l2v)
+		model = build(N_c = N_c, N_h2 = N_h2, N_h3 = N_h3, l2v = l2v, lr = lr, dr = dr)
 	
 	if bool(args.test):
 		pred_histogram(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
