@@ -323,3 +323,4 @@ if __name__ == '__main__':
 		outfile.write(model.to_json()) 
 
 	pred_histogram(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
+	visualize_weights(model, tag)
