@@ -86,14 +86,8 @@ def train(model, x_files, y_files, tag = '', split_ratio = 0.8):
 			# Get each set of data
 			for fnum in range(len(x_files)):
 				print('Running file set {} for training/validation'.format(fnum))
-				with open(x_files[fnum], 'rb') as infile:
-					x = pickle.load(infile)
-					x = [np.array(coo_matrix((a[0], (a[1], a[2])), shape = a[3]).todense()) for a in x]
-					x = np.transpose(np.array(x), (0, 2, 1))
-				with open(y_files[fnum], 'rb') as infile:
-					y = pickle.load(infile)
-					y = np.array(coo_matrix((y[0], (y[1], y[2])), shape = y[3]).todense())
-
+				x = get_x_data(x_files[fnum])
+				y = get_y_data(y_files[fnum])
 
 				hist = model.fit(x, y, 
 					nb_epoch = 1, 
@@ -118,6 +112,27 @@ def train(model, x_files, y_files, tag = '', split_ratio = 0.8):
 
 	return True
 
+def get_x_data(fpath):
+	with open(fpath, 'rb') as infile:
+		x = pickle.load(infile)
+		x = [np.array(coo_matrix((a[0], (a[1], a[2])), shape = a[3]).todense()) for a in x]
+		x = np.transpose(np.array(x), (0, 2, 1))
+		if USE_EXPLICIT_DIFF:
+			h = x.shape[2] / 2 # halfway in concatenated FP
+			return np.concatenate((x, x[:,:,h:] - x[:,:,:h]), axis = 2)
+		return x
+
+def get_y_data(fpath):
+	with open(fpath, 'rb') as infile:
+		y = pickle.load(infile)
+		y = np.array(coo_matrix((y[0], (y[1], y[2])), shape = y[3]).todense())
+		return y
+
+def get_z_data(fpath):
+	with open(fpath, 'rb') as infile:
+		z = pickle.load(infile)
+		return z
+
 def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 	'''
 	Given a trained model and a list of samples, this function creates a 
@@ -136,15 +151,9 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 	for fnum in range(len(x_files)):
 		print('Testing file number {}'.format(fnum))
 		# Data must be pre-padded
-		with open(x_files[fnum], 'rb') as infile:
-			x = pickle.load(infile)
-			x = [np.array(coo_matrix((a[0], (a[1], a[2])), shape = a[3]).todense()) for a in x]
-			x = np.transpose(np.array(x), (0, 2, 1))
-		with open(y_files[fnum], 'rb') as infile:
-			y = pickle.load(infile)
-			y = np.array(coo_matrix((y[0], (y[1], y[2])), shape = y[3]).todense())
-		with open(z_files[fnum], 'rb') as infile:
-			z = pickle.load(infile)
+		x = get_x_data(x_files[fnum])
+		y = get_y_data(y_files[fnum])
+		z = get_z_data(z_files[fnum])
 
 		preds = model.predict(x, batch_size = batch_size)
 		trueprobs = []
@@ -253,6 +262,8 @@ if __name__ == '__main__':
 						help = 'Dropout rate, default 0.5')
 	parser.add_argument('--visualize', type = bool, default = False,
 		                help = 'Whether or not to visualize weights ONLY, default False')
+	parser.add_argument('--explicitdiff', type = bool, default = False,
+						help = 'Include explicit fingerprint difference in X, default False')
 	args = parser.parse_args()
 
 	x_files = sorted([os.path.join(args.data, dfile) \
@@ -277,23 +288,24 @@ if __name__ == '__main__':
 	lr = float(args.lr)
 	dr = float(args.dr)
 	N_c = 500
+	N_e = 2048
 
 	tag = args.tag
 
-	# # Build and train
-	# N_c = len(y[0,:])
-	# print('Padded number of candidates for each (N_c): {}'.format(N_c))
-	# print('Mean number of true predictions for each:   {}'.format(np.mean(np.sum(y, axis = 1))))
+	USE_EXPLICIT_DIFF = False
+	if bool(args.explicitdiff):
+		N_e = 3 * N_e / 2
+		USE_EXPLICIT_DIFF = True
 
 	if bool(args.retrain):
 		model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
 		model.compile(loss = 'categorical_crossentropy', 
-			optimizer = SGD(lr = 0.0003, decay = 1e-4, momentum = 0.9),
+			optimizer = SGD(lr = lr, decay = 1e-4, momentum = 0.9),
 			metrics = ['accuracy']
 		)
 		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
 	else:
-		model = build(N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, l2v = l2v, lr = lr, dr = dr)
+		model = build(N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, l2v = l2v, lr = lr, dr = dr)
 	
 	if bool(args.test):
 		pred_histogram(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
