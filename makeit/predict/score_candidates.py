@@ -18,6 +18,7 @@ import theano.tensor as T
 from scipy.sparse import coo_matrix
 import cPickle as pickle
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt    # for visualization
 
 
