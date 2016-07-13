@@ -118,9 +118,11 @@ def get_x_data(fpath):
 		x = pickle.load(infile)
 		x = [np.array(coo_matrix((a[0], (a[1], a[2])), shape = a[3]).todense()) for a in x]
 		x = np.transpose(np.array(x), (0, 2, 1))
+		h = x.shape[2] / 2 # halfway in concatenated FP
 		if USE_EXPLICIT_DIFF:
-			h = x.shape[2] / 2 # halfway in concatenated FP
-			return np.concatenate((x, x[:,:,h:] - x[:,:,:h]), axis = 2)
+			x = np.concatenate((x, x[:,:,h:] - x[:,:,:h]), axis = 2)
+		if USE_NO_REACTANTS:
+			return x[:, :, h:]
 		return x
 
 def get_y_data(fpath):
@@ -265,6 +267,8 @@ if __name__ == '__main__':
 		                help = 'Whether or not to visualize weights ONLY, default False')
 	parser.add_argument('--explicitdiff', type = bool, default = False,
 						help = 'Include explicit fingerprint difference in X, default False')
+	parser.add_argument('--disablereactants', type = bool, default = False,
+						help = 'Whether to disable reactant fingerprint, default False')
 	args = parser.parse_args()
 
 	x_files = sorted([os.path.join(args.data, dfile) \
@@ -295,8 +299,11 @@ if __name__ == '__main__':
 
 	USE_EXPLICIT_DIFF = False
 	if bool(args.explicitdiff):
-		N_e = 3 * N_e / 2
+		N_e += 1024
 		USE_EXPLICIT_DIFF = True
+	if bool(args.disablereactants):
+		USE_NO_REACTANTS = True
+		N_e -= 1024
 
 	if bool(args.retrain):
 		model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
