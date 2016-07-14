@@ -7,6 +7,13 @@ import rdkit.Chem.rdChemReactions as rdRxns
 
 att_dtype = np.float32
 
+
+def oneHotVector(val, lst):
+	'''Converts a value to a one-hot vector based on options in lst'''
+	if val not in lst:
+		val = lst[-1]
+	return map(lambda x: x == val, lst)
+
 def rxn_level_descriptors(rxn):
 	'''
 	Given an RDKit reaction, returns a reaction fingerprint as a numpy array
@@ -86,12 +93,15 @@ def bond_structural(bond, asOneHot = False, extraOne = False):
 	'''
 
 	# Redefine oneHotVector function
-	if not asOneHot: oneHotVector = lambda x: x[0]
+	if not asOneHot: 
+		oneHotVectorFunc = lambda x: x[0]
+	else:
+		oneHotVectorFunc = oneHotVector
 
 	# Initialize
 	attributes = []
 	# Add bond type
-	attributes += oneHotVector(
+	attributes += oneHotVectorFunc(
 		bond.GetBondTypeAsDouble(),
 		[1.0, 1.5, 2.0, 3.0]
 	)
@@ -119,22 +129,25 @@ def atom_structural(atom, asOneHot = False):
     '''
 
    	# Redefine oneHotVector function
-	if not asOneHot: oneHotVector = lambda x: x[0]
+	if not asOneHot: 
+		oneHotVectorFunc = lambda x: x[0]
+	else:
+		oneHotVectorFunc = oneHotVector
 
 	# Initialize
 	attributes = []
 	# Add atomic number (todo: finish)
-	attributes += oneHotVector(
+	attributes += oneHotVectorFunc(
 		atom.GetAtomicNum(), 
 		[5, 6, 7, 8, 9, 15, 16, 17, 35, 53, 999]
 	)
 	# Add heavy neighbor count
-	attributes += oneHotVector(
+	attributes += oneHotVectorFunc(
 		len(atom.GetNeighbors()),
 		[0, 1, 2, 3, 4, 5]
 	)
 	# Add hydrogen count
-	attributes += oneHotVector(
+	attributes += oneHotVectorFunc(
 		atom.GetTotalNumHs(),
 		[0, 1, 2, 3, 4]
 	)
@@ -147,8 +160,37 @@ def atom_structural(atom, asOneHot = False):
 
 	return np.array(attributes, dtype = att_dtype)
 
-def oneHotVector(val, lst):
-	'''Converts a value to a one-hot vector based on options in lst'''
-	if val not in lst:
-		val = lst[-1]
-	return map(lambda x: x == val, lst)
+
+
+def edits_to_vectors(edits, mol):
+	'''
+	Given a set of edits (h_lost, h_gain, bond_lost, and bond_gain) from summarize_reaction_outcome,
+	this functionr eturns a set of vectors describiing those edits.
+	'''
+
+	h_lost, h_gain, bond_lost, bond_gain = edits
+	map_dict = {a.GetProp('molAtomMapNumber'): i 
+			for (i, a) in enumerate(mol.GetAtoms()) if a.HasProp('molAtomMapNumber')}
+	atom_descriptors = atom_level_descriptors(mol, include = ['functional', 'structural'], asOneHot = True)[1]
+#	print('Generated atom descriptors')
+
+	bond_lost_features = [
+		atom_descriptors[map_dict[molAtomMapNumber1]] + 
+		oneHotVector(bondOrder, [1.0, 1.5, 2.0, 3.0]) + 
+		atom_descriptors[map_dict[molAtomMapNumber2]] \
+			for (molAtomMapNumber1, molAtomMapNumber2, bondOrder) in bond_lost
+	]
+#	print('Generated bond lost')
+	bond_gain_features = [
+		atom_descriptors[map_dict[molAtomMapNumber1]] + 
+		oneHotVector(bondOrder, [1.0, 1.5, 2.0, 3.0]) + 
+		atom_descriptors[map_dict[molAtomMapNumber2]] \
+			for (molAtomMapNumber1, molAtomMapNumber2, bondOrder) in bond_gain
+	]
+#	print('Generated bond gained')
+	return (
+		[atom_descriptors[map_dict[molAtomMapNumber]] for molAtomMapNumber in h_lost], 
+		[atom_descriptors[map_dict[molAtomMapNumber]] for molAtomMapNumber in h_gain], 
+		bond_lost_features,
+		bond_gain_features
+	)
