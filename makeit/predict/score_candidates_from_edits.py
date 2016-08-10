@@ -86,16 +86,16 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	bond_lost_r2 = Reshape((N_c, N_e, N_h))(bond_lost_h)
 	bond_gain_r2 = Reshape((N_c, N_e, N_h))(bond_gain_h)
 
-	h_lost_sum = Lambda(lambda x: K.sum(x, axis = 1), output_shape = (N_c, N_h))(h_lost_r2)
-	h_gain_sum = Lambda(lambda x: K.sum(x, axis = 1), output_shape = (N_c, N_h))(h_gain_r2)
-	bond_lost_sum = Lambda(lambda x: K.sum(x, axis = 1), output_shape = (N_c, N_h))(bond_lost_r2)
-	bond_gain_sum = Lambda(lambda x: K.sum(x, axis = 1), output_shape = (N_c, N_h))(bond_gain_r2)
+	h_lost_sum = Lambda(lambda x: K.sum(x, axis = 2), output_shape = (N_c, N_h))(h_lost_r2)
+	h_gain_sum = Lambda(lambda x: K.sum(x, axis = 2), output_shape = (N_c, N_h))(h_gain_r2)
+	bond_lost_sum = Lambda(lambda x: K.sum(x, axis = 2), output_shape = (N_c, N_h))(bond_lost_r2)
+	bond_gain_sum = Lambda(lambda x: K.sum(x, axis = 2), output_shape = (N_c, N_h))(bond_gain_r2)
 
 	net_sum = merge([h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum], mode = 'sum')
 
-	unscaled_score = TimeDistributed(
-		Dense(1, activation = 'linear', W_regularizer = l2(l2v))
-	)(net_sum)
+	feature_to_score = Dense(1, activation = 'linear', W_regularizer = l2(l2v))
+
+	unscaled_score = TimeDistributed(feature_to_score)(net_sum)
 
 	unscaled_score_flat = Flatten()(unscaled_score)
 
@@ -107,7 +107,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	sgd = SGD(lr = lr, decay = 1e-4, momentum = 0.9)
 	# model.compile(loss = 'binary_crossentropy', optimizer = sgd, 
 	# 	metrics = ['binary_accuracy'])
-	model.compile(loss = 'sparse_categorical_crossentropy', optimizer = sgd, 
+	model.compile(loss = 'categorical_crossentropy', optimizer = sgd, 
 		metrics = ['accuracy'])
 
 	model.summary()
@@ -124,19 +124,17 @@ def train(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 			# Get each set of data
 			for fnum in range(len(x_files)):
 				print('Running file set {} for training/validation'.format(fnum))
-				z = get_z_data(z_files[fnum])
-				(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = get_x_data(x_files[fnum], z)
-				print(x_h_lost.shape)
-				print(x_h_gain.shape)
-				print(x_bond_lost.shape)
-				print(x_bond_gain.shape)
-				y = get_y_data(y_files[fnum])
+				
+				if len(x_files) > 1 or epoch == 0: # get new data
+					z = get_z_data(z_files[fnum])
+					(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = get_x_data(x_files[fnum], z)
+					y = get_y_data(y_files[fnum])
 
 				hist = model.fit([x_h_lost, x_h_gain, x_bond_lost, x_bond_gain], y, 
 					nb_epoch = 1, 
 					batch_size = batch_size, 
 					validation_split = (1 - split_ratio),
-					verbose = False)
+					verbose = True)
 
 				hist_fid.write('{},{},{},{},{},{}\n'.format(
 					epoch + 1, fnum, hist.history['loss'][0], hist.history['val_loss'][0],
@@ -165,6 +163,12 @@ def get_x_data(fpath, z):
 	generate molecules and calculate edit representations
 	'''
 
+	# Check if we've already populated these matrices once
+	if os.path.isfile(fpath + '_processed'):
+		with open(fpath + '_processed', 'rb') as infile:
+			return pickle.load(infile)
+
+	# Otherwise, we need to do it...
 	with open(fpath, 'rb') as infile:
 		all_candidate_edits = pickle.load(infile)
 		N = len(z)
@@ -174,11 +178,12 @@ def get_x_data(fpath, z):
 		x_bond_gain = np.zeros((N, N_c, N_e, F_bond))
 
 		for (n, candidates) in enumerate(all_candidate_edits):
+
 			mol = Chem.MolFromSmiles(z[n].split('>')[0])
 			for (c, edits) in enumerate(candidates):
 				if any([len(edit) > 5 for edit in edits]):
-					print('Edit counts: {}'.format([len(edit) for edit in edits]))
-					print('skipping')
+					#print('Edit counts: {}'.format([len(edit) for edit in edits]))
+					#print('skipping')
 					continue
 				edit_h_lost_vec, edit_h_gain_vec, \
 					edit_bond_lost_vec, edit_bond_gain_vec = edits_to_vectors(edits, mol)
@@ -190,7 +195,11 @@ def get_x_data(fpath, z):
 					x_bond_lost[n, c, e, :] = edit_bond_lost
 				for (e, edit_bond_gain) in enumerate(edit_bond_gain_vec):
 					x_bond_gain[n, c, e, :] = edit_bond_gain
-
+		
+		# Dump file so we don't have to do that again
+		with open(fpath + '_processed', 'wb') as outfile:
+			pickle.dump((x_h_lost, x_h_gain, x_bond_lost, x_bond_gain), outfile, pickle.HIGHEST_PROTOCOL)
+		print('Converted {} to features for the first (and only) time'.format(fpath))
 		return (x_h_lost, x_h_gain, x_bond_lost, x_bond_gain)
 
 def get_y_data(fpath):
@@ -204,74 +213,89 @@ def get_z_data(fpath):
 		z = pickle.load(infile)
 		return z
 
-# def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
-# 	'''
-# 	Given a trained model and a list of samples, this function creates a 
-# 	histogram of the pseudo-probabilities assigned to the true reaction 
-# 	examples (i.e., the correct product)
-# 	'''
+def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
+	'''
+	Given a trained model and a list of samples, this function creates a 
+	histogram of the pseudo-probabilities assigned to the true reaction 
+	examples (i.e., the correct product)
+	'''
 
-# 	fid = open(os.path.join(FROOT, 'probs{}.dat'.format(tag)), 'w')
+	fid = open(os.path.join(FROOT, 'probs{}.dat'.format(tag)), 'w')
+	fid.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(
+		'reaction_smiles', 'train/val', 
+		'true_edit', 'prob_true_edit', 
+		'predicted_edit', 'prob_predicted_edit'
+	))
 
-# 	# Calculate probabilities
+	# Calculate probabilities
 	
-# 	train_preds = []; val_preds = []
-# 	train_corr = 0; val_corr = 0;
-# 	dataset = ''; trueprob = 0; trueprobs = []
+	train_preds = []; val_preds = []
+	train_corr = 0; val_corr = 0;
+	dataset = ''; trueprob = 0; trueprobs = []
 
-# 	for fnum in range(len(x_files)):
-# 		print('Testing file number {}'.format(fnum))
-# 		# Data must be pre-padded
-# 		z = get_z_data(z_files[fnum])
-#		x = get_x_data(x_files[fnum], z)
-# 		y = get_y_data(y_files[fnum])
-# 		
+	for fnum in range(len(x_files)):
+		print('Testing file number {}'.format(fnum))
+		# Data must be pre-padded
+		z = get_z_data(z_files[fnum])
+		x = get_x_data(x_files[fnum], z)
+		y = get_y_data(y_files[fnum])
 
-# 		preds = model.predict(x, batch_size = batch_size)
-# 		trueprobs = []
+		# Getting unprocessed x data
+		with open(x_files[fnum], 'rb') as infile:
+			all_edits = pickle.load(infile)
 
-# 		for i in range(preds.shape[0]): 
-# 			pred = preds[i, :] # Iterate through each sample
-# 			trueprob = pred[y[i,:]] # prob assigned to true outcome
-# 			trueprobs.append(trueprob)
-# 			if i < int(split_ratio * preds.shape[0]):
-# 				dataset = 'train'
-# 				train_preds.append(trueprob)
-# 				if np.argmax(pred) == np.argmax(y[i,:]):
-# 					train_corr += 1
-# 			else:
-# 				dataset = 'val'
-# 				val_preds.append(trueprob)
-# 				if np.argmax(pred) == np.argmax(y[i,:]):
-# 					val_corr += 1
-# 			fid.write('{}\t{}\t{}\n'.format(z[i], dataset, trueprobs[i][0]))
-# 	fid.close()
+		print(len(x))
+		print(x[0].shape)
+		preds = model.predict(x, batch_size = batch_size)
+		trueprobs = []
+
+		for i in range(preds.shape[0]): 
+			edits = all_edits[i]
+			pred = preds[i, :] # Iterate through each sample
+			trueprob = pred[y[i,:]] # prob assigned to true outcome
+			trueprobs.append(trueprob)
+			if i < int(split_ratio * preds.shape[0]):
+				dataset = 'train'
+				train_preds.append(trueprob)
+				if np.argmax(pred) == np.argmax(y[i,:]):
+					train_corr += 1
+			else:
+				dataset = 'val'
+				val_preds.append(trueprob)
+				if np.argmax(pred) == np.argmax(y[i,:]):
+					val_corr += 1
+			fid.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(
+				z[i], dataset, 
+				edits[np.argmax(y[i,:])], trueprobs[i][0], 
+				edits[np.argmax(pred)], np.max(pred)
+			))
+	fid.close()
 	
-# 	train_acc = train_corr / float(len(train_preds))
-# 	val_acc = val_corr / float(len(val_preds))
+	train_acc = train_corr / float(len(train_preds))
+	val_acc = val_corr / float(len(val_preds))
 
-# 	train_preds = np.array(train_preds)
-# 	val_preds = np.array(val_preds)
+	train_preds = np.array(train_preds)
+	val_preds = np.array(val_preds)
 
 
-# 	def histogram(array, title, label, acc):
-# 		acc = int(acc * 1000)/1000. # round3
-# 		try:
-# 			# Visualize in histogram
-# 			weights = np.ones_like(array) / len(array)
-# 			plt.clf()
-# 			n, bins, patches = plt.hist(array, np.arange(0, 1, 0.02), facecolor = 'blue', alpha = 0.5, weights = weights)
-# 			plt.xlabel('Assigned probability to true product')
-# 			plt.ylabel('Normalized frequency')
-# 			plt.title('Histogram of pseudo-probabilities - {} (N={},acc={})'.format(title, len(array), acc))
-# 			plt.axis([0, 1, 0, 1])
-# 			plt.grid(True)
-# 			plt.savefig(os.path.join(FROOT, label), bbox_inches = 'tight')
-# 		except:
-# 			pass
+	def histogram(array, title, label, acc):
+		acc = int(acc * 1000)/1000. # round3
+		try:
+			# Visualize in histogram
+			weights = np.ones_like(array) / len(array)
+			plt.clf()
+			n, bins, patches = plt.hist(array, np.arange(0, 1, 0.02), facecolor = 'blue', alpha = 0.5, weights = weights)
+			plt.xlabel('Assigned probability to true product')
+			plt.ylabel('Normalized frequency')
+			plt.title('Histogram of pseudo-probabilities - {} (N={},acc={})'.format(title, len(array), acc))
+			plt.axis([0, 1, 0, 1])
+			plt.grid(True)
+			plt.savefig(os.path.join(FROOT, label), bbox_inches = 'tight')
+		except:
+			pass
 
-# 	histogram(train_preds, 'TRAIN', 'training{}.png'.format(tag), train_acc)
-# 	histogram(val_preds, 'VAL', 'validation{}.png'.format(tag), val_acc)
+	histogram(train_preds, 'TRAIN', 'training{}.png'.format(tag), train_acc)
+	histogram(val_preds, 'VAL', 'validation{}.png'.format(tag), val_acc)
 
 # def visualize_weights(model, tag):
 # 	'''Given a trained model, this function visualizes the weights in each Dense layer'''
@@ -334,15 +358,11 @@ if __name__ == '__main__':
 	# 					help = 'Dropout rate, default 0.5')
 	parser.add_argument('--visualize', type = bool, default = False,
 		                help = 'Whether or not to visualize weights ONLY, default False')
-	parser.add_argument('--explicitdiff', type = bool, default = False,
-						help = 'Include explicit fingerprint difference in X, default False')
-	parser.add_argument('--disablereactants', type = bool, default = False,
-						help = 'Whether to disable reactant fingerprint, default False')
 	args = parser.parse_args()
 
 	x_files = sorted([os.path.join(args.data, dfile) \
 					for dfile in os.listdir(args.data) \
-					if 'candidate_edits' in dfile])
+					if 'candidate_edits' in dfile and '_processed' not in dfile])
 	y_files = sorted([os.path.join(args.data, dfile) \
 					for dfile in os.listdir(args.data) \
 					if 'candidate_bools' in dfile])
@@ -381,7 +401,7 @@ if __name__ == '__main__':
 
 	if bool(args.retrain):
 		model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
-		model.compile(loss = 'sparse_categorical_crossentropy', 
+		model.compile(loss = 'categorical_crossentropy', 
 			optimizer = SGD(lr = lr, decay = 1e-4, momentum = 0.9),
 			metrics = ['accuracy']
 		)
