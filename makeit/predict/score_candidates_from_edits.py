@@ -166,7 +166,13 @@ def get_x_data(fpath, z):
 	# Check if we've already populated these matrices once
 	if os.path.isfile(fpath + '_processed'):
 		with open(fpath + '_processed', 'rb') as infile:
-			return pickle.load(infile)
+			(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = pickle.load(infile)
+			print(any(np.isnan(x_h_lost)))
+			print(any(np.isnan(x_h_gain)))
+			print(any(np.isnan(x_bond_lost)))
+			print(any(np.isnan(x_bond_gain)))
+
+			return (x_h_lost, x_h_gain, x_bond_lost, x_bond_gain)
 
 	# Otherwise, we need to do it...
 	with open(fpath, 'rb') as infile:
