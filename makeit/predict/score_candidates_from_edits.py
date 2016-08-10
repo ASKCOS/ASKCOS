@@ -167,11 +167,6 @@ def get_x_data(fpath, z):
 	if os.path.isfile(fpath + '_processed'):
 		with open(fpath + '_processed', 'rb') as infile:
 			(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = pickle.load(infile)
-			print(any(np.isnan(x_h_lost)))
-			print(any(np.isnan(x_h_gain)))
-			print(any(np.isnan(x_bond_lost)))
-			print(any(np.isnan(x_bond_gain)))
-
 			return (x_h_lost, x_h_gain, x_bond_lost, x_bond_gain)
 
 	# Otherwise, we need to do it...
@@ -201,6 +196,12 @@ def get_x_data(fpath, z):
 					x_bond_lost[n, c, e, :] = edit_bond_lost
 				for (e, edit_bond_gain) in enumerate(edit_bond_gain_vec):
 					x_bond_gain[n, c, e, :] = edit_bond_gain
+
+		# # Get rid of NaNs
+		# x_h_lost[np.isnan(x_h_lost)] = 0.0
+		# x_h_gain[np.isnan(x_h_gain)] = 0.0
+		# x_bond_lost[np.isnan(x_bond_lost)] = 0.0
+		# x_bond_gain[np.isnan(x_bond_gain)] = 0.0
 		
 		# Dump file so we don't have to do that again
 		with open(fpath + '_processed', 'wb') as outfile:
@@ -230,7 +231,8 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 	fid.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(
 		'reaction_smiles', 'train/val', 
 		'true_edit', 'prob_true_edit', 
-		'predicted_edit', 'prob_predicted_edit'
+		'predicted_edit', 'prob_predicted_edit',
+		'correct?'
 	))
 
 	# Calculate probabilities
@@ -254,6 +256,7 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 		trueprobs = []
 
 		for i in range(preds.shape[0]): 
+			correct = 0
 			edits = all_edits[i]
 			pred = preds[i, :] # Iterate through each sample
 			trueprob = pred[y[i,:] != 0] # prob assigned to true outcome
@@ -263,15 +266,18 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 				train_preds.append(trueprob)
 				if np.argmax(pred) == np.argmax(y[i,:]):
 					train_corr += 1
+					correct = 1
 			else:
 				dataset = 'val'
 				val_preds.append(trueprob)
 				if np.argmax(pred) == np.argmax(y[i,:]):
 					val_corr += 1
-			fid.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(
+					correct = 1
+			fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
 				z[i], dataset, 
 				edits[np.argmax(y[i,:])], trueprob, 
-				edits[np.argmax(pred)], np.max(pred)
+				edits[np.argmax(pred)], np.max(pred),
+				correct
 			))
 	fid.close()
 	
