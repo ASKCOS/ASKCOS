@@ -250,7 +250,6 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 		for i in range(preds.shape[0]): 
 			edits = all_edits[i]
 			pred = preds[i, :] # Iterate through each sample
-			print(y[i,:])
 			trueprob = pred[y[i,:] != 0] # prob assigned to true outcome
 			trueprobs.append(trueprob)
 			if i < int(split_ratio * preds.shape[0]):
@@ -385,18 +384,10 @@ if __name__ == '__main__':
 	N_h3 = int(args.Nh3)
 	l2v = float(args.l2)
 	lr = float(args.lr)
-	N_c = 500 # number of candidate edit sets
+	N_c = 100 # number of candidate edit sets
 	N_e = 5 # maximum number of edits per class
 
 	tag = args.tag
-
-	# USE_EXPLICIT_DIFF = False
-	# if bool(args.explicitdiff):
-	# 	N_e += 1024
-	# 	USE_EXPLICIT_DIFF = True
-	# if bool(args.disablereactants):
-	# 	USE_NO_REACTANTS = True
-	# 	N_e -= 1024
 
 	if bool(args.retrain):
 		model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
@@ -416,7 +407,7 @@ if __name__ == '__main__':
 		quit(1)
 
 	hist = train(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
-	model.save_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
+	model.save_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), overwrite = True)
 
 	# Save
 	with open(os.path.join(FROOT, 'model{}.json'.format(tag)), 'w') as outfile:

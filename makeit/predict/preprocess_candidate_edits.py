@@ -94,7 +94,11 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		zipsort = sorted(zip(bools, candidate_smiles, candidate_edits))
 		zipsort = [[(y, z, x) for (y, z, x) in zipsort if y == 1][0]] + \
 				  [(y, z, x) for (y, z, x) in zipsort if y == 0]
-		zipsort = zipsort[:padUpTo]
+
+		# If there is more than one possible right answer, only use one of them
+		# (also truncate to padUpTo)
+		zipsort = zipsort[(sum(bools)-1):padUpTo]
+		
 		reaction_candidate_edits.append([x for (y, z, x) in zipsort])
 		reaction_true_onehot.append([y for (y, z, x) in zipsort])
 		reaction_candidate_smiles.append([z for (y, z, x) in zipsort])
@@ -113,7 +117,7 @@ if __name__ == '__main__':
 						help = 'Number of candidate sets to read, default 100')
 	parser.add_argument('-p', '--padupto', type = int, default = 100,
 						help = 'Number of candidates to allow per example, default 100')
-	parser.add_arugment('-s', '--shuffle', type = int, default = 0,
+	parser.add_argument('-s', '--shuffle', type = int, default = 0,
 						help = 'Whether or not to shuffle, default 0')
 	parser.add_argument('--skip', type = int, default = 0,
 						help = 'How many entries to skip before reading')
