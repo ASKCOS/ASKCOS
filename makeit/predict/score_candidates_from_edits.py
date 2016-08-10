@@ -237,22 +237,21 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 		print('Testing file number {}'.format(fnum))
 		# Data must be pre-padded
 		z = get_z_data(z_files[fnum])
-		x = get_x_data(x_files[fnum], z)
+		x = list(get_x_data(x_files[fnum], z))
 		y = get_y_data(y_files[fnum])
 
 		# Getting unprocessed x data
 		with open(x_files[fnum], 'rb') as infile:
 			all_edits = pickle.load(infile)
 
-		print(len(x))
-		print(x[0].shape)
 		preds = model.predict(x, batch_size = batch_size)
 		trueprobs = []
 
 		for i in range(preds.shape[0]): 
 			edits = all_edits[i]
 			pred = preds[i, :] # Iterate through each sample
-			trueprob = pred[y[i,:]] # prob assigned to true outcome
+			print(y[i,:])
+			trueprob = pred[y[i,:] != 0] # prob assigned to true outcome
 			trueprobs.append(trueprob)
 			if i < int(split_ratio * preds.shape[0]):
 				dataset = 'train'
@@ -266,7 +265,7 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 					val_corr += 1
 			fid.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(
 				z[i], dataset, 
-				edits[np.argmax(y[i,:])], trueprobs[i][0], 
+				edits[np.argmax(y[i,:])], trueprob, 
 				edits[np.argmax(pred)], np.max(pred)
 			))
 	fid.close()
@@ -424,4 +423,4 @@ if __name__ == '__main__':
 		outfile.write(model.to_json()) 
 
 	pred_histogram(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
-	visualize_weights(model, tag)
+	#visualize_weights(model, tag)
