@@ -251,7 +251,7 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 			edits = all_edits[i]
 			pred = preds[i, :] # Iterate through each sample
 			trueprob = pred[y[i,:] != 0] # prob assigned to true outcome
-			trueprobs.append(trueprob)
+			trueprobs.append(trueprob[0])
 			if i < int(split_ratio * preds.shape[0]):
 				dataset = 'train'
 				train_preds.append(trueprob)

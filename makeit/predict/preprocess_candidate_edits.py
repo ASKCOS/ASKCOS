@@ -94,15 +94,12 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		zipsort = sorted(zip(bools, candidate_smiles, candidate_edits))
 		zipsort = [[(y, z, x) for (y, z, x) in zipsort if y == 1][0]] + \
 				  [(y, z, x) for (y, z, x) in zipsort if y == 0]
+		zipsort = zipsort[:padUpTo]
 
-		# If there is more than one possible right answer, only use one of them
-		# (also truncate to padUpTo)
-		zipsort = zipsort[(sum(bools)-1):padUpTo]
-		
 		reaction_candidate_edits.append([x for (y, z, x) in zipsort])
 		reaction_true_onehot.append([y for (y, z, x) in zipsort])
 		reaction_candidate_smiles.append([z for (y, z, x) in zipsort])
-		reaction_true.append(str(reactant_smiles) + '>>' + str(product_smiles_true))
+		reaction_true.append(str(reactant_smiles) + '>>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)))
 
 	return reaction_candidate_edits, reaction_true_onehot, reaction_candidate_smiles, reaction_true
 
