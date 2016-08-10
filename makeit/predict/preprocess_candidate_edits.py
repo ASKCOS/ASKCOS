@@ -14,7 +14,7 @@ import argparse
 
 FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data_edits')
 
-def get_candidates(n = 2, seed = None, outfile = '.', shuffle = False, skip = 0, padUpTo = 500):
+def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuffle = False, skip = 0, padUpTo = 500):
 	'''
 	Pull n example reactions, their candidates, and the true answer
 	'''
@@ -25,7 +25,7 @@ def get_candidates(n = 2, seed = None, outfile = '.', shuffle = False, skip = 0,
 	lg.setLevel(4)
 	client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
 	db = client['prediction']
-	examples = db['candidate_edits']
+	examples = db[candidate_collection]
 
 	# Define generator
 	class Randomizer():
@@ -117,6 +117,8 @@ if __name__ == '__main__':
 						help = 'Whether or not to shuffle, default 0')
 	parser.add_argument('--skip', type = int, default = 0,
 						help = 'How many entries to skip before reading')
+	parser.add_argument('--candidate_collection', type = str, default = 'candidate_edits_8_9_16',
+						help = 'Name of collection within "prediction" db')
 	args = parser.parse_args()
 
 	n = int(args.num)
@@ -125,7 +127,7 @@ if __name__ == '__main__':
 	skip = int(args.skip)
 
 	reaction_candidate_edits, reaction_true_onehot, reaction_candidate_smiles, reaction_true = \
-			get_candidates(n = n, shuffle = shuffle, skip = skip, padUpTo = padUpTo)
+			get_candidates(args.candidate_collection, n = n, shuffle = shuffle, skip = skip, padUpTo = padUpTo)
 
 	rounded_time = '{}-{}'.format(skip, skip + n - 1)
 
