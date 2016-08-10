@@ -72,9 +72,19 @@ def atom_level_descriptors(mol, include = ['functional'], asOneHot = False):
 			for (i, a) in enumerate(mol.GetAtoms())]
 		labels.append('Gasteiger partial charge')
 
+		# Gasteiger partial charges sometimes gives NaN
+		for i in range(len(attributes)):
+			if np.isnan(attributes[i][-1]):
+				attributes[i][-1] = 0.0
+
 		[attributes[i].append(float(a.GetProp('_GasteigerHCharge'))) \
 			for (i, a) in enumerate(mol.GetAtoms())]
 		labels.append('Gasteiger hydrogen partial charge')
+
+		# Gasteiger partial charges sometimes gives NaN
+		for i in range(len(attributes)):
+			if np.isnan(attributes[i][-1]):
+				attributes[i][-1] = 0.0
 	
 	if 'structural' in include:
 		[attributes[i].extend(atom_structural(mol.GetAtomWithIdx(i), asOneHot = asOneHot)) \
@@ -172,6 +182,7 @@ def edits_to_vectors(edits, mol):
 	map_dict = {a.GetProp('molAtomMapNumber'): i 
 			for (i, a) in enumerate(mol.GetAtoms()) if a.HasProp('molAtomMapNumber')}
 	atom_descriptors = atom_level_descriptors(mol, include = ['functional', 'structural'], asOneHot = True)[1]
+
 #	print('Generated atom descriptors')
 
 	bond_lost_features = [
