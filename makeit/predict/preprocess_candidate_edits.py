@@ -10,6 +10,7 @@ import os
 import sys
 from makeit.embedding.descriptors import rxn_level_descriptors
 import time
+import argparse
 
 FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data_edits')
 
@@ -77,14 +78,14 @@ def get_candidates(n = 2, seed = None, outfile = '.', shuffle = False, skip = 0,
 		bools = [product_smiles_true == x for x in candidate_smiles]
 		print('rxn. {} : {} true entries out of {}'.format(i, sum(bools), len(bools)))
 		if sum(bools) > 1:
-			pass
-			# print('More than one true?')
+			print('More than one true?')
 			# print(reactant_smiles)
 			# for (edit, prod) in [(edit, prod) for (boolean, edit, prod) in zip(bools, candidate_edits, candidate_smiles) if boolean]:
 			# 	print(prod)
 			# 	print(edit)
 			# raw_input('Pausing...')
 			# continue
+			pass
 		if sum(bools) == 0:
 			print('##### True product not found / filtered out #####')
 			continue
@@ -106,10 +107,22 @@ if __name__ == '__main__':
 	padUpTo = 500
 	shuffle = False
 	skip = 0
-	if len(sys.argv) >= 2:
-		n = int(sys.argv[1])
-	if len(sys.argv) >= 3:
-		skip = int(sys.argv[2])
+
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-n', '--num', type = int, default = 100,
+						help = 'Number of candidate sets to read, default 100')
+	parser.add_argument('-p', '--padupto', type = int, default = 100,
+						help = 'Number of candidates to allow per example, default 100')
+	parser.add_arugment('-s', '--shuffle', type = int, default = 0,
+						help = 'Whether or not to shuffle, default 0')
+	parser.add_argument('--skip', type = int, default = 0,
+						help = 'How many entries to skip before reading')
+	args = parser.parse_args()
+
+	n = int(args.num)
+	padUpTo = int(args.padupto)
+	shuffle = bool(args.shuffle)
+	skip = int(args.skip)
 
 	reaction_candidate_edits, reaction_true_onehot, reaction_candidate_smiles, reaction_true = \
 			get_candidates(n = n, shuffle = shuffle, skip = skip, padUpTo = padUpTo)
