@@ -24,6 +24,7 @@ import cPickle as pickle
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt    # for visualization
+import scipy.stats as ss
 
 
 
@@ -228,11 +229,11 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 	'''
 
 	fid = open(os.path.join(FROOT, 'probs{}.dat'.format(tag)), 'w')
-	fid.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(
+	fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
 		'reaction_smiles', 'train/val', 
 		'true_edit', 'prob_true_edit', 
 		'predicted_edit', 'prob_predicted_edit',
-		'correct?'
+		'rank_true_edit'
 	))
 
 	# Calculate probabilities
@@ -256,28 +257,27 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 		trueprobs = []
 
 		for i in range(preds.shape[0]): 
-			correct = 0
+			rank_true_edit = 0
 			edits = all_edits[i]
 			pred = preds[i, :] # Iterate through each sample
-			trueprob = pred[y[i,:] != 0] # prob assigned to true outcome
-			trueprobs.append(trueprob[0])
+			trueprob = pred[y[i,:] != 0][0] # prob assigned to true outcome
+			trueprobs.append(trueprob)
+			rank_true_edit = 1 + len(pred) - (ss.rankdata(pred))[np.argmax(y[i,:])]
 			if i < int(split_ratio * preds.shape[0]):
 				dataset = 'train'
 				train_preds.append(trueprob)
 				if np.argmax(pred) == np.argmax(y[i,:]):
 					train_corr += 1
-					correct = 1
 			else:
 				dataset = 'val'
 				val_preds.append(trueprob)
 				if np.argmax(pred) == np.argmax(y[i,:]):
 					val_corr += 1
-					correct = 1
 			fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
 				z[i], dataset, 
 				edits[np.argmax(y[i,:])], trueprob, 
 				edits[np.argmax(pred)], np.max(pred),
-				correct
+				rank_true_edit
 			))
 	fid.close()
 	
