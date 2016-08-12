@@ -121,10 +121,12 @@ def train(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 	hist_fid.write('epoch,filenum,loss,val_loss,acc,val_acc\n')
 	try:
 		for epoch in range(nb_epoch):
-			print('>>> Epoch {}/{} <<<'.format(epoch + 1, nb_epoch))
+			print('>>> EPOCH {}/{} <<<'.format(epoch + 1, nb_epoch))
+			average_loss = 0; average_acc = 0;
+			average_val_loss = 0; average_val_acc = 0;
 			# Get each set of data
 			for fnum in range(len(x_files)):
-				print('Running file set {} for training/validation'.format(fnum))
+				print('    running file {}/{}'.format(fnum+1, len(x_files)))
 				
 				if len(x_files) > 1 or epoch == 0: # get new data
 					z = get_z_data(z_files[fnum])
@@ -135,16 +137,23 @@ def train(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 					nb_epoch = 1, 
 					batch_size = batch_size, 
 					validation_split = (1 - split_ratio),
-					verbose = True)
+					verbose = 0)
 
 				hist_fid.write('{},{},{},{},{},{}\n'.format(
 					epoch + 1, fnum, hist.history['loss'][0], hist.history['val_loss'][0],
 					hist.history['acc'][0], hist.history['val_acc'][0]
 				))
-				print('loss: {}, val_loss: {}, acc: {}, val_acc: {}'.format(
-					hist.history['loss'][0], hist.history['val_loss'][0],
-					hist.history['acc'][0], hist.history['val_acc'][0]
-				))
+				# print('loss: {}, val_loss: {}, acc: {}, val_acc: {}'.format(
+				# 	hist.history['loss'][0], hist.history['val_loss'][0],
+				# 	hist.history['acc'][0], hist.history['val_acc'][0]
+				# ))
+				average_loss += hist.history['loss'][0]
+				average_acc += hist.history['acc'][0]
+				average_val_loss += hist.history['val_loss'][0]
+				average_val_acc += hist.history['val_acc'][0]
+			print('    loss:     {:8.4f}, acc:     {:5.4f}'.format(average_loss/len(x_files), average_acc/len(x_files)))
+			print('    val_loss: {:8.4f}, val_acc: {:5.4f}'.format(average_val_loss/len(x_files), average_val_acc/len(x_files)))
+
 	except KeyboardInterrupt:
 		print('Stopped training early!')
 		hist_fid.close()
