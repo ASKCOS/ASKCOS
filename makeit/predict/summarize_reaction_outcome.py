@@ -1,3 +1,5 @@
+import rdkit.Chem as Chem
+
 def summarize_reaction_outcome(mols, outcome):
 
 	h_lost = []
@@ -18,12 +20,14 @@ def summarize_reaction_outcome(mols, outcome):
 		Hs_new  = atom_new.GetTotalNumHs()
 		if Hs_prev < Hs_new:
 			#print('    atom {} gained {} hydrogens'.format(atomMapNumber, Hs_new - Hs_prev))
-			h_gain.append(atomMapNumber)
-			changes += 1
+			for i in range(Hs_prev, Hs_new):
+				h_gain.append(atomMapNumber)
+				changes += 1
 		if Hs_prev > Hs_new:
 			#print('    atom {} lost {} hydrogens'.format(atomMapNumber, Hs_prev - Hs_new))
-			h_lost.append(atomMapNumber)
-			changes += 1
+			for i in range(Hs_new, Hs_prev): 
+				h_lost.append(atomMapNumber)
+				changes += 1
 
 		# Charge_prev = atom_prev.GetFormalCharge()
 		# Charge_new = atom_new.GetFormalCharge()
@@ -45,6 +49,11 @@ def summarize_reaction_outcome(mols, outcome):
 			bond.GetEndAtom().GetProp('molAtomMapNumber')])
 		bonds_new['{}~{}'.format(nums[0], nums[1])] = bond.GetBondTypeAsDouble()
 	
+	# print('prev: {}'.format(Chem.MolToSmarts(mols)))
+	# print('new: {}'.format(Chem.MolToSmarts(outcome)))
+	# print('bonds_prev: {}'.format(bonds_prev))
+	# print('bonds_new: {}'.format(bonds_new))
+
 	for bond in bonds_prev:
 		if bond not in bonds_new:
 			#print('    lost bond {}, order {}'.format(bond, bonds_prev[bond]))
