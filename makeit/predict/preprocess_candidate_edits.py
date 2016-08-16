@@ -14,7 +14,8 @@ import argparse
 
 FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data_edits')
 
-def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuffle = False, skip = 0, padUpTo = 500):
+def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuffle = False, 
+	skip = 0, padUpTo = 500, maxEditsPerClass = 5):
 	'''
 	Pull n example reactions, their candidates, and the true answer
 	'''
@@ -75,10 +76,17 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		reactant_smiles = reaction['reactant_smiles']
 		product_smiles_true = reaction['product_smiles_true']
 
+		# Make sure number of edits is acceptable
+		valid_edits = [all([len(e) <= maxEditsPerClass for e in es]) for es in candidate_edits]
+		print('Total number of edit candidates: {}'.format(len(valid_edits)))
+		print('Total number of valid edit candidates: {}'.format(sum(valid_edits)))
+		candidate_smiles = [a for (i, a) in enumerate(candidate_smiles) if valid_edits[i]]
+		candidate_edits  = [a for (i, a) in enumerate(candidate_edits) if valid_edits[i]]
+
 		bools = [product_smiles_true == x for x in candidate_smiles]
 		print('rxn. {} : {} true entries out of {}'.format(i, sum(bools), len(bools)))
 		if sum(bools) > 1:
-			print('More than one true?')
+			print('More than one true? Will take first one')
 			# print(reactant_smiles)
 			# for (edit, prod) in [(edit, prod) for (boolean, edit, prod) in zip(bools, candidate_edits, candidate_smiles) if boolean]:
 			# 	print(prod)
@@ -95,6 +103,11 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		zipsort = [[(y, z, x) for (y, z, x) in zipsort if y == 1][0]] + \
 				  [(y, z, x) for (y, z, x) in zipsort if y == 0]
 		zipsort = zipsort[:padUpTo]
+
+		if sum([y for (y, z, x) in zipsort]) != 1:
+			print('New sum true: {}'.format(sum([y for (y, z, x) in zipsort])))
+			print('## wrong number of true results?')
+			raw_input('Pausing...')
 
 		reaction_candidate_edits.append([x for (y, z, x) in zipsort])
 		reaction_true_onehot.append([y for (y, z, x) in zipsort])
@@ -120,15 +133,19 @@ if __name__ == '__main__':
 						help = 'How many entries to skip before reading')
 	parser.add_argument('--candidate_collection', type = str, default = 'candidate_edits_8_9_16',
 						help = 'Name of collection within "prediction" db')
+	parser.add_argument('--maxeditsperclass', type = int, default = 5, 
+						help = 'Maximum number of edits per edit class')
 	args = parser.parse_args()
 
 	n = int(args.num)
 	padUpTo = int(args.padupto)
 	shuffle = bool(args.shuffle)
 	skip = int(args.skip)
+	maxEditsPerClass = int(args.maxeditsperclass)
 
 	reaction_candidate_edits, reaction_true_onehot, reaction_candidate_smiles, reaction_true = \
-			get_candidates(args.candidate_collection, n = n, shuffle = shuffle, skip = skip, padUpTo = padUpTo)
+			get_candidates(args.candidate_collection, n = n, shuffle = shuffle, skip = skip, 
+				padUpTo = padUpTo, maxEditsPerClass = maxEditsPerClass)
 
 	rounded_time = '{}-{}'.format(skip, skip + n - 1)
 
