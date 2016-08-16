@@ -16,7 +16,7 @@ import time
 from tqdm import tqdm
 
 def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lowe_1976-2013_USPTOgrants_reactions',
-		candidate_collection = 'candidate_edits', USE_REACTIONSMILES = True, mincount = 4, n_max = 50, seed = None, 
+		candidate_collection = 'candidate_edits_mincount50', USE_REACTIONSMILES = True, mincount = 4, n_max = 50, seed = None, 
 		outfile = '.', singleonly = True, check = True, log = False):
 
 	from rdkit import RDLogger
@@ -155,6 +155,8 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 						if v: print(e)
 						continue
 					if v: print('Outcome SMILES: {}'.format(Chem.MolToSmiles(outcome)))
+
+					
 					
 					# Reduce to largest (longest) product only?
 					candidate_smiles = Chem.MolToSmiles(outcome, isomericSmiles = USE_STEREOCHEMISTRY)
@@ -182,6 +184,7 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 			# Prepare doc and insert
 			if found_true: print('Found true product')
 			doc = {
+				'_id': reaction['_id'],
 				'reaction_collection': reaction_collection,
 				'reaction_id': reaction['_id'],
 				'reactant_smiles': Chem.MolToSmiles(reactants, isomericSmiles = USE_STEREOCHEMISTRY),
@@ -220,20 +223,20 @@ if __name__ == '__main__':
 						help = 'Collection of reaction_examples to use; defaults to lowe_1976-2013_USPTOgrants_reactions')
 	parser.add_argument('--template_collection', type = str, default = 'lowe_refs_general_v3',
 						help = 'Collection of templates to use; defaults to lowe_refs_general_v3')
-	parser.add_argument('--candidate_collection', type = str, default = 'candidate_edits', 
+	parser.add_argument('--candidate_collection', type = str, default = 'candidate_edits_8_9_16', 
 						help = 'Collection of candidates to write to; defaults to candidate_edits')
 	parser.add_argument('--seed', type = int, default = None,
 						help = 'Seed for random number generator')
 	parser.add_argument('--rxnsmiles', type = bool, default = True,
 						help = 'Use reaction_smiles for species, not pre-parsed; defaults to true')
-	parser.add_argument('--mincount', type = int, default = 4,
-						help = 'Minimum template count to include in transforms; defaults to 4')
+	parser.add_argument('--mincount', type = int, default = 50,
+						help = 'Minimum template count to include in transforms; defaults to 50')
 	parser.add_argument('--singleonly', type = bool, default = True,
 						help = 'Whether to record major product only; defaults to True')
 	parser.add_argument('--check', type = bool, default = True,
 						help = 'Whether to check current collection to see if reaction example has been done')
-	parser.add_argument('--log', type = bool, default = False,
-						help = 'Whether to log wall times / number of candidate atoms / etc., default False')
+	parser.add_argument('--log', type = bool, default = True,
+						help = 'Whether to log wall times / number of candidate atoms / etc., default True')
 	args = parser.parse_args()
 	v = bool(args.v)
 
