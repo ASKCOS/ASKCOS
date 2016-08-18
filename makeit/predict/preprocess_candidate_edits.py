@@ -80,8 +80,8 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		valid_edits = [all([len(e) <= maxEditsPerClass for e in es]) for es in candidate_edits]
 		print('Total number of edit candidates: {}'.format(len(valid_edits)))
 		print('Total number of valid edit candidates: {}'.format(sum(valid_edits)))
-		candidate_smiles = [a for (i, a) in enumerate(candidate_smiles) if valid_edits[i]]
-		candidate_edits  = [a for (i, a) in enumerate(candidate_edits) if valid_edits[i]]
+		candidate_smiles = [a for (j, a) in enumerate(candidate_smiles) if valid_edits[j]]
+		candidate_edits  = [a for (j, a) in enumerate(candidate_edits) if valid_edits[j]]
 
 		bools = [product_smiles_true == x for x in candidate_smiles]
 		print('rxn. {} : {} true entries out of {}'.format(i, sum(bools), len(bools)))
