@@ -496,16 +496,16 @@ def main(N = 15):
 
 	try: # to allow breaking
 		# Look for entries
-		i = -1
+		ctr = -1
 		for example_doc in REACTION_DB.find(no_cursor_timeout=True):
-			i += 1
+			ctr += 1
 
 			# Temporary (skipping already done)
 			#if i < 1512985: continue
 	
 			# Are we done?
-			if i == N:
-				i -= 1
+			if ctr == N:
+				ctr -= 1
 				break
 
 			if v: 
@@ -541,8 +541,8 @@ def main(N = 15):
 				extra_reactant_fragment = ''
 				for product in products:
 					if sum([a.HasProp('molAtomMapNumber') for a in product.GetAtoms()]) < len(product.GetAtoms()):
-						print('Not all product atoms have atom mapping')
-						print('ID: {}'.format(example_doc['_id']))
+						if v: print('Not all product atoms have atom mapping')
+						if v: print('ID: {}'.format(example_doc['_id']))
 						if v: print('REACTION: {}'.format(example_doc['RXN_SMILES']))
 						are_unmapped_product_atoms = True
 				if are_unmapped_product_atoms and not ALLOW_CREATE_MASS: # continue
@@ -572,7 +572,6 @@ def main(N = 15):
 							atomSymbols = atom_symbols, bondSymbols = bond_symbols) + '.'
 					if extra_reactant_fragment:
 						extra_reactant_fragment = '(' + extra_reactant_fragment[:-1] + ')'
-						reaction_smiles = extra_reactant_fragment + reaction_smiles
 						if v: print('    extra reactant fragment: {}'.format(extra_reactant_fragment))
 
 					# Look for duplicated reactant fragments that might appear multiple times
@@ -591,7 +590,6 @@ def main(N = 15):
 								for k in range(len(fragments_labels[j])):
 									replacements.append((fragments_labels[j][k], fragments_labels[i][k]))
 					for replacement in replacements[::-1]:
-						print(replacement)
 						# Perform replacements **ON REACTANT FRAGMENT** from last to first
 						for i, fragment in enumerate(fragments):
 							# print('Initial fragment: {}'.format(fragments[i]))
@@ -685,8 +683,8 @@ def main(N = 15):
 								else:
 									if v: print('        (could not parse {})'.format(smi_split))
 						if sum(num_matches) == 0: 
-							print('None of the reagents have {}'.format(extra_reactant_fragment[1:-1]))
-							print('...skipping this RXD')
+							print('    none of the reagents have {}'.format(extra_reactant_fragment[1:-1]))
+							print('    ...skipping this RXD')
 							continue
 						for i, reagent in enumerate(reagents):
 							if num_matches[i] == max(num_matches):
@@ -696,8 +694,8 @@ def main(N = 15):
 								# Assign atom mapping to reagent, doesn't matter much
 								for j, label in enumerate(re.findall('\:([[0-9]+)\]', extra_reactant_fragment)):
 									reagent.GetAtomWithIdx(reagent_ids[j]).SetProp('molAtomMapNumber', str(label))
-								extra_reactant_fragment_rxd = Chem.MolToSmiles(reagent, allHsExplicit = True, 
-									isomericSmiles = USE_STEREOCHEMISTRY)
+								extra_reactant_fragment_rxd = '(' + Chem.MolToSmiles(reagent, allHsExplicit = True, 
+									isomericSmiles = USE_STEREOCHEMISTRY) + ')'
 								print('For this RXD, extra fragment = {}'.format(extra_reactant_fragment_rxd))
 								break
 
@@ -816,22 +814,23 @@ def main(N = 15):
 										'count': 1,
 									},
 									'$addToSet': {
-										'references': example_doc['_id'],
+										'references': rxd_id,
 									},
 								}
 							)
+							if v: print('Added reference to {} for {}'.format(doc['_id'], rxn_canonical))
 						else:
 							# New
 							result = TRANSFORM_DB.insert_one(
 								{
 									'reaction_smarts': rxn_canonical,
 									'rxn_example': reaction_smiles,
-									'references': [example_doc['_id']],
+									'references': [rxd_id],
 									'explicit_H': False,
 									'count': 1,
 								}
 							)
-							#print('Created database entry {}'.format(result.inserted_id))
+							print('Created database entry {} for {}'.format(result.inserted_id, rxn_canonical))
 					else:
 						print('Did not find true product')
 						print('ID: {}'.format(example_doc['_id']))
@@ -849,7 +848,7 @@ def main(N = 15):
 
 
 			# Report progress
-			if (i % 100) == 0:
+			if (ctr % 100) == 0:
 				print('{}/{}'.format(i, N))
 
 			# Pause
@@ -860,8 +859,8 @@ def main(N = 15):
 	# except Exception as e:
 	# 	print(e)
 
-	total_examples = i + 1
-	print('...finished looking through {} reaction records'.format(min([N, i + 1])))
+	total_examples = ctr + 1
+	print('...finished looking through {} reaction records'.format(min([N, ctr + 1])))
 
 	print('Unmapped reactions in {}/{} ({}%) cases'.format(total_unmapped,
 		total_examples, total_unmapped * 100.0 / total_examples))
