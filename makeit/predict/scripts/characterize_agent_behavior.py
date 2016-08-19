@@ -47,7 +47,7 @@ if __name__ == '__main__':
 		total_count = sum(counts)
 		print('{} -> {}'.format(agent_type, total_count))
 
-		if agent_type not in ['[O]', '[Cl]', '[Br]', '[F]', '[N]~[N]~[N]']: continue 
+		if agent_type not in ['[O]', '[Cl]', '[Br]', '[F]', '[N]~[N]~[N]', '[C]', '[O]~[N]~[O]']: continue 
 
 		zipsorted = sorted(zip(counts, labels), key = lambda x: x[0])
 		counts = np.array([x[0] for x in zipsorted])
@@ -57,7 +57,7 @@ if __name__ == '__main__':
 		ranks.reverse()
 
 		# Oxidizing agent scatterplot
-		fig = plt.figure(figsize=(12,8), dpi = 300)
+		fig = plt.figure(figsize=(6,4), dpi = 300)
 		ax = plt.gca()
 		ax.scatter(ranks, probs, alpha = 0.5)
 		ax.set_yscale('log')
@@ -75,6 +75,6 @@ if __name__ == '__main__':
 				label, 
 				xy = (x, y), xytext = (1, 1 + (i - N_top + 0.5) / N_top),
 				textcoords = 'axes fraction', ha = 'right', va = 'center',
-				bbox = dict(boxstyle = 'round,pad=0.5', fc = 'yellow', alpha = 0.5),
+				bbox = dict(boxstyle = 'round,pad=0.5', fc = 'yellow', alpha = 0.8),
 				arrowprops = dict(arrowstyle = '->', connectionstyle = 'arc3,rad=0'))
 		fig.savefig(os.path.join(out_folder, 'agent_type {}.png'.format(agent_type)))
