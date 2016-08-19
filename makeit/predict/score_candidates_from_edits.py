@@ -132,7 +132,7 @@ def train(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 					z = get_z_data(z_files[fnum])
 					(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = get_x_data(x_files[fnum], z)
 					y = get_y_data(y_files[fnum])
-
+					
 				hist = model.fit([x_h_lost, x_h_gain, x_bond_lost, x_bond_gain], y, 
 					nb_epoch = 1, 
 					batch_size = batch_size, 
@@ -144,9 +144,9 @@ def train(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 					hist.history['acc'][0], hist.history['val_acc'][0]
 				))
 				# print('loss: {}, val_loss: {}, acc: {}, val_acc: {}'.format(
-				# 	hist.history['loss'][0], hist.history['val_loss'][0],
+				#	hist.history['loss'][0], hist.history['val_loss'][0],
 				# 	hist.history['acc'][0], hist.history['val_acc'][0]
-				# ))
+				#))
 				average_loss += hist.history['loss'][0]
 				average_acc += hist.history['acc'][0]
 				average_val_loss += hist.history['val_loss'][0]
@@ -176,8 +176,8 @@ def get_x_data(fpath, z):
 	# Check if we've already populated these matrices once
 	if os.path.isfile(fpath + '_processed'):
 		with open(fpath + '_processed', 'rb') as infile:
-			(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = pickle.load(infile)
-			return (x_h_lost, x_h_gain, x_bond_lost, x_bond_gain)
+			(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = pickle.load(infile)	
+		return (x_h_lost, x_h_gain, x_bond_lost, x_bond_gain)
 
 	# Otherwise, we need to do it...
 	with open(fpath, 'rb') as infile:
@@ -207,12 +207,16 @@ def get_x_data(fpath, z):
 				for (e, edit_bond_gain) in enumerate(edit_bond_gain_vec):
 					x_bond_gain[n, c, e, :] = edit_bond_gain
 
-		# # Get rid of NaNs
-		# x_h_lost[np.isnan(x_h_lost)] = 0.0
-		# x_h_gain[np.isnan(x_h_gain)] = 0.0
-		# x_bond_lost[np.isnan(x_bond_lost)] = 0.0
-		# x_bond_gain[np.isnan(x_bond_gain)] = 0.0
-		
+		# Get rid of NaNs
+		x_h_lost[np.isnan(x_h_lost)] = 0.0
+		x_h_gain[np.isnan(x_h_gain)] = 0.0
+		x_bond_lost[np.isnan(x_bond_lost)] = 0.0
+		x_bond_gain[np.isnan(x_bond_gain)] = 0.0
+		x_h_lost[np.isinf(x_h_lost)] = 0.0
+                x_h_gain[np.isinf(x_h_gain)] = 0.0
+                x_bond_lost[np.isinf(x_bond_lost)] = 0.0
+                x_bond_gain[np.isinf(x_bond_gain)] = 0.0
+
 		# Dump file so we don't have to do that again
 		with open(fpath + '_processed', 'wb') as outfile:
 			pickle.dump((x_h_lost, x_h_gain, x_bond_lost, x_bond_gain), outfile, pickle.HIGHEST_PROTOCOL)
@@ -282,10 +286,15 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 				val_preds.append(trueprob)
 				if np.argmax(pred) == np.argmax(y[i,:]):
 					val_corr += 1
+			most_likely_edit_i = np.argmax(pred)
+			if most_likely_edit_i >= len(edits): # no reaction?
+				most_likely_edit = 'no_reaction'
+			else:
+				most_likely_edit = edits[most_likely_edit_i]
 			fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
 				z[i], dataset, 
 				edits[np.argmax(y[i,:])], trueprob, 
-				edits[np.argmax(pred)], np.max(pred),
+				most_likely_edit, np.max(pred),
 				rank_true_edit
 			))
 	fid.close()
@@ -411,6 +420,7 @@ if __name__ == '__main__':
 	tag = args.tag
 
 	if bool(args.retrain):
+		print('Reloading from file')
 		model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
 		model.compile(loss = 'categorical_crossentropy', 
 			optimizer = SGD(lr = lr, decay = 1e-4, momentum = 0.9),
