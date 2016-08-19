@@ -346,15 +346,11 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 		# 		                    [s for (x, s) in symbol_replacements]))
 		# Remove molAtomMapNumber before canonicalization
 		[x.ClearProp('molAtomMapNumber') for x in mol.GetAtoms()]
-		if not USE_CUSTOM_RDKIT:
-			fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, 
-			atomSymbols = symbols, allHsExplicit = True, 
-			isomericSmiles = USE_STEREOCHEMISTRY, allBondsExplicit = True) + ').'
-		else:
-			fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, 
-			atomSymbols = symbols, allHsExplicit = True, 
-			isomericSmiles = USE_STEREOCHEMISTRY, allBondsExplicit = True,
-			ignoreAtomMapping = True) + ').'
+		
+		fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, 
+		atomSymbols = symbols, allHsExplicit = True, 
+		isomericSmiles = USE_STEREOCHEMISTRY, allBondsExplicit = True) + ').'
+
 	return fragments[:-1]
 
 def expand_changed_atom_tags(changed_atom_tags, reactant_fragments):
@@ -784,8 +780,6 @@ if __name__ == '__main__':
 	print('DO NOT TEST? {}'.format(DO_NOT_TEST))
 	ALLOW_CREATE_MASS = args.create_mass in ['y', '1', 'True','Yes', 't', 'T']
 	print('ALLOW CREATE MASS? {}'.format(ALLOW_CREATE_MASS))
-	USE_CUSTOM_RDKIT = bool(args.custom_rdkit)
-
 
 	clear = raw_input('Do you want to clear the {} existing templates? '.format(TRANSFORM_DB.find().count()))
 	if clear in ['y', 'Y', 'yes', '1', 'Yes']:
