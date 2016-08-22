@@ -30,7 +30,7 @@ import scipy.stats as ss
 
 
 def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 500, inner_act = 'tanh',
-		l2v = 0.01, lr = 0.0003):
+		l2v = 0.01, lr = 0.0003, N_hf = 0):
 	'''
 	Builds the feed forward model.
 
@@ -95,9 +95,14 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 
 	net_sum = merge([h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum], mode = 'sum')
 
-	feature_to_score = Dense(1, activation = 'linear', W_regularizer = l2(l2v))
+	if N_hf > 0:
+		feature_to_feature = Dense(N_hf, activation = inner_act, W_regularizer = l2(l2v))
+		net_sum_h = TimeDistributed(feature_to_feature)(net_sum)
+	else:
+		net_sum_h = net_sum 
 
-	unscaled_score = TimeDistributed(feature_to_score)(net_sum)
+	feature_to_score = Dense(1, activation = 'linear', W_regularizer = l2(l2v))
+	unscaled_score = TimeDistributed(feature_to_score)(net_sum_h)
 
 	unscaled_score_flat = Flatten()(unscaled_score)
 
@@ -154,9 +159,7 @@ def train(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 				average_val_acc += hist.history['val_acc'][0]
 			print('    loss:     {:8.4f}, acc:     {:5.4f}'.format(average_loss/len(x_files), average_acc/len(x_files)))
 			print('    val_loss: {:8.4f}, val_acc: {:5.4f}'.format(average_val_loss/len(x_files), average_val_acc/len(x_files)))
-			print('    ...saving...')
 			model.save_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), overwrite = True)
-
 	except KeyboardInterrupt:
 		print('Stopped training early!')
 		hist_fid.close()
@@ -364,27 +367,31 @@ if __name__ == '__main__':
 	
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--nb_epoch', type = int, default = 100,
-						help = 'Number of epochs to train for')
+						help = 'Number of epochs to train for, default 100')
 	parser.add_argument('--batch_size', type = int, default = 40,
-						help = 'Batch size')
+						help = 'Batch size, default 40')
 	parser.add_argument('--Nh1', type = int, default = 40,
-						help = 'Number of hidden nodes in first layer')
+						help = 'Number of hidden nodes in first layer, default 40')
 	parser.add_argument('--Nh2', type = int, default = 0,
-						help = 'Number of hidden nodes in second layer')
+						help = 'Number of hidden nodes in second layer, default 0')
 	parser.add_argument('--Nh3', type = int, default = 0,
-						help = 'Number of hidden nodes in third layer')
+						help = 'Number of hidden nodes in third layer, ' + 
+								'immediately before summing, default 0')
+	parser.add_arugment('--Nhf', type = int, default = 0,
+						help = 'Number of hidden nodes in layer between summing ' +
+								'and final score, default 0')
 	parser.add_argument('--tag', type = str, default = int(time.time()),
 						help = 'Tag for this model')
 	parser.add_argument('--retrain', type = bool, default = False,
-		                help = 'Retrain with loaded weights')
+		                help = 'Retrain with loaded weights, default False')
 	parser.add_argument('--test', type = bool, default = False,
-						help = 'Test model only')
+						help = 'Test model only, default False')
 	parser.add_argument('--l2', type = float, default = 0.01,
 						help = 'l2 regularization parameter for each Dense layer, default 0.01')
 	parser.add_argument('data', type = str,
 		                help = 'Data folder with data files')
-	parser.add_argument('--lr', type = float, default = 0.001, 
-						help = 'Learning rate, default 0.0003')
+	parser.add_argument('--lr', type = float, default = 0.01, 
+						help = 'Learning rate, default 0.01')
 	# parser.add_argument('--dr', type = float, default = 0.5,
 	# 					help = 'Dropout rate, default 0.5')
 	parser.add_argument('--visualize', type = bool, default = False,
