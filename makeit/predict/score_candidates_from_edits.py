@@ -5,6 +5,7 @@ import numpy as np
 import os
 import sys
 import argparse
+import h5py # needed for save_weights, fails otherwise
 from keras import backend as K 
 from keras.models import Sequential, Model, model_from_json
 from keras.layers import Dense, Activation, Input
@@ -153,6 +154,8 @@ def train(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 				average_val_acc += hist.history['val_acc'][0]
 			print('    loss:     {:8.4f}, acc:     {:5.4f}'.format(average_loss/len(x_files), average_acc/len(x_files)))
 			print('    val_loss: {:8.4f}, val_acc: {:5.4f}'.format(average_val_loss/len(x_files), average_val_acc/len(x_files)))
+			print('    ...saving...')
+			model.save_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), overwrite = True)
 
 	except KeyboardInterrupt:
 		print('Stopped training early!')
