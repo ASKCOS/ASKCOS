@@ -480,7 +480,7 @@ def canonicalize_transform(transform):
 	transform_reordered = '>>'.join([canonicalize_template(x) for x in transform.split('>>')])
 	return reassign_atom_mapping(transform_reordered)
 
-def main(N = 15):
+def main(N = 15, skip = 0, skip_id = 0):
 	'''Read reactions'''
 	global v
 
@@ -500,6 +500,9 @@ def main(N = 15):
 		for example_doc in REACTION_DB.find(no_cursor_timeout=True):
 			ctr += 1
 
+			if example_doc['_id'] < skip_id: continue
+			if ctr < skip: continue 
+
 			# Temporary (skipping already done)
 			#if i < 1512985: continue
 	
@@ -514,8 +517,7 @@ def main(N = 15):
 				print('##################################')
 
 			if "nonmapped reaction" in example_doc['RX_SKW']:
-				print('Unmapped reaction!')
-				print('ID: {}'.format(example_doc['_id']))
+				print('Unmapped reaction {}'.format(example_doc['_id']))
 				total_unmapped += 1
 				continue
 
@@ -671,6 +673,7 @@ def main(N = 15):
 						print(' Instance {}'.format(rxd['_id']))
 						reagents = []
 						num_matches = []
+						xrns = []
 						for xrn in rxd['RXD_RGTXRN']:
 							smi = CHEMICAL_DB.find_one({'_id': xrn})['SMILES']
 							if v: print('    reagent: {}'.format(smi))
@@ -678,6 +681,7 @@ def main(N = 15):
 								m = Chem.MolFromSmiles(str(smi_split))
 								if m: 
 									reagents.append(m)
+									xrns.append(xrn)
 									num_match = len(m.GetSubstructMatches(fragmatch))
 									num_matches.append(num_match)
 								else:
@@ -689,6 +693,33 @@ def main(N = 15):
 						for i, reagent in enumerate(reagents):
 							if num_matches[i] == max(num_matches):
 								if v: print('    most likely source of {} -> {}'.format(extra_reactant_fragment[1:-1], Chem.MolToSmiles(reagent)))
+								
+								# Add to database (temporary?)
+								try:
+									chem_doc = CHEMICAL_DB.find_one({'_id': xrns[i]})
+									agent_behavior = re.sub('\:[0-9]+\]', ']', extra_reactant_fragment[1:-1])
+									agent_behavior = agent_behavior.replace('.', '_') # Mongo uses . to mean subfield
+									if 'as_agent' in chem_doc:
+										if agent_behavior in chem_doc['as_agent']:
+											# Increase count for that agent
+											CHEMICAL_DB.update_one(
+												{'_id': chem_doc['_id']},
+												{'$inc': {'as_agent.{}'.format(agent_behavior): 1}}
+											)
+										else:
+											# Record new agent behavior
+											CHEMICAL_DB.update_one(
+												{'_id': chem_doc['_id']},
+												{'$set': {'as_agent.{}'.format(agent_behavior): 1}}
+											)
+									else: 
+										CHEMICAL_DB.update_one(
+											{'_id': chem_doc['_id']},
+											{'$set': {'as_agent': {agent_behavior: 1}}}
+										)
+								except Exception as e:
+									print('Agent DB error: {}'.format(e)) 
+
 								# Get a match
 								reagent_ids = reagent.GetSubstructMatch(fragmatch)
 								# Assign atom mapping to reagent, doesn't matter much
@@ -696,7 +727,7 @@ def main(N = 15):
 									reagent.GetAtomWithIdx(reagent_ids[j]).SetProp('molAtomMapNumber', str(label))
 								extra_reactant_fragment_rxd = '(' + Chem.MolToSmiles(reagent, allHsExplicit = True, 
 									isomericSmiles = USE_STEREOCHEMISTRY) + ')'
-								print('For this RXD, extra fragment = {}'.format(extra_reactant_fragment_rxd))
+								if v: print('For this RXD, extra fragment = {}'.format(extra_reactant_fragment_rxd))
 								break
 
 					# Report transform
@@ -830,7 +861,7 @@ def main(N = 15):
 									'count': 1,
 								}
 							)
-							print('Created database entry {} for {}'.format(result.inserted_id, rxn_canonical))
+							if v: print('Created database entry {} for {}'.format(result.inserted_id, rxn_canonical))
 					else:
 						print('Did not find true product')
 						print('ID: {}'.format(example_doc['_id']))
@@ -849,7 +880,7 @@ def main(N = 15):
 
 			# Report progress
 			if (ctr % 100) == 0:
-				print('{}/{}'.format(i, N))
+				print('{}/{}'.format(ctr, N))
 
 			# Pause
 			#if v: raw_input('Enter anything to continue...')
@@ -886,13 +917,17 @@ if __name__ == '__main__':
 						help = 'Verbose printing (incl. saving images); defaults to False')
 	parser.add_argument('-n', '--num', type = int, default = 50,
 						help = 'Maximum number of records to examine; defaults to 50')
-	parser.add_argument('-g', '--general', type = str, default = 'n',
-						help = 'Use incredibly general templates; defaults to n\n' + 
+	parser.add_argument('-g', '--general', type = str, default = 'y',
+						help = 'Use incredibly general templates; defaults to y\n' + 
 						'Only appropriate for forward enumeration')
 	parser.add_argument('-t', '--test', type = str, default = 'y',
 						help = 'Whether to *skip* testing; defaults to y')
 	parser.add_argument('--create_mass', type = str, default = 'y',
 						help = 'Whether to allow reactions to product mass, defaults y')
+	parser.add_argument('--skip', type = int, default = 0,
+						help = 'Number of examples to skip, defaults 0')
+	parser.add_argument('--skip_id', type = int, default = 0, 
+						help = 'IDs of reaction entries to skip to, defaults 0')
 	args = parser.parse_args()
 
 	v = args.v
@@ -911,4 +946,4 @@ if __name__ == '__main__':
 		result = TRANSFORM_DB.delete_many({})
 		print('Cleared {} entries from collection'.format(result.deleted_count))
 
-	main(N = args.num)
+	main(N = args.num, skip = args.skip, skip_id = args.skip_id)

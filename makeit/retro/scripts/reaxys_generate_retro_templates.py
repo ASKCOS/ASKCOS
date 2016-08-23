@@ -25,8 +25,10 @@ from makeit.retro.draw import *
 from pymongo import MongoClient    # mongodb plugin
 client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
 db = client['reaxys']
-TRANSFORM_DB = db['transforms_retro_v1']
+TRANSFORM_DB = db['transforms_retro_v2']
 REACTION_DB = db['reactions']
+INSTANCE_DB = db['instances']
+CHEMICAL_DB = db['chemicals']
 reaction_smiles_field = 'RXN_SMILES'
 
 def mols_from_smiles_list(all_smiles):
@@ -112,7 +114,7 @@ def get_changed_atoms(reactants, products):
 	reac_atoms, reac_atom_tags = get_tagged_atoms_from_mols(reactants)
 	if len(set(prod_atom_tags)) != len(set(reac_atom_tags)):
 		if v: print('warning: different atom tags appear in reactants and products')
-		err = 1
+		#err = 1 # okay for Reaxys, since Reaxys creates mass
 	if len(prod_atoms) != len(reac_atoms):
 		if v: print('warning: total number of tagged atoms differ, stoichometry != 1?')
 		#err = 1
@@ -257,10 +259,15 @@ def convert_atom_to_wildcard(atom):
 	return symbol
 
 def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0, 
-	category = 'reactants', expansion = []):
+	category = 'reactants', expansion = [], product_new_atoms = []):
 	'''Given a list of RDKit mols and a list of changed atom tags, this function
 	computes the SMILES string of molecular fragments using MolFragmentToSmiles 
-	for all changed fragments'''
+	for all changed fragments.
+
+	expansion: atoms added during reactant expansion that should be included and
+	           generalized in product fragment
+	product_new_atoms: atoms contributed by reagents, which are handled specially
+	           and should not be generalized in the product fragment'''
 
 	fragments = ''
 	for mol in mols:
@@ -278,7 +285,7 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 		for atom in mol.GetAtoms():
 			# Check self (only tagged atoms)
 			if ':' in atom.GetSmarts():
-				if atom.GetSmarts().split(':')[1][:-1] in changed_atom_tags:
+				if atom.GetSmarts().split(':')[1][:-1] in changed_atom_tags + product_new_atoms:
 					atoms_to_use.append(atom.GetIdx())
 					symbol = atom.GetSmarts()
 					# CUSTOM SYMBOL CHANGES
@@ -350,7 +357,7 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 		fragments += '(' + AllChem.MolFragmentToSmiles(mol, atoms_to_use, 
 		atomSymbols = symbols, allHsExplicit = True, 
 		isomericSmiles = USE_STEREOCHEMISTRY, allBondsExplicit = True) + ').'
-
+		
 	return fragments[:-1]
 
 def expand_changed_atom_tags(changed_atom_tags, reactant_fragments):
@@ -473,25 +480,11 @@ def canonicalize_transform(transform):
 	transform_reordered = '>>'.join([canonicalize_template(x) for x in transform.split('>>')])
 	return reassign_atom_mapping(transform_reordered)
 
-def convert_to_retro(transform):
-	'''This function takes a forward synthesis and converts it to a
-	retrosynthesis. Only transforms with a single product are kept, since 
-	retrosyntheses should have a single reactant (and split it up accordingly).'''
-	
-	# Split up original transform
-	reactants = transform.split('>>')[0]
-	products  = transform.split('>>')[1]
 
-	# Don't force products to be from different molecules (?)
-	# -> any reaction template can be intramolecular (might remove later)
-	products = products[1:-1].replace(').(', '.')
 
-	# Don't force the "products" of a retrosynthesis to be two different molecules!
-	reactants = reactants[1:-1].replace(').(', '.')
 
-	return '>>'.join([products, reactants])
 
-def main(N = 15, skip = 0):
+def main(N = 15, skip = 0, skip_id = 0):
 	'''Read reactions'''
 	global v
 
@@ -511,8 +504,11 @@ def main(N = 15, skip = 0):
 		for example_doc in REACTION_DB.find(no_cursor_timeout=True):
 			ctr += 1
 
+			if example_doc['_id'] < skip_id: continue
+			if ctr < skip: continue 
+
 			# Temporary (skipping already done)
-			if ctr < skip: continue
+			#if i < 1512985: continue
 	
 			# Are we done?
 			if ctr == N:
@@ -525,8 +521,7 @@ def main(N = 15, skip = 0):
 				print('##################################')
 
 			if "nonmapped reaction" in example_doc['RX_SKW']:
-				print('Unmapped reaction!')
-				print('ID: {}'.format(example_doc['_id']))
+				print('Unmapped reaction {}'.format(example_doc['_id']))
 				total_unmapped += 1
 				continue
 
@@ -544,19 +539,83 @@ def main(N = 15, skip = 0):
 				continue
 			
 			try:
-				# Check product atom mapping
-				if not ALLOW_CREATE_MASS:
-					skip = False
-					for product in products:
-						if sum([a.HasProp('molAtomMapNumber') for a in product.GetAtoms()]) < len(product.GetAtoms()):
-							print('Not all product atoms have atom mapping, skipping')
-							print('ID: {}'.format(example_doc['_id']))
-							print('REACTION: {}'.format(example_doc['RXN_SMILES']))
-							skip = True
-					if skip: 
-						total_partialmapped += 1
-						continue
+				###
+				### Check product atom mapping to see if reagent contributes
+				###
 
+				are_unmapped_product_atoms = False
+				extra_reactant_fragment = ''
+				for product in products:
+					if sum([a.HasProp('molAtomMapNumber') for a in product.GetAtoms()]) < len(product.GetAtoms()):
+						if v: print('Not all product atoms have atom mapping')
+						if v: print('ID: {}'.format(example_doc['_id']))
+						if v: print('REACTION: {}'.format(example_doc['RXN_SMILES']))
+						are_unmapped_product_atoms = True
+				if are_unmapped_product_atoms and not ALLOW_CREATE_MASS: # continue
+					total_partialmapped += 1
+					continue
+				if are_unmapped_product_atoms and ALLOW_CREATE_MASS: # add fragment to template
+
+					total_partialmapped += 1
+					starting_map = 1000
+					for product in products:
+						# Get unmapped atoms
+						unmapped_ids = [
+							a.GetIdx() for a in product.GetAtoms() if not a.HasProp('molAtomMapNumber')
+						]
+						# Add new atom maps
+						[a.SetProp('molAtomMapNumber', str(starting_map+z)) \
+							for (z, a) in enumerate(product.GetAtoms()) if not a.HasProp('molAtomMapNumber')]
+						starting_map += len(unmapped_ids)
+						# Define new atom symbols for fragment with atom maps, generalizing fully
+						atom_symbols = ['[{}:{}]'.format(a.GetSymbol(), a.GetProp('molAtomMapNumber')) 
+							for (z, a) in enumerate(product.GetAtoms())]
+						# And bond symbols...
+						bond_symbols = ['~' for b in product.GetBonds()]
+						extra_reactant_fragment += \
+							AllChem.MolFragmentToSmiles(product, unmapped_ids, 
+							allHsExplicit = False, isomericSmiles = USE_STEREOCHEMISTRY, 
+							atomSymbols = atom_symbols, bondSymbols = bond_symbols) + '.'
+					if extra_reactant_fragment:
+						extra_reactant_fragment = '(' + extra_reactant_fragment[:-1] + ')'
+						if v: print('    extra reactant fragment: {}'.format(extra_reactant_fragment))
+
+					# Look for duplicated reactant fragments that might appear multiple times
+					# as a result of stoichometry
+					fragments = extra_reactant_fragment[1:-1].split('.')
+					fragments_labels = [re.findall('\:([[0-9]+)\]', fragment) for fragment in fragments]
+					fragments_nolabels = [re.sub('\:[0-9]+\]', ']', fragment) for fragment in fragments]
+					replacements = []
+					for i, fragments_nolabel in enumerate(fragments_nolabels):
+						for j, fragments_nolabel2 in enumerate(fragments_nolabels):
+							if j <= i: continue
+							if fragments_nolabel == fragments_nolabel2:
+								# print('Duplicate fragments! {} and {}'.format(
+								# 		fragments[i], fragments[j]
+								# 	))
+								for k in range(len(fragments_labels[j])):
+									replacements.append((fragments_labels[j][k], fragments_labels[i][k]))
+					for replacement in replacements[::-1]:
+						# Perform replacements **ON REACTANT FRAGMENT** from last to first
+						for i, fragment in enumerate(fragments):
+							# print('Initial fragment: {}'.format(fragments[i]))
+							fragments[i] = fragment.replace(':{}]'.format(replacement[0]), ':{}]'.format(replacement[1]))
+							# print('After replacement: {}'.format(fragments[i]))
+						# Perform replacements **ON PRODUCT MAPPING**
+						for product in products:
+							for atom in product.GetAtoms():
+								if atom.HasProp('molAtomMapNumber'):
+									if str(atom.GetProp('molAtomMapNumber')) == str(replacement[0]):
+										atom.SetProp('molAtomMapNumber', str(replacement[1]))
+										if v: print('Replaced atom map in products {} with {}'.format(replacement[0], replacement[1]))
+					# Recombine fragments, using set to eliminate identical ones
+					extra_reactant_fragment = '(' + '.'.join(set(fragments)) + ')'
+					if v: print('     after consolidating duplicate fragments: {}'.format(extra_reactant_fragment))
+					fragmatch = Chem.MolFromSmarts(extra_reactant_fragment[1:-1]) # no parentheses
+
+				###
+				### Do RX-level processing
+				###  
 
 				# Get unique InChi for products we are looking for
 				# remove cases where product shows up
@@ -594,125 +653,236 @@ def main(N = 15, skip = 0):
 					radius = 1, expansion = [], category = 'reactants')
 				# Get fragments for products 
 				# (WITHOUT matching groups but WITH the addition of reactant fragments)
+				# "product_new_atoms" has the previously unmapped product atoms
 				product_fragments  = get_fragments_for_changed_atoms(products, changed_atom_tags, 
 					radius = 0, expansion = expand_changed_atom_tags(changed_atom_tags, reactant_fragments),
-					category = 'products')
+					category = 'products', 
+					product_new_atoms = re.findall('\:([[0-9]+)\]', extra_reactant_fragment))
 
-				# Report transform
-				rxn_string = '{}>>{}'.format(reactant_fragments, product_fragments)
-				if v: print('\nOverall fragment transform: {}'.format(rxn_string))
+				###
+				### Now look for specific RXDs.
+				###
+				rxd_id_list = ['{}-{}'.format(example_doc['_id'], j) for j in range(1, int(example_doc['RX_NVAR']) + 1)]
 
-				# Load into RDKit
-				rxn = AllChem.ReactionFromSmarts(rxn_string)
-				if rxn.Validate()[1] != 0: 
-					print('Could not validate reaction successfully')
-					print('ID: {}'.format(example_doc['_id']))
-					print('rxn_string: '.format(rxn_string))
-					continue
-				# print('here')
+				# Look up instances of this reaction to see the reagent(s)
+				for rxd_id in rxd_id_list:
 
-				# # Analyze
-				# if v: 
-				# 	print('Original number of reactants: {}'.format(len(reactants)))
-				# 	print('Number of reactants in transform: {}'.format(rxn.GetNumReactantTemplates()))
+					# Initialize 'reagent' to we can see if we need to add one to the reactant mixture
+					reagent = None
 
-				# Run reaction
-				correct = False
-				if not DO_NOT_TEST:
-					# Try all combinations of reactants that fit template
-					combinations = itertools.combinations(reactants, rxn.GetNumReactantTemplates())
-					unique_product_sets = []
-					for combination in combinations:
-						outcomes = rxn.RunReactants(list(combination))
-						if not outcomes: continue
-						#if v: print('\nFor reactants {}'.format([Chem.MolToSmiles(mol) for mol in combination]))
-						for j, outcome in enumerate(outcomes):
-							#if v: print('- outcome {}/{}'.format(j + 1, len(outcomes)))
-							for k, product in enumerate(outcome):
-								if v: print('~~prod: {}'.format(Chem.MolToSmiles(product)))
-								try:
-									Chem.SanitizeMol(product)
-									product.UpdatePropertyCache()
-								except Exception as e:
-									print('warning: {}'.format(e))
+					# Only need to do this if there are reagent-contributed atoms
+					extra_reactant_fragment_rxd = extra_reactant_fragment
+					if extra_reactant_fragment:
+						rxd = INSTANCE_DB.find_one({'_id': rxd_id})
+						print(' Instance {}'.format(rxd['_id']))
+						reagents = []
+						num_matches = []
+						xrns = []
+						for xrn in rxd['RXD_RGTXRN']:
+							smi = CHEMICAL_DB.find_one({'_id': xrn})['SMILES']
+							if v: print('    reagent: {}'.format(smi))
+							for smi_split in smi.split('.'):
+								m = Chem.MolFromSmiles(str(smi_split))
+								if m: 
+									reagents.append(m)
+									xrns.append(xrn)
+									num_match = len(m.GetSubstructMatches(fragmatch))
+									num_matches.append(num_match)
+								else:
+									if v: print('        (could not parse {})'.format(smi_split))
+						if sum(num_matches) == 0: 
+							print('    none of the reagents have {}, skipping RXD'.format(extra_reactant_fragment[1:-1]))
+							continue
+						for i, reagent in enumerate(reagents):
+							if num_matches[i] == max(num_matches):
+								if v: print('    most likely source of {} -> {}'.format(extra_reactant_fragment[1:-1], Chem.MolToSmiles(reagent)))
 								
-							# Remove untransformed products
-							product_set_split = mol_list_to_inchi(outcome).split(' ++ ')
-							for reactant in reactants:
-								reactant_inchi = mol_list_to_inchi([reactant])
-								if reactant_inchi in product_set_split:
-									product_set_split.remove(reactant_inchi)
-							product_set = ' ++ '.join(product_set_split)
+								# Only add to database for forward direction
+								# # Add to database (temporary?)
+								# try:
+								# 	chem_doc = CHEMICAL_DB.find_one({'_id': xrns[i]})
+								# 	agent_behavior = re.sub('\:[0-9]+\]', ']', extra_reactant_fragment[1:-1])
+								# 	agent_behavior = agent_behavior.replace('.', '_') # Mongo uses . to mean subfield
+								# 	if 'as_agent' in chem_doc:
+								# 		if agent_behavior in chem_doc['as_agent']:
+								# 			# Increase count for that agent
+								# 			CHEMICAL_DB.update_one(
+								# 				{'_id': chem_doc['_id']},
+								# 				{'$inc': {'as_agent.{}'.format(agent_behavior): 1}}
+								# 			)
+								# 		else:
+								# 			# Record new agent behavior
+								# 			CHEMICAL_DB.update_one(
+								# 				{'_id': chem_doc['_id']},
+								# 				{'$set': {'as_agent.{}'.format(agent_behavior): 1}}
+								# 			)
+								# 	else: 
+								# 		CHEMICAL_DB.update_one(
+								# 			{'_id': chem_doc['_id']},
+								# 			{'$set': {'as_agent': {agent_behavior: 1}}}
+								# 		)
+								# except Exception as e:
+								# 	print('Agent DB error: {}'.format(e)) 
 
-							if product_set not in unique_product_sets:
-								unique_product_sets.append(product_set)
+								# Get a match
+								reagent_ids = reagent.GetSubstructMatch(fragmatch)
+								# Assign atom mapping to reagent, doesn't matter much
+								for j, label in enumerate(re.findall('\:([[0-9]+)\]', extra_reactant_fragment)):
+									reagent.GetAtomWithIdx(reagent_ids[j]).SetProp('molAtomMapNumber', str(label))
+								extra_reactant_fragment_rxd = '(' + Chem.MolToSmiles(reagent, allHsExplicit = True, 
+									isomericSmiles = USE_STEREOCHEMISTRY) + ')'
+								if v: print('For this RXD, extra fragment = {}'.format(extra_reactant_fragment_rxd))
+								[a.ClearProp('molAtomMapNumber') for a in reagent.GetAtoms()]
+								break
 
-					if v: 
-						print('\nExpctd {}'.format(product_inchis))
-						for product_set in unique_product_sets:
-							print('Found  {}'.format(product_set))
+					# Report transform
+					if extra_reactant_fragment_rxd:
+						rxn_string = '{}.{}>>{}'.format(reactant_fragments, extra_reactant_fragment_rxd, product_fragments)
+					else:
+						rxn_string = '{}>>{}'.format(reactant_fragments, product_fragments)
+					if v: print('\nOverall fragment transform: {}'.format(rxn_string))
 
-					if product_inchis in unique_product_sets:
-						if v: print('\nSuccessfully found true products!')
-						correct = True
-						total_correct += 1
-						if len(unique_product_sets) > 1:
-							if v: print('...but also found {} more'.format(len(unique_product_sets) - 1))
-							# print('Unspecific prediction!')
-							# print('ID: {}'.format(example_doc['_id']))
-							# print('Reaction: {}'.format(example_doc['RXN_SMILES']))
-							# print('Template: {}'.format(rxn_string))
+					# Load into RDKit
+					rxn = AllChem.ReactionFromSmarts(rxn_string)
+					if rxn.Validate()[1] != 0: 
+						print('Could not validate reaction successfully')
+						print('ID: {}'.format(example_doc['_id']))
+						print('rxn_string: {}'.format(rxn_string))
+						print('original: {}'.format(example_doc['RXN_SMILES']))
+						if v: raw_input('Pausing...')
+						continue
+					# print('here')
+
+					# # Analyze
+					# if v: 
+					# 	print('Original number of reactants: {}'.format(len(reactants)))
+					# 	print('Number of reactants in transform: {}'.format(rxn.GetNumReactantTemplates()))
+
+					# Run reaction
+					correct = False
+					if not DO_NOT_TEST:
+
+						# Add reacting reagent?
+						if reagent:
+							reactants.append(reagent)
+							if v: print('Added {} to the reactant mixture to test reaction'.format(Chem.MolToSmiles(reagent)))
+
+						# Try all combinations of reactants that fit template
+						combinations = itertools.combinations(reactants, rxn.GetNumReactantTemplates())
+						unique_product_sets = []
+						for combination in combinations:
+							outcomes = rxn.RunReactants(list(combination))
+							if not outcomes: continue
+							#if v: print('\nFor reactants {}'.format([Chem.MolToSmiles(mol) for mol in combination]))
+							for j, outcome in enumerate(outcomes):
+								#if v: print('- outcome {}/{}'.format(j + 1, len(outcomes)))
+								for k, product in enumerate(outcome):
+									if v: print('~~prod: {}'.format(Chem.MolToSmiles(product)))
+									try:
+										Chem.SanitizeMol(product)
+										product.UpdatePropertyCache()
+									except Exception as e:
+										print('warning: {}'.format(e))
+									if v: 
+										#print('  - product {}: {}'.format(k, Chem.MolToSmiles(product, isomericSmiles = True)))
+										try:
+											pass
+											#product = Chem.MolFromSmiles(Chem.MolToSmiles(product, isomericSmiles = True))
+										except Exception as e:
+											print('warning: could not draw {}: {}'.format(Chem.MolToSmiles(product, isomericSmiles = USE_STEREOCHEMISTRY), e))
+
+								# Remove untransformed products
+								product_set_split = mol_list_to_inchi(outcome).split(' ++ ')
+								for reactant in reactants:
+									reactant_inchi = mol_list_to_inchi([reactant])
+									if reactant_inchi in product_set_split:
+										product_set_split.remove(reactant_inchi)
+								product_set = ' ++ '.join(product_set_split)
+
+								if product_set not in unique_product_sets:
+									unique_product_sets.append(product_set)
+
+						if v: 
+							print('\nExpctd {}'.format(product_inchis))
+							for product_set in unique_product_sets:
+								print('Found  {}'.format(product_set))
+
+						if product_inchis in unique_product_sets:
+							if v: print('\nSuccessfully found true products!')
+							correct = True
+							total_correct += 1
+							if len(unique_product_sets) > 1:
+								if v: print('...but also found {} more'.format(len(unique_product_sets) - 1))
+								# print('Unspecific prediction!')
+								# print('ID: {}'.format(example_doc['_id']))
+								# print('Reaction: {}'.format(example_doc['RXN_SMILES']))
+								# print('Template: {}'.format(rxn_string))
+							else:
+								total_precise += 1
 						else:
-							total_precise += 1
-					else:
-						if v: print('\nDid not find true products')
-						if len(unique_product_sets) > 1:
-							if v: print('...but found {} unexpected ones'.format(len(unique_product_sets)))
-					
-				if correct or DO_NOT_TEST:	
-					# Valid reaction!
-					rxn_canonical = canonicalize_transform(rxn_string)
-					retro_canonical = convert_to_retro(rxn_canonical)
+							if v: print('\nDid not find true products')
+							if len(unique_product_sets) > 1:
+								if v: print('...but found {} unexpected ones'.format(len(unique_product_sets)))
+						
+					if correct or DO_NOT_TEST:	
+						# Valid reaction!
+						rxn_canonical = canonicalize_transform(rxn_string)
+						# print('Pre-resplit: {}'.format(rxn_canonical))
+						# Change from inter-molecular to whatever-molecular
+						rxn_canonical_split = rxn_canonical.split('>>')
+						rxn_canonical = rxn_canonical_split[0][1:-1].replace(').(', '.') + \
+							'>>' + rxn_canonical_split[1][1:-1].replace(').(', '.')
+						
+						reactants = rxn_canonical.split('>>')[0]
+						products  = rxn_canonical.split('>>')[1]
 
-					# Is this old?
-					doc = TRANSFORM_DB.find_one({'reaction_smarts': retro_canonical})
+						retro_canonical = products + '>>' + reactants
+						# print('Post resplit: {}'.format(rxn_canonical))
+						
+						# # TEMPORARY - SKIP INSERTING
+						# total_attempted += 1
+						# continue
 
-					if doc:
-						# Old
-						TRANSFORM_DB.update_one(
-							{'_id': doc['_id']},
-							{
-								'$inc': {
+						# Is this old?
+						doc = TRANSFORM_DB.find_one({'reaction_smarts': retro_canonical})
+
+						if doc:
+							# Old
+							TRANSFORM_DB.update_one(
+								{'_id': doc['_id']},
+								{
+									'$inc': {
+										'count': 1,
+									},
+									'$addToSet': {
+										'references': rxd_id,
+									},
+								}
+							)
+							if v: print('Added reference to {} for {}'.format(doc['_id'], retro_canonical))
+						else:
+							# New
+							result = TRANSFORM_DB.insert_one(
+								{
+									'reaction_smarts': retro_canonical,
+									'rxn_example': reaction_smiles,
+									'references': [rxd_id],
+									'explicit_H': False,
 									'count': 1,
-								},
-								'$addToSet': {
-									'references': example_doc['_id'],
-								},
-							}
-						)
+								}
+							)
+							if v: print('Created database entry {} for {}'.format(result.inserted_id, retro_canonical))
 					else:
-						# New
-						result = TRANSFORM_DB.insert_one(
-							{
-								'reaction_smarts': retro_canonical,
-								'rxn_example': reaction_smiles,
-								'references': [example_doc['_id']],
-								'explicit_H': False,
-								'count': 1,
-							}
-						)
-						#print('Created database entry {}'.format(result.inserted_id))
-				else:
-					print('Did not find true product')
-					print('ID: {}'.format(example_doc['_id']))
-					print('REACTION: {}'.format(example_doc['RXN_SMILES']))
-					print('TEMPLATE: {}'.format(rxn_string))
+						print('Did not find true product')
+						print('ID: {}'.format(example_doc['_id']))
+						print('REACTION: {}'.format(example_doc['RXN_SMILES']))
+						print('TEMPLATE: {}'.format(rxn_string))
 
-				total_attempted += 1
+					total_attempted += 1
 			
 			except Exception as e:
+				print(e)
 				if v: 
-					print(e)
 					print('skipping')
 					#raw_input('Enter anything to continue')
 				continue
@@ -721,16 +891,14 @@ def main(N = 15, skip = 0):
 			# Report progress
 			if (ctr % 100) == 0:
 				print('{}/{}'.format(ctr, N))
-				with open('populated_up_to.txt', 'w') as fid:
-					fid.write('ctr = {}\n'.format(ctr))
 
 			# Pause
 			#if v: raw_input('Enter anything to continue...')
 
 	except KeyboardInterrupt:
 		print('Stopped early!')		
-	except Exception as e:
-		print(e)
+	# except Exception as e:
+	# 	print(e)
 
 	total_examples = ctr + 1
 	print('...finished looking through {} reaction records'.format(min([N, ctr + 1])))
@@ -768,6 +936,8 @@ if __name__ == '__main__':
 						help = 'Whether to allow reactions to product mass, defaults y')
 	parser.add_argument('--skip', type = int, default = 0,
 						help = 'Number of examples to skip, defaults 0')
+	parser.add_argument('--skip_id', type = int, default = 0, 
+						help = 'IDs of reaction entries to skip to, defaults 0')
 	args = parser.parse_args()
 
 	v = args.v
@@ -786,4 +956,4 @@ if __name__ == '__main__':
 		result = TRANSFORM_DB.delete_many({})
 		print('Cleared {} entries from collection'.format(result.deleted_count))
 
-	main(N = args.num, skip = args.skip)
+	main(N = args.num, skip = args.skip, skip_id = args.skip_id)
