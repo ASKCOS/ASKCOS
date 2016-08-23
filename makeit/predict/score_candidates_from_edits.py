@@ -5,6 +5,7 @@ import numpy as np
 import os
 import sys
 import argparse
+import h5py # needed for save_weights, fails otherwise
 from keras import backend as K 
 from keras.models import Sequential, Model, model_from_json
 from keras.layers import Dense, Activation, Input
@@ -159,7 +160,6 @@ def train(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 			print('    loss:     {:8.4f}, acc:     {:5.4f}'.format(average_loss/len(x_files), average_acc/len(x_files)))
 			print('    val_loss: {:8.4f}, val_acc: {:5.4f}'.format(average_val_loss/len(x_files), average_val_acc/len(x_files)))
 			model.save_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), overwrite = True)
-			
 	except KeyboardInterrupt:
 		print('Stopped training early!')
 		hist_fid.close()
@@ -377,7 +377,7 @@ if __name__ == '__main__':
 	parser.add_argument('--Nh3', type = int, default = 0,
 						help = 'Number of hidden nodes in third layer, ' + 
 								'immediately before summing, default 0')
-	parser.add_arugment('--Nhf', type = int, default = 0,
+	parser.add_argument('--Nhf', type = int, default = 0,
 						help = 'Number of hidden nodes in layer between summing ' +
 								'and final score, default 0')
 	parser.add_argument('--tag', type = str, default = int(time.time()),
@@ -422,6 +422,7 @@ if __name__ == '__main__':
 	N_h1 = int(args.Nh1)
 	N_h2 = int(args.Nh2)
 	N_h3 = int(args.Nh3)
+	N_hf = int(args.Nhf)
 	l2v = float(args.l2)
 	lr = float(args.lr)
 	N_c = 100 # number of candidate edit sets
@@ -438,8 +439,10 @@ if __name__ == '__main__':
 		)
 		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
 	else:
-		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, l2v = l2v, lr = lr)
-	
+		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr)
+		with open(os.path.join(FROOT, 'model{}.json'.format(tag)), 'w') as outfile:
+        	        outfile.write(model.to_json())
+
 	if bool(args.test):
 		pred_histogram(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
 		quit(1)
@@ -448,11 +451,7 @@ if __name__ == '__main__':
 		quit(1)
 
 	hist = train(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
-	model.save_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), overwrite = True)
-
-	# Save
-	with open(os.path.join(FROOT, 'model{}.json'.format(tag)), 'w') as outfile:
-		outfile.write(model.to_json()) 
+	model.save_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), overwrite = True) 
 
 	pred_histogram(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
 	#visualize_weights(model, tag)
