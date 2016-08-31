@@ -12,6 +12,18 @@
 
 {% block page_body %}
 
+<form method="post" id="draw_form" action="{% url 'draw' %}">
+<table>
+{{ form.as_table }}
+	<th>{% csrf_token %}</th>
+	<td>
+		<input type="submit" value="Molecule SMILES" name="mol">
+		<input type="submit" value="Reaction SMILES" name="rxn">
+		<input type="submit" value="Template SMARTS" name="tform">
+	</td>
+</table>
+</form>
+
 {% if err %}
 <div class="error">{{ err }}</div>
 {% endif %}
