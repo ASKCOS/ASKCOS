@@ -132,9 +132,8 @@ def CheckAtomForGeneralization(atom):
 		atom.UpdatePropertyCache()
 
 	# Clear atom map number of 0 -> this is a dummy assignment!
-	if 'molAtomMapNumber' in atom.GetPropNames():
-		if atom.GetProp('molAtomMapNumber') == '0':
-			atom.ClearProp('molAtomMapNumber')
+	if ':0]' in smarts:
+		atom.ClearProp('molAtomMapNumber')
 
 
 def ReactionToImage(rxn, dummyAtoms = False, options = None, **kwargs):
