@@ -15,6 +15,38 @@ import sys
 import re
 import time
 from tqdm import tqdm
+from multiprocessing import Pool
+import itertools
+from functools import partial
+
+def apply_this_template(this_template, reactants):
+	'''Given an RDKit reaction and a reactants molecule, apply
+	the template and return a set of outcome SMILES strings'''
+	prods = set()
+	# Perform
+	try:
+		outcomes = this_template.RunReactants([reactants])
+	except Exception as e:
+		#print(e)
+		return []
+	if not outcomes: return []
+	for j, outcome in enumerate(outcomes):
+		try:
+			for x in outcome:
+				#print('  - {}'.format(Chem.MolToSmiles(x)))
+				x.UpdatePropertyCache()
+				Chem.SanitizeMol(x)
+		except Exception as e:
+			#print(e)
+			continue
+		product_smiles = [Chem.MolToSmiles(x, isomericSmiles = USE_STEREOCHEMISTRY) for x in outcome]
+		prods.add('.'.join(sorted(product_smiles)))
+	return prods 
+
+def multi_arg_apply(args):
+	'''Because Pool must use a single arg function defined at the highest
+	level (importable from __main__), we must use this wrapper'''
+	return apply_this_template(*args)
 
 if __name__ == '__main__':
 
@@ -33,6 +65,10 @@ if __name__ == '__main__':
 						help = 'Seed for instance randomization')
 	parser.add_argument('--skip_remaining', type = str, default = 'n',
 						help = 'Whether to skip remaining templates when true found, default n')
+	parser.add_argument('-w', '--workers', type = int, default = 2,
+						help = 'Number of workers in parallel pool, default 2')
+	parser.add_argument('-c', '--chunksize', type = int, default = 1,
+						help = 'Chunk size for parallel pool, default 1')
 
 	args = parser.parse_args()
 
@@ -46,6 +82,8 @@ if __name__ == '__main__':
 
 	N = int(args.num)
 	skip_remaining = args.skip_remaining in ['y', 'Y', 'yes', 'Yes', '1', 't', 'True', 'T']
+	N_THREADS = int(args.workers)
+	chunksize = int(args.chunksize)
 
 	# DATABASE
 	from pymongo import MongoClient    # mongodb plugin
@@ -101,6 +139,7 @@ if __name__ == '__main__':
 	rxn_successful = 0; rxn_unsuccessful = 0;
 	smilesfixer = SmilesFixer()
 	cum_time = 0
+	p = Pool(N_THREADS)
 	try:
 		for i, (rx, rxd) in generator:
 
@@ -147,35 +186,21 @@ if __name__ == '__main__':
 			print('PRODUCTS:  {}'.format(Chem.MolToSmiles(products, isomericSmiles = USE_STEREOCHEMISTRY)))
 			if v: raw_input('continue to try to match this rxn...')
 
+			# Apply all templates
+			unique_results = set(itertools.chain.from_iterable(
+				p.imap_unordered(
+					multi_arg_apply,
+					itertools.izip(template_rxns, itertools.repeat(reactants)),
+					chunksize = chunksize
+				)
+			))
+			try: 
+				unique_results.remove(None)
+			except KeyError:
+				pass
 
-			found = False
-			unique_results = set()
-			for template_rxn in tqdm(template_rxns):
-				# Perform
-				try:
-					outcomes = template_rxn.RunReactants([reactants])
-				except Exception as e:
-					#print(e)
-					continue
-				if not outcomes: continue
-				#print('TEMPLATE: {}'.format(AllChem.ReactionToSmarts(template_rxn)))
-				for j, outcome in enumerate(outcomes):
-					try:
-						for x in outcome:
-							#print('  - {}'.format(Chem.MolToSmiles(x)))
-							x.UpdatePropertyCache()
-							Chem.SanitizeMol(x)
-					except Exception as e:
-						#print(e)
-						continue
-					product_smiles = [Chem.MolToSmiles(x, isomericSmiles = USE_STEREOCHEMISTRY) for x in outcome]
-					if major_product_smiles in product_smiles:
-						found = True 
-						break
-					unique_results.add('.'.join(sorted(product_smiles)))
-				if found and skip_remaining: 
-					print('Found true product, total of {} unique candidates - skipping remaining templates'.format(len(unique_results)))
-					break
+			found = any([major_product_smiles in prod for prod in unique_results])
+
 			if found:
 				rxn_successful += 1
 				if not skip_remaining: print('Found true product among {} unique products'.format(len(unique_results)))
@@ -203,7 +228,9 @@ if __name__ == '__main__':
 		print('terminated early')
 		N = i
 
+	del p
+
 	print('Out of {} reactions:'.format(N))
 	print('  {} successful'.format(rxn_successful))
 	print('  {} unsuccessful'.format(rxn_unsuccessful))
-	print('Took {} s to calculate'.format(cum_time))
+	print('Took {} s to calculate using {} workers'.format(cum_time, N_THREADS))
