@@ -32,6 +32,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 	class Randomizer():
 		def __init__(self, seed):
 			self.done_ids = []
+			self.done_smiles = []
 			np.random.seed(seed)
 			if outfile:
 				with open(os.path.join(outfile, 'preprocess_candidate_edits_seed.txt'), 'w') as fid:
@@ -44,7 +45,11 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 						'random': { '$gte': np.random.random()}}).sort('random', 1).limit(1)
 					if not doc: continue
 					if doc[0]['_id'] in self.done_ids: continue
+					if doc[0]['reactant_smiles'] in self.done_smiles: 
+						print('New ID {}, but old reactant SMILES {}'.format(doc[0]['_id'], doc[0]['reactant_smiles']))
+						continue
 					self.done_ids.append(doc[0]['_id'])
+					self.done_smiles.append(doc[0]['reactant_smiles'])
 					yield doc[0]
 				except KeyboardInterrupt:
 					print('Terminated early')
