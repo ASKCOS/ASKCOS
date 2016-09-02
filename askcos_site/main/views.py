@@ -11,9 +11,31 @@ from django.conf import settings
 database = db_client[settings.RETRO_TRANSFORMS['database']]
 collection = database[settings.RETRO_TRANSFORMS['collection']]
 import makeit.retro.transformer as transformer 
-Transformer = transformer.Transformer()
-Transformer.load(collection, mincount = 1, get_retro = True, get_synth = False)
-print('Loaded {} templates'.format(Transformer.num_templates))
+RetroTransformer = transformer.Transformer()
+mincount_retro = 5
+RetroTransformer.load(collection, mincount = mincount_retro, get_retro = True, get_synth = False)
+print('Loaded {} retro templates'.format(RetroTransformer.num_templates))
+RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.format(RetroTransformer.num_templates,
+	mincount_retro, settings.RETRO_TRANSFORMS['database'], settings.RETRO_TRANSFORMS['collection'])
+
+database = db_client[settings.SYNTH_TRANSFORMS['database']]
+collection = database[settings.SYNTH_TRANSFORMS['collection']]
+SynthTransformer = transformer.Transformer()
+mincount_synth = 10
+SynthTransformer.load(collection, mincount = mincount_synth, get_retro = False, get_synth = True)
+print('Loaded {} forward templates'.format(SynthTransformer.num_templates))
+SYNTH_FOOTNOTE = 'Using {} forward templates (mincount {}) from {}/{}'.format(SynthTransformer.num_templates,
+	mincount_synth, settings.SYNTH_TRANSFORMS['database'], settings.SYNTH_TRANSFORMS['collection'])
+
+
+db = db_client[settings.REACTIONS['database']]
+REACTION_DB = db[settings.REACTIONS['collection']]
+
+db = db_client[settings.INSTANCES['database']]
+INSTANCE_DB = db[settings.INSTANCES['collection']]
+
+db = db_client[settings.CHEMICALS['database']]
+CHEMICAL_DB = db[settings.CHEMICALS['collection']]
 
 def index(request):
 	'''
@@ -73,6 +95,8 @@ def retro(request):
 		{'name': 'Bortezomib', 'smiles': 'CC(C)C[C@@H](NC(=O)[C@@H](Cc1ccccc1)NC(=O)c2cnccn2)B(O)O'},
 		{'name': 'Itraconazole', 'smiles': 'CCC(C)N1N=CN(C1=O)c2ccc(cc2)N3CCN(CC3)c4ccc(OC[C@H]5CO[C@@](Cn6cncn6)(O5)c7ccc(Cl)cc7Cl)cc4'}
 	]
+
+	context['footnote'] = RETRO_FOOTNOTE
 	return render(request, 'retro.html', context)
 
 @login_required
@@ -93,15 +117,16 @@ def retro_target(request, smiles, max_n = 50):
 	}
 
 	# Perform retrosynthesis
-	result = Transformer.perform_retro(smiles)
+	result = RetroTransformer.perform_retro(smiles)
 	context['precursors'] = result.return_top(n = 50)
 
 	# Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
 	# Also add up total number of examples
 	for (i, precursor) in enumerate(context['precursors']):
 		context['precursors'][i]['tforms'] = \
-			[dict(Transformer.lookup_id(_id), **{'id':str(_id)}) for _id in precursor['tforms']]
+			[dict(RetroTransformer.lookup_id(_id), **{'id':str(_id)}) for _id in precursor['tforms']]
 
+	context['footnote'] = RETRO_FOOTNOTE
 	return render(request, 'retro.html', context)
 
 @login_required
@@ -125,6 +150,7 @@ def synth(request):
 	else:
 		context['form'] = SmilesInputForm()
 
+	context['footnote'] = SYNTH_FOOTNOTE
 	return render(request, 'synth.html', context)
 
 @login_required
@@ -145,15 +171,16 @@ def synth_target(request, smiles, max_n = 50):
 	}
 
 	# Perform forward synthesis
-	result = Transformer.perform_forward(smiles)
+	result = SynthTransformer.perform_forward(smiles)
 	context['products'] = result.return_top(n = 50)
 	print(context['products'])
 	# Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
 	# (add "id" field to be string version of ObjectId "_id")
 	for (i, product) in enumerate(context['products']):
 		context['products'][i]['tforms'] = \
-			[dict(Transformer.lookup_id(_id), **{'id':str(_id)}) for _id in product['tforms']]
+			[dict(SynthTransformer.lookup_id(_id), **{'id':str(_id)}) for _id in product['tforms']]
 
+	context['footnote'] = SYNTH_FOOTNOTE
 	return render(request, 'synth.html', context)
 
 @login_required
@@ -161,34 +188,42 @@ def template_target(request, id):
 	'''
 	Examines a template from its id in the database
 	where id == str(_id)
+
+	Reaxys templates refer to instances, but we need the 
+	reactions for visualization
 	'''
 	context = {}
 
-	transform = Transformer.lookup_id(ObjectId(id))
+	transform = RetroTransformer.lookup_id(ObjectId(id))
+	if not transform: transform = SynthTransformer.lookup_id(ObjectId(id))
+
 	if not transform:
 		context['err'] = 'Transform not found'
 		return render(request, 'template.html', context)
 	context['template'] = transform
 	reference_ids = transform['references']
 
-	example_db = db_client[settings.EXAMPLES['database']]
-	example_coll = example_db[settings.EXAMPLES['collection']]
-	references = []
+	references = []; docs = []
+	context['total_references'] = len(reference_ids)
 	for i, ref_id in enumerate(reference_ids):	
-		doc = example_coll.find_one({'_id': ObjectId(ref_id)})
-		if not doc: doc = example_coll.find_one({'_id': str(ref_id)})
-		if not doc: 
-			try:
-				doc = example_coll.find_one({'_id': ObjectId(ref_id)})
-			except:
-				continue
-		if doc: references.append({
-			'label': doc['reference'],
-			'reaction_smiles': doc['reaction_smiles'],
-		})
-		if i == 50: break
-	context['references'] = references
+		doc = None
+		try:
+			doc = REACTION_DB.find_one({'_id': int(ref_id.split('-')[0])})
+		except Exception as e:
+			print(e) 
+		if doc: 
+			docs.append(doc)
+			references.append({
+				'label': ref_id,
+				'reaction_smiles': doc['RXN_SMILES'],
+			})
+		else:
+			print('Could not find doc with example')
 
+	from makeit.retro.conditions import average_template_list
+	context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
+
+	context['references'] = references[:15]
 	return render(request, 'template.html', context)
 
 @login_required
