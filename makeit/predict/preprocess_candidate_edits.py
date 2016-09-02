@@ -57,6 +57,24 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 				except:
 					pass
 
+		def get_sequential(self):
+			'''Sequential'''
+			for doc in examples.find({'found': True}, no_cursor_timeout = True):
+				try:
+					if not doc: continue 
+					if doc[0]['_id'] in self.done_ids: continue
+					if doc[0]['reactant_smiles'] in self.done_smiles: 
+						print('New ID {}, but old reactant SMILES {}'.format(doc[0]['_id'], doc[0]['reactant_smiles']))
+						continue
+					self.done_ids.append(doc[0]['_id'])
+					self.done_smiles.append(doc[0]['reactant_smiles'])
+					yield doc[0]
+				except KeyboardInterrupt:
+					print('Terminated early')
+					quit(1)
+				except:
+					pass
+
 	if seed == None:
 		seed = np.random.randint(10000)
 	else:
@@ -65,7 +83,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 	if shuffle:
 		generator = enumerate(randomizer.get_rand())
 	else:
-		generator = enumerate(examples.find({'found': True}))
+		generator = enumerate(randomizer.get_sequential())
 
 	# Initialize (this is not the best way to do this...)
 	reaction_candidate_edits = []
@@ -135,11 +153,11 @@ if __name__ == '__main__':
 	parser.add_argument('-s', '--shuffle', type = int, default = 0,
 						help = 'Whether or not to shuffle, default 0')
 	parser.add_argument('--skip', type = int, default = 0,
-						help = 'How many entries to skip before reading')
+						help = 'How many entries to skip before reading, default 0')
 	parser.add_argument('--candidate_collection', type = str, default = 'candidate_edits_8_9_16',
 						help = 'Name of collection within "prediction" db')
 	parser.add_argument('--maxeditsperclass', type = int, default = 5, 
-						help = 'Maximum number of edits per edit class')
+						help = 'Maximum number of edits per edit class, default 5')
 	args = parser.parse_args()
 
 	n = int(args.num)
