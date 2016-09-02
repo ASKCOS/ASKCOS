@@ -57,10 +57,10 @@
 				<br>
 				<a><img src="{% url 'draw_smiles' product.smiles %}" onclick="toggle_visibility('tforms{{ product.rank }}');"></a>
 				<div id='tforms{{ product.rank }}' style='display:none'>
-				<font class="smiles"><b>Based on retrosynthetic transform template(s):</b></font><br>
+				<font class="smiles"><b>Based on forward transform template(s):</b></font><br>
 				{% for tform in product.tforms %}
 					<font class="smiles">
-						<a href="{% url 'main.views.draw_template_page' tform.reaction_smarts %}">{{ tform.reaction_smarts }}</a>{% if tform.count %} ({{ tform.count }} examples){% endif %}
+						<a href="{% url 'main.views.draw_template_page' tform.reaction_smarts %}">{{ tform.reaction_smarts }}</a>{% if tform.count %} (<a href="{% url 'template_target' tform.id %}">{{ tform.count }} examples</a>){% endif %}
 					</font>{% if not forloop.last %}<br>{% endif %}
 				{% endfor %}
 				</div>
@@ -71,7 +71,9 @@
 	</table>
 {% endif %}
 
-{% endblock %}
+{% if footnote %}
+<br>
+<div align="center"><i>{{ footnote }}</i></div>
+{% endif %}
 
-<p onclick="toggle_visibility('testhidden');"><a>Click me!</a></p>
-<div id='testhidden' style='display:none'>hidden</div>
+{% endblock %}

@@ -59,7 +59,6 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_extensions', # needed for MongoDB?
     'askcos_site.main',
 )
 
@@ -124,8 +123,24 @@ MEDIA_URL = '/media/'
 
 # Miscellanious
 RETRO_TRANSFORMS = {
-    'database': 'askcos_transforms',
-    'collection': 'lowe', # 'lowe' or 'chematica'
+    'database': 'reaxys',
+    'collection': 'transforms_retro_v2', # 'lowe' or 'chematica'
+}
+SYNTH_TRANSFORMS = {
+    'database': 'reaxys',
+    'collection': 'transforms_forward_v1'    
+}
+INSTANCES = {
+    'database': 'reaxys',
+    'collection': 'instances',
+}
+REACTIONS = {
+    'database': 'reaxys',
+    'collection': 'reactions',
+}
+CHEMICALS = {
+    'database': 'reaxys',
+    'collection': 'chemicals',
 }
 
 # LOGIN
