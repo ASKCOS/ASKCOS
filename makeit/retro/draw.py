@@ -136,7 +136,7 @@ def CheckAtomForGeneralization(atom):
 		atom.ClearProp('molAtomMapNumber')
 
 
-def ReactionToImage(rxn, dummyAtoms = False, options = None, **kwargs):
+def ReactionToImage(rxn, dummyAtoms = False, kekulize = True, options = None, **kwargs):
 	'''Modification of RDKit's ReactionToImage to allow for each molecule 
 	to have a different drawn size. rxn is an RDKit reaction object
 
@@ -158,7 +158,7 @@ def ReactionToImage(rxn, dummyAtoms = False, options = None, **kwargs):
 		if dummyAtoms: [CheckAtomForGeneralization(atom) for atom in mol.GetAtoms()]
 
 	# Generate images for all molecules/arrow
-	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = False, options = options), padding = 15) for mol in mols]
+	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = kekulize, options = options), padding = 15) for mol in mols]
 
 	# Combine
 	return StitchPILsHorizontally(imgs)
@@ -178,7 +178,7 @@ def ReactionStringToImage(rxn_string, strip = True, update = True, options = Non
 	if strip: mols = [Chem.MolFromInchi(Chem.MolToInchi(mol)) if mol else None for mol in mols]
 
 	# Generate images
-	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = False, options = options), padding = 15) for mol in mols]
+	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = True, options = options), padding = 15) for mol in mols]
 
 	# Combine
 	return StitchPILsHorizontally(imgs)
@@ -209,7 +209,7 @@ def MolsSmilesToImage(smiles, options = None, **kwargs):
 	# Generate mols
 	mols = mols_from_smiles_list(smiles.split('.'))
 	# Generate images
-	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = False, options = options), padding = 15) for mol in mols]
+	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = True, options = options), padding = 15) for mol in mols]
 	# Combine
 	return StitchPILsHorizontally(imgs)
 
