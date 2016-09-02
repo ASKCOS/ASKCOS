@@ -189,7 +189,15 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 			doc = SOLVENT_DB.find_one({'_id': 'default'})
 			solvent = [doc['c'], doc['e'], doc['s'], doc['a'], doc['b'], doc['v']]
 			print('Because all solvents unknown ({}), using default params'.format(', '.join(unknown_solvents)))
-		reaction_contexts.append([T] + solvent)
+		# Reagents/catalysts (as fingerprint, blegh)
+		reagent_fp = np.zeros(256) 
+		for xrn in rxd['RXD_RGTXRN'] + rxd['RXD_CATXRN']:
+			smiles = str(CHEMICAL_DB.find_one({'_id': xrn})['SMILES'])
+			if not smiles: continue 
+			mol = Chem.MolFromSmiles(smiles)
+			if not mol: continue
+			reagent_fp += np.array(AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits = 256))
+		reaction_contexts.append([T] + solvent + list(reagent_fp))
 
 	return reaction_candidate_edits, reaction_true_onehot, reaction_candidate_smiles, reaction_true, reaction_contexts
 
