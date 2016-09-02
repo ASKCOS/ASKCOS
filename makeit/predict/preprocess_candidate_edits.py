@@ -62,13 +62,13 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 			for doc in examples.find({'found': True}, no_cursor_timeout = True):
 				try:
 					if not doc: continue 
-					if doc[0]['_id'] in self.done_ids: continue
-					if doc[0]['reactant_smiles'] in self.done_smiles: 
-						print('New ID {}, but old reactant SMILES {}'.format(doc[0]['_id'], doc[0]['reactant_smiles']))
+					if doc['_id'] in self.done_ids: continue
+					if doc['reactant_smiles'] in self.done_smiles: 
+						print('New ID {}, but old reactant SMILES {}'.format(doc['_id'], doc['reactant_smiles']))
 						continue
-					self.done_ids.append(doc[0]['_id'])
-					self.done_smiles.append(doc[0]['reactant_smiles'])
-					yield doc[0]
+					self.done_ids.append(doc['_id'])
+					self.done_smiles.append(doc['reactant_smiles'])
+					yield doc
 				except KeyboardInterrupt:
 					print('Terminated early')
 					quit(1)
