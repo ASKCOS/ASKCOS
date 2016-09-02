@@ -72,8 +72,6 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 				except KeyboardInterrupt:
 					print('Terminated early')
 					quit(1)
-				except:
-					pass
 
 	if seed == None:
 		seed = np.random.randint(10000)
