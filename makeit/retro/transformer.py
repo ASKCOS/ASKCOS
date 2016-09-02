@@ -84,16 +84,15 @@ class Transformer:
 			# Define forward version, too
 			if get_synth:
 				try:
-					products, reactants = reaction_smarts.split('>>')
-					reaction_smarts_forward = '(' + reactants + ')>>(' + products + ')'
-					rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_forward)
+					reaction_smarts_synth = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
+					rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_synth)
 					#if rxn_f.Validate() == (0, 0):
 					if rxn_f.Validate()[1] == 0:
 						template['rxn_f'] = rxn_f
 					else:
 						template['rxn_f'] = None
 				except Exception as e:
-					print('Couldnt load forward: {}: {}'.format(reaction_smarts_forward, e))
+					print('Couldnt load forward: {}: {}'.format(reaction_smarts_synth, e))
 					template['rxn_f'] = None
 
 			# Need to have either a retro or forward reaction be valid
@@ -136,8 +135,11 @@ class Transformer:
 		# Try each in turn
 		for template in self.templates:
 			try:
-				byproducts = [Chem.MolFromSmiles(x) for x in template['product_smiles']]
-				outcomes = template['rxn'].RunReactants([mol] + byproducts)
+				if template['product_smiles']:
+					react_mol = Chem.MolFromSmiles(smiles + '.' + '.'.join(template['product_smiles']))
+				else:
+					react_mol = mol 
+				outcomes = template['rxn'].RunReactants([react_mol])
 			except Exception as e:
 				print('warning: {}'.format(e))
 				print(template['reaction_smarts'])
@@ -360,8 +362,8 @@ class RetroPrecursor:
 		'''
 		mols = [Chem.MolFromSmiles(x) for x in self.smiles_list]
 		total_atoms = [x.GetNumHeavyAtoms() for x in mols]
-		ring_atoms = [sum([a.IsInRing() for a in x.GetAtoms()])	for x in mols]
+		ring_atoms = [sum([a.IsInRing() - a.GetIsAromatic() for a in x.GetAtoms()])	for x in mols]
 		chiral_centers = [len(Chem.FindMolChiralCenters(x)) for x in mols]
-		self.retroscore = - 1.00 * np.sum(np.power(total_atoms, 1.5)) \
-								- 2.00 * np.sum(np.power(ring_atoms, 1.5)) \
+		self.retroscore = - 2.00 * np.sum(np.power(total_atoms, 1.5)) \
+								- 1.00 * np.sum(np.power(ring_atoms, 1.5)) \
 								- 0.00 * np.sum(np.power(chiral_centers, 2.0))
