@@ -154,13 +154,13 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		reaction_candidate_edits.append([x for (y, z, x) in zipsort])
 		reaction_true_onehot.append([y for (y, z, x) in zipsort])
 		reaction_candidate_smiles.append([z for (y, z, x) in zipsort])
-		reaction_true.append(str(reactant_smiles) + '>>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)))
 
 		### Look for conditions
+		context_info = ''
 		rxd = INSTANCE_DB.find_one({'_id': reaction['_id']})
 		if not rxd:
 			print('Could not find RXD with ID {}'.format(reaction['_id']))
-			continue
+			raise ValueError('Candidate reaction source not found?')
 		
 		# Temp
 		T = string_or_range_to_float(rxd['RXD_T'])
@@ -168,6 +168,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		# Solvent(s)
 		solvent = [0, 0, 0, 0, 0, 0] # c, e, s, a, b, v
 		unknown_solvents = []
+		context_info += 'solv:'
 		for xrn in rxd['RXD_SOLXRN']:
 			smiles = str(CHEMICAL_DB.find_one({'_id': xrn})['SMILES'])
 			if not smiles: continue 
@@ -175,6 +176,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 			if not mol: continue
 			smiles = Chem.MolToSmiles(mol)
 			doc = SOLVENT_DB.find_one({'_id': smiles})
+			context_info += smiles + ','
 			if not doc: 
 				unknown_solvents.append(smiles)
 				print('Solvent {} not found in DB'.format(smiles))
@@ -191,13 +193,20 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 			print('Because all solvents unknown ({}), using default params'.format(', '.join(unknown_solvents)))
 		# Reagents/catalysts (as fingerprint, blegh)
 		reagent_fp = np.zeros(256) 
+		context_info += 'rgt:'
 		for xrn in rxd['RXD_RGTXRN'] + rxd['RXD_CATXRN']:
 			smiles = str(CHEMICAL_DB.find_one({'_id': xrn})['SMILES'])
 			if not smiles: continue 
 			mol = Chem.MolFromSmiles(smiles)
 			if not mol: continue
+			context_info += smiles + ','
 			reagent_fp += np.array(AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits = 256))
-		reaction_contexts.append([T] + solvent + list(reagent_fp))
+		reaction_contexts.append(np.array([T] + solvent + list(reagent_fp)))
+		context_info += 'T:{}'.format(T)
+
+		reaction_true.append(str(reactant_smiles) + '>' + str(context_info) + '>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)))
+
+	reaction_contexts = np.array(reaction_contexts)
 
 	return reaction_candidate_edits, reaction_true_onehot, reaction_candidate_smiles, reaction_true, reaction_contexts
 
