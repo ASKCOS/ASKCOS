@@ -362,7 +362,7 @@ def pred_histogram(model, x_files, xc_files, y_files, z_files, tag = '', split_r
 			# Visualize in histogram
 			weights = np.ones_like(array) / len(array)
 			plt.clf()
-			n, bins, patches = plt.hist(array, np.arange(0, 1, 0.02), facecolor = 'blue', alpha = 0.5, weights = weights)
+			n, bins, patches = plt.hist(array, np.arange(0, 1.02, 0.02), facecolor = 'blue', alpha = 0.5, weights = weights)
 			plt.xlabel('Assigned probability to true product')
 			plt.ylabel('Normalized frequency')
 			plt.title('Histogram of pseudo-probabilities - {} (N={},acc={})'.format(title, len(array), acc))
