@@ -43,37 +43,37 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	inner_act: activation function 
 	'''
 
-	h_lost = Input(shape = (N_c, N_e, F_atom))
-	h_gain = Input(shape = (N_c, N_e, F_atom))
-	bond_lost = Input(shape = (N_c, N_e, F_bond))
-	bond_gain = Input(shape = (N_c, N_e, F_bond))
-	reagents = Input(shape = (256,)) # TODO: remove hard-coded length
-	solvent = Input(shape = (6,))
-	temp = Input(shape = (1,))
+	h_lost = Input(shape = (N_c, N_e, F_atom), name = "H_lost")
+	h_gain = Input(shape = (N_c, N_e, F_atom), name = "H_gain")
+	bond_lost = Input(shape = (N_c, N_e, F_bond), name = "bond_lost")
+	bond_gain = Input(shape = (N_c, N_e, F_bond), name = "bond_gain")
+	reagents = Input(shape = (256,), name = "reagent FP") # TODO: remove hard-coded length
+	solvent = Input(shape = (6,), name = "solvent descriptors c,e,s,a,b,v")
+	temp = Input(shape = (1,), name = "temperature [C]")
 
-	h_lost_r = Reshape((N_c*N_e, F_atom))(h_lost)
-	h_gain_r = Reshape((N_c*N_e, F_atom))(h_gain)
-	bond_lost_r = Reshape((N_c*N_e, F_bond))(bond_lost)
-	bond_gain_r = Reshape((N_c*N_e, F_bond))(bond_gain)
+	h_lost_r = Reshape((N_c*N_e, F_atom), name = "flatten H_lost")(h_lost)
+	h_gain_r = Reshape((N_c*N_e, F_atom), name = "flatten H_gain")(h_gain)
+	bond_lost_r = Reshape((N_c*N_e, F_bond), name = "flatten bond_lost")(bond_lost)
+	bond_gain_r = Reshape((N_c*N_e, F_bond), name = "flatten bond_gain")(bond_gain)
 
-	h_lost_h1 = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)))(h_lost_r)
-	h_gain_h1 = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)))(h_gain_r)
-	bond_lost_h1 = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)))(bond_lost_r)
-	bond_gain_h1 = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)))(bond_gain_r)
+	h_lost_h1 = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_lost 1")(h_lost_r)
+	h_gain_h1 = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_gain 1")(h_gain_r)
+	bond_lost_h1 = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)), name = "embed bond_lost 1")(bond_lost_r)
+	bond_gain_h1 = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)), name = "embed bond_gain 1")(bond_gain_r)
 	N_h = N_h1
 
 	if N_h2 > 0:
-		h_lost_h2 = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)))(h_lost_h1)
-		h_gain_h2 = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)))(h_gain_h1)
-		bond_lost_h2 = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)))(bond_lost_h1)
-		bond_gain_h2 = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)))(bond_gain_h1)
+		h_lost_h2 = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_lost 2")(h_lost_h1)
+		h_gain_h2 = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_gain 2")(h_gain_h1)
+		bond_lost_h2 = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)), name = "embed bond_lost 2")(bond_lost_h1)
+		bond_gain_h2 = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)), name = "embed bond_gain 2")(bond_gain_h1)
 		N_h = N_h2
 
 		if N_h3 > 0:
-			h_lost_h = TimeDistributed(Dense(N_h3, activation = inner_act, W_regularizer = l2(l2v)))(h_lost_h2)
-			h_gain_h = TimeDistributed(Dense(N_h3, activation = inner_act, W_regularizer = l2(l2v)))(h_gain_h2)
-			bond_lost_h = TimeDistributed(Dense(N_h3, activation = inner_act, W_regularizer = l2(l2v)))(bond_lost_h2)
-			bond_gain_h = TimeDistributed(Dense(N_h3, activation = inner_act, W_regularizer = l2(l2v)))(bond_gain_h2)
+			h_lost_h = TimeDistributed(Dense(N_h3, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_lost 3")(h_lost_h2)
+			h_gain_h = TimeDistributed(Dense(N_h3, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_gain 3")(h_gain_h2)
+			bond_lost_h = TimeDistributed(Dense(N_h3, activation = inner_act, W_regularizer = l2(l2v)), name = "embed bond_lost 3")(bond_lost_h2)
+			bond_gain_h = TimeDistributed(Dense(N_h3, activation = inner_act, W_regularizer = l2(l2v)), name = "embed bond_gain 3")(bond_gain_h2)
 			N_h = N_h3
 
 		else:
@@ -88,69 +88,50 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 		bond_lost_h = bond_lost_h1
 		bond_gain_h = bond_gain_h1
 
-	h_lost_r2 = Reshape((N_c, N_e, N_h))(h_lost_h)
-	h_gain_r2 = Reshape((N_c, N_e, N_h))(h_gain_h)
-	bond_lost_r2 = Reshape((N_c, N_e, N_h))(bond_lost_h)
-	bond_gain_r2 = Reshape((N_c, N_e, N_h))(bond_gain_h)
+	h_lost_r2 = Reshape((N_c, N_e, N_h), name = "expand H_lost edits")(h_lost_h)
+	h_gain_r2 = Reshape((N_c, N_e, N_h), name = "expand H_gain edits")(h_gain_h)
+	bond_lost_r2 = Reshape((N_c, N_e, N_h), name = "expand bond_lost edits")(bond_lost_h)
+	bond_gain_r2 = Reshape((N_c, N_e, N_h), name = "expand bond_gain edits")(bond_gain_h)
 
-	h_lost_sum = Lambda(lambda x: K.sum(x, axis = 2), output_shape = (N_c, N_h))(h_lost_r2)
-	h_gain_sum = Lambda(lambda x: K.sum(x, axis = 2), output_shape = (N_c, N_h))(h_gain_r2)
-	bond_lost_sum = Lambda(lambda x: K.sum(x, axis = 2), output_shape = (N_c, N_h))(bond_lost_r2)
-	bond_gain_sum = Lambda(lambda x: K.sum(x, axis = 2), output_shape = (N_c, N_h))(bond_gain_r2)
+	h_lost_sum = Lambda(lambda x: K.sum(x, axis = 2), output_shape = (N_c, N_h), name = "sum H_lost")(h_lost_r2)
+	h_gain_sum = Lambda(lambda x: K.sum(x, axis = 2), output_shape = (N_c, N_h), name = "sum H_gain")(h_gain_r2)
+	bond_lost_sum = Lambda(lambda x: K.sum(x, axis = 2), output_shape = (N_c, N_h), name = "sum bond_lost")(bond_lost_r2)
+	bond_gain_sum = Lambda(lambda x: K.sum(x, axis = 2), output_shape = (N_c, N_h), name = "sum bond_gain")(bond_gain_r2)
 
-	net_sum = merge([h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum], mode = 'sum')
+	net_sum = merge([h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum], mode = 'sum', name = "sum across edits")
 
 	feature_to_feature = Dense(N_hf, activation = inner_act, W_regularizer = l2(l2v))
-	net_sum_h = TimeDistributed(feature_to_feature)(net_sum)
+	net_sum_h = TimeDistributed(feature_to_feature, name = "reaction embedding post-sum")(net_sum)
 
 	# Take reagents -> intermediate representation -> cosine similarity to enhance reaction
-	reagents_h = Dense(N_hf, activation = 'tanh', W_regularizer = l2(l2v))(reagents)
-	reagents_h_rpt = RepeatVector(N_c)(reagents_h)
+	reagents_h = Dense(N_hf, activation = 'tanh', W_regularizer = l2(l2v), name = "reagent fingerprint to features")(reagents)
+	reagents_h_rpt = RepeatVector(N_c, name = "broadcast reagent vector")(reagents_h)
 
 	# Dot product between reagents and net_sum_h gives enhancement factor
-	enhancement_mul = merge([net_sum_h, reagents_h_rpt], mode = 'mul')
-	enhancement = Lambda(lambda x: K.sum(x, axis = -1), output_shape = (N_c, 1))(enhancement_mul)
-	enhancement_r = Reshape((N_c, 1))(enhancement) # needs to be explicit for some reason
+	enhancement_mul = merge([net_sum_h, reagents_h_rpt], mode = 'mul', name = "multiply reaction with reagents [dot 1/2]")
+	enhancement = Lambda(lambda x: K.sum(x, axis = -1), output_shape = (N_c, 1), name = "sum reaction with reagents [dot 2/2]")(enhancement_mul)
+	enhancement_r = Reshape((N_c, 1), name = "shape check 1")(enhancement) # needs to be explicit for some reason
 
 	# Converge to G0, C[not real], E, S, A, B, V, and K
 	feature_to_params = Dense(8, activation = 'linear', W_regularizer = l2(l2v))
-	params = TimeDistributed(feature_to_params)(net_sum_h)
+	params = TimeDistributed(feature_to_params, name = "features to K,G0,C,E,S,A,B,V")(net_sum_h)
 
 	# Concatenate enhancement and solvents
-	solvent_rpt = RepeatVector(N_c)(solvent)
-	temp_rpt = RepeatVector(N_c)(temp)
-	params_enhancement = merge([params, enhancement_r, solvent_rpt, temp_rpt], mode = 'concat')
+	solvent_rpt = RepeatVector(N_c, name = "broadcast solvent vector")(solvent)
+	temp_rpt = RepeatVector(N_c, name = "broadcast temperature")(temp)
+	params_enhancement = merge([params, enhancement_r, solvent_rpt, temp_rpt], mode = 'concat', name = "concatenate context")
 
 	# Calculate using thermo-ish
 	# K * exp(- (G0 + delG_solv) / T + enhancement)
 	unscaled_score = Lambda(
 		lambda x: x[:, :, 0] * K.exp(- (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 8:14], axis = -1)) / (x[:, :, 15] + 273.15) + x[:, :, 8]),
-		output_shape = lambda x: (None, N_c,  )
+		output_shape = lambda x: (None, N_c,  ),
+		name = "propensity = K * exp(- (G0 + cC + eE + ... + vV) / T + enh.)"
 	)(params_enhancement)
 
-	# thermo_func = Lambda(
-	# 	lambda x: K.flatten(K.batch_dot(x, x, axes = (2, 2))),
-	# 	output_shape = (N_c,)
-	# )
+	unscaled_score_r = Reshape((N_c,), name = "shape check 2")(unscaled_score)
 
-	# thermo_func = Lambda(
-	# 	lambda z:
-	# 		theano.scan(
-	# 			lambda x: x[0],
-	# 			sequences = z
-	# 		)[0],
-	# 	output_shape = (N_c,)
-	# )
-
-	# # Testing single value
-	# unscaled_score = Lambda(
-	# 	lambda x: x[:, :, 0],
-	# 	output_shape = (N_c,)
-	# )(params_enhancement)
-
-	unscaled_score_r = Reshape((N_c,))(unscaled_score)
-
-	score = Activation('softmax')(unscaled_score_r)
+	score = Activation('softmax', name = "scores to probs")(unscaled_score_r)
 	#score = unscaled_score_r
 
 	model = Model(input = [h_lost, h_gain, bond_lost, bond_gain, reagents, solvent, temp], 
@@ -171,7 +152,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 def train(model, x_files, xc_files, y_files, z_files, tag = '', split_ratio = 0.8):
 
 	hist_fid = open(os.path.join(FROOT, 'hist{}.csv'.format(tag)), 'a')
-	hist_fid.write('epoch,filenum,loss,val_loss,acc,val_acc\n')
+	hist_fid.write('epoch,filenum,loss,val_loss,categorical_accuracy,val_categorical_accuracy\n')
 	try:
 		for epoch in range(nb_epoch):
 			print('>>> EPOCH {}/{} <<<'.format(epoch + 1, nb_epoch))
