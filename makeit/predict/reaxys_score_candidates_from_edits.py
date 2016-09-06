@@ -7,9 +7,10 @@ import sys
 import argparse
 import h5py # needed for save_weights, fails otherwise
 from keras import backend as K 
+import theano
 from keras.models import Sequential, Model, model_from_json
 from keras.layers import Dense, Activation, Input
-from keras.layers.core import Flatten, Permute, Reshape, Dropout, Lambda
+from keras.layers.core import Flatten, Permute, Reshape, Dropout, Lambda, RepeatVector
 from keras.layers.wrappers import TimeDistributed
 from keras.engine.topology import Merge, merge
 from keras.optimizers import *
@@ -30,7 +31,7 @@ import scipy.stats as ss
 
 
 
-def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 500, inner_act = 'tanh',
+def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 100, inner_act = 'tanh',
 		l2v = 0.01, lr = 0.0003, N_hf = 20):
 	'''
 	Builds the feed forward model.
@@ -104,37 +105,66 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 
 	# Take reagents -> intermediate representation -> cosine similarity to enhance reaction
 	reagents_h = Dense(N_hf, activation = 'tanh', W_regularizer = l2(l2v))(reagents)
-	enhancement = merge([net_sum_h, reagents_h], mode = 'cos')
-	enhacement_r = Reshape((N_c, 1))(enhancement) # explicit third dimension to concatenate later
+	reagents_h_rpt = RepeatVector(N_c)(reagents_h)
+
+	# Dot product between reagents and net_sum_h gives enhancement factor
+	enhancement_mul = merge([net_sum_h, reagents_h_rpt], mode = 'mul')
+	enhancement = Lambda(lambda x: K.sum(x, axis = -1), output_shape = (N_c, 1))(enhancement_mul)
+	enhancement_r = Reshape((N_c, 1))(enhancement) # needs to be explicit for some reason
 
 	# Converge to G0, C[not real], E, S, A, B, V, and K
 	feature_to_params = Dense(8, activation = 'linear', W_regularizer = l2(l2v))
 	params = TimeDistributed(feature_to_params)(net_sum_h)
 
-	# Concatenate enhancement before final calculation
-	params_enhancement = merge([params, enhacement_r], mode = 'concat')
+	# Concatenate enhancement and solvents
+	solvent_rpt = RepeatVector(N_c)(solvent)
+	temp_rpt = RepeatVector(N_c)(temp)
+	params_enhancement = merge([params, enhancement_r, solvent_rpt, temp_rpt], mode = 'concat')
 
 	# Calculate using thermo-ish
 	# K * exp(- (G0 + delG_solv) / T + enhancement)
-	thermo_score = Lambda(lambda x: x[0] * K.exp(- (x[1] + K.dot(x[2:7], solvent)) / (temp + 273.15) + x[8]))
-	unscaled_score = TimeDistributed(thermo_score)(params_enhancement)
+	unscaled_score = Lambda(
+		lambda x: x[:, :, 0] * K.exp(- (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 8:14], axis = -1)) / (x[:, :, 15] + 273.15) + x[:, :, 8]),
+		output_shape = lambda x: (None, N_c,  )
+	)(params_enhancement)
 
+	# thermo_func = Lambda(
+	# 	lambda x: K.flatten(K.batch_dot(x, x, axes = (2, 2))),
+	# 	output_shape = (N_c,)
+	# )
 
-	unscaled_score_flat = Flatten()(unscaled_score)
+	# thermo_func = Lambda(
+	# 	lambda z:
+	# 		theano.scan(
+	# 			lambda x: x[0],
+	# 			sequences = z
+	# 		)[0],
+	# 	output_shape = (N_c,)
+	# )
 
-	score = Activation('softmax')(unscaled_score_flat)
-	
-	model = Model(input = [h_lost, h_gain, bond_lost, bond_gain, reagents, solvent, temp], output = [score])
+	# # Testing single value
+	# unscaled_score = Lambda(
+	# 	lambda x: x[:, :, 0],
+	# 	output_shape = (N_c,)
+	# )(params_enhancement)
 
-	# Now compile
-	sgd = SGD(lr = lr, decay = 1e-4, momentum = 0.9)
-	# model.compile(loss = 'binary_crossentropy', optimizer = sgd, 
-	# 	metrics = ['binary_accuracy'])
-	model.compile(loss = 'categorical_crossentropy', optimizer = sgd, 
-		metrics = ['categorical_accuracy'])
+	unscaled_score_r = Reshape((N_c,))(unscaled_score)
+
+	score = Activation('softmax')(unscaled_score_r)
+	#score = unscaled_score_r
+
+	model = Model(input = [h_lost, h_gain, bond_lost, bond_gain, reagents, solvent, temp], 
+		output = [score])
 
 	model.summary()
 	plot(model, to_file = 'model.png', show_shapes = True)
+
+
+	# Now compile
+	sgd = SGD(lr = lr, decay = 1e-4, momentum = 0.9)
+
+	model.compile(loss = 'categorical_crossentropy', optimizer = sgd, 
+		metrics = ['categorical_accuracy', 'accuracy'])
 
 	return model
 
@@ -157,7 +187,15 @@ def train(model, x_files, xc_files, y_files, z_files, tag = '', split_ratio = 0.
 					xc = list(get_xc_data(xc_files[fnum]))
 					y = get_y_data(y_files[fnum])
 					
-				hist = model.fit(x + xc, y, 
+				# print(x[0].shape)
+				# print(x[1].shape)
+				# print(x[2].shape)
+				# print(x[3].shape)
+				# print(xc[0].shape)
+				# print(xc[1].shape)
+				# print(xc[2].shape)
+				# print('y: {}'.format(y.shape))
+				hist = model.fit(x + xc, [y], 
 					nb_epoch = 1, 
 					batch_size = batch_size, 
 					validation_split = (1 - split_ratio),
@@ -165,18 +203,18 @@ def train(model, x_files, xc_files, y_files, z_files, tag = '', split_ratio = 0.
 
 				hist_fid.write('{},{},{},{},{},{}\n'.format(
 					epoch + 1, fnum, hist.history['loss'][0], hist.history['val_loss'][0],
-					hist.history['acc'][0], hist.history['val_acc'][0]
+					hist.history['categorical_accuracy'][0], hist.history['val_categorical_accuracy'][0]
 				))
 				# print('loss: {}, val_loss: {}, acc: {}, val_acc: {}'.format(
 				#	hist.history['loss'][0], hist.history['val_loss'][0],
 				# 	hist.history['acc'][0], hist.history['val_acc'][0]
 				#))
 				average_loss += hist.history['loss'][0]
-				average_acc += hist.history['acc'][0]
+				average_acc += hist.history['categorical_accuracy'][0]
 				average_val_loss += hist.history['val_loss'][0]
-				average_val_acc += hist.history['val_acc'][0]
-			print('    loss:     {:8.4f}, acc:     {:5.4f}'.format(average_loss/len(x_files), average_acc/len(x_files)))
-			print('    val_loss: {:8.4f}, val_acc: {:5.4f}'.format(average_val_loss/len(x_files), average_val_acc/len(x_files)))
+				average_val_acc += hist.history['val_categorical_accuracy'][0]
+			print('    loss:     {:8.4f}, categorical_accuracy:     {:5.4f}'.format(average_loss/len(x_files), average_acc/len(x_files)))
+			print('    val_loss: {:8.4f}, val_categorical_accuracy: {:5.4f}'.format(average_val_loss/len(x_files), average_val_acc/len(x_files)))
 			model.save_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), overwrite = True)
 	except KeyboardInterrupt:
 		print('Stopped training early!')
@@ -251,7 +289,7 @@ def get_xc_data(fpath):
 	with open(fpath, 'rb') as infile:
 		xc = pickle.load(infile)
 		# Split into reagents, solvent, temp
-		return (xc[7:], xc[1:6], xc[0]) 
+		return (xc[:, 7:], xc[:, 1:7], xc[:, 0]) 
 
 def get_y_data(fpath):
 	with open(fpath, 'rb') as infile:
@@ -464,7 +502,7 @@ if __name__ == '__main__':
 		model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
 		model.compile(loss = 'categorical_crossentropy', 
 			optimizer = SGD(lr = lr, decay = 1e-4, momentum = 0.9),
-			metrics = ['categorical_accuracy']
+			metrics = ['categorical_accuracy', 'accuracy']
 		)
 		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
 	else:
