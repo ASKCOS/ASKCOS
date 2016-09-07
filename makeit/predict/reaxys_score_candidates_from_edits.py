@@ -128,8 +128,8 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	# Calculate using thermo-ish
 	# K * exp(- (G0 + delG_solv) / T + enhancement)
 	unscaled_score = Lambda(
-		lambda x: x[:, :, 0] * K.exp(- 273.15 * (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 8:14], axis = -1)) / (x[:, :, 15] + 273.15) + x[:, :, 8]),
-		output_shape = (None, N_c,),
+		lambda x: x[:, :, 0] * K.exp(- (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 8:14], axis = -1)) / (x[:, :, 15] + 273.15) + x[:, :, 8]),
+		output_shape = lambda x: (None, N_c,),
 		name = "propensity = K * exp(- (G0 + cC + eE + ... + vV) / T + enh.)"
 	)(params_enhancement)
 
@@ -276,8 +276,6 @@ def get_x_data(fpath, z):
 def get_xc_data(fpath):
 	with open(fpath, 'rb') as infile:
 		xc = pickle.load(infile)
-		print(np.isnan(xc).any())
-		print(np.isinf(xc).any())
 		# Split into reagents, solvent, temp
 		return (xc[:, 7:], xc[:, 1:7], xc[:, 0]) 
 
@@ -285,8 +283,7 @@ def get_y_data(fpath):
 	with open(fpath, 'rb') as infile:
 		y = pickle.load(infile)
 		y = np.array([y_i.index(True) for y_i in y])
-		y = to_categorical(y, nb_classes = N_c)
-		return y
+		return to_categorical(y, nb_classes = N_c)
 
 def get_z_data(fpath):
 	with open(fpath, 'rb') as infile:
