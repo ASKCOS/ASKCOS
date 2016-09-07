@@ -12,7 +12,7 @@ from makeit.embedding.descriptors import rxn_level_descriptors
 import time
 import argparse
 
-FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data_edits')
+FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data_edits_reaxys')
 
 
 def string_or_range_to_float(text):
