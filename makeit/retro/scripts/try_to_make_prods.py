@@ -24,8 +24,8 @@ if __name__ == '__main__':
 						help = 'Maximum number of records to examine; defaults to 50')
 	parser.add_argument('-e', '--examples', type = str, default = 'lowe_1976-2013_USPTOgrants_reactions',
 						help = 'Name of reaction example collection, defaults to Lowe USPTO grants reactions')
-	parser.add_argument('-t', '--templates', type = str, default = 'lowe_refs_general',
-						help = 'Name of reaction template collection, defaults to lowe_refs_general')
+	parser.add_argument('-t', '--templates', type = str, default = 'lowe_refs_general_v3',
+						help = 'Name of reaction template collection, defaults to lowe_refs_general_v3')
 	parser.add_argument('--mincount', type = int, default = 2, 
 						help = 'Minimum count of reaction templates to use, defaults to 2')
 	parser.add_argument('-s', '--shuffle', type = bool, default = True,

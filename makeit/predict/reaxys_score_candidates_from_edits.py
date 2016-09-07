@@ -17,7 +17,11 @@ from keras.optimizers import *
 from keras.layers.convolutional import Convolution1D, Convolution2D
 from keras.regularizers import l2
 from keras.utils.np_utils import to_categorical
-from keras.utils.visualize_util import plot
+no_printing = False
+try:
+	from keras.utils.visualize_util import plot
+except:
+	no_printing = True
 from makeit.predict.preprocess_candidates import *
 from makeit.embedding.descriptors import edits_to_vectors, oneHotVector # for testing
 import rdkit.Chem as Chem
@@ -138,7 +142,8 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 		output = [score])
 
 	model.summary()
-	plot(model, to_file = 'model.png', show_shapes = True)
+	if not no_printing:
+		plot(model, to_file = 'model.png', show_shapes = True)
 
 
 	# Now compile

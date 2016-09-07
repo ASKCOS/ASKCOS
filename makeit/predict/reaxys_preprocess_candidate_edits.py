@@ -165,6 +165,8 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		# Temp
 		T = string_or_range_to_float(rxd['RXD_T'])
 		if not T: T = 20
+		if T == -1: T = 20
+
 		# Solvent(s)
 		solvent = [0, 0, 0, 0, 0, 0] # c, e, s, a, b, v
 		unknown_solvents = []
@@ -180,6 +182,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 			if not doc: 
 				unknown_solvents.append(smiles)
 				print('Solvent {} not found in DB'.format(smiles))
+				context_info = context_info[:-1] + '?,' # add question mark to denote unfound
 				continue
 			solvent[0] += doc['c']
 			solvent[1] += doc['e']
@@ -203,6 +206,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 			reagent_fp += np.array(AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits = 256))
 		reaction_contexts.append(np.array([T] + solvent + list(reagent_fp)))
 		context_info += 'T:{}'.format(T)
+		print(context_info)
 
 		reaction_true.append(str(reactant_smiles) + '>' + str(context_info) + '>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)))
 

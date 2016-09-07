@@ -4,9 +4,7 @@ import rdkit.Chem.rdMolDescriptors as rdMolDescriptors
 import rdkit.Chem.EState as EState
 import rdkit.Chem.rdPartialCharges as rdPartialCharges
 import rdkit.Chem.rdChemReactions as rdRxns
-
 att_dtype = np.float32
-
 
 def oneHotVector(val, lst):
 	'''Converts a value to a one-hot vector based on options in lst'''

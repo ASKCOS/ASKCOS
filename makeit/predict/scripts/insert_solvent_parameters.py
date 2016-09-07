@@ -17,14 +17,20 @@ with open(os.path.join(os.path.dirname(__file__), 'Abraham Solvent Parameters to
 
 		name = row[0]
 		smiles = row[1]
-		c = row[2]
-		e = row[3]
-		s = row[4]
-		a = row[5]
-		b = row[6]
-		v = row[7]
-		mp = row[8]
-		bp = row[9]
+		c = float(row[2])
+		e = float(row[3])
+		s = float(row[4])
+		a = float(row[5])
+		b = float(row[6])
+		v = float(row[7])
+		try:
+			mp = float(row[8])
+		except Exception:
+			mp = row[8]
+		try:
+			bp = float(row[9])
+		except Exception:
+			bp = row[9]
 
 		# Use RDKit to canonicalize
 		mol = Chem.MolFromSmiles(smiles)
@@ -48,3 +54,19 @@ with open(os.path.join(os.path.dirname(__file__), 'Abraham Solvent Parameters to
 			SOLVENT_DB.insert_one(doc)
 		except Exception as e:
 			print(e)
+
+doc = {
+	'_id': 'default',
+	'c': 0.2216,
+	'e': 0.2677,
+	's': -0.4,
+	'a': -1.135,
+	'b': -3.799,
+	'v': 3.6212,
+}
+try:
+	SOLVENT_DB.insert_one(doc)
+except Exception as e:
+	print(e)
+
+print('Loaded {} solvents (including one default)'.format(SOLVENT_DB.count()))

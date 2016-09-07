@@ -100,38 +100,45 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 			print('## RXN {}'.format(i))
 			print('#########')
 
-			if bool(USE_REACTIONSMILES):
-				rxn_smiles = reaction['reaction_smiles'].split(' ')[0]
-				all_smiles = [smilesfixer.fix_smiles(x) for x in rxn_smiles.split('>')[0].split('.')]
-				mol = Chem.MolFromSmiles(rxn_smiles.split('>')[2])
-			else:
-				all_smiles =  [smilesfixer.fix_smiles(x['smiles']) for x in reaction['reactants']]
-				if 'catalysts' in reaction:
-					all_smiles += [smilesfixer.fix_smiles(x['smiles']) for x in reaction['catalysts']] 
-				if 'spectators' in reaction:
-					all_smiles += [smilesfixer.fix_smiles(x['smiles']) for x in reaction['spectators']] 
-				mol = Chem.MolFromSmiles(reaction['products'][0]['smiles'])
-			
-			# Define target (true) product smiles
-			[x.ClearProp('molAtomMapNumber') for x in mol.GetAtoms()] # remove atom mapping from target prod
-			target_smiles = smilesfixer.fix_smiles(Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY))
-			if singleonly:
-				target_smiles = max(target_smiles.split('.'), key = len)
+			try:
+				if bool(USE_REACTIONSMILES):
+					rxn_smiles = reaction['reaction_smiles'].split(' ')[0]
+					all_smiles = [smilesfixer.fix_smiles(x) for x in rxn_smiles.split('>')[0].split('.')]
+					mol = Chem.MolFromSmiles(rxn_smiles.split('>')[2])
+				else:
+					all_smiles =  [smilesfixer.fix_smiles(x['smiles']) for x in reaction['reactants']]
+					if 'catalysts' in reaction:
+						all_smiles += [smilesfixer.fix_smiles(x['smiles']) for x in reaction['catalysts']] 
+					if 'spectators' in reaction:
+						all_smiles += [smilesfixer.fix_smiles(x['smiles']) for x in reaction['spectators']] 
+					mol = Chem.MolFromSmiles(reaction['products'][0]['smiles'])
+				
+				# Define target (true) product smiles
+				[x.ClearProp('molAtomMapNumber') for x in mol.GetAtoms()] # remove atom mapping from target prod
+				target_smiles = smilesfixer.fix_smiles(Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY))
+				if singleonly:
+					target_smiles = max(target_smiles.split('.'), key = len)
 
-			# Load reactant molecules
-			reactants = Chem.MolFromSmiles('.'.join(all_smiles))
-			n_reactant_atoms = len(reactants.GetAtoms())
-			print('Number of reactant atoms: {}'.format(n_reactant_atoms))
-			if n_reactant_atoms > 100:
-				print('Skipping huge molecule! N_reactant_atoms = {}'.format(n_reactant_atoms))
+				# Load reactant molecules
+				reactants = Chem.MolFromSmiles('.'.join(all_smiles))
+				n_reactant_atoms = len(reactants.GetAtoms())
+				print('Number of reactant atoms: {}'.format(n_reactant_atoms))
+				if n_reactant_atoms > 100:
+					print('Skipping huge molecule! N_reactant_atoms = {}'.format(n_reactant_atoms))
+					continue
+
+				# Report current reactant SMILES string
+				print('Reactants w/o map: {}'.format(Chem.MolToSmiles(reactants)))
+				# Add new atom map numbers
+				[a.SetProp('molAtomMapNumber', str(i+1)) for (i, a) in enumerate(reactants.GetAtoms())]
+				# Report new reactant SMILES string
+				print('Reactants w/ map: {}'.format(Chem.MolToSmiles(reactants)))
+			except KeyboardInterrupt:
+				print('Breaking early')
+				break 
+			except Exception as e:
+				print('Error, {}'.format(e))
 				continue
-
-			# Report current reactant SMILES string
-			print('Reactants w/o map: {}'.format(Chem.MolToSmiles(reactants)))
-			# Add new atom map numbers
-			[a.SetProp('molAtomMapNumber', str(i+1)) for (i, a) in enumerate(reactants.GetAtoms())]
-			# Report new reactant SMILES string
-			print('Reactants w/ map: {}'.format(Chem.MolToSmiles(reactants)))
 
 			found_true = False
 			candidate_edits = [] # list of tuples of (product smiles, edits required)
