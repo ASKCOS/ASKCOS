@@ -129,7 +129,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	# K * exp(- (G0 + delG_solv) / T + enhancement)
 	unscaled_score = Lambda(
 		lambda x: x[:, :, 0] * K.exp(- 273.15 * (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 8:14], axis = -1)) / (x[:, :, 15] + 273.15) + x[:, :, 8]),
-		output_shape = lambda x: (None, N_c,  ),
+		output_shape = (None, N_c,),
 		name = "propensity = K * exp(- (G0 + cC + eE + ... + vV) / T + enh.)"
 	)(params_enhancement)
 
@@ -159,7 +159,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 def train(model, x_files, xc_files, y_files, z_files, tag = '', split_ratio = 0.8):
 
 	hist_fid = open(os.path.join(FROOT, 'hist{}.csv'.format(tag)), 'a')
-	hist_fid.write('epoch,filenum,loss,val_loss,categorical_accuracy,val_categorical_accuracy\n')
+	hist_fid.write('epoch,filenum,loss,val_loss,acc,val_acc\n')
 	try:
 		for epoch in range(nb_epoch):
 			print('>>> EPOCH {}/{} <<<'.format(epoch + 1, nb_epoch))
@@ -263,9 +263,9 @@ def get_x_data(fpath, z):
 		x_bond_lost[np.isnan(x_bond_lost)] = 0.0
 		x_bond_gain[np.isnan(x_bond_gain)] = 0.0
 		x_h_lost[np.isinf(x_h_lost)] = 0.0
-                x_h_gain[np.isinf(x_h_gain)] = 0.0
-                x_bond_lost[np.isinf(x_bond_lost)] = 0.0
-                x_bond_gain[np.isinf(x_bond_gain)] = 0.0
+		x_h_gain[np.isinf(x_h_gain)] = 0.0
+		x_bond_lost[np.isinf(x_bond_lost)] = 0.0
+		x_bond_gain[np.isinf(x_bond_gain)] = 0.0
 
 		# Dump file so we don't have to do that again
 		with open(fpath + '_processed', 'wb') as outfile:
@@ -276,6 +276,8 @@ def get_x_data(fpath, z):
 def get_xc_data(fpath):
 	with open(fpath, 'rb') as infile:
 		xc = pickle.load(infile)
+		print(np.isnan(xc).any())
+		print(np.isinf(xc).any())
 		# Split into reagents, solvent, temp
 		return (xc[:, 7:], xc[:, 1:7], xc[:, 0]) 
 
@@ -283,7 +285,8 @@ def get_y_data(fpath):
 	with open(fpath, 'rb') as infile:
 		y = pickle.load(infile)
 		y = np.array([y_i.index(True) for y_i in y])
-		return to_categorical(y, nb_classes = N_c)
+		y = to_categorical(y, nb_classes = N_c)
+		return y
 
 def get_z_data(fpath):
 	with open(fpath, 'rb') as infile:
