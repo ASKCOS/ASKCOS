@@ -150,7 +150,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	sgd = SGD(lr = lr, decay = 1e-4, momentum = 0.9)
 
 	model.compile(loss = 'categorical_crossentropy', optimizer = sgd, 
-		metrics = ['categorical_accuracy', 'accuracy'])
+		metrics = ['accuracy'])
 
 	return model
 
@@ -189,18 +189,18 @@ def train(model, x_files, xc_files, y_files, z_files, tag = '', split_ratio = 0.
 
 				hist_fid.write('{},{},{},{},{},{}\n'.format(
 					epoch + 1, fnum, hist.history['loss'][0], hist.history['val_loss'][0],
-					hist.history['categorical_accuracy'][0], hist.history['val_categorical_accuracy'][0]
+					hist.history['acc'][0], hist.history['val_acc'][0]
 				))
 				# print('loss: {}, val_loss: {}, acc: {}, val_acc: {}'.format(
 				#	hist.history['loss'][0], hist.history['val_loss'][0],
 				# 	hist.history['acc'][0], hist.history['val_acc'][0]
 				#))
 				average_loss += hist.history['loss'][0]
-				average_acc += hist.history['categorical_accuracy'][0]
+				average_acc += hist.history['acc'][0]
 				average_val_loss += hist.history['val_loss'][0]
-				average_val_acc += hist.history['val_categorical_accuracy'][0]
-			print('    loss:     {:8.4f}, categorical_accuracy:     {:5.4f}'.format(average_loss/len(x_files), average_acc/len(x_files)))
-			print('    val_loss: {:8.4f}, val_categorical_accuracy: {:5.4f}'.format(average_val_loss/len(x_files), average_val_acc/len(x_files)))
+				average_val_acc += hist.history['val_acc'][0]
+			print('    loss:     {:8.4f}, acc:     {:5.4f}'.format(average_loss/len(x_files), average_acc/len(x_files)))
+			print('    val_loss: {:8.4f}, val_acc: {:5.4f}'.format(average_val_loss/len(x_files), average_val_acc/len(x_files)))
 			model.save_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), overwrite = True)
 	except KeyboardInterrupt:
 		print('Stopped training early!')
@@ -493,8 +493,11 @@ if __name__ == '__main__':
 		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
 	else:
 		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr)
-		with open(os.path.join(FROOT, 'model{}.json'.format(tag)), 'w') as outfile:
-        	        outfile.write(model.to_json())
+		try:
+			with open(os.path.join(FROOT, 'model{}.json'.format(tag)), 'w') as outfile:
+				outfile.write(model.to_json())
+		except:
+			print('could not write model to json')
 
 	if bool(args.test):
 		pred_histogram(model, x_files, xc_files, y_files, z_files, tag = tag, split_ratio = 0.8)
