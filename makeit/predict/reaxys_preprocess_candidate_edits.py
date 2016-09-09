@@ -198,7 +198,11 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		reagent_fp = np.zeros(256) 
 		context_info += 'rgt:'
 		for xrn in rxd['RXD_RGTXRN'] + rxd['RXD_CATXRN']:
-			smiles = str(CHEMICAL_DB.find_one({'_id': xrn})['SMILES'])
+			doc = CHEMICAL_DB.find_one({'_id': xrn})
+			if not doc:
+				print('########## COULD NOT FIND REAGENT {} ###########'.format(xrn))
+				continue
+			smiles = str(doc['SMILES'])
 			if not smiles: continue 
 			mol = Chem.MolFromSmiles(smiles)
 			if not mol: continue
