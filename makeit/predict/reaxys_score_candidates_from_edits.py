@@ -125,12 +125,19 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	temp_rpt = RepeatVector(N_c, name = "broadcast temperature")(temp)
 	params_enhancement = merge([params, enhancement_r, solvent_rpt, temp_rpt], mode = 'concat', name = "concatenate context")
 
-	# Calculate using thermo-ish
-	# K * exp(- (G0 + delG_solv) / T + enhancement)
+	# # Calculate using thermo-ish
+	# # K * exp(- (G0 + delG_solv) / T + enhancement)
+	# unscaled_score = Lambda(
+	# 	lambda x: x[:, :, 0] * K.exp(- (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 8:14], axis = -1)) / (x[:, :, 15] + 273.15) + x[:, :, 8]),
+	# 	output_shape = lambda x: (None, N_c,),
+	# 	name = "propensity = K * exp(- (G0 + cC + eE + ... + vV) / T + enh.)"
+	# )(params_enhancement)
+
+	#### NON-EXPONENTIAL VERSION
 	unscaled_score = Lambda(
-		lambda x: x[:, :, 0] * K.exp(- (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 8:14], axis = -1)) / (x[:, :, 15] + 273.15) + x[:, :, 8]),
+		lambda x: x[:, :, 0] - (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 8:14], axis = -1)) / (x[:, :, 15] + 273.15) + 0.1 * x[:, :, 8],
 		output_shape = lambda x: (None, N_c,),
-		name = "propensity = K * exp(- (G0 + cC + eE + ... + vV) / T + enh.)"
+		name = "propensity = logK - (G0 + cC + eE + ... + vV) / T + enh."
 	)(params_enhancement)
 
 	unscaled_score_r = Reshape((N_c,), name = "shape check 2")(unscaled_score)
