@@ -26,6 +26,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt    # for visualization
 import scipy.stats as ss
+import itertools
 
 
 
@@ -170,15 +171,22 @@ def train(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 	return True
 
 def rearrange_for_5fold_cv(lst):
-	'''Puts the test chunk at the end of the list'''
+	'''Puts the test fold at the end of the list.
+
+	Messy implementation, but whatever'''
+
 	if THIS_FOLD_OUT_OF_FIVE not in [1,2,3,4,5]:
 		raise ValueError('Invalid CV fold {}'.format(THIS_FOLD_OUT_OF_FIVE))
 
-
-	chunks = [lst[i:i+100] for i in range(0, len(lst), 100)]
-	return chunks[:(THIS_FOLD_OUT_OF_FIVE-1)] + chunks[(THIS_FOLD_OUT_OF_FIVE:] + \
-		chunks[(THIS_FOLD_OUT_OF_FIVE-1):THIS_FOLD_OUT_OF_FIVE]
-
+	N = len(lst) / 5
+	print('REARRANGING FOR CV FOLD {}'.format(THIS_FOLD_OUT_OF_FIVE))
+	chunks = [lst[i:i+N] for i in range(0, len(lst), N)]
+	new_lst = list(itertools.chain.from_iterable(chunks[:(THIS_FOLD_OUT_OF_FIVE-1)])) + \
+		list(itertools.chain.from_iterable(chunks[THIS_FOLD_OUT_OF_FIVE:])) + \
+		list(itertools.chain.from_iterable(chunks[(THIS_FOLD_OUT_OF_FIVE-1):THIS_FOLD_OUT_OF_FIVE]))
+	if type(lst) == type(np.array(1)):
+		return np.array(new_lst)
+	return new_lst
 
 
 def get_x_data(fpath, z):
@@ -399,7 +407,7 @@ if __name__ == '__main__':
 	parser.add_argument('--Nhf', type = int, default = 0,
 						help = 'Number of hidden nodes in layer between summing ' +
 								'and final score, default 0')
-	parser.add_argument('--tag', type = str, default = int(time.time()),
+	parser.add_argument('--tag', type = str, default = str(int(time.time())),
 						help = 'Tag for this model')
 	parser.add_argument('--retrain', type = bool, default = False,
 		                help = 'Retrain with loaded weights, default False')
