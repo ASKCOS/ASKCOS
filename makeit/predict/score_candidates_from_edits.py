@@ -169,6 +169,18 @@ def train(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 
 	return True
 
+def rearrange_for_5fold_cv(lst):
+	'''Puts the test chunk at the end of the list'''
+	if THIS_FOLD_OUT_OF_FIVE not in [1,2,3,4,5]:
+		raise ValueError('Invalid CV fold {}'.format(THIS_FOLD_OUT_OF_FIVE))
+
+
+	chunks = [lst[i:i+100] for i in range(0, len(lst), 100)]
+	return chunks[:(THIS_FOLD_OUT_OF_FIVE-1)] + chunks[(THIS_FOLD_OUT_OF_FIVE:] + \
+		chunks[(THIS_FOLD_OUT_OF_FIVE-1):THIS_FOLD_OUT_OF_FIVE]
+
+
+
 def get_x_data(fpath, z):
 	'''
 	Reads the candidate edits and returns an input tensor:
@@ -182,8 +194,12 @@ def get_x_data(fpath, z):
 	# Check if we've already populated these matrices once
 	if os.path.isfile(fpath + '_processed'):
 		with open(fpath + '_processed', 'rb') as infile:
-			(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = pickle.load(infile)	
-		return (x_h_lost, x_h_gain, x_bond_lost, x_bond_gain)
+			(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = pickle.load(infile)
+
+		return (rearrange_for_5fold_cv(x_h_lost), 
+			    rearrange_for_5fold_cv(x_h_gain), 
+			    rearrange_for_5fold_cv(x_bond_lost), 
+			    rearrange_for_5fold_cv(x_bond_gain))
 
 	# Otherwise, we need to do it...
 	with open(fpath, 'rb') as infile:
@@ -227,17 +243,20 @@ def get_x_data(fpath, z):
 		with open(fpath + '_processed', 'wb') as outfile:
 			pickle.dump((x_h_lost, x_h_gain, x_bond_lost, x_bond_gain), outfile, pickle.HIGHEST_PROTOCOL)
 		print('Converted {} to features for the first (and only) time'.format(fpath))
-		return (x_h_lost, x_h_gain, x_bond_lost, x_bond_gain)
+		return (rearrange_for_5fold_cv(x_h_lost), 
+			    rearrange_for_5fold_cv(x_h_gain), 
+			    rearrange_for_5fold_cv(x_bond_lost), 
+			    rearrange_for_5fold_cv(x_bond_gain))
 
 def get_y_data(fpath):
 	with open(fpath, 'rb') as infile:
-		y = pickle.load(infile)
+		y = rearrange_for_5fold_cv(pickle.load(infile))
 		y = np.array([y_i.index(True) for y_i in y])
 		return to_categorical(y, nb_classes = N_c)
 
 def get_z_data(fpath):
 	with open(fpath, 'rb') as infile:
-		z = pickle.load(infile)
+		z = rearrange_for_5fold_cv(pickle.load(infile))
 		return z
 
 def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
@@ -392,10 +411,14 @@ if __name__ == '__main__':
 		                help = 'Data folder with data files')
 	parser.add_argument('--lr', type = float, default = 0.01, 
 						help = 'Learning rate, default 0.01')
+	parser.add_argument('--Nc', type = int, default = 500,
+						help = 'Number of candidates per example, default 500')
 	# parser.add_argument('--dr', type = float, default = 0.5,
 	# 					help = 'Dropout rate, default 0.5')
 	parser.add_argument('--visualize', type = bool, default = False,
 		                help = 'Whether or not to visualize weights ONLY, default False')
+	parser.add_argument('--fold', type = int, default = 5, 
+						help = 'Which fold of the 5-fold CV is this? Defaults 5')
 	args = parser.parse_args()
 
 	x_files = sorted([os.path.join(args.data, dfile) \
@@ -425,10 +448,11 @@ if __name__ == '__main__':
 	N_hf = int(args.Nhf)
 	l2v = float(args.l2)
 	lr = float(args.lr)
-	N_c = 100 # number of candidate edit sets
+	N_c = int(args.Nc) # number of candidate edit sets
 	N_e = 5 # maximum number of edits per class
 
-	tag = args.tag
+	THIS_FOLD_OUT_OF_FIVE = int(args.fold)
+	tag = args.tag + ' fold{}'.format(args.fold)
 
 	if bool(args.retrain):
 		print('Reloading from file')
