@@ -31,7 +31,7 @@ import itertools
 
 
 def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 500, inner_act = 'tanh',
-		l2v = 0.01, lr = 0.0003, N_hf = 0):
+		l2v = 0.01, lr = 0.0003, N_hf = 0, optimizer = 'sgd'):
 	'''
 	Builds the feed forward model.
 
@@ -112,10 +112,13 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	model = Model(input = [h_lost, h_gain, bond_lost, bond_gain], output = [score])
 
 	# Now compile
-	sgd = SGD(lr = lr, decay = 1e-4, momentum = 0.9)
+	if optimizer in ['adam', 'Adam']:
+		opt = Adam(lr = lr)
+	else:
+		opt = SGD(lr = lr)
 	# model.compile(loss = 'binary_crossentropy', optimizer = sgd, 
 	# 	metrics = ['binary_accuracy'])
-	model.compile(loss = 'categorical_crossentropy', optimizer = sgd, 
+	model.compile(loss = 'categorical_crossentropy', optimizer = opt, 
 		metrics = ['accuracy'])
 
 	model.summary()
@@ -139,6 +142,7 @@ def train(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 					z = get_z_data(z_files[fnum])
 					(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = get_x_data(x_files[fnum], z)
 					y = get_y_data(y_files[fnum])
+					z = rearrange_for_5fold_cv(z)
 					
 				hist = model.fit([x_h_lost, x_h_gain, x_bond_lost, x_bond_gain], y, 
 					nb_epoch = 1, 
@@ -179,7 +183,7 @@ def rearrange_for_5fold_cv(lst):
 		raise ValueError('Invalid CV fold {}'.format(THIS_FOLD_OUT_OF_FIVE))
 
 	N = len(lst) / 5
-	print('REARRANGING FOR CV FOLD {}'.format(THIS_FOLD_OUT_OF_FIVE))
+	# print('REARRANGING FOR CV FOLD {}'.format(THIS_FOLD_OUT_OF_FIVE))
 	chunks = [lst[i:i+N] for i in range(0, len(lst), N)]
 	new_lst = list(itertools.chain.from_iterable(chunks[:(THIS_FOLD_OUT_OF_FIVE-1)])) + \
 		list(itertools.chain.from_iterable(chunks[THIS_FOLD_OUT_OF_FIVE:])) + \
@@ -263,8 +267,9 @@ def get_y_data(fpath):
 		return to_categorical(y, nb_classes = N_c)
 
 def get_z_data(fpath):
+	# DONT REARRANGE FOR CV UNTIL AFTER GETTING X DATA
 	with open(fpath, 'rb') as infile:
-		z = rearrange_for_5fold_cv(pickle.load(infile))
+		z = pickle.load(infile)
 		return z
 
 def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
@@ -294,6 +299,7 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 		z = get_z_data(z_files[fnum])
 		x = list(get_x_data(x_files[fnum], z))
 		y = get_y_data(y_files[fnum])
+		z = rearrange_for_5fold_cv(z)
 
 		# Getting unprocessed x data
 		with open(x_files[fnum], 'rb') as infile:
@@ -427,6 +433,8 @@ if __name__ == '__main__':
 		                help = 'Whether or not to visualize weights ONLY, default False')
 	parser.add_argument('--fold', type = int, default = 5, 
 						help = 'Which fold of the 5-fold CV is this? Defaults 5')
+	parser.add_argument('--optimizer', type = str, default = 'SGD',
+						help = 'Optimizer? Adam or SGD right now, default SGD')
 	args = parser.parse_args()
 
 	x_files = sorted([os.path.join(args.data, dfile) \
@@ -466,12 +474,12 @@ if __name__ == '__main__':
 		print('Reloading from file')
 		model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
 		model.compile(loss = 'categorical_crossentropy', 
-			optimizer = SGD(lr = lr, decay = 1e-4, momentum = 0.9),
 			metrics = ['accuracy']
 		)
 		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
 	else:
-		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr)
+		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, 
+			N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = args.optimizer)
 		with open(os.path.join(FROOT, 'model{}.json'.format(tag)), 'w') as outfile:
         	        outfile.write(model.to_json())
 
