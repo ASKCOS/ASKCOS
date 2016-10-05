@@ -27,6 +27,26 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt    # for visualization
 import scipy.stats as ss
 
+
+def rearrange_for_5fold_cv(lst):
+	'''Puts the test fold at the end of the list.
+
+	Messy implementation, but whatever'''
+
+	if THIS_FOLD_OUT_OF_FIVE not in [1,2,3,4,5]:
+		raise ValueError('Invalid CV fold {}'.format(THIS_FOLD_OUT_OF_FIVE))
+
+	N = len(lst) / 5
+	# print('REARRANGING FOR CV FOLD {}'.format(THIS_FOLD_OUT_OF_FIVE))
+	chunks = [lst[i:i+N] for i in range(0, len(lst), N)]
+	new_lst = list(itertools.chain.from_iterable(chunks[:(THIS_FOLD_OUT_OF_FIVE-1)])) + \
+		list(itertools.chain.from_iterable(chunks[THIS_FOLD_OUT_OF_FIVE:])) + \
+		list(itertools.chain.from_iterable(chunks[(THIS_FOLD_OUT_OF_FIVE-1):THIS_FOLD_OUT_OF_FIVE]))
+	if type(lst) == type(np.array(1)):
+		return np.array(new_lst)
+	return new_lst
+
+
 def get_x_data(fpath, z):
 	'''
 	Reads the candidate edits and returns an input tensor:
@@ -40,14 +60,17 @@ def get_x_data(fpath, z):
 	# Check if we've already populated these matrices once
 	if os.path.isfile(fpath + '_processed'):
 		with open(fpath + '_processed', 'rb') as infile:
-			(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = pickle.load(infile)	
-		return (x_h_lost, x_h_gain, x_bond_lost, x_bond_gain)
+			(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = pickle.load(infile)
+
+		return (rearrange_for_5fold_cv(x_h_lost), 
+			    rearrange_for_5fold_cv(x_h_gain), 
+			    rearrange_for_5fold_cv(x_bond_lost), 
+			    rearrange_for_5fold_cv(x_bond_gain))
 
 	# Otherwise, we need to do it...
 	with open(fpath, 'rb') as infile:
 		all_candidate_edits = pickle.load(infile)
 		N = len(z)
-
 		x_h_lost = np.zeros((N, N_c, N_e, F_atom))
 		x_h_gain = np.zeros((N, N_c, N_e, F_atom))
 		x_bond_lost = np.zeros((N, N_c, N_e, F_bond))
@@ -78,26 +101,31 @@ def get_x_data(fpath, z):
 		x_bond_lost[np.isnan(x_bond_lost)] = 0.0
 		x_bond_gain[np.isnan(x_bond_gain)] = 0.0
 		x_h_lost[np.isinf(x_h_lost)] = 0.0
-		x_h_gain[np.isinf(x_h_gain)] = 0.0
-		x_bond_lost[np.isinf(x_bond_lost)] = 0.0
-		x_bond_gain[np.isinf(x_bond_gain)] = 0.0
+                x_h_gain[np.isinf(x_h_gain)] = 0.0
+                x_bond_lost[np.isinf(x_bond_lost)] = 0.0
+                x_bond_gain[np.isinf(x_bond_gain)] = 0.0
 
 		# Dump file so we don't have to do that again
 		with open(fpath + '_processed', 'wb') as outfile:
 			pickle.dump((x_h_lost, x_h_gain, x_bond_lost, x_bond_gain), outfile, pickle.HIGHEST_PROTOCOL)
 		print('Converted {} to features for the first (and only) time'.format(fpath))
-		return (x_h_lost, x_h_gain, x_bond_lost, x_bond_gain)
+		return (rearrange_for_5fold_cv(x_h_lost), 
+			    rearrange_for_5fold_cv(x_h_gain), 
+			    rearrange_for_5fold_cv(x_bond_lost), 
+			    rearrange_for_5fold_cv(x_bond_gain))
 
 def get_y_data(fpath):
 	with open(fpath, 'rb') as infile:
-		y = pickle.load(infile)
+		y = rearrange_for_5fold_cv(pickle.load(infile))
 		y = np.array([y_i.index(True) for y_i in y])
 		return to_categorical(y, nb_classes = N_c)
 
 def get_z_data(fpath):
+	# DONT REARRANGE FOR CV UNTIL AFTER GETTING X DATA
 	with open(fpath, 'rb') as infile:
 		z = pickle.load(infile)
 		return z
+
 
 def get_accuracy(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8, cripple = None):
 	'''
@@ -118,10 +146,7 @@ def get_accuracy(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8, 
 		z = get_z_data(z_files[fnum])
 		x = list(get_x_data(x_files[fnum], z))
 		y = get_y_data(y_files[fnum])
-
-		# Getting unprocessed x data
-		with open(x_files[fnum], 'rb') as infile:
-			all_edits = pickle.load(infile)
+		z = rearrange_for_5fold_cv(z)
 
 		if cripple:
 			offset = x[2].shape[-1] - x[0].shape[-1]
@@ -165,6 +190,8 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--tag', type = str, default = int(time.time()),
 						help = 'Tag for this model')
+	parser.add_argument('--fold', type = int, default = 5, 
+						help = 'Which fold of the 5-fold CV is this? Defaults 5')
 	parser.add_argument('data', type = str,
 		                help = 'Data folder with data files')
 	args = parser.parse_args()
@@ -190,7 +217,8 @@ if __name__ == '__main__':
 	N_c = 100 # number of candidate edit sets
 	N_e = 5 # maximum number of edits per class
 
-	tag = args.tag
+	THIS_FOLD_OUT_OF_FIVE = int(args.fold)
+	tag = args.tag + ' fold{}'.format(args.fold)
 
 	print('Reloading from file')
 	model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
