@@ -16,18 +16,16 @@ from keras.optimizers import *
 from keras.layers.convolutional import Convolution1D, Convolution2D
 from keras.regularizers import l2
 from keras.utils.np_utils import to_categorical
-from makeit.predict.preprocess_candidates import *
 from makeit.embedding.descriptors import edits_to_vectors, oneHotVector # for testing
 import rdkit.Chem as Chem
 import theano.tensor as T
-from scipy.sparse import coo_matrix
 import cPickle as pickle
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt    # for visualization
 import scipy.stats as ss
 import itertools
-
+import time
 
 
 def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 500, inner_act = 'tanh',
@@ -294,24 +292,30 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 	dataset = ''; trueprob = 0; trueprobs = []
 
 	for fnum in range(len(x_files)):
+
 		print('Testing file number {}'.format(fnum))
 		# Data must be pre-padded
 		z = get_z_data(z_files[fnum])
-		x = list(get_x_data(x_files[fnum], z))
+		(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = list(get_x_data(x_files[fnum], z))
 		y = get_y_data(y_files[fnum])
 		z = rearrange_for_5fold_cv(z)
+
+                print('y')
+                print(y)
 
 		# Getting unprocessed x data
 		with open(x_files[fnum], 'rb') as infile:
 			all_edits = pickle.load(infile)
+                all_edits = rearrange_for_5fold_cv(all_edits)
 
-		preds = model.predict(x, batch_size = batch_size)
-		trueprobs = []
+		preds = model.predict([x_h_lost, x_h_gain, x_bond_lost, x_bond_gain], batch_size = batch_size)
+		print(preds)
+                trueprobs = []
 
 		for i in range(preds.shape[0]): 
-			rank_true_edit = 0
+                        rank_true_edit = 0
 			edits = all_edits[i]
-			pred = preds[i, :] # Iterate through each sample
+                      	pred = preds[i, :] # Iterate through each sample
 			trueprob = pred[y[i,:] != 0][0] # prob assigned to true outcome
 			trueprobs.append(trueprob)
 			rank_true_edit = 1 + len(pred) - (ss.rankdata(pred))[np.argmax(y[i,:])]
@@ -450,6 +454,12 @@ if __name__ == '__main__':
 	print(y_files)
 	print(z_files)
 
+
+        ### DEBUGGING
+        #x_files = [x_files[0]]
+        #y_files = [y_files[0]]
+        #z_files = [z_files[0]]
+
 	mol = Chem.MolFromSmiles('[C:1][C:2]')
 	(a, _, b, _) = edits_to_vectors((['1'],[],[('1','2',1.0)],[]), mol)
 
@@ -470,13 +480,17 @@ if __name__ == '__main__':
 	THIS_FOLD_OUT_OF_FIVE = int(args.fold)
 	tag = args.tag + ' fold{}'.format(args.fold)
 
+        print('FOLD: {}'.format(THIS_FOLD_OUT_OF_FIVE))
+
 	if bool(args.retrain):
 		print('Reloading from file')
 		model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
-		model.compile(loss = 'categorical_crossentropy', 
+		model.compile(loss = 'categorical_crossentropy',
+                        optimizer = SGD(lr = lr),
 			metrics = ['accuracy']
 		)
-		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
+		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), by_name = True)
+                print('Loaded weights from file')
 	else:
 		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, 
 			N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = args.optimizer)
@@ -484,6 +498,8 @@ if __name__ == '__main__':
         	        outfile.write(model.to_json())
 
 	if bool(args.test):
+                ## DEBUGGING
+                #train(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
 		pred_histogram(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
 		quit(1)
 	elif bool(args.visualize):

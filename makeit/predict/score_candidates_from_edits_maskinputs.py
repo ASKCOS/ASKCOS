@@ -26,7 +26,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt    # for visualization
 import scipy.stats as ss
-
+import itertools
 
 def rearrange_for_5fold_cv(lst):
 	'''Puts the test fold at the end of the list.
@@ -214,7 +214,7 @@ if __name__ == '__main__':
 
 	F_atom = len(a[0])
 	F_bond = len(b[0])
-	N_c = 100 # number of candidate edit sets
+	N_c = 500 # number of candidate edit sets
 	N_e = 5 # maximum number of edits per class
 
 	THIS_FOLD_OUT_OF_FIVE = int(args.fold)
@@ -232,6 +232,7 @@ if __name__ == '__main__':
 	fid.write('crippled_index\ttrain_acc\tval_acc\n')
 
 	for i in range(F_atom):
-		# Cripple index i
+                print('CRIPPLING {}'.format(i))
+                # Cripple index i
 		(train_acc, val_acc) = get_accuracy(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8, cripple = i)
 		fid.write('{}\t{}\t{}\n'.format(i, train_acc, val_acc))
