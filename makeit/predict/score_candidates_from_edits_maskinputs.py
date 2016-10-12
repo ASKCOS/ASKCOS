@@ -143,24 +143,28 @@ def get_accuracy(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8, 
 	for fnum in range(len(x_files)):
 		print('Testing file number {}'.format(fnum))
 		# Data must be pre-padded
+
 		z = get_z_data(z_files[fnum])
-		x = list(get_x_data(x_files[fnum], z))
+		(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = list(get_x_data(x_files[fnum], z))
 		y = get_y_data(y_files[fnum])
 		z = rearrange_for_5fold_cv(z)
 
+
+
 		if cripple:
-			offset = x[2].shape[-1] - x[0].shape[-1]
+			offset = x_bond_lost.shape[-1] - x_h_lost.shape[-1]
 			# Set atom attributes to zero
-			x[0][:, :, :, cripple] = 0 # H_lost
-			x[1][:, :, :, cripple] = 0 # H_gain
+			x_h_lost[:, :, :, cripple] = 0 # H_lost
+			x_h_gain[:, :, :, cripple] = 0 # H_gain
 			# Set atom attributes within bond attributes to zero
-			x[2][:, :, :, cripple] = 0 # Bond_lost
-			x[2][:, :, :, cripple + offset] = 0 # Bond_lost
-			x[3][:, :, :, cripple] = 0 # Bond_gain
-			x[3][:, :, :, cripple + offset] = 0 # Bond_gain
+			x_bond_lost[:, :, :, cripple] = 0 # Bond_lost
+			x_bond_lost[:, :, :, cripple + offset] = 0 # Bond_lost
+			x_bond_gain[:, :, :, cripple] = 0 # Bond_gain
+			x_bond_gain[:, :, :, cripple + offset] = 0 # Bond_gain
 			print('Set index {} and {} to zero'.format(cripple, cripple + offset))
 
-		preds = model.predict(x, batch_size = 20)
+		preds = model.predict([x_h_lost, x_h_gain, x_bond_lost, x_bond_gain], batch_size = 20)
+		print(preds)
 
 		for i in range(preds.shape[0]): 
 			rank_true_edit = 0
