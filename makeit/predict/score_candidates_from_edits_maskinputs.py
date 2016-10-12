@@ -192,7 +192,7 @@ if __name__ == '__main__':
 	FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output')
 	
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--tag', type = str, default = int(time.time()),
+	parser.add_argument('--tag', type = str,
 						help = 'Tag for this model')
 	parser.add_argument('--fold', type = int, default = 5, 
 						help = 'Which fold of the 5-fold CV is this? Defaults 5')
