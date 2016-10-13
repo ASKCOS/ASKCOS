@@ -147,17 +147,18 @@ def get_accuracy(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8, 
 		y = get_y_data(y_files[fnum])
 		z = rearrange_for_5fold_cv(z)
 
-		if cripple:
-			offset = x_bond_lost.shape[-1] - x_h_lost.shape[-1]
-			# Set atom attributes to zero
-			x_h_lost[:, :, :, cripple] = 0 # H_lost
-			x_h_gain[:, :, :, cripple] = 0 # H_gain
-			# Set atom attributes within bond attributes to zero
-			x_bond_lost[:, :, :, cripple] = 0 # Bond_lost
-			x_bond_lost[:, :, :, cripple + offset] = 0 # Bond_lost
-			x_bond_gain[:, :, :, cripple] = 0 # Bond_gain
-			x_bond_gain[:, :, :, cripple + offset] = 0 # Bond_gain
-			print('Set index {} and {} to zero'.format(cripple, cripple + offset))
+		if cripple is not None:
+			for i in cripple:
+				offset = x_bond_lost.shape[-1] - x_h_lost.shape[-1]
+				# Set atom attributes to zero
+				x_h_lost[:, :, :, i] = 0 # H_lost
+				x_h_gain[:, :, :, i] = 0 # H_gain
+				# Set atom attributes within bond attributes to zero
+				x_bond_lost[:, :, :, i] = 0 # Bond_lost
+				x_bond_lost[:, :, :, i + offset] = 0 # Bond_lost
+				x_bond_gain[:, :, :, i] = 0 # Bond_gain
+				x_bond_gain[:, :, :, i + offset] = 0 # Bond_gain
+				print('Set index {} and {} to zero'.format(i, i + offset))
 		
 		# Getting unprocessed x data
 		with open(x_files[fnum], 'rb') as infile:
@@ -275,8 +276,23 @@ if __name__ == '__main__':
 	fid = open(os.path.join(FROOT, 'input_masking_{}.csv'.format(tag)), 'w')
 	fid.write('crippled_index\ttrain_acc\tval_acc\n')
 
-	for i in range(F_atom):
-        print('CRIPPLING {}'.format(i))
-        # Cripple index i
-		(train_acc, val_acc) = get_accuracy(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8, cripple = i)
-		fid.write('{}\t{}\t{}\n'.format(i, train_acc, val_acc))
+	cripple_list = [
+		[0],
+		[1],
+		[2],
+		[3],
+		[4],
+		[5],
+		[6],
+		range(7, 18),
+		range(18, 24),
+		range(24, 29),
+		[29],
+		[30],
+		[31]
+	]
+	for cripple in cripple_list:
+		print('CRIPPLING {}'.format(cripple))
+		# Cripple index i
+		(train_acc, val_acc) = get_accuracy(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8, cripple = cripple)
+		fid.write('{}\t{}\t{}\n'.format(cripple, train_acc, val_acc))
