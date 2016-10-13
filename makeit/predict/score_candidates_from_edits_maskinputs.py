@@ -182,11 +182,16 @@ def get_accuracy(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8, 
 				val_preds.append(trueprob)
 				if np.argmax(pred) == np.argmax(y[i,:]):
 					val_corr += 1
+
+		print('running average trian_loss: {}'.format(np.mean(-np.log(np.array(train_preds)))))
+		print('running average val_loss: {}'.format(np.mean(-np.log(np.array(val_preds)))))
 	
 	train_acc = train_corr / float(len(train_preds))
 	val_acc = val_corr / float(len(val_preds))
+	train_loss = np.mean(-np.log(np.array(train_preds)))
+	val_loss = np.mean(-np.log(np.array(val_preds)))
 
-	return (train_acc, val_acc)
+	return (train_acc, val_acc, train_loss, val_loss)
 	
 
 if __name__ == '__main__':
@@ -274,7 +279,7 @@ if __name__ == '__main__':
 	print('Loaded weights from file')
 	
 	fid = open(os.path.join(FROOT, 'input_masking_{}.csv'.format(tag)), 'w')
-	fid.write('crippled_index\ttrain_acc\tval_acc\n')
+	fid.write('crippled_index\ttrain_acc\tval_acc\ttrain_loss\tval_loss\n')
 
 	cripple_list = [
 		[0],
@@ -294,5 +299,5 @@ if __name__ == '__main__':
 	for cripple in cripple_list:
 		print('CRIPPLING {}'.format(cripple))
 		# Cripple index i
-		(train_acc, val_acc) = get_accuracy(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8, cripple = cripple)
-		fid.write('{}\t{}\t{}\n'.format(cripple, train_acc, val_acc))
+		(train_acc, val_acc, train_loss, val_loss) = get_accuracy(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8, cripple = cripple)
+		fid.write('{}\t{}\t{}\t{}\t{}\n'.format(cripple, train_acc, val_acc, train_loss, val_loss))
