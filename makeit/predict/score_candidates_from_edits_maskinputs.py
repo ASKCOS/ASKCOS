@@ -16,17 +16,16 @@ from keras.optimizers import *
 from keras.layers.convolutional import Convolution1D, Convolution2D
 from keras.regularizers import l2
 from keras.utils.np_utils import to_categorical
-from makeit.predict.preprocess_candidates import *
 from makeit.embedding.descriptors import edits_to_vectors, oneHotVector # for testing
 import rdkit.Chem as Chem
 import theano.tensor as T
-from scipy.sparse import coo_matrix
 import cPickle as pickle
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt    # for visualization
 import scipy.stats as ss
 import itertools
+import time
 
 def rearrange_for_5fold_cv(lst):
 	'''Puts the test fold at the end of the list.
@@ -126,7 +125,6 @@ def get_z_data(fpath):
 		z = pickle.load(infile)
 		return z
 
-
 def get_accuracy(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8, cripple = None):
 	'''
 	Given a trained model and a list of samples, this function creates a 
@@ -149,8 +147,6 @@ def get_accuracy(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8, 
 		y = get_y_data(y_files[fnum])
 		z = rearrange_for_5fold_cv(z)
 
-
-
 		if cripple:
 			offset = x_bond_lost.shape[-1] - x_h_lost.shape[-1]
 			# Set atom attributes to zero
@@ -162,6 +158,11 @@ def get_accuracy(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8, 
 			x_bond_gain[:, :, :, cripple] = 0 # Bond_gain
 			x_bond_gain[:, :, :, cripple + offset] = 0 # Bond_gain
 			print('Set index {} and {} to zero'.format(cripple, cripple + offset))
+		
+		# Getting unprocessed x data
+		with open(x_files[fnum], 'rb') as infile:
+			all_edits = pickle.load(infile)
+                all_edits = rearrange_for_5fold_cv(all_edits)
 
 		preds = model.predict([x_h_lost, x_h_gain, x_bond_lost, x_bond_gain], batch_size = 20)
 		print(preds)
@@ -192,12 +193,42 @@ if __name__ == '__main__':
 	FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output')
 	
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--tag', type = str,
+	parser.add_argument('--nb_epoch', type = int, default = 100,
+						help = 'Number of epochs to train for, default 100')
+	parser.add_argument('--batch_size', type = int, default = 40,
+						help = 'Batch size, default 40')
+	parser.add_argument('--Nh1', type = int, default = 40,
+						help = 'Number of hidden nodes in first layer, default 40')
+	parser.add_argument('--Nh2', type = int, default = 0,
+						help = 'Number of hidden nodes in second layer, default 0')
+	parser.add_argument('--Nh3', type = int, default = 0,
+						help = 'Number of hidden nodes in third layer, ' + 
+								'immediately before summing, default 0')
+	parser.add_argument('--Nhf', type = int, default = 0,
+						help = 'Number of hidden nodes in layer between summing ' +
+								'and final score, default 0')
+	parser.add_argument('--tag', type = str, default = str(int(time.time())),
 						help = 'Tag for this model')
-	parser.add_argument('--fold', type = int, default = 5, 
-						help = 'Which fold of the 5-fold CV is this? Defaults 5')
+	parser.add_argument('--retrain', type = bool, default = False,
+		                help = 'Retrain with loaded weights, default False')
+	parser.add_argument('--test', type = bool, default = False,
+						help = 'Test model only, default False')
+	parser.add_argument('--l2', type = float, default = 0.01,
+						help = 'l2 regularization parameter for each Dense layer, default 0.01')
 	parser.add_argument('data', type = str,
 		                help = 'Data folder with data files')
+	parser.add_argument('--lr', type = float, default = 0.01, 
+						help = 'Learning rate, default 0.01')
+	parser.add_argument('--Nc', type = int, default = 500,
+						help = 'Number of candidates per example, default 500')
+	# parser.add_argument('--dr', type = float, default = 0.5,
+	# 					help = 'Dropout rate, default 0.5')
+	parser.add_argument('--visualize', type = bool, default = False,
+		                help = 'Whether or not to visualize weights ONLY, default False')
+	parser.add_argument('--fold', type = int, default = 5, 
+						help = 'Which fold of the 5-fold CV is this? Defaults 5')
+	parser.add_argument('--optimizer', type = str, default = 'SGD',
+						help = 'Optimizer? Adam or SGD right now, default SGD')
 	args = parser.parse_args()
 
 	x_files = sorted([os.path.join(args.data, dfile) \
@@ -218,7 +249,15 @@ if __name__ == '__main__':
 
 	F_atom = len(a[0])
 	F_bond = len(b[0])
-	N_c = 500 # number of candidate edit sets
+	nb_epoch = int(args.nb_epoch)
+	batch_size = int(args.batch_size)
+	N_h1 = int(args.Nh1)
+	N_h2 = int(args.Nh2)
+	N_h3 = int(args.Nh3)
+	N_hf = int(args.Nhf)
+	l2v = float(args.l2)
+	lr = float(args.lr)
+	N_c =  500 # number of candidate edit sets
 	N_e = 5 # maximum number of edits per class
 
 	THIS_FOLD_OUT_OF_FIVE = int(args.fold)
@@ -226,17 +265,18 @@ if __name__ == '__main__':
 
 	print('Reloading from file')
 	model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
-	model.compile(loss = 'categorical_crossentropy', 
-		optimizer = SGD(lr = 0.01, decay = 1e-4, momentum = 0.9),
+	model.compile(loss = 'categorical_crossentropy',
+     	optimizer = SGD(lr = lr),
 		metrics = ['accuracy']
 	)
-	model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
+	model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), by_name = True)
+	print('Loaded weights from file')
 	
 	fid = open(os.path.join(FROOT, 'input_masking_{}.csv'.format(tag)), 'w')
 	fid.write('crippled_index\ttrain_acc\tval_acc\n')
 
 	for i in range(F_atom):
-                print('CRIPPLING {}'.format(i))
-                # Cripple index i
+        print('CRIPPLING {}'.format(i))
+        # Cripple index i
 		(train_acc, val_acc) = get_accuracy(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8, cripple = i)
 		fid.write('{}\t{}\t{}\n'.format(i, train_acc, val_acc))
