@@ -118,6 +118,10 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		reactant_smiles = reaction['reactant_smiles']
 		product_smiles_true = reaction['product_smiles_true']
 
+		reactants_check = Chem.MolFromSmiles(reactant_smiles)
+		if not reactants_check:
+			continue
+
 		# Make sure number of edits is acceptable
 		valid_edits = [all([len(e) <= maxEditsPerClass for e in es]) for es in candidate_edits]
 		print('Total number of edit candidates: {}'.format(len(valid_edits)))
