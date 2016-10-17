@@ -251,6 +251,8 @@ def get_x_data(fpath, z):
 		for (n, candidates) in enumerate(all_candidate_edits):
 
 			mol = Chem.MolFromSmiles(z[n].split('>')[0])
+			if not mol:
+				print('COULD NOT LOAD MOL: {}'.format(z[n].split('>')[0]))
 			for (c, edits) in enumerate(candidates):
 				if any([len(edit) > 5 for edit in edits]):
 					#print('Edit counts: {}'.format([len(edit) for edit in edits]))
