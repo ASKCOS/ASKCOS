@@ -118,7 +118,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		reactant_smiles = reaction['reactant_smiles']
 		product_smiles_true = reaction['product_smiles_true']
 
-		reactants_check = Chem.MolFromSmiles(reactant_smiles)
+		reactants_check = Chem.MolFromSmiles(str(reactant_smiles))
 		if not reactants_check:
 			continue
 
