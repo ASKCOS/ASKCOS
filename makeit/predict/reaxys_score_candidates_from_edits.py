@@ -36,7 +36,7 @@ import scipy.stats as ss
 
 
 def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 100, inner_act = 'tanh',
-		l2v = 0.01, lr = 0.0003, N_hf = 20):
+		l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0):
 	'''
 	Builds the feed forward model.
 
@@ -135,7 +135,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 
 	#### NON-EXPONENTIAL VERSION
 	unscaled_score = Lambda(
-		lambda x: x[:, :, 0] - (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 8:14], axis = -1)) / (x[:, :, 15] + 273.15) + 0.1 * x[:, :, 8],
+		lambda x: x[:, :, 0] - context_weight * (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 8:14], axis = -1)) / (x[:, :, 15] + 273.15) + 0.1 * x[:, :, 8],
 		output_shape = lambda x: (None, N_c,),
 		name = "propensity = logK - (G0 + cC + eE + ... + vV) / T + enh."
 	)(params_enhancement)
@@ -157,8 +157,9 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 
 	# Now compile
 	sgd = SGD(lr = lr, decay = 1e-4, momentum = 0.9)
+        adam = Adam(lr = lr)
 
-	model.compile(loss = 'categorical_crossentropy', optimizer = sgd, 
+	model.compile(loss = 'categorical_crossentropy', optimizer = adam, 
 		metrics = ['accuracy'])
 
 	return model
@@ -204,7 +205,9 @@ def train(model, x_files, xc_files, y_files, z_files, tag = '', split_ratio = 0.
 				#	hist.history['loss'][0], hist.history['val_loss'][0],
 				# 	hist.history['acc'][0], hist.history['val_acc'][0]
 				#))
-				average_loss += hist.history['loss'][0]
+	                        print('This train loss: {}'.format(hist.history['loss'][0]))
+                                print('This val loss:   {}'.format(hist.history['val_loss'][0]))
+                                average_loss += hist.history['loss'][0]
 				average_acc += hist.history['acc'][0]
 				average_val_loss += hist.history['val_loss'][0]
 				average_val_acc += hist.history['val_acc'][0]
@@ -454,7 +457,9 @@ if __name__ == '__main__':
 	# 					help = 'Dropout rate, default 0.5')
 	parser.add_argument('--visualize', type = bool, default = False,
 		                help = 'Whether or not to visualize weights ONLY, default False')
-	args = parser.parse_args()
+	parser.add_argument('--context_weight', type = float, default = 100.0,
+                            help = 'Weight assigned to contextual effects')
+        args = parser.parse_args()
 
 	x_files = sorted([os.path.join(args.data, dfile) \
 					for dfile in os.listdir(args.data) \
@@ -489,6 +494,7 @@ if __name__ == '__main__':
 	lr = float(args.lr)
 	N_c = 100 # number of candidate edit sets
 	N_e = 5 # maximum number of edits per class
+        context_weight = float(args.context_weight)
 
 	tag = args.tag
 
@@ -501,7 +507,7 @@ if __name__ == '__main__':
 		)
 		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
 	else:
-		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr)
+		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight)
 		try:
 			with open(os.path.join(FROOT, 'model{}.json'.format(tag)), 'w') as outfile:
 				outfile.write(model.to_json())
