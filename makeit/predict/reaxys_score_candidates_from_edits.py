@@ -157,7 +157,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 
 	# Now compile
 	sgd = SGD(lr = lr, decay = 1e-4, momentum = 0.9)
-        adam = Adam(lr = lr)
+	adam = Adam(lr = lr)
 
 	model.compile(loss = 'categorical_crossentropy', optimizer = adam, 
 		metrics = ['accuracy'])
@@ -335,7 +335,7 @@ def pred_histogram(model, x_files, xc_files, y_files, z_files, tag = '', split_r
 		with open(x_files[fnum], 'rb') as infile:
 			all_edits = pickle.load(infile)
 
-		preds = model.predict(x + xc, batch_size = batch_size)
+		preds = model.predict(x + xc, batch_size = 20)
 		trueprobs = []
 
 		for i in range(preds.shape[0]): 
@@ -504,8 +504,8 @@ if __name__ == '__main__':
 		print('Reloading from file')
 		model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
 		model.compile(loss = 'categorical_crossentropy', 
-			optimizer = SGD(lr = lr, decay = 1e-4, momentum = 0.9),
-			metrics = ['categorical_accuracy', 'accuracy']
+			optimizer = Adam(lr = lr),
+			metrics = ['accuracy']
 		)
 		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
 	else:
