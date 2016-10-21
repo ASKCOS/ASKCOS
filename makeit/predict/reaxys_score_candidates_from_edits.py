@@ -496,17 +496,21 @@ if __name__ == '__main__':
 	lr = float(args.lr)
 	N_c = 100 # number of candidate edit sets
 	N_e = 5 # maximum number of edits per class
-        context_weight = float(args.context_weight)
+	context_weight = float(args.context_weight)
 
 	tag = args.tag
 
 	if bool(args.retrain):
 		print('Reloading from file')
-		model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
-		model.compile(loss = 'categorical_crossentropy', 
-			optimizer = Adam(lr = lr),
-			metrics = ['accuracy']
-		)
+		rebuild = raw_input('Do you want to rebuild from scratch instead of loading from file? [n/y] ')
+		if rebuild == 'y':
+			model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight)
+		else:
+			model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
+			model.compile(loss = 'categorical_crossentropy', 
+				optimizer = Adam(lr = lr),
+				metrics = ['accuracy']
+			)
 		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
 	else:
 		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight)
