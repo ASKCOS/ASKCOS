@@ -125,13 +125,11 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 
 		# Make sure number of edits is acceptable
 		valid_edits = [all([len(e) <= maxEditsPerClass for e in es]) for es in candidate_edits]
-		print('Total number of edit candidates: {}'.format(len(valid_edits)))
-		print('Total number of valid edit candidates: {}'.format(sum(valid_edits)))
 		candidate_smiles = [a for (j, a) in enumerate(candidate_smiles) if valid_edits[j]]
 		candidate_edits  = [a for (j, a) in enumerate(candidate_edits) if valid_edits[j]]
 
 		bools = [product_smiles_true == x for x in candidate_smiles]
-		print('rxn. {} : {} true entries out of {}'.format(i, sum(bools), len(bools)))
+		# print('rxn. {} : {} true entries out of {}'.format(i, sum(bools), len(bools)))
 		if sum(bools) > 1:
 			print('More than one true? Will take first one')
 			# print(reactant_smiles)
@@ -168,6 +166,9 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 			raise ValueError('Candidate reaction source not found?')
 		if complete_only and 'complete' not in rxd:
 			continue
+
+		print('Total number of edit candidates: {}'.format(len(valid_edits)))
+		print('Total number of valid edit candidates: {}'.format(sum(valid_edits)))
 		
 		# Temp
 		T = string_or_range_to_float(rxd['RXD_T'])
@@ -222,10 +223,9 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 			reagent_fp += np.array(AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits = 256))
 		reaction_contexts.append(np.array([T] + solvent + list(reagent_fp)))
 		context_info += 'T:{}'.format(T)
-		print(context_info)
-
 		if complete_only: # should have info about time and yield
-			context_info += str(rxd['RXD_TIM']) + 'min,' + str(rxd['RXD_NYD']) + '%'
+			context_info += ',t:' + str(rxd['RXD_TIM']) + 'min,y:' + str(rxd['RXD_NYD']) + '%'
+		print(context_info)
 
 		reaction_true.append(str(reactant_smiles) + '>' + str(context_info) + '>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)))
 		i += 1
