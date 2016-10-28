@@ -111,9 +111,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 
 	i = 0
 	for j, reaction in generator:
-		if i < skip: continue
-		if i == skip + n: break
-
+		
 		candidate_smiles = [a for (a, b) in reaction['edit_candidates']]
 		candidate_edits =    [b for (a, b) in reaction['edit_candidates']]
 		reactant_smiles = reaction['reactant_smiles']
@@ -131,7 +129,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		bools = [product_smiles_true == x for x in candidate_smiles]
 		# print('rxn. {} : {} true entries out of {}'.format(i, sum(bools), len(bools)))
 		if sum(bools) > 1:
-			print('More than one true? Will take first one')
+			# print('More than one true? Will take first one')
 			# print(reactant_smiles)
 			# for (edit, prod) in [(edit, prod) for (boolean, edit, prod) in zip(bools, candidate_edits, candidate_smiles) if boolean]:
 			# 	print(prod)
@@ -167,8 +165,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		if complete_only and 'complete' not in rxd:
 			continue
 
-		print('Total number of edit candidates: {}'.format(len(valid_edits)))
-		print('Total number of valid edit candidates: {}'.format(sum(valid_edits)))
+		print('Total number of edit candidates: {} ({} valid)'.format(len(valid_edits), sum(valid_edits)))
 		
 		# Temp
 		T = string_or_range_to_float(rxd['RXD_T'])
@@ -227,12 +224,35 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 			context_info += ',t:' + str(rxd['RXD_TIM']) + 'min,y:' + str(rxd['RXD_NYD']) + '%'
 		print(context_info)
 
+		if i < skip: continue
 		reaction_true.append(str(reactant_smiles) + '>' + str(context_info) + '>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)))
 		i += 1
 
-	reaction_contexts = np.array(reaction_contexts)
+		if i % n == 0:
 
-	return reaction_candidate_edits, reaction_true_onehot, reaction_candidate_smiles, reaction_true, reaction_contexts
+			reaction_contexts = np.array(reaction_contexts)
+
+			with open(os.path.join(FROOT, '{}-{}_candidate_edits.pickle'.format(i-n, i-1)), 'wb') as outfile:
+				pickle.dump(reaction_candidate_edits, outfile, pickle.HIGHEST_PROTOCOL)
+			with open(os.path.join(FROOT, '{}-{}_candidate_bools.pickle'.format(i-n, i-1)), 'wb') as outfile:
+				pickle.dump(reaction_true_onehot, outfile, pickle.HIGHEST_PROTOCOL)
+			with open(os.path.join(FROOT, '{}-{}_candidate_smiles.pickle'.format(i-n, i-1)), 'wb') as outfile:
+				pickle.dump(reaction_candidate_smiles, outfile, pickle.HIGHEST_PROTOCOL)
+			with open(os.path.join(FROOT, '{}-{}_reaction_string.pickle'.format(i-n, i-1)), 'wb') as outfile:
+				pickle.dump(reaction_true, outfile, pickle.HIGHEST_PROTOCOL)
+			with open(os.path.join(FROOT, '{}-{}_contexts.pickle'.format(i-n, i-1)), 'wb') as outfile:
+				pickle.dump(reaction_contexts, outfile, pickle.HIGHEST_PROTOCOL)
+
+			# Reinitialize
+			reaction_candidate_edits = []
+			reaction_candidate_smiles = []
+			reaction_true_onehot = []
+			reaction_true = []
+			reaction_contexts = []
+
+			print('DUMPED FIRST FILE OF {} EXAMPLES'.format(n))
+
+
 
 
 if __name__ == '__main__':
@@ -266,19 +286,5 @@ if __name__ == '__main__':
 	complete_only = args.complete_only in ['y', 'Y', 'T', 't', 'true', '1']
 	print('Only using complete records')
 
-	reaction_candidate_edits, reaction_true_onehot, reaction_candidate_smiles, reaction_true, reaction_contexts = \
-			get_candidates(args.candidate_collection, n = n, shuffle = shuffle, skip = skip, 
+	get_candidates(args.candidate_collection, n = n, shuffle = shuffle, skip = skip, 
 				padUpTo = padUpTo, maxEditsPerClass = maxEditsPerClass)
-
-	rounded_time = '{}-{}'.format(skip, skip + n - 1)
-
-	with open(os.path.join(FROOT, '{}_candidate_edits.pickle'.format(rounded_time)), 'wb') as outfile:
-		pickle.dump(reaction_candidate_edits, outfile, pickle.HIGHEST_PROTOCOL)
-	with open(os.path.join(FROOT, '{}_candidate_bools.pickle'.format(rounded_time)), 'wb') as outfile:
-		pickle.dump(reaction_true_onehot, outfile, pickle.HIGHEST_PROTOCOL)
-	with open(os.path.join(FROOT, '{}_candidate_smiles.pickle'.format(rounded_time)), 'wb') as outfile:
-		pickle.dump(reaction_candidate_smiles, outfile, pickle.HIGHEST_PROTOCOL)
-	with open(os.path.join(FROOT, '{}_reaction_string.pickle'.format(rounded_time)), 'wb') as outfile:
-		pickle.dump(reaction_true, outfile, pickle.HIGHEST_PROTOCOL)
-	with open(os.path.join(FROOT, '{}_contexts.pickle'.format(rounded_time)), 'wb') as outfile:
-		pickle.dump(reaction_contexts, outfile, pickle.HIGHEST_PROTOCOL)
