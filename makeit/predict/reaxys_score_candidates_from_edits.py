@@ -509,7 +509,7 @@ if __name__ == '__main__':
 			model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
 			model.compile(loss = 'categorical_crossentropy', 
 				optimizer = Adam(lr = lr),
-				metrics = ['accuracy']
+				metrics = ['accuracy'])
 			
 		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
 	else:
