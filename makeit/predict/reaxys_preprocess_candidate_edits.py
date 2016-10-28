@@ -152,10 +152,6 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 			print('## wrong number of true results?')
 			raw_input('Pausing...')
 
-		reaction_candidate_edits.append([x for (y, z, x) in zipsort])
-		reaction_true_onehot.append([y for (y, z, x) in zipsort])
-		reaction_candidate_smiles.append([z for (y, z, x) in zipsort])
-
 		### Look for conditions
 		context_info = ''
 		rxd = INSTANCE_DB.find_one({'_id': reaction['_id']})
@@ -218,13 +214,16 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 			if not mol: continue
 			context_info += smiles + ','
 			reagent_fp += np.array(AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits = 256))
-		reaction_contexts.append(np.array([T] + solvent + list(reagent_fp)))
 		context_info += 'T:{}'.format(T)
 		if complete_only: # should have info about time and yield
 			context_info += ',t:' + str(rxd['RXD_TIM']) + 'min,y:' + str(rxd['RXD_NYD']) + '%'
 		print(context_info)
 
 		if i < skip: continue
+		reaction_contexts.append(np.array([T] + solvent + list(reagent_fp)))
+		reaction_candidate_edits.append([x for (y, z, x) in zipsort])
+		reaction_true_onehot.append([y for (y, z, x) in zipsort])
+		reaction_candidate_smiles.append([z for (y, z, x) in zipsort])
 		reaction_true.append(str(reactant_smiles) + '>' + str(context_info) + '>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)))
 		i += 1
 
