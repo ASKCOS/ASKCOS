@@ -510,7 +510,7 @@ if __name__ == '__main__':
 			model.compile(loss = 'categorical_crossentropy', 
 				optimizer = Adam(lr = lr),
 				metrics = ['accuracy']
-			)
+			
 		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
 	else:
 		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight)
