@@ -109,7 +109,8 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 	reaction_true = []
 	reaction_contexts = []
 
-	for i, reaction in generator:
+	i = 0
+	for j, reaction in generator:
 		if i < skip: continue
 		if i == skip + n: break
 
@@ -165,11 +166,17 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		if not rxd:
 			print('Could not find RXD with ID {}'.format(reaction['_id']))
 			raise ValueError('Candidate reaction source not found?')
+		if complete_only and 'complete' not in rxd:
+			continue
 		
 		# Temp
 		T = string_or_range_to_float(rxd['RXD_T'])
-		if not T: T = 20
-		if T == -1: T = 20
+		if not T: 
+			T = 20
+			if complete_only: continue # skip if T was unparseable
+		if T == -1: 
+			T = 20
+			if complete_only: continue # skip if T not recorded
 
 		# Solvent(s)
 		solvent = [0, 0, 0, 0, 0, 0] # c, e, s, a, b, v
@@ -195,6 +202,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 			solvent[4] += doc['b']
 			solvent[5] += doc['v']
 		if solvent == [0, 0, 0, 0, 0, 0]:
+			if complete_only: continue # if solvent not parameterized, skip
 			doc = SOLVENT_DB.find_one({'_id': 'default'})
 			solvent = [doc['c'], doc['e'], doc['s'], doc['a'], doc['b'], doc['v']]
 			print('Because all solvents unknown ({}), using default params'.format(', '.join(unknown_solvents)))
@@ -216,7 +224,11 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		context_info += 'T:{}'.format(T)
 		print(context_info)
 
+		if complete_only: # should have info about time and yield
+			context_info += str(rxd['RXD_TIM']) + 'min,' + str(rxd['RXD_NYD']) + '%'
+
 		reaction_true.append(str(reactant_smiles) + '>' + str(context_info) + '>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)))
+		i += 1
 
 	reaction_contexts = np.array(reaction_contexts)
 
@@ -242,6 +254,8 @@ if __name__ == '__main__':
 						help = 'Name of collection within "prediction" db')
 	parser.add_argument('--maxeditsperclass', type = int, default = 5, 
 						help = 'Maximum number of edits per edit class, default 5')
+	parser.add_argument('--complete_only', type = str, default = 'y', 
+						help = 'Only use complete examples, including recognized solvent, default y')
 	args = parser.parse_args()
 
 	n = int(args.num)
@@ -249,6 +263,8 @@ if __name__ == '__main__':
 	shuffle = bool(args.shuffle)
 	skip = int(args.skip)
 	maxEditsPerClass = int(args.maxeditsperclass)
+	complete_only = args.complete_only in ['y', 'Y', 'T', 't', 'true', '1']
+	print('Only using complete records')
 
 	reaction_candidate_edits, reaction_true_onehot, reaction_candidate_smiles, reaction_true, reaction_contexts = \
 			get_candidates(args.candidate_collection, n = n, shuffle = shuffle, skip = skip, 
