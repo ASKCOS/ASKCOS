@@ -345,6 +345,7 @@ def pred_histogram(model, x_files, xc_files, y_files, z_files, tag = '', split_r
 			trueprob = pred[y[i,:] != 0][0] # prob assigned to true outcome
 			trueprobs.append(trueprob)
 			rank_true_edit = 1 + len(pred) - (ss.rankdata(pred))[np.argmax(y[i,:])]
+			
 			if i < int(split_ratio * preds.shape[0]):
 				dataset = 'train'
 				train_preds.append(trueprob)
@@ -355,7 +356,16 @@ def pred_histogram(model, x_files, xc_files, y_files, z_files, tag = '', split_r
 				val_preds.append(trueprob)
 				if np.argmax(pred) == np.argmax(y[i,:]):
 					val_corr += 1
-			most_likely_edit_i = np.argmax(pred)
+
+			if rank_true_edit != 1:
+				# record highest probability
+				most_likely_edit_i = np.argmax(pred)
+				most_likely_prob = np.max(pred)
+			else:
+				# record number two prediction
+				most_likely_edit_i = np.argmax(pred(pred != np.max(pred)))
+				most_likely_prob = np.max(pred(pred != np.max(pred)))
+
 			if most_likely_edit_i >= len(edits): # no reaction?
 				most_likely_edit = 'no_reaction'
 			else:
@@ -363,7 +373,7 @@ def pred_histogram(model, x_files, xc_files, y_files, z_files, tag = '', split_r
 			fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
 				z[i], dataset, 
 				edits[np.argmax(y[i,:])], trueprob, 
-				most_likely_edit, np.max(pred),
+				most_likely_edit, most_likely_prob,
 				rank_true_edit
 			))
 	fid.close()
