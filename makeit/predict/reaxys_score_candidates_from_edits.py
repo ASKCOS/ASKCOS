@@ -363,8 +363,8 @@ def pred_histogram(model, x_files, xc_files, y_files, z_files, tag = '', split_r
 				most_likely_prob = np.max(pred)
 			else:
 				# record number two prediction
-				most_likely_edit_i = np.argmax(pred(pred != np.max(pred)))
-				most_likely_prob = np.max(pred(pred != np.max(pred)))
+				most_likely_edit_i = np.argmax(pred[pred != np.max(pred)])
+				most_likely_prob = np.max(pred[pred != np.max(pred)])
 
 			if most_likely_edit_i >= len(edits): # no reaction?
 				most_likely_edit = 'no_reaction'
