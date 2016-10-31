@@ -108,6 +108,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 	reaction_true_onehot = []
 	reaction_true = []
 	reaction_contexts = []
+	rxd_ids = []
 
 	i = 0
 	for j, reaction in generator:
@@ -225,6 +226,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 		reaction_true_onehot.append([y for (y, z, x) in zipsort])
 		reaction_candidate_smiles.append([z for (y, z, x) in zipsort])
 		reaction_true.append(str(reactant_smiles) + '>' + str(context_info) + '>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)))
+		rxd_ids.append(str(rxd['_id']))
 		i += 1
 
 		if i % n == 0:
@@ -241,6 +243,10 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 				pickle.dump(reaction_true, outfile, pickle.HIGHEST_PROTOCOL)
 			with open(os.path.join(FROOT, '{}-{}_contexts.pickle'.format(i-n, i-1)), 'wb') as outfile:
 				pickle.dump(reaction_contexts, outfile, pickle.HIGHEST_PROTOCOL)
+			with open(os.path.join(FROOT, '{}-{}_info.txt'.format(i-n, i-1)), 'w') as outfile:
+				outfile.write('RXD_IDs in this file:\n')
+				for rxd_id in rxd_ids:
+					outfile.write(str(rxd_id) + '\n')
 
 			# Reinitialize
 			reaction_candidate_edits = []
@@ -248,6 +254,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 			reaction_true_onehot = []
 			reaction_true = []
 			reaction_contexts = []
+			rxd_ids = []
 
 			print('DUMPED FIRST FILE OF {} EXAMPLES'.format(n))
 
