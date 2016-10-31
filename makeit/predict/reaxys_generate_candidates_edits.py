@@ -36,6 +36,8 @@ if __name__ == '__main__':
 						help = 'Whether to check current collection to see if reaction example has been done')
 	parser.add_argument('--log', type = bool, default = True,
 						help = 'Whether to log wall times / number of candidate atoms / etc., default True')
+	parser.add_argument('--complete_only', type = str, default = 'y',
+						help = 'Whether to only use complete reaction instances, default y')
 	args = parser.parse_args()
 	v = bool(args.v)
 
@@ -47,6 +49,9 @@ if __name__ == '__main__':
 	singleonly = bool(args.singleonly),
 	check = bool(args.check)
 	log = bool(args.log)
+	complete_only = args.complete_only in ['y', 'Y', 'true', 'T', '1']
+	if complete_only:
+		print('Using only complete reaction instances')
 
 	from rdkit import RDLogger
 	lg = RDLogger.logger()
@@ -77,6 +82,9 @@ if __name__ == '__main__':
 	else:
 		done_ids = []
 
+	start_at_id = max([int(rxd_id.split('-')[0]) for rxd_id in done_ids]) - 1
+	print('Starting at RX_ID {}'.format(start_at_id))
+
 	# Define generator
 	class Randomizer():
 		def __init__(self, seed, done_ids = []):
@@ -86,13 +94,15 @@ if __name__ == '__main__':
 				fid.write('{}'.format(seed))
 
 		def get_sequential(self):
-			for rx in REACTION_DB.find(no_cursor_timeout = True):
+			for rx in REACTION_DB.find({'_id': {'$gt': start_at_id}}, no_cursor_timeout = True):
 				if not rx: break 
 				for i in range(1, rx['RX_NVAR'] + 1):
 					rxd_id = '{}-{}'.format(rx['_id'], i)
 					if rxd_id in self.done_ids: continue
 					rxd = INSTANCE_DB.find_one({'_id': rxd_id})
 					if not rxd: continue 
+					if complete_only and 'complete' not in rxd:
+						continue
 					self.done_ids.append(rxd_id)
 					yield (rx, rxd)
 
@@ -161,7 +171,7 @@ if __name__ == '__main__':
 
 			n_reactant_atoms = len(reactants.GetAtoms())
 			print('Number of reactant atoms: {}'.format(n_reactant_atoms))
-			if n_reactant_atoms > 100:
+			if n_reactant_atoms > 80:
 				print('Skipping huge molecule! N_reactant_atoms = {}'.format(n_reactant_atoms))
 				continue
 
