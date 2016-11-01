@@ -37,6 +37,8 @@ class Randomizer():
 				yield (rx, rxd)
 
 
+
+
 def process_one(queue, lock_pymongo):
 	i = 0
 	(rx, rxd) = queue.get()
@@ -148,7 +150,7 @@ def process_one(queue, lock_pymongo):
 					candidate_edits.append((candidate_smiles, edits))
 
 		# Prepare doc and insert
-		if found_true: print('Found true product for {}'.format(rxd['_id']))
+		if found_true: print('{} found true product'.format(rxd['_id']))
 		doc = {
 			'_id': rxd['_id'],
 			'reactant_smiles': Chem.MolToSmiles(reactants, isomericSmiles = USE_STEREOCHEMISTRY),
@@ -159,16 +161,20 @@ def process_one(queue, lock_pymongo):
 		}
 		try:
 			lock_pymongo.acquire()
+			client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
+			db = client['prediction']
+			candidates = db[candidate_collection]
 			res = candidates.insert(doc)
 			lock_pymongo.release()
+			print('{} inserted candidates into db'.format(doc['_id']))
 		except Exception as e:
 			print(e)
 			return
 
 		# LOGGING
 		end_time = time.time()
-		print('time: {}'.format(end_time - start_time))
-		print('unique edit sets using longest prod: {}'.format(len(candidate_edits)))
+		print('{} time: {}'.format(rxd['_id'], end_time - start_time))
+		print('{} unique edit sets using longest prod: {}'.format(rxd['_id'], len(candidate_edits)))
 		if log: flog.write('{}\t{}\t{}\t{}\n'.format(i, n_reactant_atoms, len(candidate_edits), end_time - start_time))
 
 	except KeyboardInterrupt:
@@ -178,6 +184,9 @@ def process_one(queue, lock_pymongo):
 	# 	print('Error, {}'.format(e))
 	# 	return
 
+def process_forever(queue, lock_pymongo):
+	while True:
+		process_one(queue, lock_pymongo)
 
 if __name__ == '__main__':
 
@@ -277,7 +286,7 @@ if __name__ == '__main__':
 		lock_pymongo = Lock()
 		for i in range(int(args.workers)):
 			processes.append(
-				Process(target=process_one, args=(queue, lock_pymongo))
+				Process(target=process_forever, args=(queue, lock_pymongo))
 			)
 		[p.start() for p in processes]
 
