@@ -1,5 +1,6 @@
 # Import relevant packages
 from __future__ import print_function
+import time
 from global_config import USE_STEREOCHEMISTRY
 import numpy as np
 import os
@@ -22,7 +23,6 @@ try:
 	from keras.utils.visualize_util import plot
 except:
 	no_printing = True
-from makeit.predict.preprocess_candidates import *
 from makeit.embedding.descriptors import edits_to_vectors, oneHotVector # for testing
 import rdkit.Chem as Chem
 import theano.tensor as T
