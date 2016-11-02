@@ -258,7 +258,9 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 
 			print('DUMPED FIRST FILE OF {} EXAMPLES'.format(n))
 
-
+		if i == n_max:
+			print('Finished the requested {} examples'.format(n_max))
+			break
 
 
 if __name__ == '__main__':
@@ -268,8 +270,10 @@ if __name__ == '__main__':
 	skip = 0
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-n', '--num', type = int, default = 100,
-						help = 'Number of candidate sets to read, default 100')
+	parser.add_argument('-n', '--num', type = int, default = 500,
+						help = 'Number of candidates in each chunk, default 500')
+	parser.add_argument('--max', type = int, default = 10000,
+					help = 'Maximum number of examples to save')
 	parser.add_argument('-p', '--padupto', type = int, default = 100,
 						help = 'Number of candidates to allow per example, default 100')
 	parser.add_argument('-s', '--shuffle', type = int, default = 0,
@@ -293,4 +297,4 @@ if __name__ == '__main__':
 	print('Only using complete records')
 
 	get_candidates(args.candidate_collection, n = n, shuffle = shuffle, skip = skip, 
-				padUpTo = padUpTo, maxEditsPerClass = maxEditsPerClass)
+				padUpTo = padUpTo, maxEditsPerClass = maxEditsPerClass, n_max = int(args.max))
