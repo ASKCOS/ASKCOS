@@ -36,7 +36,7 @@ import itertools
 
 
 def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 100, inner_act = 'tanh',
-		l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0):
+		l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0, enhancement_weight = 0.1):
 	'''
 	Builds the feed forward model.
 
@@ -135,7 +135,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 
 	#### NON-EXPONENTIAL VERSION
 	unscaled_score = Lambda(
-		lambda x: x[:, :, 0] - context_weight * (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 8:14], axis = -1)) / (x[:, :, 15] + 273.15) + 0.1 * x[:, :, 8],
+		lambda x: x[:, :, 0] - context_weight * (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 8:14], axis = -1)) / (x[:, :, 15] + 273.15) + enhancement_weight * x[:, :, 8],
 		output_shape = lambda x: (None, N_c,),
 		name = "propensity = logK - (G0 + cC + eE + ... + vV) / T + enh."
 	)(params_enhancement)
@@ -176,8 +176,8 @@ def train(model, x_files, xc_files, y_files, z_files, tag = '', split_ratio = 0.
 			# Shuffle order that files are read
 			fnums = range(len(x_files))
 			np.random.shuffle(fnums)
-			for fnum in fnums: # get each set of data
-				print('    running file {}/{}'.format(fnum+1, len(x_files)))
+			for zz, fnum in enumerate(fnums): # get each set of data
+				print('    running file {}/{} (no. {})'.format(fnum+1, len(x_files), zz+1))
 				
 				if len(x_files) > 1 or epoch == 0: # get new data
 					z = get_z_data(z_files[fnum])
@@ -499,8 +499,10 @@ if __name__ == '__main__':
 	parser.add_argument('--visualize', type = bool, default = False,
 		                help = 'Whether or not to visualize weights ONLY, default False')
 	parser.add_argument('--context_weight', type = float, default = 100.0,
-                            help = 'Weight assigned to contextual effects')
-        args = parser.parse_args()
+                            help = 'Weight assigned to contextual effects, default 100.0')
+        parser.add_argument('--enhancement_weight', type = float, default = 0.1,
+			help = 'Weight assigned to enhancement factor, default 0.1')
+	args = parser.parse_args()
 
 	x_files = sorted([os.path.join(args.data, dfile) \
 					for dfile in os.listdir(args.data) \
@@ -536,6 +538,7 @@ if __name__ == '__main__':
 	N_c = 100 # number of candidate edit sets
 	N_e = 5 # maximum number of edits per class
 	context_weight = float(args.context_weight)
+	enhancement_weight = float(args.enhancement_weight)
 
 	THIS_FOLD_OUT_OF_FIVE = int(args.fold)
 	tag = args.tag + ' fold{}'.format(args.fold)
@@ -544,7 +547,7 @@ if __name__ == '__main__':
 		print('Reloading from file')
 		rebuild = raw_input('Do you want to rebuild from scratch instead of loading from file? [n/y] ')
 		if rebuild == 'y':
-			model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight)
+			model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight, enhancement_weight = enhancement_weight)
 		else:
 			model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
 			model.compile(loss = 'categorical_crossentropy', 
