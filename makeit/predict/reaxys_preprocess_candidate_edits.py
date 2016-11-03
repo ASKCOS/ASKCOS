@@ -29,7 +29,7 @@ def string_or_range_to_float(text):
 	return None
 
 def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuffle = False, 
-	skip = 0, padUpTo = 500, maxEditsPerClass = 5):
+	skip = 0, padUpTo = 500, maxEditsPerClass = 5, n_max = 500):
 	'''
 	Pull n example reactions, their candidates, and the true answer
 	'''
