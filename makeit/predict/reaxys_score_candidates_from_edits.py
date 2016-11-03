@@ -173,8 +173,10 @@ def train(model, x_files, xc_files, y_files, z_files, tag = '', split_ratio = 0.
 			print('>>> EPOCH {}/{} <<<'.format(epoch + 1, nb_epoch))
 			average_loss = 0; average_acc = 0;
 			average_val_loss = 0; average_val_acc = 0;
-			# Get each set of data
-			for fnum in range(len(x_files)):
+			# Shuffle order that files are read
+			fnums = range(len(x_files))
+			np.random.shuffle(fnums)
+			for fnum in fnums: # get each set of data
 				print('    running file {}/{}'.format(fnum+1, len(x_files)))
 				
 				if len(x_files) > 1 or epoch == 0: # get new data
