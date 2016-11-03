@@ -1,5 +1,6 @@
 # Import relevant packages
 from __future__ import print_function
+import time
 from global_config import USE_STEREOCHEMISTRY
 import numpy as np
 import os
@@ -22,7 +23,6 @@ try:
 	from keras.utils.visualize_util import plot
 except:
 	no_printing = True
-from makeit.predict.preprocess_candidates import *
 from makeit.embedding.descriptors import edits_to_vectors, oneHotVector # for testing
 import rdkit.Chem as Chem
 import theano.tensor as T
@@ -208,8 +208,8 @@ def train(model, x_files, xc_files, y_files, z_files, tag = '', split_ratio = 0.
 				#	hist.history['loss'][0], hist.history['val_loss'][0],
 				# 	hist.history['acc'][0], hist.history['val_acc'][0]
 				#))
-	                        print('This train loss: {}'.format(hist.history['loss'][0]))
-                                print('This val loss:   {}'.format(hist.history['val_loss'][0]))
+	                        #print('This train loss: {}'.format(hist.history['loss'][0]))
+                                #print('This val loss:   {}'.format(hist.history['val_loss'][0]))
                                 average_loss += hist.history['loss'][0]
 				average_acc += hist.history['acc'][0]
 				average_val_loss += hist.history['val_loss'][0]
@@ -340,7 +340,7 @@ def pred_histogram(model, x_files, xc_files, y_files, z_files, tag = '', split_r
 	fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
 		'reaction_smiles', 'train/val', 
 		'true_edit', 'prob_true_edit', 
-		'predicted_edit', 'prob_predicted_edit',
+		'predicted_edit(or no. 2)', 'prob_predicted_edit(or no. 2)',
 		'rank_true_edit'
 	))
 
