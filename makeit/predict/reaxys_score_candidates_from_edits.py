@@ -32,7 +32,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt    # for visualization
 import scipy.stats as ss
-
+import itertools
 
 
 def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 100, inner_act = 'tanh',
