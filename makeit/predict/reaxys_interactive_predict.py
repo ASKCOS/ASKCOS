@@ -59,7 +59,6 @@ def reactants_to_candidate_edits(reactants):
 				
 			# Find what edits were made
 			edits = summarize_reaction_outcome(reactants, outcome)
-			if v: print(edits)
 
 			# Remove mapping before matching
 			[x.ClearProp('molAtomMapNumber') for x in outcome.GetAtoms() if x.HasProp('molAtomMapNumber')] # remove atom mapping from outcome
@@ -115,12 +114,12 @@ def preprocess_candidate_edits(reactants, candidate_list):
 
 def score_candidates(reactants, candidate_list, xs, context, xc):
 
-	pred = model.predict(xs + [xc], batch_size = 20)[0]
+	pred = model.predict(xs + [xc[:, 7:], xc[:, 1:7], xc[:, 0]], verbose = True)[0]
 	rank = ss.rankdata(pred)
 
 	fname = raw_input('Enter file name to save to: ') + '.dat'
 	with open(os.path.join(FROOT, fname), 'w') as fid:
-		fid.write('FOR REACTANTS {} WITH CONTEXT {}\n'.format(Chem.MolToSmiles(reactants, context)))
+		fid.write('FOR REACTANTS {} WITH CONTEXT {}\n'.format(Chem.MolToSmiles(reactants), context))
 		fid.write('Candidate product\tCandidate edit\tProbability\tRank\n')
 		for (c, candidate) in enumerate(candidate_list):
 			if c >= padUpTo: break
@@ -137,9 +136,28 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--tag', type = str,
 						help = 'Tag for model to load from')
-	parser.add_argument('--mincount', type = int, default = 50,
-						help = 'Mincount of templates, default 50')
-
+	parser.add_argument('--mincount', type = int, default = 100,
+						help = 'Mincount of templates, default 100')
+	parser.add_argument('--Nc', type = int, default = 100,
+						help = 'Number of candidates to consider, default 100')
+	parser.add_argument('--Nh1', type = int, default = 40,
+						help = 'Number of hidden nodes in first layer, default 40')
+	parser.add_argument('--Nh2', type = int, default = 0,
+						help = 'Number of hidden nodes in second layer, default 0')
+	parser.add_argument('--Nh3', type = int, default = 0,
+						help = 'Number of hidden nodes in third layer, ' + 
+								'immediately before summing, default 0')
+	parser.add_argument('--Nhf', type = int, default = 20,
+						help = 'Number of hidden nodes in layer between summing ' +
+								'and final score, default 20')
+	parser.add_argument('--l2', type = float, default = 0.0,
+						help = 'l2 regularization parameter for each Dense layer, default 0.0')
+	parser.add_argument('--lr', type = float, default = 0.01, 
+						help = 'Learning rate, default 0.01')
+	parser.add_argument('--context_weight', type = float, default = 100.0,
+                            help = 'Weight assigned to contextual effects, default 100.0')
+        parser.add_argument('--enhancement_weight', type = float, default = 0.1,
+			help = 'Weight assigned to enhancement factor, default 0.1')
 	args = parser.parse_args()
 
 
@@ -152,9 +170,18 @@ if __name__ == '__main__':
 	template_collection = 'transforms_forward_v1'
 	mincount = int(args.mincount)
 	singleonly = True
-	padUpTo = 100
-	N_e = 5
+	padUpTo = int(args.Nc)
 	v = False
+	N_h1 = int(args.Nh1)
+	N_h2 = int(args.Nh2)
+	N_h3 = int(args.Nh3)
+	N_hf = int(args.Nhf)
+	l2v = float(args.l2)
+	lr = float(args.lr)
+	N_c = int(args.Nc) # number of candidate edit sets
+	N_e = 5 # maximum number of edits per class
+	context_weight = float(args.context_weight)
+	enhancement_weight = float(args.enhancement_weight)
 
 	# Silence warnings
 	from rdkit import RDLogger
@@ -168,20 +195,28 @@ if __name__ == '__main__':
 	templates = db[template_collection]
 	SOLVENT_DB = db['solvents']
 	Transformer = transformer.Transformer()
-	Transformer.load(templates, mincount = mincount, get_retro = False, get_synth = True, lowe = True)
+	Transformer.load(templates, mincount = mincount, get_retro = False, get_synth = True, lowe = False)
 	print('Out of {} database templates,'.format(templates.count()))
 	print('Loaded {} templates'.format(Transformer.num_templates))
 	Transformer.reorder()
 	print('Sorted by count, descending')
 
 	# Load models
-	model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
+	rebuild = raw_input('Do you want to rebuild from scratch instead of loading from file? [n/y] ')
+	if rebuild in ['y', 'Y', 'yes', 'true', 't', '1', 'T']:
+		from makeit.predict.reaxys_score_candidates_from_edits import build
+		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, 
+			N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight,
+			enhancement_weight = enhancement_weight)
+	else:
+		model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
+		print('Loaded model from file')
 	model.compile(loss = 'categorical_crossentropy',
 			optimizer = SGD(lr = 0.0),
 			metrics = ['accuracy']
 	)
-	model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
-	print('Loaded model from file')
+	model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), by_name = True)
+	print('Loaded weights from file')
 
 	# Wait for user prompt
 	while True:
@@ -204,7 +239,7 @@ if __name__ == '__main__':
 				doc = SOLVENT_DB.find_one({'name': solvent})
 			if not doc:
 				print('Could not parse solvent!')
-				print('Try one of the following: {}'.format(', '.join([doc['name'] for doc in SOLVENT_DB.find()])))
+				print('Try one of the following: {}'.format(', '.join([doc['name'] for doc in SOLVENT_DB.find() if 'name' in doc])))
 				continue
 			solvent_vec = [doc['c'], doc['e'], doc['s'], doc['a'], doc['b'], doc['v']]
 			solvent = doc['name']
@@ -219,13 +254,15 @@ if __name__ == '__main__':
 				reagent_fp += np.array(AllChem.GetMorganFingerprintAsBitVect(reagent, 2, nBits = 256))
 
 			# Combine
-			xc = np.array([T] + solvent_vec + list(reagent_fp))
+			xc = np.resize(np.array([T] + solvent_vec + list(reagent_fp)), (1, 263))
+
 			context = 'solv:{}, rgt:{}, T:{}'.format(
 				solvent, '.'.join([Chem.MolToSmiles(reagent) for reagent in reagents]), T
 			)
 
 			print('Number of reactant atoms: {}'.format(len(reactants.GetAtoms())))
 			# Report current reactant SMILES string
+			[a.ClearProp('molAtomMapNumber') for a in reactants.GetAtoms() if a.HasProp('molAtomMapNumber')]
 			print('Reactants w/o map: {}'.format(Chem.MolToSmiles(reactants)))
 			# Add new atom map numbers
 			[a.SetProp('molAtomMapNumber', str(i+1)) for (i, a) in enumerate(reactants.GetAtoms())]
@@ -238,6 +275,7 @@ if __name__ == '__main__':
 			xs = preprocess_candidate_edits(reactants, candidate_list)
 			# Score and save to file
 			score_candidates(reactants, candidate_list, xs, context, xc)
+
 		except Exception as e:
 			print(e)
 			print('')
