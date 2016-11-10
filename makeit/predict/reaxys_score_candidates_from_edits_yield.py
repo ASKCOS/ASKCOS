@@ -430,42 +430,27 @@ def pred_histogram(model, x_files, xc_files, y_files, z_files, tag = '', split_r
 	train_trues = np.array(train_trues)
 	val_trues = np.array(val_trues)
 
-	def histogram(array, title, label, acc):
-		acc = int(acc * 1000)/1000. # round3
-		try:
-			# Visualize in histogram
-			weights = np.ones_like(array) / len(array)
-			plt.clf()
-			n, bins, patches = plt.hist(array, np.arange(0, 1.02, 0.02), facecolor = 'blue', alpha = 0.5, weights = weights)
-			plt.xlabel('Assigned probability to true product')
-			plt.ylabel('Normalized frequency')
-			plt.title('Histogram of pseudo-probabilities - {} (N={},acc={})'.format(title, len(array), acc))
-			plt.axis([0, 1, 0, 1])
-			plt.grid(True)
-			plt.savefig(os.path.join(FROOT, label), bbox_inches = 'tight')
-		except:
-			pass
+	def round3(x):
+		return int(x * 1000)/1000. 
 
-	def scatter(array1, array2, title, label, acc):
-		acc = int(acc * 1000)/1000. # round3
+	def scatter(array1, array2, title, label):
+		mae = np.mean(np.abs(array1 - array2))
+		mse = np.mean(np.square(array1 - array2))
 		try:
 			plt.clf()
-			plt.scatter(100.0 * array1, 100.0 * array2, alpha = 0.5)
+			plt.scatter(array1, array2, alpha = 0.5)
 			plt.plot([0, 100], [0, 100], 'r--')
-			plt.xlabel('True reaction yield [%]')
-			plt.ylabel('Predicted reaction yield [%]')
-			plt.title('Parity plot of yields - {} (N={},acc={})'.format(title, len(array1), acc))
+			plt.xlabel('True reaction yield')
+			plt.ylabel('Predicted reaction yield')
+			plt.title('Parity plot of yields - {} (N={})\nMAE={}, MSE={}'.format(title, len(array1), round3(mae), round3(mse)))
 			plt.axis([0, 100, 0, 100])
 			plt.grid(True)
 			plt.savefig(os.path.join(FROOT, label), bbox_inches = 'tight')
 		except:
 			pass
 
-
-	histogram(train_preds, 'TRAIN', 'training{}.png'.format(tag), train_acc)
-	histogram(val_preds, 'VAL', 'validation{}.png'.format(tag), val_acc)
-	scatter(train_trues, train_preds, 'TRAIN', 'training_yields{}.png'.format(tag), train_acc)
-	scatter(val_trues, val_preds, 'VAL', 'validation_yields{}.png'.format(tag), val_acc)
+	scatter(train_trues, train_preds, 'TRAIN', 'training_yields{}.png'.format(tag))
+	scatter(val_trues, val_preds, 'VAL', 'validation_yields{}.png'.format(tag))
 
 
 # def visualize_weights(model, tag):
