@@ -34,7 +34,7 @@ import matplotlib.pyplot as plt    # for visualization
 import scipy.stats as ss
 import itertools
 
-def mse_of_true(y_true, y_pred):
+def msle_of_true(y_true, y_pred):
 	'''Custom loss function that uses the mean squared error in predicted
 	yield, assuming that y_pred are unscaled predictions with the true 
 	outcome in the first index.'''
@@ -147,14 +147,13 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 
 	unscaled_score_r = Reshape((N_c,), name = "shape check 2")(unscaled_score)
 
-	scaled_score = Activation('sigmoid', name = 'sigmoid activation')(unscaled_score_r)
+	scaled_score = Activation(lambda x: K.exp(x / 5.0 - 1.0), name = 'exponential activation')(unscaled_score_r)
 
 	# Do not scale score with softmax (which would force 100% conversion)
 	# Scale linearly
 
 	yields = Lambda(
-		lambda x: x / K.tile(K.maximum(1.0, K.sum(x, axis = -1, keepdims = True)), (1, N_c))
-			,
+		lambda x: x / K.tile(K.maximum(1.0, K.sum(x, axis = -1, keepdims = True)), (1, N_c)),
 	name = "scale if sum(yields)>1")(scaled_score)
 
 	model = Model(input = [h_lost, h_gain, bond_lost, bond_gain, reagents, solvent, temp], 
@@ -170,7 +169,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	# Now compile
 	adam = Adam(lr = lr)
 
-	model.compile(loss = mse_of_true, optimizer = adam)
+	model.compile(loss = msle_of_true, optimizer = adam)
 
 	return model
 
@@ -208,7 +207,7 @@ def train(model, x_files, xc_files, y_files, z_files, tag = '', split_ratio = 0.
 				# ys = model.predict(x + xc)
 				# print(ys)
 				# print(ys.shape)
-				# mse = mse_of_true(y, ys)
+				# mse = msle_of_true(y, ys)
 				# print('MSE: {}'.format(mse.eval()))
 				# raw_input('Predicted, pause...')
 
@@ -439,11 +438,11 @@ def pred_histogram(model, x_files, xc_files, y_files, z_files, tag = '', split_r
 		try:
 			plt.clf()
 			plt.scatter(array1, array2, alpha = 0.5)
-			plt.plot([0, 100], [0, 100], 'r--')
+			plt.plot([0, 1], [0, 1], 'r--')
 			plt.xlabel('True reaction yield')
 			plt.ylabel('Predicted reaction yield')
 			plt.title('Parity plot of yields - {} (N={})\nMAE={}, MSE={}'.format(title, len(array1), round3(mae), round3(mse)))
-			plt.axis([0, 100, 0, 100])
+			plt.axis([0, 1, 0, 1])
 			plt.grid(True)
 			plt.savefig(os.path.join(FROOT, label), bbox_inches = 'tight')
 		except:
@@ -574,7 +573,7 @@ if __name__ == '__main__':
 				context_weight = context_weight, enhancement_weight = enhancement_weight)
 		else:
 			model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
-			model.compile(loss = mse_of_true, 
+			model.compile(loss = msle_of_true, 
 				optimizer = Adam(lr = lr),
 				)
 			
