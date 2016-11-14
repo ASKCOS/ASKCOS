@@ -35,10 +35,17 @@ import scipy.stats as ss
 import itertools
 
 def msle_of_true(y_true, y_pred):
-	'''Custom loss function that uses the mean squared error in predicted
+	'''Custom loss function that uses the mean squared log error in predicted
 	yield, assuming that y_pred are unscaled predictions with the true 
 	outcome in the first index.'''
 	return K.square(K.log(K.clip(y_pred[:, 0:1], K.epsilon(), 1.0)) - K.log(K.clip(y_true, K.epsilon(), 1.0)))
+
+def mse_of_true(y_true, y_pred):
+	'''Custom loss function that uses the mean squared error in predicted
+	yield, assuming that y_pred are unscaled predictions with the true 
+	outcome in the first index.'''
+	return K.square(y_pred[:, 0:1] - y_true)
+
 
 def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 100, inner_act = 'tanh',
 		l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0, enhancement_weight = 0.1):
@@ -169,7 +176,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	# Now compile
 	adam = Adam(lr = lr)
 
-	model.compile(loss = msle_of_true, optimizer = adam)
+	model.compile(loss = mse_of_true, optimizer = adam)
 
 	return model
 
@@ -575,7 +582,7 @@ if __name__ == '__main__':
 				context_weight = context_weight, enhancement_weight = enhancement_weight)
 		else:
 			model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
-			model.compile(loss = msle_of_true, 
+			model.compile(loss = mse_of_true, 
 				optimizer = Adam(lr = lr),
 				)
 			
