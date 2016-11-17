@@ -38,7 +38,7 @@ def msle_of_true(y_true, y_pred):
 	'''Custom loss function that uses the mean squared log error in predicted
 	yield, assuming that y_pred are unscaled predictions with the true 
 	outcome in the first index.'''
-	return K.square(K.log(y_pred[:, 0:1]) - K.log(y_true))
+	return K.square(K.log(K.clip(y_pred[:, 0:1], K.epsilon(), 1.0)) - K.log(K.clip(y_true, K.epsilon(), 1.0)))
 
 def mse_of_true(y_true, y_pred):
 	'''Custom loss function that uses the mean squared error in predicted
@@ -231,8 +231,8 @@ def train(model, x_files, xc_files, y_files, z_files, tag = '', split_ratio = 0.
 				#	hist.history['loss'][0], hist.history['val_loss'][0],
 				# 	hist.history['acc'][0], hist.history['val_acc'][0]
 				#))
-	                        #print('This train loss: {}'.format(hist.history['loss'][0]))
-                                #print('This val loss:   {}'.format(hist.history['val_loss'][0]))
+	                        print('This train loss: {}'.format(hist.history['loss'][0]))
+                                print('This val loss:   {}'.format(hist.history['val_loss'][0]))
                                 average_loss += hist.history['loss'][0]
 				average_val_loss += hist.history['val_loss'][0]
 			print('    loss:     {:8.4f}'.format(average_loss/len(x_files)))
@@ -440,6 +440,8 @@ def pred_histogram(model, x_files, xc_files, y_files, z_files, tag = '', split_r
 		return int(x * 1000)/1000. 
 
 	def scatter(array1, array2, title, label):
+		array1 = array1.flatten()
+		array2 = array2.flatten()
 		mae = np.mean(np.abs(array1 - array2))
 		mse = np.mean(np.square(array1 - array2))
 		try:
