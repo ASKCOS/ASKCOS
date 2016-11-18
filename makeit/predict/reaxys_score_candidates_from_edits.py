@@ -502,6 +502,9 @@ if __name__ == '__main__':
                             help = 'Weight assigned to contextual effects, default 100.0')
         parser.add_argument('--enhancement_weight', type = float, default = 0.1,
 			help = 'Weight assigned to enhancement factor, default 0.1')
+	parser.add_argument('--Nc', type = int, default = 100,
+			help = 'Number of candidates per example, default 100')
+
 	args = parser.parse_args()
 
 	x_files = sorted([os.path.join(args.data, dfile) \
@@ -535,7 +538,7 @@ if __name__ == '__main__':
 	N_hf = int(args.Nhf)
 	l2v = float(args.l2)
 	lr = float(args.lr)
-	N_c = 100 # number of candidate edit sets
+	N_c = int(args.Nc) # number of candidate edit sets
 	N_e = 5 # maximum number of edits per class
 	context_weight = float(args.context_weight)
 	enhancement_weight = float(args.enhancement_weight)
