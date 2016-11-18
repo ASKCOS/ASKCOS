@@ -282,8 +282,13 @@ def get_x_data(fpath, z):
 					#print('Edit counts: {}'.format([len(edit) for edit in edits]))
 					#print('skipping')
 					continue
-				edit_h_lost_vec, edit_h_gain_vec, \
-					edit_bond_lost_vec, edit_bond_gain_vec = edits_to_vectors(edits, mol)
+				try:
+					edit_h_lost_vec, edit_h_gain_vec, \
+						edit_bond_lost_vec, edit_bond_gain_vec = edits_to_vectors(edits, mol)
+				except KeyError as e:
+					print(e)
+					print('Skipping this edit')
+					continue
 				for (e, edit_h_lost) in enumerate(edit_h_lost_vec):
 					x_h_lost[n, c, e, :] = edit_h_lost
 				for (e, edit_h_gain) in enumerate(edit_h_gain_vec):
