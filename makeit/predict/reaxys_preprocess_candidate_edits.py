@@ -19,9 +19,22 @@ def string_or_range_to_float(text):
 	try:
 		return float(text)
 	except Exception as e:
-		if '-' in text:
+		if text.count('-') == 1: # 20 - 30
 			try:
-				return sum([float(x) for x in text.split('-')]) / len(text.split('-'))
+				x = text.split('-')
+				return (float(x[0]) + float(x[1])) / 2.0
+			except Exception as e:
+				print(e)
+		elif text.count('-') == 2: # -20 - 0
+			try:
+				x = text.split('-')
+				return (-float(x[0]) + float(x[1])) / 2.0
+			except Exception as e:
+				print(e)
+		elif text.count('-') == 3: # -20 - -10
+			try:
+				x = text.split('-')
+				return (-float(x[0]) - float(x[1])) / 2.0
 			except Exception as e:
 				print(e)
 		else:
