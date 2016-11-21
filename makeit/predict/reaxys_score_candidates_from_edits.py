@@ -282,8 +282,13 @@ def get_x_data(fpath, z):
 					#print('Edit counts: {}'.format([len(edit) for edit in edits]))
 					#print('skipping')
 					continue
-				edit_h_lost_vec, edit_h_gain_vec, \
-					edit_bond_lost_vec, edit_bond_gain_vec = edits_to_vectors(edits, mol)
+				try:
+					edit_h_lost_vec, edit_h_gain_vec, \
+						edit_bond_lost_vec, edit_bond_gain_vec = edits_to_vectors(edits, mol)
+				except KeyError as e:
+					print(e)
+					print('Skipping this edit')
+					continue
 				for (e, edit_h_lost) in enumerate(edit_h_lost_vec):
 					x_h_lost[n, c, e, :] = edit_h_lost
 				for (e, edit_h_gain) in enumerate(edit_h_gain_vec):
@@ -502,6 +507,9 @@ if __name__ == '__main__':
                             help = 'Weight assigned to contextual effects, default 100.0')
         parser.add_argument('--enhancement_weight', type = float, default = 0.1,
 			help = 'Weight assigned to enhancement factor, default 0.1')
+	parser.add_argument('--Nc', type = int, default = 100,
+			help = 'Number of candidates per example, default 100')
+
 	args = parser.parse_args()
 
 	x_files = sorted([os.path.join(args.data, dfile) \
@@ -535,7 +543,7 @@ if __name__ == '__main__':
 	N_hf = int(args.Nhf)
 	l2v = float(args.l2)
 	lr = float(args.lr)
-	N_c = 100 # number of candidate edit sets
+	N_c = int(args.Nc) # number of candidate edit sets
 	N_e = 5 # maximum number of edits per class
 	context_weight = float(args.context_weight)
 	enhancement_weight = float(args.enhancement_weight)
