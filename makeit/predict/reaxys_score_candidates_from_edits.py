@@ -149,10 +149,10 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 		output = [score])
 
 	model.summary()
-	if no_printing:
-		print('Could not print')
-	else:
-		plot(model, to_file = 'model.png', show_shapes = True)
+	# if no_printing:
+	# 	print('Could not print')
+	# else:
+	# 	plot(model, to_file = 'model.png', show_shapes = True)
 
 
 	# Now compile
@@ -547,7 +547,9 @@ if __name__ == '__main__':
 		print('Reloading from file')
 		rebuild = raw_input('Do you want to rebuild from scratch instead of loading from file? [n/y] ')
 		if rebuild == 'y':
-			model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight, enhancement_weight = enhancement_weight)
+			model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, 
+				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, 
+				context_weight = context_weight, enhancement_weight = enhancement_weight)
 		else:
 			model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
 			model.compile(loss = 'categorical_crossentropy', 
