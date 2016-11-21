@@ -104,9 +104,9 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_fp = 2048, N_h1 = 100, N_h2 = 50, N
 		Dense(N_hf, activation = inner_act, W_regularizer = l2(l2v))
 	)(prodFP)
 
-
+	summed_features = net_sum = merge([net_sum_h, prodFP_hidden], mode = 'sum')
 	feature_to_score = Dense(1, activation = 'linear', W_regularizer = l2(l2v))
-	unscaled_score = TimeDistributed(feature_to_score)(net_sum_h + prodFP_hidden)
+	unscaled_score = TimeDistributed(feature_to_score)(summed_features)
 
 	unscaled_score_flat = Flatten()(unscaled_score)
 
