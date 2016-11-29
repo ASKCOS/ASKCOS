@@ -14,32 +14,34 @@ import argparse
 
 FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data_edits_reaxys')
 
-
 def string_or_range_to_float(text):
 	try:
 		return float(text)
 	except Exception as e:
+		x = [z for z in text.strip().split('-') if z not in [u'', u' ']]
 		if text.count('-') == 1: # 20 - 30
 			try:
-				x = text.split('-')
 				return (float(x[0]) + float(x[1])) / 2.0
 			except Exception as e:
-				print(e)
+				print('Could not convert {}, {}'.format(text, x))
+				#print(e)
 		elif text.count('-') == 2: # -20 - 0
 			try:
-				x = text.split('-')
 				return (-float(x[0]) + float(x[1])) / 2.0
 			except Exception as e:
-				print(e)
+				print('Could not convert {}, {}'.format(text, x))
+				#print(e)
 		elif text.count('-') == 3: # -20 - -10
 			try:
-				x = text.split('-')
 				return (-float(x[0]) - float(x[1])) / 2.0
 			except Exception as e:
-				print(e)
+				print('Could not convert {}, {}'.format(text, x))
+				#print(e)
 		else:
+			print('Could not convert {}'.format(text))
 			print(e)
-	return None
+	return np.nan
+
 
 def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuffle = False, 
 	skip = 0, padUpTo = 500, maxEditsPerClass = 5, n_max = 500):

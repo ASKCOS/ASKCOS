@@ -47,7 +47,7 @@ if __name__ == '__main__':
 		total_count = sum(counts)
 		print('{} -> {}'.format(agent_type, total_count))
 
-		if agent_type not in ['[O]', '[Cl]', '[Br]', '[F]', '[N]~[N]~[N]', '[C]', '[O]~[N]~[O]']: continue 
+		if agent_type not in ['[O]', '[Cl]', '[Br]', '[F]', '[I]', '[N]~[N]~[N]', '[C]', '[O]~[N]~[O]']: continue 
 
 		zipsorted = sorted(zip(counts, labels), key = lambda x: x[0])
 		counts = np.array([x[0] for x in zipsorted])
@@ -67,9 +67,9 @@ if __name__ == '__main__':
 		ax.axis([1, np.power(10, np.ceil(np.log10(max(ranks)))), \
 		     np.power(10, np.floor(np.log10(min(probs)))), \
 		     np.power(10, np.ceil(np.log10(max(probs))))])
-		plt.title('Reagents contributing {} in Reaxys'.format(agent_type))
+		plt.title('Reagents contributing {} in Reaxys ({} examples)'.format(agent_type, total_count))
 		plt.grid(True)
-		N_top = 5
+		N_top = 8
 		for (i, (label, x, y)) in enumerate(zip(labels, ranks, probs)[-N_top:]):
 			plt.annotate(
 				label, 
