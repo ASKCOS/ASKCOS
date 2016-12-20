@@ -6,6 +6,8 @@ def get_EFGS_matches(mol, library = []):
 	this function returns a list of which ones match as a 
 	boolean vector'''
 
+	mol = AllChem.AddHs(mol)
+
 	if not library:
 		from pymongo import MongoClient
 		client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
