@@ -12,7 +12,7 @@ database = db_client[settings.RETRO_TRANSFORMS['database']]
 collection = database[settings.RETRO_TRANSFORMS['collection']]
 import makeit.retro.transformer as transformer 
 RetroTransformer = transformer.Transformer()
-mincount_retro = 5
+mincount_retro = settings.RETRO_TRANSFORMS['mincount']
 RetroTransformer.load(collection, mincount = mincount_retro, get_retro = True, get_synth = False)
 print('Loaded {} retro templates'.format(RetroTransformer.num_templates))
 RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.format(RetroTransformer.num_templates,
@@ -21,7 +21,7 @@ RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.fo
 database = db_client[settings.SYNTH_TRANSFORMS['database']]
 collection = database[settings.SYNTH_TRANSFORMS['collection']]
 SynthTransformer = transformer.Transformer()
-mincount_synth = 10
+mincount_synth = settings.SYNTH_TRANSFORMS['mincount']
 SynthTransformer.load(collection, mincount = mincount_synth, get_retro = False, get_synth = True)
 print('Loaded {} forward templates'.format(SynthTransformer.num_templates))
 SYNTH_FOOTNOTE = 'Using {} forward templates (mincount {}) from {}/{}'.format(SynthTransformer.num_templates,

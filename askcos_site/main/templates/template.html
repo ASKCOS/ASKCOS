@@ -31,6 +31,10 @@
 
 <img src="{% url 'draw_template' template.reaction_smarts %}" >
 
+{% if template.necessary_reagent %}
+<p><i>Note: this reaction would require a reagent to contribute {{ template.necessary_reagent }}</i></p>
+{% endif %}
+
 {% if suggested_conditions %}
 <h4>
 	Most popular conditions:
