@@ -55,7 +55,8 @@ class Transformer:
 				'rxn_example': 			document['rxn_example'] if 'rxn_example' in document else '',
 				'explicit_H': 			document['explicit_H'] if 'explicit_H' in document else False,
 				'_id':	 				document['_id'] if '_id' in document else -1,
-				'product_smiles':		document['product_smiles'] if 'product_smiles' in document else [],			
+				'product_smiles':		document['product_smiles'] if 'product_smiles' in document else [],	
+				'necessary_reagent':	document['necessary_reagent'] if 'necessary_reagent' in document else '',		
 			}
 
 			# Frequency/popularity score
