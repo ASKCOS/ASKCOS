@@ -8,7 +8,7 @@ def is_valid_smiles(smiles):
 
 class SmilesInputForm(forms.Form):
 	smiles = forms.CharField(label = 'Enter SMILES string',
-		max_length = 150)
+		max_length = 200)
 
 class DrawingInputForm(forms.Form):
 	text = forms.CharField(label = 'Enter text to draw', 

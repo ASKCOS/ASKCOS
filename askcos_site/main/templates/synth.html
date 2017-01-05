@@ -55,8 +55,8 @@
 				</a>
 				
 				<br>
-				<a><img src="{% url 'draw_smiles' product.smiles %}" onclick="toggle_visibility('tforms{{ product.rank }}');"></a>
-				<div id='tforms{{ product.rank }}' style='display:none'>
+				<a><img src="{% url 'draw_smiles' product.smiles %}" onclick="toggle_visibility('expand{{ product.rank }}');"></a>
+				<div id='expand{{ product.rank }}' style='display:none'>
 				<font class="smiles"><b>Based on forward transform template(s):</b></font><br>
 				{% for tform in product.tforms %}
 					<font class="smiles">

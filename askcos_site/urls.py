@@ -30,6 +30,7 @@ urlpatterns += [
     # Retrosynthesis
     url(r'^retro/$', main.views.retro, name = 'retro_home'),
     url(ur'^retro/target=(?P<smiles>.+)$', main.views.retro_target, name = 'retro_target'),
+    url(ur'^retro/lit&target=(?P<smiles>.+)$', main.views.retro_lit_target, name = 'retro_lit_target'),
 
     # Forward synthesis
     url(r'^synth/$', main.views.synth, name = 'synth_home'),
@@ -37,6 +38,13 @@ urlpatterns += [
 
     # Template examination (by str(ObjectID))
     url(r'^template/target=(?P<id>.+)$', main.views.template_target, name = 'template_target'),
+
+    # Reaction examination
+    url(r'^reaxys/rxid=(?P<rxid>.+)$', main.views.rxid_target, name = 'rxid_target'),
+
+    # Pricing
+    url(ur'^price/smiles/(?P<smiles>.+)$', main.views.price_smiles, name = 'price_smiles'),
+    url(ur'^price/xrn/(?P<xrn>.+)$', main.views.price_xrn, name = 'price_xrn'),
 
     # Drawing
     url(ur'^draw/$', main.views.draw, name = 'draw'),

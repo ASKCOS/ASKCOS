@@ -5,7 +5,7 @@ import django.contrib.auth.views
 from forms import SmilesInputForm, DrawingInputForm, is_valid_smiles
 from bson.objectid import ObjectId
 
-# Define transformer
+### Retro transformer
 from db import db_client
 from django.conf import settings
 database = db_client[settings.RETRO_TRANSFORMS['database']]
@@ -18,6 +18,7 @@ print('Loaded {} retro templates'.format(RetroTransformer.num_templates))
 RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.format(RetroTransformer.num_templates,
 	mincount_retro, settings.RETRO_TRANSFORMS['database'], settings.RETRO_TRANSFORMS['collection'])
 
+### Forward transformer 
 database = db_client[settings.SYNTH_TRANSFORMS['database']]
 collection = database[settings.SYNTH_TRANSFORMS['collection']]
 SynthTransformer = transformer.Transformer()
@@ -27,15 +28,31 @@ print('Loaded {} forward templates'.format(SynthTransformer.num_templates))
 SYNTH_FOOTNOTE = 'Using {} forward templates (mincount {}) from {}/{}'.format(SynthTransformer.num_templates,
 	mincount_synth, settings.SYNTH_TRANSFORMS['database'], settings.SYNTH_TRANSFORMS['collection'])
 
-
+### Databases
 db = db_client[settings.REACTIONS['database']]
 REACTION_DB = db[settings.REACTIONS['collection']]
+RETRO_LIT_FOOTNOTE = 'Searched {} known reactions from literature'.format(REACTION_DB.count())
 
 db = db_client[settings.INSTANCES['database']]
 INSTANCE_DB = db[settings.INSTANCES['collection']]
 
 db = db_client[settings.CHEMICALS['database']]
 CHEMICAL_DB = db[settings.CHEMICALS['collection']]
+
+db = db_client[settings.BUYABLES['database']]
+BUYABLE_DB = db[settings.BUYABLES['collection']]
+
+### Prices
+print('Loading prices...')
+import makeit.retro.pricer as pricer
+Pricer = pricer.Pricer()
+Pricer.load(CHEMICAL_DB, BUYABLE_DB)
+print('Loaded known prices')
+
+### Literaturue transformer
+import makeit.retro.transformer_onlyKnown as transformer_onlyKnown
+TransformerOnlyKnown = transformer_onlyKnown.TransformerOnlyKnown()
+TransformerOnlyKnown.load(CHEMICAL_DB, REACTION_DB)
 
 def index(request):
 	'''
@@ -70,7 +87,8 @@ def retro(request):
 			# Identify target
 			smiles = context['form'].cleaned_data['smiles']
 			if is_valid_smiles(smiles):
-				return redirect('retro_target', smiles = smiles)
+				if 'retro' in request.POST: return redirect('retro_target', smiles = smiles)
+				if 'retro_lit' in request.POST: return redirect('retro_lit_target', smiles = smiles)
 			else:
 				context['err'] = 'Invalid SMILES string: {}'.format(smiles)
 	else:
@@ -125,8 +143,54 @@ def retro_target(request, smiles, max_n = 50):
 	for (i, precursor) in enumerate(context['precursors']):
 		context['precursors'][i]['tforms'] = \
 			[dict(RetroTransformer.lookup_id(_id), **{'id':str(_id)}) for _id in precursor['tforms']]
+		context['precursors'][i]['mols'] = []
+		for smiles in precursor['smiles_split']:
+			ppg = Pricer.lookup_smiles(smiles, alreadyCanonical = True)
+			context['precursors'][i]['mols'].append({
+				'smiles': smiles,
+				'ppg': '${}/g'.format(ppg) if ppg else 'cannot buy'
+			})
 
 	context['footnote'] = RETRO_FOOTNOTE
+	return render(request, 'retro.html', context)
+
+@login_required
+def retro_lit_target(request, smiles, max_n = 50):
+	'''
+	Given a target molecule, render page
+	'''
+
+	# Render form with target
+	context = {}
+	context['form'] = SmilesInputForm({'smiles': smiles})
+
+	# Look up target
+	smiles_img = reverse('draw_smiles', kwargs={'smiles':smiles})
+	context['target'] = {
+		'smiles': smiles,
+		'img': smiles_img
+	}
+
+	# Perform retrosynthesis
+	result = TransformerOnlyKnown.perform_retro(smiles)
+	if result:
+		context['target']['smiles'] = result.target_smiles
+		context['precursors'] = result.return_top(n = 50)
+		# Erase 'tform' field - we have specific RX IDs, not templates
+		# Also add up total number of examples
+		for (i, precursor) in enumerate(context['precursors']):
+			context['precursors'][i]['rxid'] = context['precursors'][i]['tforms'][0]
+			del context['precursors'][i]['tforms']
+			context['precursors'][i]['mols'] = []
+			for smiles in precursor['smiles_split']:
+				ppg = Pricer.lookup_smiles(smiles, alreadyCanonical = True)
+				context['precursors'][i]['mols'].append({
+					'smiles': smiles,
+					'ppg': '${}/g'.format(ppg) if ppg else 'cannot buy'
+				})
+
+	context['lit_only'] = True
+	context['footnote'] = RETRO_LIT_FOOTNOTE
 	return render(request, 'retro.html', context)
 
 @login_required
@@ -167,13 +231,13 @@ def synth_target(request, smiles, max_n = 50):
 	smiles_img = reverse('draw_smiles', kwargs={'smiles':smiles})
 	context['target'] = {
 		'smiles': smiles,
-		'img': smiles_img
+		'img': smiles_img,
 	}
 
 	# Perform forward synthesis
 	result = SynthTransformer.perform_forward(smiles)
 	context['products'] = result.return_top(n = 50)
-	print(context['products'])
+	#print(context['products'])
 	# Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
 	# (add "id" field to be string version of ObjectId "_id")
 	for (i, product) in enumerate(context['products']):
@@ -225,6 +289,49 @@ def template_target(request, id):
 
 	context['references'] = references[:15]
 	return render(request, 'template.html', context)
+
+@login_required
+def rxid_target(request, rxid):
+	'''
+	Examines a reaction record from its id in the database
+	where rxid == str(rxid)
+	'''
+	context = {
+		'rxid': rxid
+	}
+
+	doc = REACTION_DB.find_one({'_id': int(rxid)})
+	if not doc:
+		context['err'] = 'RXID not found!'
+	else:
+		context['rxn_smiles'] = doc['RXN_SMILES']
+		context['num_instances'] = doc['RX_NVAR']
+
+	reference_ids = ['{}-{}'.format(rxid, i + 1) for i in range(doc['RX_NVAR'])]
+	from makeit.retro.conditions import average_template_list
+	context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
+
+	return render(request, 'rxid.html', context)
+
+@login_required
+def price_smiles(request, smiles):
+	response = HttpResponse(content_type = 'text/plain')
+	ppg = Pricer.lookup_smiles(smiles, alreadyCanonical = True)
+	if ppg:
+		response.write('${}/g'.format(ppg))
+	else:
+		response.write('cannot buy')
+	return response
+
+@login_required
+def price_xrn(request, xrn):
+	response = HttpResponse(content_type = 'text/plain')
+	ppg = Pricer.lookup_xrn(xrn)
+	if ppg:
+		response.write('${}/g'.format(ppg))
+	else:
+		response.write('cannot buy')
+	return response
 
 @login_required
 def draw_smiles(request, smiles):

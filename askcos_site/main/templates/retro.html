@@ -27,7 +27,8 @@
 {{ form.as_table }}
 	<th>{% csrf_token %}</th>
 	<td>
-		<input type="submit" value="Search" name="search">
+		<input type="submit" value="Search (templates)" name="retro">
+		<input type="submit" value="Search (literature)" name="retro_lit">
 	</td>
 </table>
 </form>
@@ -61,22 +62,33 @@
 		<tr>
 			<td>{{ precursor.rank }}</td>
 			<td>
-				{% for mol in precursor.smiles_split %}
+				{% for mol in precursor.mols %}
 				<font class="smiles">
-					<a href="{% url 'retro_target' mol %}">{{ mol }}</a>
+					{% if lit_only %}
+					<a href="{% url 'retro_lit_target' mol.smiles %}">{{ mol.smiles }}</a><i> ({{ mol.ppg }})</i>
+					{% else %}
+					<a href="{% url 'retro_target' mol.smiles %}">{{ mol.smiles }}</a><i> ({{ mol.ppg }})</i>
+					{% endif %}
 				</font>
 				{% if not forloop.last %} + {% endif %}{% endfor %}
 				<a href="{% url 'synth_target' precursor.smiles %}">&rarr; ?</a>
 				<br>
-				<a><img src="{% url 'draw_smiles' precursor.smiles %}" onclick="toggle_visibility('tforms{{ precursor.rank }}');"></a>
-				<div id='tforms{{ precursor.rank }}' style='display:none'>
-				<font class="smiles"><b>Based on retrosynthetic transform template(s):</b></font><br>
-				{% for tform in precursor.tforms %}
-					<font class="smiles">
-						<a href="{% url 'draw_template_page' tform.reaction_smarts %}">{{ tform.reaction_smarts }}</a>{% if tform.count %} (<a href="{% url 'template_target' tform.id %}">{{ tform.count }} examples</a>){% endif %}
-					</font>{% if not forloop.last %}<br>{% endif %}
-				{% endfor %}
+				<a><img src="{% url 'draw_smiles' precursor.smiles %}" onclick="toggle_visibility('expand{{ precursor.rank }}');"></a>
+				
+				<div id='expand{{ precursor.rank }}' style='display:none'>	
+					{% if precursor.tforms %}
+					<font class="smiles"><b>Based on retrosynthetic transform template(s):</b></font><br>
+					{% for tform in precursor.tforms %}
+						<font class="smiles">
+							<a href="{% url 'draw_template_page' tform.reaction_smarts %}">{{ tform.reaction_smarts }}</a>{% if tform.count %} (<a href="{% url 'template_target' tform.id %}">{{ tform.count }} examples</a>){% endif %}
+						</font>{% if not forloop.last %}<br>{% endif %}
+					{% endfor %}
+					{% endif %}
+					{% if precursor.rxid %}
+					<font class="smiles"><b>Based on Reaxys reaction ID: <a href="{% url 'rxid_target' precursor.rxid %}">{{ precursor.rxid }}</a></b></font>
+					{% endif %}
 				</div>
+				
 			</td>
 			<td>{{ precursor.score }}</td>
 			<td>{{ precursor.num_examples }}</td>

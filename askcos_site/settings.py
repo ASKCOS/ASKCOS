@@ -144,6 +144,10 @@ CHEMICALS = {
     'database': 'reaxys',
     'collection': 'chemicals',
 }
+BUYABLES = {
+    'database': 'reaxys',
+    'collection': 'buyables',
+}
 
 # LOGIN
 LOGIN_URL = '/login'
