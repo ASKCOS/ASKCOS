@@ -86,11 +86,12 @@ def retro(request):
 		else:
 			# Identify target
 			smiles = context['form'].cleaned_data['smiles']
-			if is_valid_smiles(smiles):
-				if 'retro' in request.POST: return redirect('retro_target', smiles = smiles)
-				if 'retro_lit' in request.POST: return redirect('retro_lit_target', smiles = smiles)
-			else:
-				context['err'] = 'Invalid SMILES string: {}'.format(smiles)
+			if 'retro_lit' in request.POST: return redirect('retro_lit_target', smiles = smiles)
+			if 'retro' in request.POST: 
+				if is_valid_smiles(smiles):
+					return redirect('retro_target', smiles = smiles)
+				else:
+					context['err'] = 'Invalid SMILES string: {}'.format(smiles)
 	else:
 		context['form'] = SmilesInputForm()
 
@@ -162,19 +163,10 @@ def retro_lit_target(request, smiles, max_n = 50):
 
 	# Render form with target
 	context = {}
-	context['form'] = SmilesInputForm({'smiles': smiles})
-
-	# Look up target
-	smiles_img = reverse('draw_smiles', kwargs={'smiles':smiles})
-	context['target'] = {
-		'smiles': smiles,
-		'img': smiles_img
-	}
 
 	# Perform retrosynthesis
 	result = TransformerOnlyKnown.perform_retro(smiles)
 	if result:
-		context['target']['smiles'] = result.target_smiles
 		context['precursors'] = result.return_top(n = 50)
 		# Erase 'tform' field - we have specific RX IDs, not templates
 		# Also add up total number of examples
@@ -188,7 +180,17 @@ def retro_lit_target(request, smiles, max_n = 50):
 					'smiles': smiles,
 					'ppg': '${}/g'.format(ppg) if ppg else 'cannot buy'
 				})
+		smiles = result.target_smiles
+	else:
+		context['err'] = 'Could not find a database match for {}'.format(smiles)
 
+	context['form'] = SmilesInputForm({'smiles': smiles})
+	# Look up target
+	smiles_img = reverse('draw_smiles', kwargs={'smiles':smiles})
+	context['target'] = {
+		'smiles': smiles,
+		'img': smiles_img
+	}
 	context['lit_only'] = True
 	context['footnote'] = RETRO_LIT_FOOTNOTE
 	return render(request, 'retro.html', context)
