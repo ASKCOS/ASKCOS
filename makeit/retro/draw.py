@@ -175,7 +175,9 @@ def ReactionStringToImage(rxn_string, strip = True, update = True, options = Non
 	# Stich together mols (ignore agents)
 	mols = reactants + [None] + products
 	if update: [mol.UpdatePropertyCache(False) for mol in mols if mol]
-	if strip: mols = [Chem.MolFromInchi(Chem.MolToInchi(mol)) if mol else None for mol in mols]
+	if strip: 
+		for mol in mols:
+			if mol: [a.ClearProp('molAtomMapNumber') for a in mol.GetAtoms()]
 
 	# Generate images
 	imgs = [TrimImgByWhite(MolToImage(mol, kekulize = True, options = options), padding = 15) for mol in mols]

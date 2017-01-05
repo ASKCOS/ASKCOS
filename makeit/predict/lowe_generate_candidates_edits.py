@@ -16,7 +16,7 @@ import time
 from tqdm import tqdm
 
 def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lowe_1976-2013_USPTOgrants_reactions',
-		candidate_collection = 'candidate_edits_mincount50', USE_REACTIONSMILES = True, mincount = 4, n_max = 50, seed = None, 
+		candidate_collection = 'candidate_edits', USE_REACTIONSMILES = True, mincount = 50, n_max = 50, seed = None, 
 		outfile = '.', singleonly = True, check = True, log = False):
 
 	from rdkit import RDLogger
@@ -27,7 +27,7 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 	db = client['askcos_transforms']
 	templates = db[template_collection]
 	Transformer = transformer.Transformer()
-	Transformer.load(templates, mincount = mincount, get_retro = False, get_synth = True)
+	Transformer.load(templates, mincount = mincount, get_retro = False, get_synth = True, lowe = True)
 	print('Out of {} database templates,'.format(templates.count()))
 	print('Loaded {} templates'.format(Transformer.num_templates))
 	Transformer.reorder()
@@ -39,19 +39,21 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 	db = client['prediction']
 	candidates = db[candidate_collection]
 
-	if check:
-		done_ids = [doc['reaction_id'] for doc in candidates.find(
-			{'reaction_collection': reaction_collection, 'found': True}
-		)]
-		print('Checked completed entries')
-
-	else:
-		done_ids = []
+	done_ids = []
+	done_reactants = []
+	for doc in candidates.find({'reaction_collection': reaction_collection, 'found': True},
+			['reaction_id', 'reactant_smiles']):
+		done_ids.append(doc['reaction_id'])
+		done_reactants.append(doc['reactant_smiles'].split()[0])
+	print('Checked completed entries')
+	print('{} done IDs found'.format(len(done_ids)))
+	print('{} unique reactant smiles found'.format(len(set(done_reactants))))
 
 	# Define generator
 	class Randomizer():
-		def __init__(self, seed, done_ids = []):
+		def __init__(self, seed, done_ids = [], done_reactants = []):
 			self.done_ids = done_ids
+			self.done_reactants = []
 			np.random.seed(seed)
 			if outfile:
 				with open(os.path.join(outfile, 'seed.txt'), 'w') as fid:
@@ -70,13 +72,14 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 						'reaction_collection': reaction_collection}) > 0:
 					continue
 				self.done_ids.append(doc['_id'])
+				self.done_reactants.append(doc['reaction_smiles'].split()[0])
 				yield doc
 
 	if seed == None:
 		seed = np.random.randint(100000)
 	else:
 		seed = int(seed)
-	randomizer = Randomizer(seed, done_ids = done_ids)
+	randomizer = Randomizer(seed, done_ids = done_ids, done_reactants = done_reactants)
 	generator = enumerate(randomizer.get_rand())
 
 	smilesfixer = SmilesFixer()
@@ -133,6 +136,13 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 				[a.SetProp('molAtomMapNumber', str(i+1)) for (i, a) in enumerate(reactants.GetAtoms())]
 				# Report new reactant SMILES string
 				print('Reactants w/ map: {}'.format(Chem.MolToSmiles(reactants)))
+
+				# Skip duplicates
+				reactant_smiles = Chem.MolToSmiles(reactants, isomericSmiles = USE_STEREOCHEMISTRY)
+				if reactant_smiles in randomizer.done_reactants:
+					continue
+				randomizer.done_reactants.append(reactants)
+
 			except KeyboardInterrupt:
 				print('Breaking early')
 				break 
@@ -194,7 +204,7 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 				'_id': reaction['_id'],
 				'reaction_collection': reaction_collection,
 				'reaction_id': reaction['_id'],
-				'reactant_smiles': Chem.MolToSmiles(reactants, isomericSmiles = USE_STEREOCHEMISTRY),
+				'reactant_smiles': reactant_smiles,
 				'edit_candidates': candidate_edits,
 				'product_smiles_true': target_smiles,
 				'found': found_true,
@@ -231,7 +241,7 @@ if __name__ == '__main__':
 	parser.add_argument('--template_collection', type = str, default = 'lowe_refs_general_v3',
 						help = 'Collection of templates to use; defaults to lowe_refs_general_v3')
 	parser.add_argument('--candidate_collection', type = str, default = 'candidate_edits_8_9_16', 
-						help = 'Collection of candidates to write to; defaults to candidate_edits')
+						help = 'Collection of candidates to write to; defaults to candidate_edits_8_9_16')
 	parser.add_argument('--seed', type = int, default = None,
 						help = 'Seed for random number generator')
 	parser.add_argument('--rxnsmiles', type = bool, default = True,

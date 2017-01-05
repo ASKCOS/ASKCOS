@@ -4,9 +4,7 @@ import rdkit.Chem.rdMolDescriptors as rdMolDescriptors
 import rdkit.Chem.EState as EState
 import rdkit.Chem.rdPartialCharges as rdPartialCharges
 import rdkit.Chem.rdChemReactions as rdRxns
-
 att_dtype = np.float32
-
 
 def oneHotVector(val, lst):
 	'''Converts a value to a one-hot vector based on options in lst'''
@@ -179,9 +177,13 @@ def edits_to_vectors(edits, mol):
 	'''
 
 	h_lost, h_gain, bond_lost, bond_gain = edits
-	map_dict = {a.GetProp('molAtomMapNumber'): i 
-			for (i, a) in enumerate(mol.GetAtoms()) if a.HasProp('molAtomMapNumber')}
-	atom_descriptors = atom_level_descriptors(mol, include = ['functional', 'structural'], asOneHot = True)[1]
+	
+        map_dict = {}
+        for (i, a) in enumerate(mol.GetAtoms()):
+            if a.HasProp('molAtomMapNumber'):
+                map_dict[a.GetProp('molAtomMapNumber')] = i
+                map_dict[unicode(a.GetProp('molAtomMapNumber'))] = i
+        atom_descriptors = atom_level_descriptors(mol, include = ['functional', 'structural'], asOneHot = True)[1]
 
 #	print('Generated atom descriptors')
 

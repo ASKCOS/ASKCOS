@@ -80,7 +80,7 @@ def average_template_list(INSTANCE_DB, CHEMICAL_DB, id_list):
 	# Time
 	if times:
 		conditions.append(
-			'TIME: {:.1f} +/- {:.1f} minutes (min {:.1f}, max {:.1f}, N={})'.format(
+			'TIME: {:.1f} +/- {:.1f} hours (min {:.1f}, max {:.1f}, N={})'.format(
 				np.mean(times), np.std(times), min(times), max(times), len(times)
 			)
 		)
@@ -108,7 +108,6 @@ def average_template_list(INSTANCE_DB, CHEMICAL_DB, id_list):
 		conditions.append('PRESSURE UNKNOWN')
 
 	# Yields
-	conditions.append(' ')
 	if yields:
 		conditions.append(
 			'To provide a yield of: {:.1f} +/- {:.1f} percent (min {:.1f}, max {:.1f}, N={})'.format(

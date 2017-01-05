@@ -21,7 +21,7 @@ class Transformer:
 		# from pympler.tracker import SummaryTracker
 		# self.tracker = SummaryTracker()
 
-	def load(self, collection, mincount = 4, get_retro = True, get_synth = True):
+	def load(self, collection, mincount = 4, get_retro = True, get_synth = True, lowe = False):
 		'''
 		Loads the object from a MongoDB collection containing transform
 		template records.
@@ -55,7 +55,8 @@ class Transformer:
 				'rxn_example': 			document['rxn_example'] if 'rxn_example' in document else '',
 				'explicit_H': 			document['explicit_H'] if 'explicit_H' in document else False,
 				'_id':	 				document['_id'] if '_id' in document else -1,
-				'product_smiles':		document['product_smiles'] if 'product_smiles' in document else [],			
+				'product_smiles':		document['product_smiles'] if 'product_smiles' in document else [],	
+				'necessary_reagent':	document['necessary_reagent'] if 'necessary_reagent' in document else '',		
 			}
 
 			# Frequency/popularity score
@@ -84,7 +85,10 @@ class Transformer:
 			# Define forward version, too
 			if get_synth:
 				try:
-					reaction_smarts_synth = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
+					if lowe:
+						reaction_smarts_synth = '(' + reaction_smarts.split('>')[2] + ')>>(' + reaction_smarts.split('>')[0] + ')'
+					else:
+						reaction_smarts_synth = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
 					rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_synth)
 					#if rxn_f.Validate() == (0, 0):
 					if rxn_f.Validate()[1] == 0:
