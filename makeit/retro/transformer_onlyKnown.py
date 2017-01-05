@@ -33,14 +33,27 @@ class TransformerOnlyKnown:
 		'''
 
 		# Add the target compound
-		chem_doc = self.chemicals_source.find_one({'SMILES': smiles}, ['_id'])
+		chem_doc = self.chemicals_source.find_one({'SMILES': smiles}, ['_id', 'SMILES'])
 
 		if not chem_doc: # try to canonicalize
 			mol = Chem.MolFromSmiles(smiles)
-			if not mol: return False
-			smiles = Chem.MolToSmiles(mol)
-			chem_doc = self.chemicals_source.find_one({'SMILES': smiles}, ['_id'])
-			if not chem_doc: return False
+			if mol: 
+				smiles = Chem.MolToSmiles(mol)
+				chem_doc = self.chemicals_source.find_one({'SMILES': smiles}, ['_id', 'SMILES'])
+
+		if not chem_doc: 
+			chem_doc = self.chemicals_source.find_one({'IDE_CN': smiles}, ['_id', 'SMILES'])
+					
+		if not chem_doc:
+			try:
+				chem_doc = self.chemicals_source.find_one({'_id': int(smiles)}, ['_id', 'SMILES'])
+			except:
+				pass
+
+		if not chem_doc: 
+			return False
+
+		smiles = str(chem_doc['SMILES'])
 
 		xrn = chem_doc['_id']
 		print('Matched target to ID {}'.format(xrn))
