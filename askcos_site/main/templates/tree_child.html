@@ -1,0 +1,33 @@
+<!-- Describe this node -->
+
+{% if target.is_chemical %}
+
+<a href="#" class="tooltip" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
+<img src="{{ target.img }}" width="100">
+<span>
+	<center>
+		<font class="smiles">{{ target.smiles }}</font>
+		{% if target.ppg %}${{ target.ppg }}/g{% endif %}
+	</center>
+</span>
+</a>
+
+{% else %} 
+<a href="#" class="tooltip" style="border-color:black">
+<span>
+	{{ target.info }}
+</span>
+</a>
+{% endif %}
+
+
+<!-- Now add children recursively -->
+{% if target.children %}
+    <ul>
+        {% for child in target.children %}
+        <li>
+            {% include 'tree_child.html' with target=child %}
+        </li>
+        {% endfor %}
+    </ul>
+{% endif %}

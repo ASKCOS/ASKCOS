@@ -54,4 +54,7 @@ urlpatterns += [
     url(ur'^draw/template_page/(?P<template>.+)$', main.views.draw_template_page, name = 'draw_template_page'),
     url(ur'^draw/reaction/(?P<smiles>.+)$', main.views.draw_reaction, name = 'draw_reaction'),
     url(ur'^draw/reaction_page/(?P<smiles>.+)$', main.views.draw_reaction_page, name = 'draw_reaction_page'),
+
+    # Showing a path
+    url(ur'^draw/synthesis_tree/$', main.views.draw_synthesis_tree, name = 'draw_synthesis_tree'),
 ]

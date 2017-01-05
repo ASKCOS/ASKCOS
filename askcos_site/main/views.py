@@ -456,3 +456,48 @@ def draw(request):
 		context['form'] = DrawingInputForm()
 
 	return render(request, 'image.html', context)
+
+@login_required
+def draw_synthesis_tree(request):
+	'''
+	Draw a synthesis tree
+	'''
+
+	context = {}
+
+	def chem_dict(smiles, children = []):
+		return {
+			'is_chemical': True,
+			'smiles' : smiles,
+			'img' : reverse('draw_smiles', kwargs={'smiles':smiles}),
+			'ppg' : Pricer.lookup_smiles(smiles),
+			'children': children
+		}
+
+	def rxn_dict(info, children = []):
+		return {
+			'is_reaction': True,
+			'info': info,
+			'children': children
+		}
+
+	target = 'CCCOCCC'
+	tree = chem_dict(target, children = [
+		rxn_dict('rxn1', children = [
+			chem_dict('CCCO'),
+			chem_dict('CCC[Br]')
+		]),
+		rxn_dict('rxn2', children = [
+			chem_dict('CCCO'),
+			chem_dict('CCC[Cl]', children = [
+				rxn_dict('Needs source of [Cl]', children = [
+					chem_dict('CCCO'),
+				])
+			])
+		]),
+	])
+
+	context['target'] = target
+	context['tree'] = tree
+
+	return render(request, 'tree.html', context)

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Synthesis Tree{% endblock %}
+{% block page_title %}Synthesis Tree{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block page_body %}
+
+{% if tree %}
+<div class="tree">
+	<ul>
+		<li>
+			{% include 'tree_child.html' with target=tree %}
+		</li>
+	</ul>
+</div>
+{% endif %}
+
+{% endblock %}
