@@ -154,9 +154,6 @@ class Transformer:
 					for x in outcome:
 						x.UpdatePropertyCache()
 						Chem.SanitizeMol(x)
-						[a.SetProp('molAtomMapNumber', a.GetProp('old_molAtomMapNumber')) \
-							for (i, a) in enumerate(x.GetAtoms()) \
-							if 'old_molAtomMapNumber' in a.GetPropsAsDict()]
 				except Exception as e:
 					print(e)
 					continue
@@ -213,9 +210,6 @@ class Transformer:
 					for x in outcome:
 						x.UpdatePropertyCache()
 						Chem.SanitizeMol(x)
-						[a.SetProp('molAtomMapNumber', a.GetProp('old_molAtomMapNumber')) \
-							for (i, a) in enumerate(x.GetAtoms()) \
-							if 'old_molAtomMapNumber' in a.GetPropsAsDict()]
 				except Exception as e:
 					#print(e)
 					continue
