@@ -9,7 +9,7 @@ class NetworkSearcher():
 	'''This class is meant to be used to search the scraped
 	set of reactions from Reaxys to look for known literature pathways'''
 
-	def __init__(self, depth = 3):
+	def __init__(self, depth = 1):
 
 		self.G = nx.DiGraph()
 		self.expanded_xrns = defaultdict(lambda: depth)
@@ -25,12 +25,23 @@ class NetworkSearcher():
 	def build(self, smiles):
 		'''For a given SMILES (found in Reaxys), this method builds up
 		the network'''
+
 		self.target = smiles
 
 		# Add the target compound
 		chem_doc = self.CHEMICAL_DB.find_one({'SMILES': smiles}, ['_id'])
-		if not chem_doc:
-			raise ValueError('Could not find Reaxys entry for SMILES {}'.format(smiles))
+
+		if not chem_doc: # try to canonicalize
+			mol = Chem.MolFromSmiles(smiles)
+			if not mol: return False
+			smiles = Chem.MolToSmiles(mol)
+			chem_doc = self.CHEMICAL_DB.find_one({'SMILES': smiles}, ['_id'])
+
+			if not chem_doc: return False
+		
+		# Save canonical SMILES that worked
+		self.target = smiles
+
 		xrn = chem_doc['_id']
 		print('Matched target to ID {}'.format(xrn))
 		self.G.add_node(xrn, smiles = smiles, distance = 0, buyable = self.is_buyable(xrn), bipartite = 0)
@@ -76,7 +87,7 @@ class NetworkSearcher():
 					self.G.add_edge(new_xrn, rx_id_string)
 				self.G.add_edge(rx_id_string, xrn)
 
-
+		return True # no errors
 
 	def is_buyable(self, xrn):
 		'''Checks to see if a compound is buyable by XRN'''

@@ -25,6 +25,7 @@ import scipy.stats as ss
 import itertools
 import time
 from tqdm import tqdm
+from collections import defaultdict
 
 def reactants_to_candidate_edits(reactants):
 	candidate_list = [] # list of tuples of (product smiles, edits required)
@@ -115,10 +116,19 @@ def preprocess_candidate_edits(reactants, candidate_list):
 def score_candidates(reactants, candidate_list, xs, context, xc):
 
 	pred = model.predict(xs + [xc[:, 7:], xc[:, 1:7], xc[:, 0]], verbose = True)[0]
+
+	# Turn edit predictions into molecule predictions
+	candidate_dict = defaultdict(float)
+	for i, p in enumerate(pred):
+		if i >= len(candidate_list): break
+		candidate_dict[candidate_list[i][0]] += p
+
 	rank = ss.rankdata(pred)
 
-	fname = raw_input('Enter file name to save to: ') + '.dat'
-	with open(os.path.join(FROOT, fname), 'w') as fid:
+	fname = raw_input('Enter file name to save to: ')
+
+	# Edit level
+	with open(os.path.join(FROOT, fname + ' edits.dat'), 'w') as fid:
 		fid.write('FOR REACTANTS {} WITH CONTEXT {}\n'.format(Chem.MolToSmiles(reactants), context))
 		fid.write('Candidate product\tCandidate edit\tProbability\tRank\n')
 		for (c, candidate) in enumerate(candidate_list):
@@ -128,7 +138,19 @@ def score_candidates(reactants, candidate_list, xs, context, xc):
 			fid.write('{}\t{}\t{}\t{}\n'.format(
 				candidate_smile, candidate_edit, pred[c], 1 + len(pred) - rank[c]
 			))
-	print('Wrote to file {}'.format(os.path.join(FROOT, fname)))
+	print('Wrote to file {}'.format(os.path.join(FROOT, fname + ' edits.dat')))
+
+	# Molecule-level
+	with open(os.path.join(FROOT, fname + ' mols.dat'), 'w') as fid:
+		fid.write('FOR REACTANTS {} WITH CONTEXT {}\n'.format(Chem.MolToSmiles(reactants), context))
+		fid.write('Candidate product\tProbability\tRank\n')
+		for (c, candidate) in enumerate(sorted(candidate_dict.iteritems(), reverse = True, key = lambda x: x[1])):
+			candidate_smile = candidate[0]
+			candidate_prob = candidate[1]
+			fid.write('{}\t{}\t{}\n'.format(
+				candidate_smile, candidate_prob, c + 1
+			))
+	print('Wrote to file {}'.format(os.path.join(FROOT, fname + ' mols.dat')))
 
 if __name__ == '__main__':
 	FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output')
@@ -138,18 +160,18 @@ if __name__ == '__main__':
 						help = 'Tag for model to load from')
 	parser.add_argument('--mincount', type = int, default = 100,
 						help = 'Mincount of templates, default 100')
-	parser.add_argument('--Nc', type = int, default = 100,
-						help = 'Number of candidates to consider, default 100')
-	parser.add_argument('--Nh1', type = int, default = 40,
-						help = 'Number of hidden nodes in first layer, default 40')
-	parser.add_argument('--Nh2', type = int, default = 0,
-						help = 'Number of hidden nodes in second layer, default 0')
-	parser.add_argument('--Nh3', type = int, default = 0,
+	parser.add_argument('--Nc', type = int, default = 1000,
+						help = 'Number of candidates to consider, default 1000')
+	parser.add_argument('--Nh1', type = int, default = 200,
+						help = 'Number of hidden nodes in first layer, default 200')
+	parser.add_argument('--Nh2', type = int, default = 100,
+						help = 'Number of hidden nodes in second layer, default 100')
+	parser.add_argument('--Nh3', type = int, default = 50,
 						help = 'Number of hidden nodes in third layer, ' + 
-								'immediately before summing, default 0')
-	parser.add_argument('--Nhf', type = int, default = 20,
+								'immediately before summing, default 50')
+	parser.add_argument('--Nhf', type = int, default = 50,
 						help = 'Number of hidden nodes in layer between summing ' +
-								'and final score, default 20')
+								'and final score, default 50')
 	parser.add_argument('--l2', type = float, default = 0.0,
 						help = 'l2 regularization parameter for each Dense layer, default 0.0')
 	parser.add_argument('--lr', type = float, default = 0.01, 
@@ -248,6 +270,8 @@ if __name__ == '__main__':
 			reagents = [Chem.MolFromSmiles(reagent) for reagent in raw_input('Enter SMILES of reagents: ').split('.')]
 			if None in reagents:
 				print('Could not parse all reagents!')
+				continue
+			if not reagents:
 				continue
 			reagent_fp = np.zeros(256)
 			for reagent in reagents:

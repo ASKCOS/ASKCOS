@@ -245,9 +245,9 @@ def get_x_data(fpath, z):
 		x_bond_lost[np.isnan(x_bond_lost)] = 0.0
 		x_bond_gain[np.isnan(x_bond_gain)] = 0.0
 		x_h_lost[np.isinf(x_h_lost)] = 0.0
-                x_h_gain[np.isinf(x_h_gain)] = 0.0
-                x_bond_lost[np.isinf(x_bond_lost)] = 0.0
-                x_bond_gain[np.isinf(x_bond_gain)] = 0.0
+		x_h_gain[np.isinf(x_h_gain)] = 0.0
+		x_bond_lost[np.isinf(x_bond_lost)] = 0.0
+		x_bond_gain[np.isinf(x_bond_gain)] = 0.0
 
 		# Dump file so we don't have to do that again
 		with open(fpath + '_processed', 'wb') as outfile:

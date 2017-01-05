@@ -12,7 +12,7 @@ from makeit.embedding.descriptors import rxn_level_descriptors
 import time
 import argparse
 
-FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data_edits')
+FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lowe_data_edits')
 
 def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuffle = False, 
 	skip = 0, padUpTo = 500, maxEditsPerClass = 5):
@@ -31,8 +31,8 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 	# Define generator
 	class Randomizer():
 		def __init__(self, seed):
-			self.done_ids = []
-			self.done_smiles = []
+			self.done_ids = set()
+			self.done_smiles = set()
 			np.random.seed(seed)
 			if outfile:
 				with open(os.path.join(outfile, 'preprocess_candidate_edits_seed.txt'), 'w') as fid:
@@ -48,8 +48,8 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 					if doc[0]['reactant_smiles'] in self.done_smiles: 
 						print('New ID {}, but old reactant SMILES {}'.format(doc[0]['_id'], doc[0]['reactant_smiles']))
 						continue
-					self.done_ids.append(doc[0]['_id'])
-					self.done_smiles.append(doc[0]['reactant_smiles'])
+					self.done_ids.add(doc[0]['_id'])
+					self.done_smiles.add(doc[0]['reactant_smiles'])
 					yield doc[0]
 				except KeyboardInterrupt:
 					print('Terminated early')
@@ -90,7 +90,7 @@ def get_candidates(candidate_collection, n = 2, seed = None, outfile = '.', shuf
 	reaction_true = []
 	for i, reaction in generator:
 		if i < skip: continue
-		if i == skip + n: break
+		if i == skip + n: breakd
 
 		candidate_smiles = [a for (a, b) in reaction['edit_candidates']]
 		candidate_edits =    [b for (a, b) in reaction['edit_candidates']]

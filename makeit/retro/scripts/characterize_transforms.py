@@ -75,6 +75,26 @@ def probability_v_rank(counts, out = None):
 		np.savetxt(out + ' counts.txt', sorted(counts, reverse = True))
 	# plt.show()
 
+	# Coverage
+	missing = np.ones_like(probs)
+	missing[0] = 0.0
+	for i in range(1, len(probs)):
+		missing[i] = missing[i-1] + probs[i]
+	missing = np.ones_like(missing) - missing
+	fig = plt.figure(figsize=(6,4), dpi = 300)
+	ax = plt.gca()
+	ax.scatter(ranks, missing, alpha = 0.5)
+	ax.set_xscale('log')
+	ax.axis([1, np.power(10, np.ceil(np.log10(max(ranks)))), \
+		     0, 1])
+	plt.xlabel('Rank threshold for inclusion')
+	plt.ylabel('Estimated minimum coverage')
+	plt.title('Transform templates from {}/{}'.format(db_name, collection_name))
+	plt.grid(True)
+	if out:
+		fig.savefig(out + ' missing_rank.png')
+	# plt.show()
+
 	return
 
 def top_templates(docs, out, n = 10):
