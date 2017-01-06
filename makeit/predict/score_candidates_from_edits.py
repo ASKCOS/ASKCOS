@@ -206,6 +206,18 @@ def get_x_data(fpath, z):
 		with open(fpath + '_processed', 'rb') as infile:
 			(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = pickle.load(infile)
 
+		if mask_input != None:
+			offset = x_bond_lost.shape[-1] - x_h_lost.shape[-1]
+                                # Set atom attributes to zero
+                        x_h_lost[:, :, :, mask_input] = 0 # H_lost
+                        x_h_gain[:, :, :, mask_input] = 0 # H_gain
+                                # Set atom attributes within bond attributes to zero
+                        x_bond_lost[:, :, :, mask_input] = 0 # Bond_lost
+                        x_bond_lost[:, :, :, mask_input + offset] = 0 # Bond_lost
+                        x_bond_gain[:, :, :, mask_input] = 0 # Bond_gain
+                        x_bond_gain[:, :, :, mask_input + offset] = 0 # Bond_gain
+                        print('Set index {} and {} to zero'.format(mask_input, mask_input + offset))
+
 		return (rearrange_for_5fold_cv(x_h_lost), 
 			    rearrange_for_5fold_cv(x_h_gain), 
 			    rearrange_for_5fold_cv(x_bond_lost), 
@@ -439,6 +451,8 @@ if __name__ == '__main__':
 						help = 'Which fold of the 5-fold CV is this? Defaults 5')
 	parser.add_argument('--optimizer', type = str, default = 'SGD',
 						help = 'Optimizer? Adam or SGD right now, default SGD')
+	parser.add_argument('--mask', type = int, default = -1,
+				help = 'Index of atom attribute to mask, default -1 (none)')	
 	args = parser.parse_args()
 
 	x_files = sorted([os.path.join(args.data, dfile) \
@@ -476,6 +490,7 @@ if __name__ == '__main__':
 	lr = float(args.lr)
 	N_c = int(args.Nc) # number of candidate edit sets
 	N_e = 5 # maximum number of edits per class
+	mask_input = int(args.mask) if int(args.mask) != -1 else None
 
 	THIS_FOLD_OUT_OF_FIVE = int(args.fold)
 	tag = args.tag + ' fold{}'.format(args.fold)
