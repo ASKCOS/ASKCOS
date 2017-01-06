@@ -434,15 +434,6 @@ def get_special_groups(mol):
 		groups.extend(list(matches))
 	return groups
 
-def mol_list_to_inchi(mols):
-	'''List of RDKit molecules to InChI string separated by ++'''
-	inchis = [Chem.MolToInchi(mol) for mol in mols]
-	return ' ++ '.join(sorted(inchis))
-
-def mol_list_from_inchi(inchis):
-	'''InChI string separated by ++ to list of RDKit molecules'''
-	return [Chem.MolFromInchi(inchi.strip()) for inchi in inchis.split('++')]
-
 def canonicalize_template(template):
 	'''This function takes one-half of a template SMARTS string 
 	(i.e., reactants or products) and re-orders them based on
@@ -606,24 +597,11 @@ def main(N = 15, skip = 0, skip_id = 0):
 				### Do RX-level processing
 				###  
 
-				# Get unique InChi for products we are looking for
-				# remove cases where product shows up
-				product_inchis_split = mol_list_to_inchi(products).split(' ++ ')
-				for reactant in reactants:
-					reactant_inchi = mol_list_to_inchi([reactant])
-					if reactant_inchi in product_inchis_split:
-						product_inchis_split.remove(reactant_inchi)
-				product_inchis = ' ++ '.join(product_inchis_split)
 
 				if v: print(reaction_smiles)
 				if None in reactants + products:
 					print('Could not parse all molecules in reaction, skipping')
 					print('ID: {}'.format(example_doc['_id']))
-					continue
-				if not product_inchis: 
-					print('Product molecules no different than reactant molecules')
-					print('ID: {}'.format(example_doc['_id']))
-					total_nonreaction += 1
 					continue
 
 				# Calculate changed atoms
