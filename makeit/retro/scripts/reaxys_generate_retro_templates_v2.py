@@ -39,8 +39,8 @@ from makeit.retro.draw import *
 # DATABASE
 from pymongo import MongoClient    # mongodb plugin
 client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
-db = client['reaxys']
-TRANSFORM_DB = db['transforms_retro_v3']
+db = client['transforms_retro_v3']
+TRANSFORM_DB = db['test']
 REACTION_DB = db['reactions']
 INSTANCE_DB = db['instances']
 CHEMICAL_DB = db['chemicals']
@@ -668,68 +668,58 @@ def main(N = 15, skip = 0, skip_id = 0):
 				# print('\nOverall retro transform: {}'.format(retro_canonical))
 				# print('Extra necessary fragment: {}'.format(extra_reactant_fragment))
 
+				# Load into RDKit
+				rxn = AllChem.ReactionFromSmarts(retro_canonical)
+				if rxn.Validate()[1] != 0: 
+					print('Could not validate reaction successfully')
+					print('ID: {}'.format(example_doc['_id']))
+					print('retro_canonical: {}'.format(retro_canonical))
+					print('original: {}'.format(example_doc['RXN_SMILES']))
+					if v: raw_input('Pausing...')
+					continue
+
 				###
 				### Now look for specific RXDs.
 				###
 				rxd_id_list = ['{}-{}'.format(example_doc['_id'], j) for j in range(1, int(example_doc['RX_NVAR']) + 1)]
+				# All RXDs will have the same template - they'll just need different
+				# references and contribute to the count differently
 
-				# Look up instances of this reaction to see the reagent(s)
-				for rxd_id in rxd_id_list:
+				# Insert - if it doesn't exist, Mongo will create the document
+				# $inc, $addToSet, and $setOnInsert are necessary!
+				TRANSFORM_DB.update_one(
+					{'reaction_smarts': retro_canonical},
+					{
 
-					# Load into RDKit
-					rxn = AllChem.ReactionFromSmarts(retro_canonical)
-					if rxn.Validate()[1] != 0: 
-						print('Could not validate reaction successfully')
-						print('ID: {}'.format(example_doc['_id']))
-						print('retro_canonical: {}'.format(retro_canonical))
-						print('original: {}'.format(example_doc['RXN_SMILES']))
-						if v: raw_input('Pausing...')
-						continue
+						'$inc': {
+							'count': len(rxd_id_list),
+						},
+						'$addToSet': {
+							'references': { '$each': rxd_id_list }
+						},
+						'$setOnInsert': {
+							'reaction_smarts': retro_canonical,
+							'necessary_reagent': extra_reactant_fragment,
+							'rxn_example': reaction_smiles,
+						}
+					},
+					True # upsert
+				)
+				if v: print('Added record for template {}'.format(retro_canonical))
 
-					# Is this old?
-					doc = TRANSFORM_DB.find_one({'reaction_smarts': retro_canonical})
-
-					if doc:
-						# Old
-						TRANSFORM_DB.update_one(
-							{'_id': doc['_id']},
-							{
-								'$inc': {
-									'count': 1,
-								},
-								'$addToSet': {
-									'references': rxd_id,
-								},
-							}
-						)
-						if v: print('Added reference to {} for {}'.format(doc['_id'], retro_canonical))
-					else:
-						# New
-						result = TRANSFORM_DB.insert_one(
-							{
-								'reaction_smarts': retro_canonical,
-								'necessary_reagent': extra_reactant_fragment,
-								'rxn_example': reaction_smiles,
-								'references': [rxd_id],
-								'explicit_H': False,
-								'count': 1,
-							}
-						)
-						if v: print('Created database entry {} for {}'.format(result.inserted_id, retro_canonical))
-
-					total_attempted += 1
+				total_attempted += 1
 			
 
 			except KeyboardInterrupt:
 				print('Interrupted')
 				raise KeyboardInterrupt
 
-			# except Exception as e:
-			# 	print(e)
-			# 	if v: 
-			# 		print('skipping')
-			# 		#raw_input('Enter anything to continue')
-			# 	continue
+			except Exception as e:
+				print(e)
+				if v: 
+					print('skipping')
+					#raw_input('Enter anything to continue')
+				continue
 
 
 			# Report progress
