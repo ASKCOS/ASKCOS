@@ -15,9 +15,9 @@ import re
 import time
 from tqdm import tqdm
 
-def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lowe_1976-2013_USPTOgrants_reactions',
-		candidate_collection = 'candidate_edits_mincount50', USE_REACTIONSMILES = True, mincount = 4, n_max = 50, seed = None, 
-		outfile = '.', singleonly = True, check = True, log = False):
+def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lowe_1976-2013_USPTOgrants',
+		candidate_collection = 'candidate_edits', mincount = 50, n_max = 50, seed = None, 
+		outfile = '.', singleonly = True, log = False):
 
 	from rdkit import RDLogger
 	lg = RDLogger.logger()
@@ -39,19 +39,21 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 	db = client['prediction']
 	candidates = db[candidate_collection]
 
-	if check:
-		done_ids = [doc['reaction_id'] for doc in candidates.find(
-			{'reaction_collection': reaction_collection, 'found': True}
-		)]
-		print('Checked completed entries')
-
-	else:
-		done_ids = []
+	done_ids = []
+	done_reactants = []
+	for doc in candidates.find({'reaction_collection': reaction_collection, 'found': True},
+			['reaction_id', 'reactant_smiles']):
+		done_ids.append(doc['reaction_id'])
+		done_reactants.append(doc['reactant_smiles'].split()[0])
+	print('Checked completed entries')
+	print('{} done IDs found'.format(len(done_ids)))
+	print('{} unique reactant smiles found'.format(len(set(done_reactants))))
 
 	# Define generator
 	class Randomizer():
-		def __init__(self, seed, done_ids = []):
+		def __init__(self, seed, done_ids = [], done_reactants = []):
 			self.done_ids = done_ids
+			self.done_reactants = done_reactants
 			np.random.seed(seed)
 			if outfile:
 				with open(os.path.join(outfile, 'seed.txt'), 'w') as fid:
@@ -59,24 +61,27 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 		def get_rand(self):
 			'''Random WITHOUT replacement'''
 			while True:
-				doc = reactions.find({'products': {'$size': 1}, \
-					'products.0.smiles': {'$not': re.compile('.*\..*')},
-					'random': { '$gte': np.random.random()}}).sort('random', 1).limit(1)[0]
+
+				doc = reactions.find({'random': { '$gte': np.random.random()}}).sort('random', 1).limit(1)[0]
 				# Check if it was done before this script ran
 				if doc['_id'] in self.done_ids: 
 					continue
+
+				if doc['reaction_smiles'].split()[0] in self.done_reactants:
+					continue
+
 				# Check if it has been done since (when running multiple instances in parallel)
-				if candidates.count({'reaction_id': doc['_id'], 
-						'reaction_collection': reaction_collection}) > 0:
+				if candidates.count({'reaction_id': doc['_id'], 'reaction_collection': reaction_collection}) > 0:
 					continue
 				self.done_ids.append(doc['_id'])
+				self.done_reactants.append(doc['reaction_smiles'].split()[0])
 				yield doc
 
 	if seed == None:
 		seed = np.random.randint(100000)
 	else:
 		seed = int(seed)
-	randomizer = Randomizer(seed, done_ids = done_ids)
+	randomizer = Randomizer(seed, done_ids = done_ids, done_reactants = done_reactants)
 	generator = enumerate(randomizer.get_rand())
 
 	smilesfixer = SmilesFixer()
@@ -101,17 +106,9 @@ def main(template_collection = 'lowe_refs_general_v3', reaction_collection = 'lo
 			print('#########')
 
 			try:
-				if bool(USE_REACTIONSMILES):
-					rxn_smiles = reaction['reaction_smiles'].split(' ')[0]
-					all_smiles = [smilesfixer.fix_smiles(x) for x in rxn_smiles.split('>')[0].split('.')]
-					mol = Chem.MolFromSmiles(rxn_smiles.split('>')[2])
-				else:
-					all_smiles =  [smilesfixer.fix_smiles(x['smiles']) for x in reaction['reactants']]
-					if 'catalysts' in reaction:
-						all_smiles += [smilesfixer.fix_smiles(x['smiles']) for x in reaction['catalysts']] 
-					if 'spectators' in reaction:
-						all_smiles += [smilesfixer.fix_smiles(x['smiles']) for x in reaction['spectators']] 
-					mol = Chem.MolFromSmiles(reaction['products'][0]['smiles'])
+				rxn_smiles = reaction['reaction_smiles'].split(' ')[0]
+				all_smiles = [smilesfixer.fix_smiles(x) for x in rxn_smiles.split('>')[0].split('.')]
+				mol = Chem.MolFromSmiles(rxn_smiles.split('>')[2])
 				
 				# Define target (true) product smiles
 				[x.ClearProp('molAtomMapNumber') for x in mol.GetAtoms()] # remove atom mapping from target prod
@@ -226,22 +223,18 @@ if __name__ == '__main__':
 						help = 'Verbose printing; defaults to False')
 	parser.add_argument('-n', '--num', type = int, default = 50,
 						help = 'Maximum number of records to examine; defaults to 50')
-	parser.add_argument('--reaction_collection', type = str, default = 'lowe_1976-2013_USPTOgrants_reactions',
-						help = 'Collection of reaction_examples to use; defaults to lowe_1976-2013_USPTOgrants_reactions')
+	parser.add_argument('--reaction_collection', type = str, default = 'lowe_1976-2013_USPTOgrants',
+						help = 'Collection of reaction_examples to use; defaults to lowe_1976-2013_USPTOgrants')
 	parser.add_argument('--template_collection', type = str, default = 'lowe_refs_general_v3',
 						help = 'Collection of templates to use; defaults to lowe_refs_general_v3')
-	parser.add_argument('--candidate_collection', type = str, default = 'candidate_edits_8_9_16', 
+	parser.add_argument('--candidate_collection', type = str, default = 'candidate_edits', 
 						help = 'Collection of candidates to write to; defaults to candidate_edits')
 	parser.add_argument('--seed', type = int, default = None,
 						help = 'Seed for random number generator')
-	parser.add_argument('--rxnsmiles', type = bool, default = True,
-						help = 'Use reaction_smiles for species, not pre-parsed; defaults to true')
 	parser.add_argument('--mincount', type = int, default = 50,
 						help = 'Minimum template count to include in transforms; defaults to 50')
 	parser.add_argument('--singleonly', type = bool, default = True,
 						help = 'Whether to record major product only; defaults to True')
-	parser.add_argument('--check', type = bool, default = True,
-						help = 'Whether to check current collection to see if reaction example has been done')
 	parser.add_argument('--log', type = bool, default = True,
 						help = 'Whether to log wall times / number of candidate atoms / etc., default True')
 	args = parser.parse_args()
@@ -249,5 +242,5 @@ if __name__ == '__main__':
 
 	main(template_collection = args.template_collection, reaction_collection = args.reaction_collection,
 		candidate_collection = args.candidate_collection, seed = args.seed, n_max = int(args.num), 
-		mincount = int(args.mincount), USE_REACTIONSMILES = bool(args.rxnsmiles), singleonly = bool(args.singleonly),
-		check = bool(args.check), log = bool(args.log))
+		mincount = int(args.mincount), singleonly = bool(args.singleonly),
+		log = bool(args.log))

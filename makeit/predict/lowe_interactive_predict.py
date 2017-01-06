@@ -77,6 +77,8 @@ def preprocess_candidate_edits(reactants, candidate_list):
 	candidate_smiles = [a for (a, b) in candidate_list]
 	candidate_edits =  [b for (a, b) in candidate_list]
 
+	print('Generated {} unique edit sets'.format(len(candidate_list)))
+
 	# Initialize
 	x_h_lost = np.zeros((1, padUpTo, N_e, F_atom))
 	x_h_gain = np.zeros((1, padUpTo, N_e, F_atom))
@@ -121,7 +123,7 @@ def score_candidates(reactants, candidate_list, xs):
 		fid.write('FOR REACTANTS {}\n'.format(Chem.MolToSmiles(reactants)))
 		fid.write('Candidate product\tCandidate edit\tProbability\tRank\n')
 		for (c, candidate) in enumerate(candidate_list):
-			if c > padUpTo: break
+			if c >= padUpTo: break
 			candidate_smile = candidate[0]
 			candidate_edit = candidate[1]
 			fid.write('{}\t{}\t{}\t{}\n'.format(

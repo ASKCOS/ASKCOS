@@ -25,7 +25,7 @@ from makeit.retro.draw import *
 from pymongo import MongoClient    # mongodb plugin
 client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
 db = client['reaxys']
-TRANSFORM_DB = db['transforms_retro_v2']
+TRANSFORM_DB = db['transforms_retro_v3']
 REACTION_DB = db['reactions']
 INSTANCE_DB = db['instances']
 CHEMICAL_DB = db['chemicals']
@@ -223,7 +223,7 @@ def convert_atom_to_wildcard(atom):
 
 		# Is this a terminal atom? We can tell if the degree is one
 		if atom.GetDegree() == 1:
-			return atom.GetSmarts()
+			return Chem.MolFragmentToSmiles(atom.GetOwningMol(), [atom.GetIdx()], allHsExplicit = True)
 
 	# Initialize
 	symbol = '['
@@ -231,6 +231,8 @@ def convert_atom_to_wildcard(atom):
 	# Add atom primitive (don't use COMPLETE wildcards)
 	if atom.GetAtomicNum() != 6:
 		symbol += '#{};'.format(atom.GetAtomicNum())
+		if atom.GetIsAromatic():
+			symbol += 'a;'
 	elif atom.GetIsAromatic():
 		symbol += 'c;'
 	else:
@@ -340,8 +342,7 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius = 0,
 				if not atom.HasProp('molAtomMapNumber'): 
 					atoms_to_use.append(atom.GetIdx())
 
-		# Define new symbols to replace terminal species with wildcards
-		# (don't want to restrict templates too strictly)
+		# Define new symbols based on symbol_replacements
 		symbols = [atom.GetSmarts() for atom in mol.GetAtoms()]
 		for (i, symbol) in symbol_replacements:
 			symbols[i] = symbol
@@ -396,7 +397,7 @@ def get_special_groups(mol):
 		'[Mg][Br,Cl]', # grinard (non-disassociated)
 		'[#6]S(=O)(=O)[O]', # RSO3 leaving group
 		'[O]S(=O)(=O)[O]', # SO4 group
-		'[N-]=[N+]=[C]', # diazo-alkyl
+		'[N]=[N]=[C]', # diazo-alkyl
 		]
 
 	# Build list
@@ -501,7 +502,7 @@ def main(N = 15, skip = 0, skip_id = 0):
 	try: # to allow breaking
 		# Look for entries
 		ctr = -1
-		for example_doc in REACTION_DB.find(no_cursor_timeout=True):
+		for example_doc in REACTION_DB.find({'RX_SKW': 'mapped reaction'}, no_cursor_timeout=True).sort('_id', 1):
 			ctr += 1
 
 			if example_doc['_id'] < skip_id: continue
@@ -674,7 +675,7 @@ def main(N = 15, skip = 0, skip_id = 0):
 					extra_reactant_fragment_rxd = extra_reactant_fragment
 					if extra_reactant_fragment:
 						rxd = INSTANCE_DB.find_one({'_id': rxd_id})
-						print(' Instance {}'.format(rxd['_id']))
+						if v: print(' Instance {}'.format(rxd['_id']))
 						reagents = []
 						num_matches = []
 						xrns = []
@@ -691,7 +692,7 @@ def main(N = 15, skip = 0, skip_id = 0):
 								else:
 									if v: print('        (could not parse {})'.format(smi_split))
 						if sum(num_matches) == 0: 
-							print('    none of the reagents have {}, skipping RXD'.format(extra_reactant_fragment[1:-1]))
+							if v: print('    none of the reagents have {}, skipping RXD'.format(extra_reactant_fragment[1:-1]))
 							continue
 						for i, reagent in enumerate(reagents):
 							if num_matches[i] == max(num_matches):
@@ -841,6 +842,7 @@ def main(N = 15, skip = 0, skip_id = 0):
 						
 						# # TEMPORARY - SKIP INSERTING
 						# total_attempted += 1
+						# print('retro_canonical: {}'.format(retro_canonical))
 						# continue
 
 						# Is this old?
@@ -893,7 +895,7 @@ def main(N = 15, skip = 0, skip_id = 0):
 				print('{}/{}'.format(ctr, N))
 
 			# Pause
-			#if v: raw_input('Enter anything to continue...')
+			if v: raw_input('Enter anything to continue...')
 
 	except KeyboardInterrupt:
 		print('Stopped early!')		
@@ -901,7 +903,7 @@ def main(N = 15, skip = 0, skip_id = 0):
 	# 	print(e)
 
 	total_examples = ctr + 1
-	print('...finished looking through {} reaction records'.format(min([N, ctr + 1])))
+	print('...finished looking through {} reaction records'.format(min([N, ctr])))
 
 	print('Unmapped reactions in {}/{} ({}%) cases'.format(total_unmapped,
 		total_examples, total_unmapped * 100.0 / total_examples))
@@ -927,9 +929,6 @@ if __name__ == '__main__':
 						help = 'Verbose printing (incl. saving images); defaults to False')
 	parser.add_argument('-n', '--num', type = int, default = 50,
 						help = 'Maximum number of records to examine; defaults to 50')
-	parser.add_argument('-g', '--general', type = str, default = 'n',
-						help = 'Use incredibly general templates; defaults to n\n' + 
-						'Only appropriate for forward enumeration')
 	parser.add_argument('-t', '--test', type = str, default = 'y',
 						help = 'Whether to *skip* testing; defaults to y')
 	parser.add_argument('--create_mass', type = str, default = 'y',
@@ -943,7 +942,7 @@ if __name__ == '__main__':
 	v = args.v
 	lg = RDLogger.logger()
 	if not v: lg.setLevel(4)
-	SUPER_GENERAL_TEMPLATES = args.general in ['y', '1', 'True','Yes', 't', 'T']
+	SUPER_GENERAL_TEMPLATES = False
 
 	print('SUPER GENERAL TEMPLATES? {}'.format(SUPER_GENERAL_TEMPLATES))
 	DO_NOT_TEST = args.test in ['y', '1', 'True','Yes', 't', 'T']
@@ -955,5 +954,7 @@ if __name__ == '__main__':
 	if clear in ['y', 'Y', 'yes', '1', 'Yes']:
 		result = TRANSFORM_DB.delete_many({})
 		print('Cleared {} entries from collection'.format(result.deleted_count))
+	TRANSFORM_DB.create_index([('reaction_smarts', 'hashed')])
+	print('Added hashed index on reaction_smarts')
 
 	main(N = args.num, skip = args.skip, skip_id = args.skip_id)

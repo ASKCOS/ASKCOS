@@ -186,7 +186,10 @@ def process_one(queue, lock_pymongo):
 
 def process_forever(queue, lock_pymongo):
 	while True:
-		process_one(queue, lock_pymongo)
+		try:
+			process_one(queue, lock_pymongo)
+		except:
+			continue
 
 if __name__ == '__main__':
 

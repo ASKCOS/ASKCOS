@@ -27,7 +27,7 @@ if __name__ == '__main__':
 
 	Hs_change = []
 	for template in TRANSFORM_DB.find(no_cursor_timeout=True):
-		# print(str(template['reaction_smarts']))
+		print(str(template['reaction_smarts']))
 
 		### Use RDKit to count hydrogens
 
@@ -60,6 +60,12 @@ if __name__ == '__main__':
 		if (Hs_after - Hs_before) >= 1:
 			print('### REDUCTION ### {}->{} ### - {}'.format(Hs_before, Hs_after, template['reaction_smarts']))
 			print('  processing {} references...'.format(len(template['references'])))
+			
+			# TEMP FOR TESTING
+			raw_input('pause')
+			continue
+
+
 			for rxd_id in template['references']:
 				if rxd_id in done_references: continue # save time if already done
 				rxd = INSTANCE_DB.find_one({'_id': rxd_id})
