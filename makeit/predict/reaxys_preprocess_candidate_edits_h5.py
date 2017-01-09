@@ -43,7 +43,7 @@ def string_or_range_to_float(text):
 	return np.nan
 
 
-def get_candidates(candidate_collection, seed = None, outfile = '.', shuffle = False, 
+def get_candidates(candidate_collection, seed = 0, outfile = '.', shuffle = False, 
 	skip = 0, padUpTo = 500, maxEditsPerClass = 5, n_max = 500):
 	'''
 	Pull n example reactions, their candidates, and the true answer
@@ -93,7 +93,7 @@ def get_candidates(candidate_collection, seed = None, outfile = '.', shuffle = F
 
 		def get_sequential(self):
 			'''Sequential'''
-			for doc in examples.find({'found': True}, no_cursor_timeout = True):
+			for doc in examples.find({'found': True}, no_cursor_timeout = True).sort('_id', 1):
 				try:
 					if not doc: continue 
 					if doc['_id'] in self.done_ids: continue
@@ -107,10 +107,6 @@ def get_candidates(candidate_collection, seed = None, outfile = '.', shuffle = F
 					print('Terminated early')
 					quit(1)
 
-	if seed == None:
-		seed = np.random.randint(10000)
-	else:
-		seed = int(seed)
 	randomizer = Randomizer(seed)
 	if shuffle:
 		generator = enumerate(randomizer.get_rand())
@@ -353,5 +349,5 @@ if __name__ == '__main__':
 	complete_only = args.complete_only in ['y', 'Y', 'T', 't', 'true', '1']
 	print('Only using complete records')
 
-	get_candidates(args.candidate_collection, shuffle = shuffle, skip = skip, 
+	get_candidates(args.candidate_collection, shuffle = shuffle, skip = skip, seed = 0,
 				padUpTo = padUpTo, maxEditsPerClass = maxEditsPerClass, n_max = int(args.max))
