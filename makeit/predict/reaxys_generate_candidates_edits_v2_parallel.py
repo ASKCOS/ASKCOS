@@ -246,7 +246,16 @@ if __name__ == '__main__':
 				queue.put(generator.next())
 				i += 1
 			else:
-				time.sleep(1)
+				time.sleep(5)
+				for i in range(len(processes)):
+					process = processes[i]
+					if not process.is_alive():
+						new_process = Process(target=process_forever, args=(queue, lock_pymongo))
+						new_process.start()
+					processes[i] = new_process 
+					del process
+					print('### Restarted process {} ###'.format(i))
+
 				continue # wait
 
 		# Wait for queue to empty before calling .join()
