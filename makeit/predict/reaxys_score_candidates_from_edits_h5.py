@@ -159,7 +159,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 
 	return model
 
-def data_generator(h5f, start_at = 0, end_at = None, batch_size = 20):
+def data_generator(h5f, start_at, end_at, batch_size):
 	'''This function generates batches of data from the
 	h5f file since all the data can't fit in memory.
 
@@ -179,9 +179,6 @@ def data_generator(h5f, start_at = 0, end_at = None, batch_size = 20):
 		'reaction_true_onehot'
 	]
 
-	if type(end_at) == type(None):
-		end_at = len(h5f['x_h_lost'])
-
 	# Keep returning forever and ever
 	while True:
 		for startIndex in range(start_at, end_at, batch_size):
@@ -194,126 +191,153 @@ def data_generator(h5f, start_at = 0, end_at = None, batch_size = 20):
 			)
 
 
-def train(model, h5f, tag = '', split_ratio = 0.8):
+def label_generator(h5f, start_at, end_at, batch_size):
+	'''This function generates labels to match the data generated
+	by data_generator'''
 
-	# hist_fid = open(os.path.join(FROOT, 'hist{}.csv'.format(tag)), 'a')
-	# hist_fid.write('epoch,filenum,loss,val_loss,acc,val_acc\n')
-	
+	labels = [
+		'candidate_smiles',
+		'candidate_edits',
+		'reaction_true',
+		'rxdid',
+	]
+
+	# Keep returning forever and ever
+	while True:
+		for startIndex in range(start_at, end_at, batch_size):
+			endIndex = min(startIndex + batch_size, end_at)
+			# print('Batch {} to {}'.format(startIndex, endIndex))
+			# yield (x, y) as tuple, but each one is a list
+			yield {dset: h5f[dset][startIndex:endIndex] for dset in labels}
+
+def get_data(h5f, split_ratio):
+	'''Creates a dictionary defining data generators for 
+	training and validation given an h5f file and split_ratio'''
+
 	N_samples =  len(h5f['x_h_lost'])
 	N_train = int(N_samples * split_ratio)
 	print('Total number of samples: {}'.format(N_samples))
 	print('Training on {}% - {}'.format(split_ratio*100, N_train))
 
-	try:
+	return {
+		'N_samples': N_samples,
+		'N_train': N_train,
+		#
+		'train_generator': data_generator(h5f, 0, N_train, batch_size),
+		'train_label_generator': label_generator(h5f, 0, N_train, batch_size),
+		'train_nb_samples': N_train,
+		#
+		'val_generator': data_generator(h5f, N_train, N_samples, batch_size),
+		'val_label_generator': label_generator(h5f, N_train, N_samples, batch_size),
+		'val_nb_samples': N_samples - N_train,
+		#
+		'h5f': h5f,
+		'batch_size': batch_size,
+	}
 
-		hist = model.fit_generator(
-			data_generator(h5f, 0, N_train, batch_size), 
-			samples_per_epoch = N_train,
+def train(model, h5f, split_ratio = 0.8):
+	'''Trains the Keras model'''
+
+	data = get_data(h5f, split_ratio)
+
+	# Add additional callbacks
+	from keras.callbacks import ModelCheckpoint, CSVLogger
+	callbacks = [
+		ModelCheckpoint(WEIGHTS_FPATH, save_weights_only = True), # save every epoch
+		CSVLogger(HIST_FPATH)
+	]
+
+	try:
+		hist = model.fit_generator(data['train_generator'], 
+			samples_per_epoch = data['train_nb_samples'],
 			nb_epoch = nb_epoch, 
-			validation_data = data_generator(h5f, N_train, N_samples, batch_size),
-			nb_val_samples = N_samples - N_train,
-			#pickle_safe = True
+			validation_data = data['val_generator'],
+			nb_val_samples = data['val_nb_samples'],
+			#pickle_safe = True,
+			callbacks = callbacks,
 			verbose = 1,
 		)
 
-		# hist_fid.write('{},{},{},{},{},{}\n'.format(
-		# 	epoch + 1, fnum, hist.history['loss'][0], hist.history['val_loss'][0],
-		# 	hist.history['acc'][0], hist.history['val_acc'][0]
-		# ))
-		# print('loss: {}, val_loss: {}, acc: {}, val_acc: {}'.format(
-		#	hist.history['loss'][0], hist.history['val_loss'][0],
-		# 	hist.history['acc'][0], hist.history['val_acc'][0]
-		#))
-		# 	average_acc += hist.history['acc'][0]
-		# 	average_val_loss += hist.history['val_loss'][0]
-		# 	average_val_acc += hist.history['val_acc'][0]
-		# print('    loss:     {:8.4f}, acc:     {:5.4f}'.format(average_loss/len(x_files), average_acc/len(x_files)))
-		# print('    val_loss: {:8.4f}, val_acc: {:5.4f}'.format(average_val_loss/len(x_files), average_val_acc/len(x_files)))
-		model.save_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), overwrite = True)
 	except KeyboardInterrupt:
 		print('Stopped training early!')
-		# hist_fid.close()
-		return None
 
-	# hist_fid.close()
-
-	return True
-
-
-def pred_histogram(model, x_files, xc_files, y_files, z_files, tag = '', split_ratio = 0.8):
+def test(model, h5f, split_ratio):
 	'''
-	Given a trained model and a list of samples, this function creates a 
-	histogram of the pseudo-probabilities assigned to the true reaction 
-	examples (i.e., the correct product)
+	Given a trained model and a list of samples, this function tests
+	the model
 	'''
 
-	fid = open(os.path.join(FROOT, 'probs{}.dat'.format(tag)), 'w')
-	fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
+	print('Testing model')
+	data = get_data(h5f, split_ratio)
+
+	fid = open(TEST_FPATH, 'w')
+	fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
 		'reaction_smiles', 'train/val', 
 		'true_edit', 'prob_true_edit', 
 		'predicted_edit(or no. 2)', 'prob_predicted_edit(or no. 2)',
-		'rank_true_edit'
+		'rank_true_edit', 'true_smiles', 'predicted_smiles(or no. 2)',
+		'RXD_id'
 	))
 
-	# Calculate probabilities
-	
-	train_preds = []; val_preds = []
-	train_corr = 0; val_corr = 0;
-	dataset = ''; trueprob = 0; trueprobs = []
+	def test_on_set(fid, dataset, data_generator, label_generator, num_batches):
+		'''Helper function that works for both training and validation sets'''
+		print('Testing on {} data'.format(dataset))
+		# Need to process data using generator
 
-	for fnum in range(len(x_files)):
-		print('Testing file number {}'.format(fnum))
-		# Data must be pre-padded
-		z = get_z_data(z_files[fnum])
-		x = list(get_x_data(x_files[fnum], z))
-		xc = list(get_xc_data(xc_files[fnum]))
-		y = get_y_data(y_files[fnum])
+		our_preds = []
+		true_preds = []
+		corr = 0
 
-		# Getting unprocessed x data
-		with open(x_files[fnum], 'rb') as infile:
-			all_edits = pickle.load(infile)
+		for batch_num in range(num_batches):
+			(x, y) = data_generator.next()
+			labels = label_generator.next()
+			y = y[0] # only one output, which is True/False
+		
+			preds = model.predict_on_batch(x)
 
-		preds = model.predict(x + xc, batch_size = 20)
-		trueprobs = []
+			for i in range(preds.shape[0]): 
 
-		for i in range(preds.shape[0]): 
-			rank_true_edit = 0
-			edits = all_edits[i]
-			pred = preds[i, :] # Iterate through each sample
-			trueprob = pred[y[i,:] != 0][0] # prob assigned to true outcome
-			trueprobs.append(trueprob)
-			rank_true_edit = 1 + len(pred) - (ss.rankdata(pred))[np.argmax(y[i,:])]
-			
-			if i < int(split_ratio * preds.shape[0]):
-				dataset = 'train'
-				train_preds.append(trueprob)
+				edits = labels['candidate_edits'][i]
+				pred = preds[i, :] 
+				trueprob = pred[y[i,:] != 0][0] # prob assigned to true outcome
+				rank_true_edit = 1 + len(pred) - (ss.rankdata(pred))[np.argmax(y[i,:])]
+				
+				true_preds.append(trueprob)
+				our_preds.append(pred[np.argmax(y[i,:])])
 				if np.argmax(pred) == np.argmax(y[i,:]):
-					train_corr += 1
-			else:
-				dataset = 'val'
-				val_preds.append(trueprob)
-				if np.argmax(pred) == np.argmax(y[i,:]):
-					val_corr += 1
-
-			if rank_true_edit != 1:
-				# record highest probability
-				most_likely_edit_i = np.argmax(pred)
-				most_likely_prob = np.max(pred)
-			else:
-				# record number two prediction
-				most_likely_edit_i = np.argmax(pred[pred != np.max(pred)])
-				most_likely_prob = np.max(pred[pred != np.max(pred)])
-
-			if most_likely_edit_i >= len(edits): # no reaction?
-				most_likely_edit = 'no_reaction'
-			else:
+					corr += 1
+				
+				# Get most informative labels for the highest predictions
+				if rank_true_edit != 1:
+					# record highest probability
+					most_likely_edit_i = np.argmax(pred)
+					most_likely_prob = np.max(pred)
+				else:
+					# record number two prediction
+					most_likely_edit_i = np.argmax(pred[pred != np.max(pred)])
+					most_likely_prob = np.max(pred[pred != np.max(pred)])
+				most_likely_smiles = labels['candidate_smiles'][i, most_likely_edit_i]
 				most_likely_edit = edits[most_likely_edit_i]
-			fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
-				z[i], dataset, 
-				edits[np.argmax(y[i,:])], trueprob, 
-				most_likely_edit, most_likely_prob,
-				rank_true_edit
-			))
+
+				fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
+					labels['reaction_true'][i], dataset, 
+					edits[np.argmax(y[i,:])], trueprob, 
+					most_likely_edit, most_likely_prob,
+					rank_true_edit, labels['reaction_true'][i].split('>')[-1], 
+					most_likely_smiles, labels['rxdid'][i],
+				))
+
+		return our_preds, corr
+
+	train_preds, train_corr = test_on_set(fid, 'train', data['train_generator'], 
+		data['train_label_generator'], 
+		int(np.ceil(data['train_nb_samples']/float(data['batch_size'])))
+	)
+	val_preds, val_corr = test_on_set(fid, 'val', data['val_generator'], 
+		data['val_label_generator'], 
+		int(np.ceil(data['val_nb_samples']/float(data['batch_size'])))
+	)
+
 	fid.close()
 	
 	train_acc = train_corr / float(len(train_preds))
@@ -323,7 +347,7 @@ def pred_histogram(model, x_files, xc_files, y_files, z_files, tag = '', split_r
 	val_preds = np.array(val_preds)
 
 
-	def histogram(array, title, label, acc):
+	def histogram(array, title, path, acc):
 		acc = int(acc * 1000)/1000. # round3
 		try:
 			# Visualize in histogram
@@ -335,17 +359,15 @@ def pred_histogram(model, x_files, xc_files, y_files, z_files, tag = '', split_r
 			plt.title('Histogram of pseudo-probabilities - {} (N={},acc={})'.format(title, len(array), acc))
 			plt.axis([0, 1, 0, 1])
 			plt.grid(True)
-			plt.savefig(os.path.join(FROOT, label), bbox_inches = 'tight')
+			plt.savefig(path, bbox_inches = 'tight')
 		except:
 			pass
 
-	histogram(train_preds, 'TRAIN', 'training{}.png'.format(tag), train_acc)
-	histogram(val_preds, 'VAL', 'validation{}.png'.format(tag), val_acc)
+	histogram(train_preds, 'TRAIN', HISTOGRAM_FPATH % 'train', train_acc)
+	histogram(val_preds, 'VAL', HISTOGRAM_FPATH % 'val', val_acc)
 
 
 if __name__ == '__main__':
-
-	FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output')
 	
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--nb_epoch', type = int, default = 100,
@@ -412,6 +434,19 @@ if __name__ == '__main__':
 	THIS_FOLD_OUT_OF_FIVE = int(args.fold)
 	tag = args.tag + ' fold{}'.format(args.fold)
 
+	SPLIT_RATIO = 0.8
+
+	# Labels
+	FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output')
+	FROOT = os.path.join(FROOT, tag)
+	if not os.path.isdir(FROOT):
+		os.mkdir(FROOT)
+	MODEL_FPATH = os.path.join(FROOT, '{} model.json'.format(tag))
+	WEIGHTS_FPATH = os.path.join(FROOT, '{} weights.h5'.format(tag))
+	HIST_FPATH = os.path.join(FROOT, '{} hist.csv'.format(tag))
+	TEST_FPATH = os.path.join(FROOT, '{} probs.dat'.format(tag))
+	HISTOGRAM_FPATH = os.path.join(FROOT, '{} histogram %s.png'.format(tag))
+
 	if bool(args.retrain):
 		print('Reloading from file')
 		rebuild = raw_input('Do you want to rebuild from scratch instead of loading from file? [n/y] ')
@@ -420,31 +455,29 @@ if __name__ == '__main__':
 				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, 
 				context_weight = context_weight, enhancement_weight = enhancement_weight)
 		else:
-			model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
+			model = model_from_json(open(MODEL_FPATH).read())
 			model.compile(loss = 'categorical_crossentropy', 
 				optimizer = Adam(lr = lr),
 				metrics = ['accuracy'])
-			
-		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
+		model.load_weights(WEIGHTS_FPATH)
 	else:
 		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight)
 		try:
-			with open(os.path.join(FROOT, 'model{}.json'.format(tag)), 'w') as outfile:
+			with open(MODEL_FPATH, 'w') as outfile:
 				outfile.write(model.to_json())
 		except:
 			print('could not write model to json')
 
 	if bool(args.test):
-		pred_histogram(model, x_files, xc_files, y_files, z_files, tag = tag, split_ratio = 0.8)
+		test(model, h5f, SPLIT_RATIO)
 		quit(1)
 	elif bool(args.visualize):
 		visualize_weights(model, tag)
 		quit(1)
 
 	h5f = h5py.File(data_file, 'r')
-	hist = train(model, h5f, tag = tag, split_ratio = 0.8)
-	model.save_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), overwrite = True) 
+	train(model, h5f, SPLIT_RATIO)
+	model.save_weights(WEIGHTS_FPATH, overwrite = True) 
+	test(model, h5f, SPLIT_RATIO)
 
-	#pred_histogram(model, x_files, xc_files, y_files, z_files, tag = tag, split_ratio = 0.8)
-	#visualize_weights(model, tag)
 	h5f.close()
