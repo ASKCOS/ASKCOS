@@ -122,203 +122,218 @@ def get_candidates(candidate_collection, seed = 0, outfile = '.', shuffle = Fals
 
 
 	import h5py
-	h5f = h5py.File(os.path.join(FROOT, 'data_edits_reaxys.h5'), 'w')
-
 	asciistring = h5py.special_dtype(vlen = bytes) # text
 	regularfloat = np.float32
 
-	h5f.create_dataset('x_h_lost', (n_max, padUpTo, maxEditsPerClass, F_atom), dtype=regularfloat)
-	h5f.create_dataset('x_h_gain', (n_max, padUpTo, maxEditsPerClass, F_atom), dtype=regularfloat)
-	h5f.create_dataset('x_bond_lost', (n_max, padUpTo, maxEditsPerClass, F_bond), dtype=regularfloat)
-	h5f.create_dataset('x_bond_gain', (n_max, padUpTo, maxEditsPerClass, F_bond), dtype=regularfloat)
-	h5f.create_dataset('T', (n_max,), dtype=regularfloat)
-	h5f.create_dataset('solvent', (n_max, 6), dtype=regularfloat)
-	h5f.create_dataset('reagent', (n_max, 256), dtype=regularfloat)
-	h5f.create_dataset('yield', (n_max,), dtype=regularfloat)
+	if os.path.isfile(os.path.join(FROOT, 'data_edits_reaxys.h5')):
+		# If already a file, open in "r+" mode"
+		h5f = h5py.File(os.path.join(FROOT, 'data_edits_reaxys.h5'), 'r+')
+	else:
+		# Create dataset from scratch
+		h5f = h5py.File(os.path.join(FROOT, 'data_edits_reaxys.h5'), 'w')
 
-	h5f.create_dataset('reaction_true_onehot', (n_max,padUpTo), dtype=bool)
-	h5f.create_dataset('rxdid', (n_max,), dtype=asciistring)
-	h5f.create_dataset('candidate_smiles', (n_max,padUpTo), dtype=asciistring)
-	h5f.create_dataset('candidate_edits', (n_max,padUpTo), dtype=asciistring)
-	h5f.create_dataset('reaction_true', (n_max,), dtype=asciistring)
+		h5f.create_dataset('x_h_lost', (n_max, padUpTo, maxEditsPerClass, F_atom), dtype=regularfloat)
+		h5f.create_dataset('x_h_gain', (n_max, padUpTo, maxEditsPerClass, F_atom), dtype=regularfloat)
+		h5f.create_dataset('x_bond_lost', (n_max, padUpTo, maxEditsPerClass, F_bond), dtype=regularfloat)
+		h5f.create_dataset('x_bond_gain', (n_max, padUpTo, maxEditsPerClass, F_bond), dtype=regularfloat)
+		h5f.create_dataset('T', (n_max,), dtype=regularfloat)
+		h5f.create_dataset('solvent', (n_max, 6), dtype=regularfloat)
+		h5f.create_dataset('reagent', (n_max, 256), dtype=regularfloat)
+		h5f.create_dataset('yield', (n_max,), dtype=regularfloat)
+
+		h5f.create_dataset('reaction_true_onehot', (n_max,padUpTo), dtype=bool)
+		h5f.create_dataset('rxdid', (n_max,), dtype=asciistring)
+		h5f.create_dataset('candidate_smiles', (n_max,padUpTo), dtype=asciistring)
+		h5f.create_dataset('candidate_edits', (n_max,padUpTo), dtype=asciistring)
+		h5f.create_dataset('reaction_true', (n_max,), dtype=asciistring)
 
 	i = 0
-	for j, reaction in generator:
+	try:
+		for j, reaction in generator:
 		
-		candidate_smiles = [a for (a, b) in reaction['edit_candidates']]
-		candidate_edits =    [b for (a, b) in reaction['edit_candidates']]
-		reactant_smiles = reaction['reactant_smiles']
-		product_smiles_true = reaction['product_smiles_true']
+			candidate_smiles = [a for (a, b) in reaction['edit_candidates']]
+			candidate_edits =    [b for (a, b) in reaction['edit_candidates']]
+			reactant_smiles = reaction['reactant_smiles']
+			product_smiles_true = reaction['product_smiles_true']
 
-		reactants_check = Chem.MolFromSmiles(str(reactant_smiles))
-		if not reactants_check:
-			continue
-
-		# Make sure number of edits is acceptable
-		valid_edits = [all([len(e) <= maxEditsPerClass for e in es]) for es in candidate_edits]
-		candidate_smiles = [a for (j, a) in enumerate(candidate_smiles) if valid_edits[j]]
-		candidate_edits  = [a for (j, a) in enumerate(candidate_edits) if valid_edits[j]]
-
-		bools = [product_smiles_true == x for x in candidate_smiles]
-		# print('rxn. {} : {} true entries out of {}'.format(i, sum(bools), len(bools)))
-		if sum(bools) > 1:
-			pass
-		if sum(bools) == 0:
-			print('##### True product not found / filtered out #####')
-			continue
-
-		# Sort together and append
-		zipsort = sorted(zip(bools, candidate_smiles, candidate_edits))
-		zipsort = [[(y, z, x) for (y, z, x) in zipsort if y == 1][0]] + \
-				  [(y, z, x) for (y, z, x) in zipsort if y == 0]
-		zipsort = zipsort[:padUpTo]
-
-		if sum([y for (y, z, x) in zipsort]) != 1:
-			print('New sum true: {}'.format(sum([y for (y, z, x) in zipsort])))
-			print('## wrong number of true results?')
-			raw_input('Pausing...')
-
-		### Look for conditions
-		context_info = ''
-		rxd = INSTANCE_DB.find_one({'_id': reaction['_id']})
-		if not rxd:
-			print('Could not find RXD with ID {}'.format(reaction['_id']))
-			raise ValueError('Candidate reaction source not found?')
-		if complete_only and 'complete' not in rxd:
-			continue
-
-		print('Total number of edit candidates: {} ({} valid)'.format(len(valid_edits), sum(valid_edits)))
-		
-		# Temp
-		T = string_or_range_to_float(rxd['RXD_T'])
-		if not T: 
-			T = 20
-			if complete_only: continue # skip if T was unparseable
-		if T == -1: 
-			T = 20
-			if complete_only: continue # skip if T not recorded
-
-		# Solvent(s)
-		solvent = [0, 0, 0, 0, 0, 0] # c, e, s, a, b, v
-		unknown_solvents = []
-		context_info += 'solv:'
-		for xrn in rxd['RXD_SOLXRN']:
-			try:
-				smiles = str(CHEMICAL_DB.find_one({'_id': xrn})['SMILES'])
-			except:
+			reactants_check = Chem.MolFromSmiles(str(reactant_smiles))
+			if not reactants_check:
 				continue
-			if not smiles: continue 
-			mol = Chem.MolFromSmiles(smiles)
-			if not mol: continue
-			smiles = Chem.MolToSmiles(mol)
-			doc = SOLVENT_DB.find_one({'_id': smiles})
-			context_info += smiles + ','
-			if not doc: 
-				unknown_solvents.append(smiles)
-				print('Solvent {} not found in DB'.format(smiles))
-				context_info = context_info[:-1] + '?,' # add question mark to denote unfound
+
+			# Make sure number of edits is acceptable
+			valid_edits = [all([len(e) <= maxEditsPerClass for e in es]) for es in candidate_edits]
+			candidate_smiles = [a for (j, a) in enumerate(candidate_smiles) if valid_edits[j]]
+			candidate_edits  = [a for (j, a) in enumerate(candidate_edits) if valid_edits[j]]
+
+			bools = [product_smiles_true == x for x in candidate_smiles]
+			# print('rxn. {} : {} true entries out of {}'.format(i, sum(bools), len(bools)))
+			if sum(bools) > 1:
+				pass
+			if sum(bools) == 0:
+				print('##### True product not found / filtered out #####')
 				continue
-			solvent[0] += doc['c']
-			solvent[1] += doc['e']
-			solvent[2] += doc['s']
-			solvent[3] += doc['a']
-			solvent[4] += doc['b']
-			solvent[5] += doc['v']
-		if solvent == [0, 0, 0, 0, 0, 0]:
-			if complete_only: continue # if solvent not parameterized, skip
-			doc = SOLVENT_DB.find_one({'_id': 'default'})
-			solvent = [doc['c'], doc['e'], doc['s'], doc['a'], doc['b'], doc['v']]
-			print('Because all solvents unknown ({}), using default params'.format(', '.join(unknown_solvents)))
-		# Reagents/catalysts (as fingerprint, blegh)
-		reagent_fp = np.zeros(256) 
-		context_info += 'rgt:'
-		for xrn in rxd['RXD_RGTXRN'] + rxd['RXD_CATXRN']:
-			doc = CHEMICAL_DB.find_one({'_id': xrn})
-			if not doc:
-				print('########## COULD NOT FIND REAGENT {} ###########'.format(xrn))
+
+			# Sort together and append
+			zipsort = sorted(zip(bools, candidate_smiles, candidate_edits))
+			zipsort = [[(y, z, x) for (y, z, x) in zipsort if y == 1][0]] + \
+					  [(y, z, x) for (y, z, x) in zipsort if y == 0]
+			zipsort = zipsort[:padUpTo]
+
+			if sum([y for (y, z, x) in zipsort]) != 1:
+				print('New sum true: {}'.format(sum([y for (y, z, x) in zipsort])))
+				print('## wrong number of true results?')
+				raw_input('Pausing...')
+
+			### Look for conditions
+			context_info = ''
+			rxd = INSTANCE_DB.find_one({'_id': reaction['_id']})
+			if not rxd:
+				print('Could not find RXD with ID {}'.format(reaction['_id']))
+				raise ValueError('Candidate reaction source not found?')
+			if complete_only and 'complete' not in rxd:
 				continue
-			smiles = str(doc['SMILES'])
-			if not smiles: continue 
-			mol = Chem.MolFromSmiles(smiles)
-			if not mol: continue
-			context_info += smiles + ','
-			reagent_fp += np.array(AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits = 256))
-		context_info += 'T:{}'.format(T)
-		if complete_only: # should have info about time and yield
-			context_info += ',t:' + str(rxd['RXD_TIM']) + 'min,y:' + str(rxd['RXD_NYD']) + '%'
-		#print(context_info)
 
+			print('Total number of edit candidates: {} ({} valid)'.format(len(valid_edits), sum(valid_edits)))
+			
+			# Temp
+			T = string_or_range_to_float(rxd['RXD_T'])
+			if not T: 
+				T = 20
+				if complete_only: continue # skip if T was unparseable
+			if T == -1: 
+				T = 20
+				if complete_only: continue # skip if T not recorded
 
-		### NOW CONVERT THE DATA TO NUMERICAL VALUES ###
-		x_h_lost = np.zeros((padUpTo, maxEditsPerClass, F_atom))
-		x_h_gain = np.zeros((padUpTo, maxEditsPerClass, F_atom))
-		x_bond_lost = np.zeros((padUpTo, maxEditsPerClass, F_bond))
-		x_bond_gain = np.zeros((padUpTo, maxEditsPerClass, F_bond))
+			# Solvent(s)
+			solvent = [0, 0, 0, 0, 0, 0] # c, e, s, a, b, v
+			unknown_solvents = []
+			context_info += 'solv:'
+			for xrn in rxd['RXD_SOLXRN']:
+				try:
+					smiles = str(CHEMICAL_DB.find_one({'_id': xrn})['SMILES'])
+				except:
+					continue
+				if not smiles: continue 
+				mol = Chem.MolFromSmiles(smiles)
+				if not mol: continue
+				smiles = Chem.MolToSmiles(mol)
+				doc = SOLVENT_DB.find_one({'_id': smiles})
+				context_info += smiles + ','
+				if not doc: 
+					unknown_solvents.append(smiles)
+					print('Solvent {} not found in DB'.format(smiles))
+					context_info = context_info[:-1] + '?,' # add question mark to denote unfound
+					continue
+				solvent[0] += doc['c']
+				solvent[1] += doc['e']
+				solvent[2] += doc['s']
+				solvent[3] += doc['a']
+				solvent[4] += doc['b']
+				solvent[5] += doc['v']
+			if solvent == [0, 0, 0, 0, 0, 0]:
+				if complete_only: continue # if solvent not parameterized, skip
+				doc = SOLVENT_DB.find_one({'_id': 'default'})
+				solvent = [doc['c'], doc['e'], doc['s'], doc['a'], doc['b'], doc['v']]
+				print('Because all solvents unknown ({}), using default params'.format(', '.join(unknown_solvents)))
+			# Reagents/catalysts (as fingerprint, blegh)
+			reagent_fp = np.zeros(256) 
+			context_info += 'rgt:'
+			for xrn in rxd['RXD_RGTXRN'] + rxd['RXD_CATXRN']:
+				doc = CHEMICAL_DB.find_one({'_id': xrn})
+				if not doc:
+					print('########## COULD NOT FIND REAGENT {} ###########'.format(xrn))
+					continue
+				smiles = str(doc['SMILES'])
+				if not smiles: continue 
+				mol = Chem.MolFromSmiles(smiles)
+				if not mol: continue
+				context_info += smiles + ','
+				reagent_fp += np.array(AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits = 256))
+			context_info += 'T:{}'.format(T)
+			if complete_only: # should have info about time and yield
+				context_info += ',t:' + str(rxd['RXD_TIM']) + 'min,y:' + str(rxd['RXD_NYD']) + '%'
+			#print(context_info)
 
-		for (c, (z, y, edits)) in enumerate(zipsort):
-			if any([len(edit) > 5 for edit in edits]):
-				#print('Edit counts: {}'.format([len(edit) for edit in edits]))
-				#print('skipping')
+			# If we're trying to skip, now that we know this is a valid example
+			# we should continue before getting to the CPU-expensive stuff
+			if i < skip: 
+				i += 1
 				continue
-			try:
-				edit_h_lost_vec, edit_h_gain_vec, \
-					edit_bond_lost_vec, edit_bond_gain_vec = \
-					edits_to_vectors(edits, reactants_check)
-			except KeyError as e:
-				print(e)
-				print('Skipping this edit')
-				continue
-			for (e, edit_h_lost) in enumerate(edit_h_lost_vec):
-				x_h_lost[c, e, :] = edit_h_lost
-			for (e, edit_h_gain) in enumerate(edit_h_gain_vec):
-				x_h_gain[c, e, :] = edit_h_gain
-			for (e, edit_bond_lost) in enumerate(edit_bond_lost_vec):
-				x_bond_lost[c, e, :] = edit_bond_lost
-			for (e, edit_bond_gain) in enumerate(edit_bond_gain_vec):
-				x_bond_gain[c, e, :] = edit_bond_gain
 
-		# Get rid of NaNs
-		x_h_lost[np.isnan(x_h_lost)] = 0.0
-		x_h_gain[np.isnan(x_h_gain)] = 0.0
-		x_bond_lost[np.isnan(x_bond_lost)] = 0.0
-		x_bond_gain[np.isnan(x_bond_gain)] = 0.0
-		x_h_lost[np.isinf(x_h_lost)] = 0.0
-		x_h_gain[np.isinf(x_h_gain)] = 0.0
-		x_bond_lost[np.isinf(x_bond_lost)] = 0.0
-		x_bond_gain[np.isinf(x_bond_gain)] = 0.0
 
-		h5f['x_h_lost'][i] = x_h_lost
-		h5f['x_h_gain'][i] = x_h_gain
-		h5f['x_bond_lost'][i] = x_bond_lost
-		h5f['x_bond_gain'][i] = x_bond_gain
-		h5f['T'][i] = T
-		h5f['solvent'][i] = np.array(solvent)
-		h5f['reagent'][i] = reagent_fp
-		h5f['yield'][i] = rxd['RXD_NYD']
-		h5f['rxdid'][i] = rxd['_id']
+			### NOW CONVERT THE DATA TO NUMERICAL VALUES ###
+			x_h_lost = np.zeros((padUpTo, maxEditsPerClass, F_atom))
+			x_h_gain = np.zeros((padUpTo, maxEditsPerClass, F_atom))
+			x_bond_lost = np.zeros((padUpTo, maxEditsPerClass, F_bond))
+			x_bond_gain = np.zeros((padUpTo, maxEditsPerClass, F_bond))
 
-		for c, (y, z, x) in enumerate(zipsort):
-			h5f['reaction_true_onehot'][i,c] = bool(y)
-			h5f['candidate_smiles'][i,c] = bytes(z)
-			h5f['candidate_edits'][i,c] = bytes(x)
-		for c_remaining in range(c + 1, padUpTo):
-			print(c_remaining)
-			h5f['reaction_true_onehot'][i,c_remaining] = False
-			h5f['candidate_smiles'][i,c_remaining] = bytes('n.r.')
-			h5f['candidate_edits'][i,c_remaining] = bytes('n.r.')
-		reaction_true =  str(reactant_smiles) + '>' + str(context_info) + \
-			';Nc:{}>'.format(len(zipsort)) + str(product_smiles_true)
-		h5f['reaction_true'][i] = bytes(reaction_true)
+			for (c, (z, y, edits)) in enumerate(zipsort):
+				if any([len(edit) > 5 for edit in edits]):
+					#print('Edit counts: {}'.format([len(edit) for edit in edits]))
+					#print('skipping')
+					continue
+				try:
+					edit_h_lost_vec, edit_h_gain_vec, \
+						edit_bond_lost_vec, edit_bond_gain_vec = \
+						edits_to_vectors(edits, reactants_check)
+				except KeyError as e:
+					print(e)
+					print('Skipping this edit')
+					continue
+				for (e, edit_h_lost) in enumerate(edit_h_lost_vec):
+					x_h_lost[c, e, :] = edit_h_lost
+				for (e, edit_h_gain) in enumerate(edit_h_gain_vec):
+					x_h_gain[c, e, :] = edit_h_gain
+				for (e, edit_bond_lost) in enumerate(edit_bond_lost_vec):
+					x_bond_lost[c, e, :] = edit_bond_lost
+				for (e, edit_bond_gain) in enumerate(edit_bond_gain_vec):
+					x_bond_gain[c, e, :] = edit_bond_gain
 
-		i += 1
-		if i % 10 == 0:
-			print('Logged {} total examples so far'.format(i))
+			# Get rid of NaNs
+			x_h_lost[np.isnan(x_h_lost)] = 0.0
+			x_h_gain[np.isnan(x_h_gain)] = 0.0
+			x_bond_lost[np.isnan(x_bond_lost)] = 0.0
+			x_bond_gain[np.isnan(x_bond_gain)] = 0.0
+			x_h_lost[np.isinf(x_h_lost)] = 0.0
+			x_h_gain[np.isinf(x_h_gain)] = 0.0
+			x_bond_lost[np.isinf(x_bond_lost)] = 0.0
+			x_bond_gain[np.isinf(x_bond_gain)] = 0.0
 
-		if i == n_max:
-			print('Finished the requested {} examples'.format(n_max))
-			h5f.close()
-			break
+			h5f['x_h_lost'][i] = x_h_lost
+			h5f['x_h_gain'][i] = x_h_gain
+			h5f['x_bond_lost'][i] = x_bond_lost
+			h5f['x_bond_gain'][i] = x_bond_gain
+			h5f['T'][i] = T
+			h5f['solvent'][i] = np.array(solvent)
+			h5f['reagent'][i] = reagent_fp
+			h5f['yield'][i] = rxd['RXD_NYD']
+			h5f['rxdid'][i] = rxd['_id']
 
+			for c, (y, z, x) in enumerate(zipsort):
+				h5f['reaction_true_onehot'][i,c] = bool(y)
+				h5f['candidate_smiles'][i,c] = bytes(z)
+				h5f['candidate_edits'][i,c] = bytes(x)
+			for c_remaining in range(c + 1, padUpTo):
+				h5f['reaction_true_onehot'][i,c_remaining] = False
+				h5f['candidate_smiles'][i,c_remaining] = bytes('n.r.')
+				h5f['candidate_edits'][i,c_remaining] = bytes('n.r.')
+			reaction_true =  str(reactant_smiles) + '>' + str(context_info) + \
+				';Nc:{}>'.format(len(zipsort)) + str(product_smiles_true)
+			h5f['reaction_true'][i] = bytes(reaction_true)
+
+			i += 1
+			if i % 10 == 0:
+				print('Logged {} total examples so far'.format(i))
+
+			if i == n_max:
+				print('Finished the requested {} examples'.format(n_max))
+				h5f.close()
+				break
+
+	except KeyboardInterrupt:
+		print('Requested to stop early')
+		h5f.close()
+		print('Next time, skip ID to ID {}'.format(max(i, skip)))
 
 if __name__ == '__main__':
 	padUpTo = 500
