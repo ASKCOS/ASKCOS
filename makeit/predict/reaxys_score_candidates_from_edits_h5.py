@@ -14,7 +14,7 @@ from keras.layers import Dense, Activation, Input
 from keras.layers.core import Flatten, Permute, Reshape, Dropout, Lambda, RepeatVector
 from keras.layers.wrappers import TimeDistributed
 from keras.engine.topology import Merge, merge
-from keras.optimizers import *
+from keras.optimizers import SGD, Adam, Adadelta
 from keras.layers.convolutional import Convolution1D, Convolution2D
 from keras.regularizers import l2
 from keras.utils.np_utils import to_categorical
@@ -34,9 +34,17 @@ import matplotlib.pyplot as plt    # for visualization
 import scipy.stats as ss
 import itertools
 
+'''
 
-def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 100, inner_act = 'tanh',
-		l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0, enhancement_weight = 0.1):
+This script builds, trains, tests, and saves a context-dependent reaction 
+scoring model that works with a pre-generated .h5 dataset. By using a data
+generator instead of reading from multiple files, data is pre-loaded for 
+upcoming minibatches, so the overall training time is substantially reduced.
+
+'''
+
+
+def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 100, inner_act = 'tanh', l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0, enhancement_weight = 0.1, optimizer = Adadelta()):
 	'''
 	Builds the feed forward model.
 
@@ -47,28 +55,28 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	inner_act: activation function 
 	'''
 
-	h_lost = Input(shape = (N_c, N_e, F_atom), name = "H_lost")
-	h_gain = Input(shape = (N_c, N_e, F_atom), name = "H_gain")
+	h_lost    = Input(shape = (N_c, N_e, F_atom), name = "H_lost")
+	h_gain    = Input(shape = (N_c, N_e, F_atom), name = "H_gain")
 	bond_lost = Input(shape = (N_c, N_e, F_bond), name = "bond_lost")
 	bond_gain = Input(shape = (N_c, N_e, F_bond), name = "bond_gain")
-	reagents = Input(shape = (256,), name = "reagent FP") # TODO: remove hard-coded length
-	solvent = Input(shape = (6,), name = "solvent descriptors c,e,s,a,b,v")
-	temp = Input(shape = (1,), name = "temperature [C]")
+	reagents  = Input(shape = (256,), name = "reagent FP") # TODO: remove hard-coded length
+	solvent   = Input(shape = (6,), name = "solvent descriptors c,e,s,a,b,v")
+	temp      = Input(shape = (1,), name = "temperature [C]")
 
-	h_lost_r = Reshape((N_c*N_e, F_atom), name = "flatten H_lost")(h_lost)
-	h_gain_r = Reshape((N_c*N_e, F_atom), name = "flatten H_gain")(h_gain)
+	h_lost_r    = Reshape((N_c*N_e, F_atom), name = "flatten H_lost")(h_lost)
+	h_gain_r    = Reshape((N_c*N_e, F_atom), name = "flatten H_gain")(h_gain)
 	bond_lost_r = Reshape((N_c*N_e, F_bond), name = "flatten bond_lost")(bond_lost)
 	bond_gain_r = Reshape((N_c*N_e, F_bond), name = "flatten bond_gain")(bond_gain)
 
-	h_lost_h1 = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_lost 1")(h_lost_r)
-	h_gain_h1 = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_gain 1")(h_gain_r)
+	h_lost_h1    = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_lost 1")(h_lost_r)
+	h_gain_h1    = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_gain 1")(h_gain_r)
 	bond_lost_h1 = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)), name = "embed bond_lost 1")(bond_lost_r)
 	bond_gain_h1 = TimeDistributed(Dense(N_h1, activation = inner_act, W_regularizer = l2(l2v)), name = "embed bond_gain 1")(bond_gain_r)
 	N_h = N_h1
 
 	if N_h2 > 0:
-		h_lost_h2 = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_lost 2")(h_lost_h1)
-		h_gain_h2 = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_gain 2")(h_gain_h1)
+		h_lost_h2    = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_lost 2")(h_lost_h1)
+		h_gain_h2    = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)), name = "embed H_gain 2")(h_gain_h1)
 		bond_lost_h2 = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)), name = "embed bond_lost 2")(bond_lost_h1)
 		bond_gain_h2 = TimeDistributed(Dense(N_h2, activation = inner_act, W_regularizer = l2(l2v)), name = "embed bond_gain 2")(bond_gain_h1)
 		N_h = N_h2
@@ -81,19 +89,19 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 			N_h = N_h3
 
 		else:
-			h_lost_h = h_lost_h2
-			h_gain_h = h_gain_h2
+			h_lost_h    = h_lost_h2
+			h_gain_h    = h_gain_h2
 			bond_lost_h = bond_lost_h2
 			bond_gain_h = bond_gain_h2
 
 	else:
-		h_lost_h = h_lost_h1
-		h_gain_h = h_gain_h1
+		h_lost_h    = h_lost_h1
+		h_gain_h    = h_gain_h1
 		bond_lost_h = bond_lost_h1
 		bond_gain_h = bond_gain_h1
 
-	h_lost_r2 = Reshape((N_c, N_e, N_h), name = "expand H_lost edits")(h_lost_h)
-	h_gain_r2 = Reshape((N_c, N_e, N_h), name = "expand H_gain edits")(h_gain_h)
+	h_lost_r2    = Reshape((N_c, N_e, N_h), name = "expand H_lost edits")(h_lost_h)
+	h_gain_r2    = Reshape((N_c, N_e, N_h), name = "expand H_gain edits")(h_gain_h)
 	bond_lost_r2 = Reshape((N_c, N_e, N_h), name = "expand bond_lost edits")(bond_lost_h)
 	bond_gain_r2 = Reshape((N_c, N_e, N_h), name = "expand bond_gain edits")(bond_gain_h)
 
@@ -122,7 +130,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 
 	# Concatenate enhancement and solvents
 	solvent_rpt = RepeatVector(N_c, name = "broadcast solvent vector")(solvent)
-	temp_rpt = RepeatVector(N_c, name = "broadcast temperature")(temp)
+	temp_rpt    = RepeatVector(N_c, name = "broadcast temperature")(temp)
 	params_enhancement = merge([params, enhancement_r, solvent_rpt, temp_rpt], mode = 'concat', name = "concatenate context")
 
 	# # Calculate using thermo-ish
@@ -151,10 +159,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	model.summary()
 
 	# Now compile
-	sgd = SGD(lr = lr, decay = 1e-4, momentum = 0.9)
-	adam = Adam(lr = lr)
-
-	model.compile(loss = 'categorical_crossentropy', optimizer = adam, 
+	model.compile(loss = 'categorical_crossentropy', optimizer = optimizer, 
 		metrics = ['accuracy'])
 
 	return model
@@ -311,13 +316,13 @@ def test(model, h5f, split_ratio):
 				if rank_true_edit != 1:
 					# record highest probability
 					most_likely_edit_i = np.argmax(pred)
-					most_likely_prob = np.max(pred)
+					most_likely_prob   = np.max(pred)
 				else:
 					# record number two prediction
 					most_likely_edit_i = np.argmax(pred[pred != np.max(pred)])
-					most_likely_prob = np.max(pred[pred != np.max(pred)])
+					most_likely_prob   = np.max(pred[pred != np.max(pred)])
 				most_likely_smiles = labels['candidate_smiles'][i, most_likely_edit_i]
-				most_likely_edit = edits[most_likely_edit_i]
+				most_likely_edit   = edits[most_likely_edit_i]
 
 				fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
 					labels['reaction_true'][i], dataset, 
@@ -408,6 +413,8 @@ if __name__ == '__main__':
 			help = 'Weight assigned to enhancement factor, default 0.1')
 	parser.add_argument('--Nc', type = int, default = 500,
 			help = 'Number of candidates per example, default 500')
+	parser.add_argument('--optimizer', style = str, default = 'adadelta',
+			help = 'Optimizer to use, default adadelta')
 
 	args = parser.parse_args()
 
@@ -416,25 +423,36 @@ if __name__ == '__main__':
 
 	F_atom = len(a[0])
 	F_bond = len(b[0])
-
-	nb_epoch = int(args.nb_epoch)
-	batch_size = int(args.batch_size)
-	N_h1 = int(args.Nh1)
-	N_h2 = int(args.Nh2)
-	N_h3 = int(args.Nh3)
-	N_hf = int(args.Nhf)
-	l2v = float(args.l2)
-	lr = float(args.lr)
-	N_c = int(args.Nc) # number of candidate edit sets
-	N_e = 5 # maximum number of edits per class
-	context_weight = float(args.context_weight)
+	
+	nb_epoch           = int(args.nb_epoch)
+	batch_size         = int(args.batch_size)
+	N_h1               = int(args.Nh1)
+	N_h2               = int(args.Nh2)
+	N_h3               = int(args.Nh3)
+	N_hf               = int(args.Nhf)
+	l2v                = float(args.l2)
+	lr                 = float(args.lr)
+	N_c                = int(args.Nc) # number of candidate edit sets
+	N_e                = 5 # maximum number of edits per class
+	context_weight     = float(args.context_weight)
 	enhancement_weight = float(args.enhancement_weight)
-	data_file = args.data
+	data_file          = args.data
+	optimizer          = args.optimizer
 
 	THIS_FOLD_OUT_OF_FIVE = int(args.fold)
 	tag = args.tag + ' fold{}'.format(args.fold)
 
 	SPLIT_RATIO = 0.8
+
+	if optimizer == 'sgd':
+		opt  = SGD(lr = lr, decay = 1e-4, momentum = 0.9)
+	elif optimizer == 'adam':
+		opt = Adam(lr = lr)
+	elif optimizer == 'adadelta':
+		opt = Adadelta()
+		print('Because Adadelta was selected, ignoring lr setting')
+	else:
+		raise ValueError('Unrecognized optimizer')
 
 	# Labels
 	FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output')
@@ -452,16 +470,17 @@ if __name__ == '__main__':
 		rebuild = raw_input('Do you want to rebuild from scratch instead of loading from file? [n/y] ')
 		if rebuild == 'y':
 			model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, 
-				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, 
+				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = opt,
 				context_weight = context_weight, enhancement_weight = enhancement_weight)
 		else:
 			model = model_from_json(open(MODEL_FPATH).read())
 			model.compile(loss = 'categorical_crossentropy', 
-				optimizer = Adam(lr = lr),
+				optimizer = opt,
 				metrics = ['accuracy'])
 		model.load_weights(WEIGHTS_FPATH)
 	else:
-		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight)
+		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight,
+			enhancement_weight = enhancement_weight, optimizer = opt)
 		try:
 			with open(MODEL_FPATH, 'w') as outfile:
 				outfile.write(model.to_json())
