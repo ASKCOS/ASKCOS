@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 import django.contrib.auth.views
 from forms import SmilesInputForm, DrawingInputForm, is_valid_smiles
 from bson.objectid import ObjectId
+import time
 
 ### Retro transformer
 from db import db_client
@@ -11,7 +12,10 @@ from django.conf import settings
 database = db_client[settings.RETRO_TRANSFORMS['database']]
 collection = database[settings.RETRO_TRANSFORMS['collection']]
 import makeit.retro.transformer as transformer 
-RetroTransformer = transformer.Transformer()
+RetroTransformer = transformer.Transformer(
+	parallel = settings.RETRO_TRANSFORMS['parallel'], 
+	nb_workers = settings.RETRO_TRANSFORMS['nb_workers'],
+)
 mincount_retro = settings.RETRO_TRANSFORMS['mincount']
 RetroTransformer.load(collection, mincount = mincount_retro, get_retro = True, get_synth = False)
 print('Loaded {} retro templates'.format(RetroTransformer.num_templates))
@@ -136,8 +140,10 @@ def retro_target(request, smiles, max_n = 50):
 	}
 
 	# Perform retrosynthesis
+	startTime = time.time()
 	result = RetroTransformer.perform_retro(smiles)
 	context['precursors'] = result.return_top(n = 50)
+	elapsedTime = time.time() - startTime
 
 	# Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
 	# Also add up total number of examples
@@ -152,7 +158,7 @@ def retro_target(request, smiles, max_n = 50):
 				'ppg': '${}/g'.format(ppg) if ppg else 'cannot buy'
 			})
 
-	context['footnote'] = RETRO_FOOTNOTE
+	context['footnote'] = RETRO_FOOTNOTE + ', generated results in %0.3f seconds' % elapsedTime
 	return render(request, 'retro.html', context)
 
 @login_required
