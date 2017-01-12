@@ -87,17 +87,6 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 	randomizer = Randomizer()
 	generator = enumerate(randomizer.get_sequential())
 
-	# Initialize (this is not the best way to do this...)
-	reactant_dicts = []
-	reaction_candidate_edits = []
-	reaction_candidate_smiles = []
-	reaction_true_onehot = []
-	reaction_true = []
-	reaction_contexts = []
-	rxd_ids = []
-	reaction_yields = []
-	reaction_candidate_edits_compact = []
-
 	i = 0
 	for j, reaction in generator:
 		
@@ -204,24 +193,45 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 			context_info += ',t:' + str(rxd['RXD_TIM']) + 'min,y:' + str(rxd['RXD_NYD']) + '%'
 		#print(context_info)
 
-		reactant_dicts.append(edits_to_vectors([], reactants_check, return_atom_desc_dict = True))
-		reaction_contexts.append(np.array([T] + solvent + list(reagent_fp)))
-		#reaction_candidate_edits.append([x for (y, z, x) in zipsort])
-		reaction_true_onehot.append([y for (y, z, x) in zipsort])
-		reaction_candidate_smiles.append([z for (y, z, x) in zipsort])
-		reaction_true.append(str(reactant_smiles) + '>' + str(context_info) + '>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)))
-		rxd_ids.append(str(rxd['_id']))
-		reaction_yields.append(rxd['RXD_NYD'])
+		reaction_candidate_edits_compact = [
+				';'.join([
+					','.join(x[0]),
+					','.join(x[1]),
+					','.join(['%s-%s-%s' % tuple(blost) for blost in x[2]]),
+					','.join(['%s-%s-%s' % tuple(bgain) for bgain in x[3]]),
+				])
+			for (y, z, x) in zipsort]
 
-		reaction_candidate_edits_compact.append(
-			[';'.join([
-				','.join(x[0]),
-				','.join(x[1]),
-				','.join(['%s-%s-%s' % tuple(blost) for blost in x[2]]),
-				','.join(['%s-%s-%s' % tuple(bgain) for bgain in x[3]]),
-			])
-				for (y, z, x) in zipsort]
-		)
+		# legend = {
+		# 	'candidate_edits_compact': 0,
+		# 	'atom_desc_dict': 1,
+		# 	'T': 2,
+		# 	'solvent': 3,
+		# 	'reagent': 4,
+		# 	'yield': 5,
+		# 	'rxdid': 6,
+		# 	'reaction_true_onehot': 7,
+		# 	'candidate_smiles': 8,
+		# 	'reaction_true': 9,
+		# }
+
+		pickle.dump((
+			reaction_candidate_edits_compact,
+			edits_to_vectors([], reactants_check, return_atom_desc_dict = True),
+			T,
+			solvent,
+			reagent_fp,
+			rxd['RXD_NYD'],
+			[y for (y, z, x) in zipsort],
+		), fid_data, pickle.HIGHEST_PROTOCOL)
+
+		pickle.dump((
+			reaction_candidate_edits_compact,
+			str(rxd['_id']),
+			str(reactant_smiles) + '>' + str(context_info) + '>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)),
+			[z for (y, z, x) in zipsort],
+			reaction_candidate_edits_compact,
+		), fid_labels, pickle.HIGHEST_PROTOCOL)
 
 		i += 1
 
@@ -229,29 +239,6 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 			print('Completed {}/{}'.format(i, n_max))
 
 		if i == n_max:
-
-			reaction_contexts = np.array(reaction_contexts)
-
-			with open(os.path.join(FROOT, '{}_candidate_bools.pickle'.format(tag)), 'wb') as outfile:
-				pickle.dump(reaction_true_onehot, outfile, pickle.HIGHEST_PROTOCOL)
-			with open(os.path.join(FROOT, '{}_candidate_smiles.pickle'.format(tag)), 'wb') as outfile:
-				pickle.dump(reaction_candidate_smiles, outfile, pickle.HIGHEST_PROTOCOL)
-			with open(os.path.join(FROOT, '{}_reaction_string.pickle'.format(tag)), 'wb') as outfile:
-				pickle.dump(reaction_true, outfile, pickle.HIGHEST_PROTOCOL)
-			with open(os.path.join(FROOT, '{}_contexts.pickle'.format(tag)), 'wb') as outfile:
-				pickle.dump(reaction_contexts, outfile, pickle.HIGHEST_PROTOCOL)
-			with open(os.path.join(FROOT, '{}_yields.pickle'.format(tag)), 'wb') as outfile:
-				pickle.dump(np.array(reaction_yields), outfile, pickle.HIGHEST_PROTOCOL)
-			with open(os.path.join(FROOT, '{}_reactant_dicts.pickle'.format(tag)), 'wb') as outfile:
-				pickle.dump(reactant_dicts, outfile, pickle.HIGHEST_PROTOCOL)
-			with open(os.path.join(FROOT, '{}_candidate_edits_compact.pickle'.format(tag)), 'wb') as outfile:
-				pickle.dump(reaction_candidate_edits_compact, outfile, pickle.HIGHEST_PROTOCOL)
-
-			with open(os.path.join(FROOT, '{}_info.txt'.format(tag)), 'w') as outfile:
-				outfile.write('RXD_IDs in this file:\n')
-				for rxd_id in rxd_ids:
-					outfile.write(str(rxd_id) + '\n')
-
 			print('Finished the requested {} examples'.format(n_max))
 			break
 
@@ -274,4 +261,35 @@ if __name__ == '__main__':
 	tag = str(args.tag)
 	print('Only using complete records')
 
+	legend_data = {
+		'candidate_edits_compact': 0,
+		'atom_desc_dict': 1,
+		'T': 2,
+		'solvent': 3,
+		'reagent': 4,
+		'yield': 5,
+		'reaction_true_onehot': 6,
+		'N_examples': n,
+	}
+
+	legend_labels = {
+		'rxdid': 0,
+		'reaction_true': 1,
+		'candidate_smiles': 2,
+		'candidate_edits_compact': 3,
+		'N_examples': n,
+	}
+
+	# Open pickle file
+	fid_data = open(os.path.join(FROOT, '{}_data.pickle'.format(tag)), 'wb')
+	fid_labels = open(os.path.join(FROOT, '{}_labels.pickle'.format(tag)), 'wb')
+
+	# First entry is the legend
+	pickle.dump(legend_data, fid_data, pickle.HIGHEST_PROTOCOL)
+	pickle.dump(legend_labels, fid_labels, pickle.HIGHEST_PROTOCOL)
+
+	# Now get candidates
 	get_candidates(args.candidate_collection, n_max = n)
+
+	fid_data.close()
+	fid_labels.close()
