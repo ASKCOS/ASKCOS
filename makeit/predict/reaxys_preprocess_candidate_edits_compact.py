@@ -226,7 +226,6 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 		), fid_data, pickle.HIGHEST_PROTOCOL)
 
 		pickle.dump((
-			reaction_candidate_edits_compact,
 			str(rxd['_id']),
 			str(reactant_smiles) + '>' + str(context_info) + '>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)),
 			[z for (y, z, x) in zipsort],
