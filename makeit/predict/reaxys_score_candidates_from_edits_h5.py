@@ -220,9 +220,13 @@ def get_data(h5f, split_ratio):
 	training and validation given an h5f file and split_ratio'''
 
 	N_samples =  len(h5f['x_h_lost'])
-	N_train = int(N_samples * split_ratio)
+	N_train = int(N_samples * split_ratio[0])
+	N_val = int(N_samples * split_ratio[1])
+	N_test = N_samples - N_train - N_val
 	print('Total number of samples: {}'.format(N_samples))
-	print('Training on {}% - {}'.format(split_ratio*100, N_train))
+	print('Training   on {}% - {}'.format(split_ratio[0]*100, N_train))
+	print('Validating on {}% - {}'.format(split_ratio[1]*100, N_val))
+	print('Testing    on {}% - {}'.format((1-split_ratio[1]-split_ratio[0])*100, N_test))
 
 	return {
 		'N_samples': N_samples,
@@ -232,24 +236,30 @@ def get_data(h5f, split_ratio):
 		'train_label_generator': label_generator(h5f, 0, N_train, batch_size),
 		'train_nb_samples': N_train,
 		#
-		'val_generator': data_generator(h5f, N_train, N_samples, batch_size),
-		'val_label_generator': label_generator(h5f, N_train, N_samples, batch_size),
-		'val_nb_samples': N_samples - N_train,
+		'val_generator': data_generator(h5f, N_train, N_train + N_val, batch_size),
+		'val_label_generator': label_generator(h5f, N_train, N_train + N_val, batch_size),
+		'val_nb_samples': N_val,
+		#
+		'test_generator': data_generator(h5f, N_train + N_val, N_samples, batch_size),
+		'test_label_generator': label_generator(h5f, N_train + N_val, N_samples, batch_size),
+		'test_nb_samples': N_test,
+		#
 		#
 		'h5f': h5f,
 		'batch_size': batch_size,
 	}
 
-def train(model, h5f, split_ratio = 0.8):
+def train(model, h5f, split_ratio):
 	'''Trains the Keras model'''
 
 	data = get_data(h5f, split_ratio)
 
 	# Add additional callbacks
-	from keras.callbacks import ModelCheckpoint, CSVLogger
+	from keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping
 	callbacks = [
 		ModelCheckpoint(WEIGHTS_FPATH, save_weights_only = True), # save every epoch
-		CSVLogger(HIST_FPATH)
+		CSVLogger(HIST_FPATH),
+		EarlyStopping(patience = 5),
 	]
 
 	try:
@@ -342,15 +352,20 @@ def test(model, h5f, split_ratio):
 		data['val_label_generator'], 
 		int(np.ceil(data['val_nb_samples']/float(data['batch_size'])))
 	)
+	test_preds, test_corr = test_on_set(fid, 'test', data['test_generator'], 
+		data['test_label_generator'], 
+		int(np.ceil(data['test_nb_samples']/float(data['batch_size'])))
+	)
 
 	fid.close()
 	
 	train_acc = train_corr / float(len(train_preds))
 	val_acc = val_corr / float(len(val_preds))
+	test_acc = test_corr / float(len(test_preds))
 
 	train_preds = np.array(train_preds)
 	val_preds = np.array(val_preds)
-
+	test_preds = np.array(test_preds)
 
 	def histogram(array, title, path, acc):
 		acc = int(acc * 1000)/1000. # round3
@@ -370,6 +385,7 @@ def test(model, h5f, split_ratio):
 
 	histogram(train_preds, 'TRAIN', HISTOGRAM_FPATH % 'train', train_acc)
 	histogram(val_preds, 'VAL', HISTOGRAM_FPATH % 'val', val_acc)
+	histogram(test_preds, 'TEST', HISTOGRAM_FPATH % 'test', test_acc)
 
 
 if __name__ == '__main__':
@@ -442,7 +458,7 @@ if __name__ == '__main__':
 	THIS_FOLD_OUT_OF_FIVE = int(args.fold)
 	tag = args.tag + ' fold{}'.format(args.fold)
 
-	SPLIT_RATIO = 0.8
+	SPLIT_RATIO = (0.8, 0.1) # 80% training, 10% validation, balance testing
 
 	if optimizer == 'sgd':
 		opt  = SGD(lr = lr, decay = 1e-4, momentum = 0.9)
@@ -489,9 +505,6 @@ if __name__ == '__main__':
 
 	if bool(args.test):
 		test(model, h5f, SPLIT_RATIO)
-		quit(1)
-	elif bool(args.visualize):
-		visualize_weights(model, tag)
 		quit(1)
 
 	h5f = h5py.File(data_file, 'r')
