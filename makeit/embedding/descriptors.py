@@ -170,20 +170,24 @@ def atom_structural(atom, asOneHot = False):
 
 
 
-def edits_to_vectors(edits, mol):
+def edits_to_vectors(edits, mol, atom_descriptors = [], return_atom_descriptors = False):
 	'''
 	Given a set of edits (h_lost, h_gain, bond_lost, and bond_gain) from summarize_reaction_outcome,
 	this functionr eturns a set of vectors describiing those edits.
 	'''
 
+	if not atom_descriptors:
+		atom_descriptors = atom_level_descriptors(mol, include = ['functional', 'structural'], asOneHot = True)[1]
+	if return_atom_descriptors:
+		return atom_descriptors
+
 	h_lost, h_gain, bond_lost, bond_gain = edits
 	
-        map_dict = {}
-        for (i, a) in enumerate(mol.GetAtoms()):
-            if a.HasProp('molAtomMapNumber'):
-                map_dict[a.GetProp('molAtomMapNumber')] = i
-                map_dict[unicode(a.GetProp('molAtomMapNumber'))] = i
-        atom_descriptors = atom_level_descriptors(mol, include = ['functional', 'structural'], asOneHot = True)[1]
+	map_dict = {}
+	for (i, a) in enumerate(mol.GetAtoms()):
+		if a.HasProp('molAtomMapNumber'):
+			map_dict[a.GetProp('molAtomMapNumber')] = i
+			map_dict[unicode(a.GetProp('molAtomMapNumber'))] = i
 
 #	print('Generated atom descriptors')
 

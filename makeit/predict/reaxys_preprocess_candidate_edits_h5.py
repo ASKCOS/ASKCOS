@@ -261,6 +261,11 @@ def get_candidates(candidate_collection, seed = 0, outfile = '.', shuffle = Fals
 				continue
 
 
+			try:
+				atom_descriptors = edits_to_vectors([], reactants_check, return_atom_descriptors = True)
+			except KeyError as e:
+				print(e)
+
 			### NOW CONVERT THE DATA TO NUMERICAL VALUES ###
 			x_h_lost = np.zeros((padUpTo, maxEditsPerClass, F_atom))
 			x_h_gain = np.zeros((padUpTo, maxEditsPerClass, F_atom))
@@ -275,7 +280,7 @@ def get_candidates(candidate_collection, seed = 0, outfile = '.', shuffle = Fals
 				try:
 					edit_h_lost_vec, edit_h_gain_vec, \
 						edit_bond_lost_vec, edit_bond_gain_vec = \
-						edits_to_vectors(edits, reactants_check)
+						edits_to_vectors(edits, reactants_check, atom_descriptors = atom_descriptors)
 				except KeyError as e:
 					print(e)
 					print('Skipping this edit')
@@ -343,8 +348,8 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--max', type = int, default = 10000,
 					help = 'Maximum number of examples to save')
-	parser.add_argument('-p', '--padupto', type = int, default = 100,
-						help = 'Number of candidates to allow per example, default 100')
+	parser.add_argument('-p', '--padupto', type = int, default = 500,
+						help = 'Number of candidates to allow per example, default 500')
 	parser.add_argument('-s', '--shuffle', type = int, default = 0,
 						help = 'Whether or not to shuffle, default 0')
 	parser.add_argument('--skip', type = int, default = 0,
