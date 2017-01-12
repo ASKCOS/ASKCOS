@@ -170,44 +170,33 @@ def atom_structural(atom, asOneHot = False):
 
 
 
-def edits_to_vectors(edits, mol, atom_descriptors = [], return_atom_descriptors = False):
+def edits_to_vectors(edits, mol, atom_desc_dict = {}, return_atom_desc_dict = False):
 	'''
 	Given a set of edits (h_lost, h_gain, bond_lost, and bond_gain) from summarize_reaction_outcome,
 	this functionr eturns a set of vectors describiing those edits.
 	'''
 
-	if not atom_descriptors:
+	if not atom_desc_dict:
 		atom_descriptors = atom_level_descriptors(mol, include = ['functional', 'structural'], asOneHot = True)[1]
-	if return_atom_descriptors:
-		return atom_descriptors
+		atom_desc_dict = {a.GetProp('molAtomMapNumber'): atom_descriptors[i] for (i, a) in enumerate(mol.GetAtoms()) if a.HasProp('molAtomMapNumber')}
+	if return_atom_desc_dict:
+		return atom_desc_dict
 
-	h_lost, h_gain, bond_lost, bond_gain = edits
-	
-	map_dict = {}
-	for (i, a) in enumerate(mol.GetAtoms()):
-		if a.HasProp('molAtomMapNumber'):
-			map_dict[a.GetProp('molAtomMapNumber')] = i
-			map_dict[unicode(a.GetProp('molAtomMapNumber'))] = i
+	# h_lost, h_gain, bond_lost, bond_gain = edits
 
-#	print('Generated atom descriptors')
-
-	bond_lost_features = [
-		atom_descriptors[map_dict[molAtomMapNumber1]] + 
-		oneHotVector(bondOrder, [1.0, 1.5, 2.0, 3.0]) + 
-		atom_descriptors[map_dict[molAtomMapNumber2]] \
-			for (molAtomMapNumber1, molAtomMapNumber2, bondOrder) in bond_lost
-	]
-#	print('Generated bond lost')
-	bond_gain_features = [
-		atom_descriptors[map_dict[molAtomMapNumber1]] + 
-		oneHotVector(bondOrder, [1.0, 1.5, 2.0, 3.0]) + 
-		atom_descriptors[map_dict[molAtomMapNumber2]] \
-			for (molAtomMapNumber1, molAtomMapNumber2, bondOrder) in bond_gain
-	]
-#	print('Generated bond gained')
 	return (
-		[atom_descriptors[map_dict[molAtomMapNumber]] for molAtomMapNumber in h_lost], 
-		[atom_descriptors[map_dict[molAtomMapNumber]] for molAtomMapNumber in h_gain], 
-		bond_lost_features,
-		bond_gain_features
+		[atom_desc_dict[molAtomMapNumber] for molAtomMapNumber in edits[0]], 
+		[atom_desc_dict[molAtomMapNumber] for molAtomMapNumber in edits[1]], 
+		[
+		atom_desc_dict[molAtomMapNumber1] + 
+		oneHotVector(bondOrder, [1.0, 1.5, 2.0, 3.0]) + 
+		atom_desc_dict[molAtomMapNumber2] \
+			for (molAtomMapNumber1, molAtomMapNumber2, bondOrder) in edits[2]
+		],
+		[
+		atom_desc_dict[molAtomMapNumber1] + 
+		oneHotVector(bondOrder, [1.0, 1.5, 2.0, 3.0]) + 
+		atom_desc_dict[molAtomMapNumber2] \
+			for (molAtomMapNumber1, molAtomMapNumber2, bondOrder) in edits[3]
+		]
 	)

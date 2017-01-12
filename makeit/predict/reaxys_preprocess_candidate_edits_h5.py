@@ -148,6 +148,9 @@ def get_candidates(candidate_collection, seed = 0, outfile = '.', shuffle = Fals
 		h5f.create_dataset('reaction_true', (n_max,), dtype=asciistring)
 
 	i = 0
+	# TESTING
+	NUMPY_EXPANSION_TIME = 0
+	#
 	try:
 		for j, reaction in generator:
 		
@@ -262,10 +265,12 @@ def get_candidates(candidate_collection, seed = 0, outfile = '.', shuffle = Fals
 
 
 			try:
-				atom_descriptors = edits_to_vectors([], reactants_check, return_atom_descriptors = True)
+				atom_desc_dict = edits_to_vectors([], reactants_check, return_atom_desc_dict = True)
 			except KeyError as e:
-				print(e)
+				print('KeyError: {}'.format(e))
+				continue	
 
+			startTime  = time.time()
 			### NOW CONVERT THE DATA TO NUMERICAL VALUES ###
 			x_h_lost = np.zeros((padUpTo, maxEditsPerClass, F_atom))
 			x_h_gain = np.zeros((padUpTo, maxEditsPerClass, F_atom))
@@ -280,7 +285,7 @@ def get_candidates(candidate_collection, seed = 0, outfile = '.', shuffle = Fals
 				try:
 					edit_h_lost_vec, edit_h_gain_vec, \
 						edit_bond_lost_vec, edit_bond_gain_vec = \
-						edits_to_vectors(edits, reactants_check, atom_descriptors = atom_descriptors)
+						edits_to_vectors(edits, reactants_check, atom_desc_dict = atom_desc_dict)
 				except KeyError as e:
 					print(e)
 					print('Skipping this edit')
@@ -332,6 +337,7 @@ def get_candidates(candidate_collection, seed = 0, outfile = '.', shuffle = Fals
 
 			if i == n_max:
 				print('Finished the requested {} examples'.format(n_max))
+				print('Average numpy expansion time: {}'.format(NUMPY_EXPANSION_TIME / i))
 				h5f.close()
 				break
 
