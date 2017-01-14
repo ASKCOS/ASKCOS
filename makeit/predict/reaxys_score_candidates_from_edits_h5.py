@@ -429,7 +429,7 @@ if __name__ == '__main__':
 			help = 'Weight assigned to enhancement factor, default 0.1')
 	parser.add_argument('--Nc', type = int, default = 500,
 			help = 'Number of candidates per example, default 500')
-	parser.add_argument('--optimizer', style = str, default = 'adadelta',
+	parser.add_argument('--optimizer', type = str, default = 'adadelta',
 			help = 'Optimizer to use, default adadelta')
 
 	args = parser.parse_args()
