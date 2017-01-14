@@ -247,8 +247,8 @@ def data_generator(start_at, end_at, batch_size):
 					# Remember sizes of x_h_lost, x_h_gain, x_bond_lost, x_bond_gain, reaction_true_onehot
 					batchDim = (N, N_c, N_e1, N_e2, N_e3, N_e4)
 
-					print('The padded sizes of this batch will be: N, N_c, N_e1, N_e2, N_e3, N_e4')
-					print(batchDim)
+					# print('The padded sizes of this batch will be: N, N_c, N_e1, N_e2, N_e3, N_e4')
+					# print(batchDim)
 					batchDims[k] = batchDim
 
 				else:
@@ -400,10 +400,8 @@ def get_data():
 		'batch_size': batch_size,
 	}
 
-def train(model):
+def train(model, data):
 	'''Trains the Keras model'''
-
-	data = get_data()
 
 	# Add additional callbacks
 	from keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping
@@ -427,14 +425,13 @@ def train(model):
 	except KeyboardInterrupt:
 		print('Stopped training early!')
 
-def test(model):
+def test(model, data):
 	'''
 	Given a trained model and a list of samples, this function tests
 	the model
 	'''
 
 	print('Testing model')
-	data = get_data()
 
 	fid = open(TEST_FPATH, 'w')
 	fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
@@ -459,6 +456,7 @@ def test(model):
 			labels = label_generator.next()
 			y = y[0] # only one output, which is True/False
 		
+			# TODO: pre-fetch data in queue
 			preds = model.predict_on_batch(x)
 
 			for i in range(preds.shape[0]): 
@@ -665,6 +663,7 @@ if __name__ == '__main__':
 		test(model)
 		quit(1)
 
-	train(model)
+	data = get_data()
+	train(model, data)
 	model.save_weights(WEIGHTS_FPATH, overwrite = True) 
-	test(model)
+	test(model, data)
