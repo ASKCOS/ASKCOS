@@ -294,7 +294,7 @@ def data_generator(start_at, end_at, batch_size):
 							x_bond_gain[i, c, e, :] = edit_bond_gain
 
 					# Add truncated reaction true (eventually will not truncate)
-					reaction_true_onehot[i, :min(N_c, len(doc[REACTION_TRUE_ONEHOT]))] = doc[REACTION_TRUE_ONEHOT][:N_c]
+					reaction_true_onehot[i, :len(doc[REACTION_TRUE_ONEHOT])] = doc[REACTION_TRUE_ONEHOT]
 				# Get rid of NaNs
 				x_h_lost[np.isnan(x_h_lost)] = 0.0
 				x_h_gain[np.isnan(x_h_gain)] = 0.0
