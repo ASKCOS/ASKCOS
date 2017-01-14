@@ -152,7 +152,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	feature_to_params = Dense(8, activation = 'linear', W_regularizer = l2(l2v))
 	params = TimeDistributed(feature_to_params, name = "features to K,G0,C,E,S,A,B,V")(net_sum_h)
 
-	# Concatenate enhancement and solvents	
+	# Concatenate enhancement and solvents
 	params_enhancement = merge([params, enhancement_r, solvent_rpt, temp_rpt], mode = 'concat', name = "concatenate context")
 
 	# # Calculate using thermo-ish
@@ -198,6 +198,7 @@ def data_generator(start_at, end_at, batch_size):
 		return (split[0], split[1], float(split[2]))
 
 	filePos_start_at = -1
+	batchDims = [() for j in range(start_at, end_at, batch_size)]
 
 	# Keep returning forever and ever
 	with open(DATA_FPATH, 'rb') as fid:
@@ -224,24 +225,49 @@ def data_generator(start_at, end_at, batch_size):
 				# Jump to beginning of the desired data
 				fid.seek(filePos_start_at)
 
-			for startIndex in range(start_at, end_at, batch_size):
+			for k, startIndex in enumerate(range(start_at, end_at, batch_size)):
 				endIndex = min(startIndex + batch_size, end_at)
+				N = endIndex - startIndex # number of samples this batch
+				# print('Serving up examples {} through {}'.format(startIndex, endIndex))
 
 				docs = [pickle.load(fid) for j in range(startIndex, endIndex)]
 
+				# First time sending this batch? Need to figure out size of padded batch
+				if not batchDims[k]:
+					N_c = max([len(doc[REACTION_TRUE_ONEHOT]) for doc in docs])
+					N_e1 = 1; N_e2 = 1; N_e3 = 1; N_e4 = 1;
+					for i, doc in enumerate(docs):
+						for (c, edit_string) in enumerate(doc[CANDIDATE_EDITS_COMPACT]):
+							edit_string_split = edit_string.split(';')
+							N_e1 = max(N_e1, edit_string_split[0].count(',') + 1)
+							N_e2 = max(N_e2, edit_string_split[1].count(',') + 1)
+							N_e3 = max(N_e3, edit_string_split[2].count(',') + 1)
+							N_e4 = max(N_e4, edit_string_split[3].count(',') + 1)
+
+					# Remember sizes of x_h_lost, x_h_gain, x_bond_lost, x_bond_gain, reaction_true_onehot
+					batchDim = (N, N_c, N_e1, N_e2, N_e3, N_e4)
+
+					print('The padded sizes of this batch will be: N, N_c, N_e1, N_e2, N_e3, N_e4')
+					print(batchDim)
+					batchDims[k] = batchDim
+
+				else:
+					(N, N_c, N_e1, N_e2, N_e3, N_e4) = batchDims[k]
+
 				# Initialize numpy arrays for x_h_lost, etc.
-				N = endIndex - startIndex # number of samples this batch
+				
 				# Get padding ready
-				x_h_lost = np.zeros((N, N_c, N_e, F_atom))
-				x_h_gain = np.zeros((N, N_c, N_e, F_atom))
-				x_bond_lost = np.zeros((N, N_c, N_e, F_bond))
-				x_bond_gain = np.zeros((N, N_c, N_e, F_bond))
+				x_h_lost = np.zeros((N, N_c, N_e1, F_atom))
+				x_h_gain = np.zeros((N, N_c, N_e2, F_atom))
+				x_bond_lost = np.zeros((N, N_c, N_e3, F_bond))
+				x_bond_gain = np.zeros((N, N_c, N_e4, F_bond))
 				reaction_true_onehot = np.zeros((N, N_c))
 
 				for i, doc in enumerate(docs):
 
 					for (c, edit_string) in enumerate(doc[CANDIDATE_EDITS_COMPACT]):
-						if c >= N_c: break
+						if c >= N_c: 
+							raise ValueError('Input tensors not large enough to accomodate number of candidates!')
 						
 						edit_string_split = edit_string.split(';')
 						edits = [
@@ -255,16 +281,16 @@ def data_generator(start_at, end_at, batch_size):
 							edit_bond_lost_vec, edit_bond_gain_vec = edits_to_vectors(edits, None, atom_desc_dict = doc[ATOM_DESC_DICT])
 
 						for (e, edit_h_lost) in enumerate(edit_h_lost_vec):
-							if e >= N_e: break
+							if e >= N_e1: raise ValueError('N_e1 not large enough!')
 							x_h_lost[i, c, e, :] = edit_h_lost
 						for (e, edit_h_gain) in enumerate(edit_h_gain_vec):
-							if e >= N_e: break
+							if e >= N_e2: raise ValueError('N_e2 not large enough!')
 							x_h_gain[i, c, e, :] = edit_h_gain
 						for (e, edit_bond_lost) in enumerate(edit_bond_lost_vec):
-							if e >= N_e: break
+							if e >= N_e3: raise ValueError('N_e3 not large enough!')
 							x_bond_lost[i, c, e, :] = edit_bond_lost
 						for (e, edit_bond_gain) in enumerate(edit_bond_gain_vec):
-							if e >= N_e: break
+							if e >= N_e4: raise ValueRrror('N_e4 not large enough!')
 							x_bond_gain[i, c, e, :] = edit_bond_gain
 
 					# Add truncated reaction true (eventually will not truncate)
