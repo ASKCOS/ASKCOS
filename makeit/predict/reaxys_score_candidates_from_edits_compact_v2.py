@@ -257,11 +257,11 @@ def data_generator(start_at, end_at, batch_size):
 				# Initialize numpy arrays for x_h_lost, etc.
 				
 				# Get padding ready
-				x_h_lost = np.zeros((N, N_c, N_e1, F_atom))
-				x_h_gain = np.zeros((N, N_c, N_e2, F_atom))
-				x_bond_lost = np.zeros((N, N_c, N_e3, F_bond))
-				x_bond_gain = np.zeros((N, N_c, N_e4, F_bond))
-				reaction_true_onehot = np.zeros((N, N_c))
+				x_h_lost = np.zeros((N, N_c, N_e1, F_atom), dtype=np.float32)
+				x_h_gain = np.zeros((N, N_c, N_e2, F_atom), dtype=np.float32)
+				x_bond_lost = np.zeros((N, N_c, N_e3, F_bond), dtype=np.float32)
+				x_bond_gain = np.zeros((N, N_c, N_e4, F_bond), dtype=np.float32)
+				reaction_true_onehot = np.zeros((N, N_c), dtype=np.float32)
 
 				for i, doc in enumerate(docs):
 
@@ -314,9 +314,9 @@ def data_generator(start_at, end_at, batch_size):
 						x_h_gain,
 						x_bond_lost,
 						x_bond_gain,
-						np.array([doc[REAGENT] for doc in docs]), # reagent
-						np.array([doc[SOLVENT] for doc in docs]), # solvent
-						np.array([doc[T] for doc in docs]), # temperature
+						np.array([doc[REAGENT] for doc in docs], dtype=np.float32), # reagent
+						np.array([doc[SOLVENT] for doc in docs], dtype=np.float32), # solvent
+						np.array([doc[T] for doc in docs], dtype=np.float32), # temperature
 					],
 					[
 						reaction_true_onehot,
