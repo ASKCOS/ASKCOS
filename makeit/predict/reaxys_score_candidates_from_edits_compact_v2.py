@@ -277,8 +277,11 @@ def data_generator(start_at, end_at, batch_size):
 							[bond_string_to_tuple(bond_string) for bond_string in edit_string_split[3].split(',') if bond_string],
 						]
 
-						edit_h_lost_vec, edit_h_gain_vec, \
-							edit_bond_lost_vec, edit_bond_gain_vec = edits_to_vectors(edits, None, atom_desc_dict = doc[ATOM_DESC_DICT])
+						try:
+							edit_h_lost_vec, edit_h_gain_vec, \
+								edit_bond_lost_vec, edit_bond_gain_vec = edits_to_vectors(edits, None, atom_desc_dict = doc[ATOM_DESC_DICT])
+						except KeyError as e: # sometimes molAtomMapNumber not found if hydrogens were explicit
+							continue
 
 						for (e, edit_h_lost) in enumerate(edit_h_lost_vec):
 							if e >= N_e1: raise ValueError('N_e1 not large enough!')
