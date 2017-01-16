@@ -83,6 +83,11 @@ if __name__ == '__main__':
 	# print(sizes_all)
 	# print(sizes_true)
 	print('After looking at {} documents'.format(k))
+	import json
+	with open(os.path.join(os.path.dirname(DATA_FPATH), 'sizes_all.json'), 'wb') as fid:
+		json.dump(sizes_all, fid)
+	with open(os.path.join(os.path.dirname(DATA_FPATH), 'sizes_true.json'), 'wb') as fid:
+		json.dump(sizes_true, fid)
 
 	import matplotlib.pyplot as plt
 
