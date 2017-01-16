@@ -183,7 +183,7 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
 
 	return model
 
-def data_generator(start_at, end_at, batch_size, max_N_c = None):
+def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False):
 	'''This function generates batches of data from the
 	pickle file since all the data can't fit in memory.
 
@@ -196,69 +196,74 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None):
 		split = string.split('-')
 		return (split[0], split[1], float(split[2]))
 
-	filePos_start_at = -1
-	batchDims = [() for j in range(start_at, end_at, batch_size)]
+	fileInfo  = [() for j in range(start_at, end_at, batch_size)] # (filePos, startIndex, endIndex)
+	batchDims = [() for j in range(start_at, end_at, batch_size)] # dimensions of each batch
+	batchNums = np.array([i for (i, j) in enumerate(range(start_at, end_at, batch_size))]) # list to shuffle later
 
 	# Keep returning forever and ever
 	with open(DATA_FPATH, 'rb') as fid:
+
+		# Do a first pass through the data
+		legend_data = pickle.load(fid) # first doc is legend
+
+		# Pre-load indeces
+		CANDIDATE_EDITS_COMPACT = legend_data['candidate_edits_compact']
+		ATOM_DESC_DICT          = legend_data['atom_desc_dict']
+		T                       = legend_data['T']
+		SOLVENT                 = legend_data['solvent']
+		REAGENT                 = legend_data['reagent']
+		YIELD                   = legend_data['yield']
+		REACTION_TRUE_ONEHOT    = legend_data['reaction_true_onehot']
+
+		for i in range(start_at): pickle.load(fid) # throw away first ___ entries
+
+		for k, startIndex in enumerate(range(start_at, end_at, batch_size)):
+			endIndex = min(startIndex + batch_size, end_at)
+
+			# Remember this starting position
+			fileInfo[k] = (fid.tell(), startIndex, endIndex)
+
+			N = endIndex - startIndex # number of samples this batch
+			# print('Serving up examples {} through {}'.format(startIndex, endIndex))
+
+			docs = [pickle.load(fid) for j in range(startIndex, endIndex)]
+
+			# FNeed to figure out size of padded batch
+			N_c = max([len(doc[REACTION_TRUE_ONEHOT]) for doc in docs])
+			if type(max_N_c) != type(None): # allow truncation during training
+				N_c = min(N_c, max_N_c)
+			N_e1 = 1; N_e2 = 1; N_e3 = 1; N_e4 = 1;
+			for i, doc in enumerate(docs):
+				for (c, edit_string) in enumerate(doc[CANDIDATE_EDITS_COMPACT]):
+					if c >= N_c: break
+					edit_string_split = edit_string.split(';')
+					N_e1 = max(N_e1, edit_string_split[0].count(',') + 1)
+					N_e2 = max(N_e2, edit_string_split[1].count(',') + 1)
+					N_e3 = max(N_e3, edit_string_split[2].count(',') + 1)
+					N_e4 = max(N_e4, edit_string_split[3].count(',') + 1)
+
+			# Remember sizes of x_h_lost, x_h_gain, x_bond_lost, x_bond_gain, reaction_true_onehot
+			batchDim = (N, N_c, N_e1, N_e2, N_e3, N_e4)
+
+			# print('The padded sizes of this batch will be: N, N_c, N_e1, N_e2, N_e3, N_e4')
+			# print(batchDim)
+			batchDims[k] = batchDim
+
 		while True:
 
-			# Is this the first iteration?
-			if filePos_start_at == -1:
+			if shuffle: np.random.shuffle(batchNums)
 
-				# Remember where data starts
-				legend_data = pickle.load(fid) # first doc is legend
+			for batchNum in batchNums:
+				(filePos, startIndex, endIndex) = fileInfo[batchNum]
+				(N, N_c, N_e1, N_e2, N_e3, N_e4) = batchDims[batchNum]
+				fid.seek(filePos)
 
-				# Pre-load indeces
-				CANDIDATE_EDITS_COMPACT = legend_data['candidate_edits_compact']
-				ATOM_DESC_DICT          = legend_data['atom_desc_dict']
-				T                       = legend_data['T']
-				SOLVENT                 = legend_data['solvent']
-				REAGENT                 = legend_data['reagent']
-				YIELD                   = legend_data['yield']
-				REACTION_TRUE_ONEHOT    = legend_data['reaction_true_onehot']
-
-				for i in range(start_at): pickle.load(fid) # throw away first ___ entries
-				filePos_start_at = fid.tell()
-			else:
-				# Jump to beginning of the desired data
-				fid.seek(filePos_start_at)
-
-			for k, startIndex in enumerate(range(start_at, end_at, batch_size)):
-				endIndex = min(startIndex + batch_size, end_at)
 				N = endIndex - startIndex # number of samples this batch
-				# print('Serving up examples {} through {}'.format(startIndex, endIndex))
+				print('Serving up examples {} through {}'.format(startIndex, endIndex))
 
 				docs = [pickle.load(fid) for j in range(startIndex, endIndex)]
 
-				# First time sending this batch? Need to figure out size of padded batch
-				if not batchDims[k]:
-					N_c = max([len(doc[REACTION_TRUE_ONEHOT]) for doc in docs])
-					if type(max_N_c) != type(None): # allow truncation during training
-						N_c = min(N_c, max_N_c)
-					N_e1 = 1; N_e2 = 1; N_e3 = 1; N_e4 = 1;
-					for i, doc in enumerate(docs):
-						for (c, edit_string) in enumerate(doc[CANDIDATE_EDITS_COMPACT]):
-							if c >= N_c: break
-							edit_string_split = edit_string.split(';')
-							N_e1 = max(N_e1, edit_string_split[0].count(',') + 1)
-							N_e2 = max(N_e2, edit_string_split[1].count(',') + 1)
-							N_e3 = max(N_e3, edit_string_split[2].count(',') + 1)
-							N_e4 = max(N_e4, edit_string_split[3].count(',') + 1)
-
-					# Remember sizes of x_h_lost, x_h_gain, x_bond_lost, x_bond_gain, reaction_true_onehot
-					batchDim = (N, N_c, N_e1, N_e2, N_e3, N_e4)
-
-					# print('The padded sizes of this batch will be: N, N_c, N_e1, N_e2, N_e3, N_e4')
-					# print(batchDim)
-					batchDims[k] = batchDim
-
-				else:
-					(N, N_c, N_e1, N_e2, N_e3, N_e4) = batchDims[k]
-
 				# Initialize numpy arrays for x_h_lost, etc.
-				
-				# Get padding ready
 				x_h_lost = np.zeros((N, N_c, N_e1, F_atom), dtype=np.float32)
 				x_h_gain = np.zeros((N, N_c, N_e2, F_atom), dtype=np.float32)
 				x_bond_lost = np.zeros((N, N_c, N_e3, F_bond), dtype=np.float32)
@@ -370,9 +375,11 @@ def label_generator(start_at, end_at, batch_size):
 
 			filePos_start_at = -1
 
-def get_data(max_N_c = None):
+def get_data(max_N_c = None, shuffle = False):
 	'''Creates a dictionary defining data generators for 
-	training and validation given pickled data/label files'''
+	training and validation given pickled data/label files
+
+	max_N_c and shuffle only refers to training data'''
 
 	with open(DATA_FPATH, 'rb') as fid:
 		legend_data = pickle.load(fid)
@@ -392,8 +399,8 @@ def get_data(max_N_c = None):
 		'N_samples': N_samples,
 		'N_train': N_train,
 		#
-		'train_generator': data_generator(0, N_train, batch_size, max_N_c = max_N_c),
-		'train_label_generator': label_generator(0, N_train, batch_size, max_N_c = max_N_c),
+		'train_generator': data_generator(0, N_train, batch_size, max_N_c = max_N_c, shuffle = shuffle),
+		'train_label_generator': label_generator(0, N_train, batch_size),
 		'train_nb_samples': N_train,
 		#
 		'val_generator': data_generator(N_train, N_train + N_val, batch_size),
@@ -551,6 +558,8 @@ def test(model, data):
 
 
 if __name__ == '__main__':
+
+	np.random.seed(0)
 	
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--nb_epoch', type = int, default = 100,
@@ -673,7 +682,8 @@ if __name__ == '__main__':
 		test(model)
 		quit(1)
 
-	data = get_data(max_N_c = max_N_c)
+	data = get_data(max_N_c = max_N_c, shuffle = True)
 	train(model, data)
 	model.save_weights(WEIGHTS_FPATH, overwrite = True) 
+	data = get_data(max_N_c = max_N_c, shuffle = False)
 	test(model, data)
