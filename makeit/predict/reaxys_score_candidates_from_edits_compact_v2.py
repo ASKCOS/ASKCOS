@@ -134,7 +134,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	net_sum_h = TimeDistributed(feature_to_feature, name = "reaction embedding post-sum")(net_sum)
 
 	# Take reagents -> intermediate representation -> cosine similarity to enhance reaction
-	reagents_h = Dense(N_hf, activation = 'tanh', W_regularizer = l2(l2v), name = "reagent fingerprint to features")(reagents)
+	reagents_h = Dense(N_hf, activation = inner_act, W_regularizer = l2(l2v), name = "reagent fingerprint to features")(reagents)
 
 	# Trick to repeat reagents using merge layer (so N_c is implicit)
 	# x[0] is the original vector and x[1] is just to get the number of candidates (shape)
@@ -588,6 +588,8 @@ if __name__ == '__main__':
 			help = 'Number of candidates per example, default 500')
 	parser.add_argument('--optimizer', type = str, default = 'adadelta',
 			help = 'Optimizer to use, default adadelta')
+	parser.add_argument('--inner_act', type = str, default = 'tanh',
+			help = 'Inner activation function, default "tanh" ')
 
 	args = parser.parse_args()
 
@@ -610,6 +612,7 @@ if __name__ == '__main__':
 	context_weight     = float(args.context_weight)
 	enhancement_weight = float(args.enhancement_weight)
 	optimizer          = args.optimizer
+	inner_act          = args.inner_act
 
 	# THIS_FOLD_OUT_OF_FIVE = int(args.fold)
 	tag = args.tag
@@ -645,7 +648,7 @@ if __name__ == '__main__':
 		rebuild = raw_input('Do you want to rebuild from scratch instead of loading from file? [n/y] ')
 		if rebuild == 'y':
 			model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, 
-				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = opt,
+				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = opt, inner_act = inner_act,
 				context_weight = context_weight, enhancement_weight = enhancement_weight)
 		else:
 			model = model_from_json(open(MODEL_FPATH).read())
@@ -654,7 +657,7 @@ if __name__ == '__main__':
 				metrics = ['accuracy'])
 		model.load_weights(WEIGHTS_FPATH)
 	else:
-		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight,
+		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight, inner_act = inner_act,
 			enhancement_weight = enhancement_weight, optimizer = opt)
 		try:
 			with open(MODEL_FPATH, 'w') as outfile:
