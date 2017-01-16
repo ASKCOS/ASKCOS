@@ -44,14 +44,13 @@ upcoming minibatches, so the overall training time is substantially reduced.
 '''
 
 
-def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 100, inner_act = 'tanh', l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0, enhancement_weight = 0.1, optimizer = Adadelta()):
+def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = 'tanh', l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0, enhancement_weight = 0.1, optimizer = Adadelta()):
 	'''
 	Builds the feed forward model.
 
 	N_e:  maximum number of edits of each type
 	N_h1: number of hidden nodes in first layer
 	N_h2: number of hidden nodes in second layer
-	N_c:  maximum number of candidates for each sample (padded length)
 	inner_act: activation function 
 	'''
 
@@ -184,7 +183,7 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 
 	return model
 
-def data_generator(start_at, end_at, batch_size):
+def data_generator(start_at, end_at, batch_size, max_N_c = None):
 	'''This function generates batches of data from the
 	pickle file since all the data can't fit in memory.
 
@@ -235,9 +234,12 @@ def data_generator(start_at, end_at, batch_size):
 				# First time sending this batch? Need to figure out size of padded batch
 				if not batchDims[k]:
 					N_c = max([len(doc[REACTION_TRUE_ONEHOT]) for doc in docs])
+					if type(max_N_c) != type(None): # allow truncation during training
+						N_c = min(N_c, max_N_c)
 					N_e1 = 1; N_e2 = 1; N_e3 = 1; N_e4 = 1;
 					for i, doc in enumerate(docs):
 						for (c, edit_string) in enumerate(doc[CANDIDATE_EDITS_COMPACT]):
+							if c >= N_c: break
 							edit_string_split = edit_string.split(';')
 							N_e1 = max(N_e1, edit_string_split[0].count(',') + 1)
 							N_e2 = max(N_e2, edit_string_split[1].count(',') + 1)
@@ -267,7 +269,7 @@ def data_generator(start_at, end_at, batch_size):
 
 					for (c, edit_string) in enumerate(doc[CANDIDATE_EDITS_COMPACT]):
 						if c >= N_c: 
-							raise ValueError('Input tensors not large enough to accomodate number of candidates!')
+							break
 						
 						edit_string_split = edit_string.split(';')
 						edits = [
@@ -297,7 +299,10 @@ def data_generator(start_at, end_at, batch_size):
 							x_bond_gain[i, c, e, :] = edit_bond_gain
 
 					# Add truncated reaction true (eventually will not truncate)
-					reaction_true_onehot[i, :len(doc[REACTION_TRUE_ONEHOT])] = doc[REACTION_TRUE_ONEHOT]
+					if type(max_N_c) == type(None):
+						reaction_true_onehot[i, :len(doc[REACTION_TRUE_ONEHOT])] = doc[REACTION_TRUE_ONEHOT]
+					else:
+						reaction_true_onehot[i, :min(len(doc[REACTION_TRUE_ONEHOT]), max_N_c)] = doc[REACTION_TRUE_ONEHOT][:max_N_c]
 				# Get rid of NaNs
 				x_h_lost[np.isnan(x_h_lost)] = 0.0
 				x_h_gain[np.isnan(x_h_gain)] = 0.0
@@ -365,7 +370,7 @@ def label_generator(start_at, end_at, batch_size):
 
 			filePos_start_at = -1
 
-def get_data():
+def get_data(max_N_c = None):
 	'''Creates a dictionary defining data generators for 
 	training and validation given pickled data/label files'''
 
@@ -387,8 +392,8 @@ def get_data():
 		'N_samples': N_samples,
 		'N_train': N_train,
 		#
-		'train_generator': data_generator(0, N_train, batch_size),
-		'train_label_generator': label_generator(0, N_train, batch_size),
+		'train_generator': data_generator(0, N_train, batch_size, max_N_c = max_N_c),
+		'train_label_generator': label_generator(0, N_train, batch_size, max_N_c = max_N_c),
 		'train_nb_samples': N_train,
 		#
 		'val_generator': data_generator(N_train, N_train + N_val, batch_size),
@@ -584,8 +589,8 @@ if __name__ == '__main__':
 					help = 'Weight assigned to contextual effects, default 100.0')
 	parser.add_argument('--enhancement_weight', type = float, default = 0.1,
 			help = 'Weight assigned to enhancement factor, default 0.1')
-	parser.add_argument('--Nc', type = int, default = 500,
-			help = 'Number of candidates per example, default 500')
+	parser.add_argument('--Nc', type = int, default = 1000,
+			help = 'Number of candidates to truncate to during training, default 1000')
 	parser.add_argument('--optimizer', type = str, default = 'adadelta',
 			help = 'Optimizer to use, default adadelta')
 	parser.add_argument('--inner_act', type = str, default = 'tanh',
@@ -607,8 +612,7 @@ if __name__ == '__main__':
 	N_hf               = int(args.Nhf)
 	l2v                = float(args.l2)
 	lr                 = float(args.lr)
-	N_c                = int(args.Nc) # number of candidate edit sets
-	N_e                = 5 # maximum number of edits per class
+	max_N_c                = int(args.Nc) # number of candidate edit sets
 	context_weight     = float(args.context_weight)
 	enhancement_weight = float(args.enhancement_weight)
 	optimizer          = args.optimizer
@@ -647,7 +651,7 @@ if __name__ == '__main__':
 		print('Reloading from file')
 		rebuild = raw_input('Do you want to rebuild from scratch instead of loading from file? [n/y] ')
 		if rebuild == 'y':
-			model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, 
+			model = build(F_atom = F_atom, F_bond = F_bond, N_h1 = N_h1, 
 				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = opt, inner_act = inner_act,
 				context_weight = context_weight, enhancement_weight = enhancement_weight)
 		else:
@@ -657,7 +661,7 @@ if __name__ == '__main__':
 				metrics = ['accuracy'])
 		model.load_weights(WEIGHTS_FPATH)
 	else:
-		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight, inner_act = inner_act,
+		model = build(F_atom = F_atom, F_bond = F_bond, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, context_weight = context_weight, inner_act = inner_act,
 			enhancement_weight = enhancement_weight, optimizer = opt)
 		try:
 			with open(MODEL_FPATH, 'w') as outfile:
@@ -669,7 +673,7 @@ if __name__ == '__main__':
 		test(model)
 		quit(1)
 
-	data = get_data()
+	data = get_data(max_N_c = max_N_c)
 	train(model, data)
 	model.save_weights(WEIGHTS_FPATH, overwrite = True) 
 	test(model, data)
