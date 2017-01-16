@@ -89,14 +89,20 @@ if __name__ == '__main__':
 	with open(os.path.join(os.path.dirname(DATA_FPATH), 'sizes_true.json'), 'wb') as fid:
 		json.dump(sizes_true, fid)
 
+	# Load from file
+	with open(os.path.join(os.path.dirname(DATA_FPATH), 'sizes_all.json'), 'rb') as fid:
+		sizes_all = json.load(fid)
+	with open(os.path.join(os.path.dirname(DATA_FPATH), 'sizes_true.json'), 'rb') as fid:
+		sizes_true = json.load(fid)
+
 	import matplotlib.pyplot as plt
 
 	for i, tag in enumerate(['N_e1', 'N_e2', 'N_e3', 'N_e4']):
 		plt.subplot(2, 2, i + 1)
 		xs = range(20)
-		ys = np.array([sizes_all[tag][x] for x in xs], dtype = float)
+		ys = np.array([sizes_all[tag][unicode(x)] if unicode(x) in sizes_all[tag] else 0 for x in xs], dtype = float)
 		ys /= np.sum(ys)
-		ys_true = np.array([sizes_true[tag][x] for x in xs], dtype = float)
+		ys_true = np.array([sizes_true[tag][unicode(x)] if unicode(x) in sizes_true[tag] else 0 for x in xs], dtype = float)
 		ys_true /= np.sum(ys_true)
 		plt.bar(xs, ys, 1.0, color='blue', alpha = 0.5, label = 'All candidates')
 		plt.bar(xs, ys_true, 1.0, color='green', alpha = 0.5, label = 'True outcomes')
@@ -112,7 +118,7 @@ if __name__ == '__main__':
 	ys = np.zeros_like(np.array(xs), dtype = float)
 	for (key, val) in sizes_all['N_c'].iteritems():
 		for i, x in enumerate(xs):
-			if key < x:
+			if int(key) < x:
 				ys[max(i-1, 0)] += val
 				break
 	ys /= np.sum(ys)
