@@ -169,7 +169,7 @@ def ReactionStringToImage(rxn_string, strip = True, update = True, options = Non
 
 	reactants, agents, products = [mols_from_smiles_list(x) for x in 
 										[mols.split('.') for mols in rxn_string.split('>')]]
-	if None in reactants + agents + products:
+	if None in reactants + products:
 		raise ValueError('Could not parse entirety of reaction: {}'.format(rxn_string))
 
 	# Stich together mols (ignore agents)
