@@ -127,7 +127,7 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
 	bond_gain_sum = Lambda(sum_along_axis2, output_shape = sum_along_axis2_shape, name = "sum bond_gain")(bond_gain_r2)
 
 	# Sum across edits in their intermediate representation
-	net_sum = merge([h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum], mode = 'sum', name = "sum across edits")
+	net_sum = merge([h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum], mode = 'concat', name = "concat across edits")
 
 	feature_to_feature = Dense(N_hf, activation = inner_act, W_regularizer = l2(l2v))
 	net_sum_h = TimeDistributed(feature_to_feature, name = "reaction embedding post-sum")(net_sum)

@@ -147,7 +147,7 @@ def atom_structural(atom, asOneHot = False):
 	# Add atomic number (todo: finish)
 	attributes += oneHotVectorFunc(
 		atom.GetAtomicNum(), 
-		[5, 6, 7, 8, 9, 15, 16, 17, 35, 53, 999]
+		[3, 5, 6, 7, 8, 9, 11, 12, 14, 15, 16, 17, 35, 53, 999]
 	)
 	# Add heavy neighbor count
 	attributes += oneHotVectorFunc(
@@ -165,6 +165,22 @@ def atom_structural(atom, asOneHot = False):
 	attributes.append(atom.IsInRing())
 	# Add boolean if aromatic atom
 	attributes.append(atom.GetIsAromatic())
+	# Adjacent to aromatic ring but not aromatic itself
+	attributes.append(atom.GetIsAromatic() == False and any([neighbor.GetIsAromatic() for neighbor in atom.GetNeighbors()]))
+
+	# Halogen
+	attributes.append(atom.GetAtomicNum() in [9, 17, 35, 53, 85, 117])
+	# Chalcogen
+	attributes.append(atom.GetAtomicNum() in [8, 16, 34, 52, 84, 116])
+	# Pnictogens
+	attributes.append(atom.GetAtomicNum() in [7, 15, 33, 51, 83])
+	# Alkali
+	attributes.append(atom.GetAtomicNum() in [3, 11, 19, 37, 55, 87])
+	# Alkaline earth
+	attributes.append(atom.GetAtomicNum() in [4, 12, 20, 38, 56, 88])
+	# Common metals
+	attributes.append(atom.GetAtomicNum() in [13, 22, 24, 25, 26, 27, 28, 29, 30, 33, 42, 44, 45, 46, 47, 48, 49, 50, 78, 80, 82])
+
 
 	return np.array(attributes, dtype = att_dtype)
 

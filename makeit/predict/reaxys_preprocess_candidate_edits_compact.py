@@ -215,22 +215,23 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 		# 	'reaction_true': 9,
 		# }
 
-		pickle.dump((
-			reaction_candidate_edits_compact,
-			edits_to_vectors([], reactants_check, return_atom_desc_dict = True),
-			T,
-			solvent,
-			reagent_fp,
-			rxd['RXD_NYD'],
-			[y for (y, z, x) in zipsort],
-		), fid_data, pickle.HIGHEST_PROTOCOL)
+		if not countonly:
+			pickle.dump((
+				reaction_candidate_edits_compact,
+				edits_to_vectors([], reactants_check, return_atom_desc_dict = True),
+				T,
+				solvent,
+				reagent_fp,
+				rxd['RXD_NYD'],
+				[y for (y, z, x) in zipsort],
+			), fid_data, pickle.HIGHEST_PROTOCOL)
 
-		pickle.dump((
-			str(rxd['_id']),
-			str(reactant_smiles) + '>' + str(context_info) + '>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)),
-			[z for (y, z, x) in zipsort],
-			reaction_candidate_edits_compact,
-		), fid_labels, pickle.HIGHEST_PROTOCOL)
+			pickle.dump((
+				str(rxd['_id']),
+				str(reactant_smiles) + '>' + str(context_info) + '>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)),
+				[z for (y, z, x) in zipsort],
+				reaction_candidate_edits_compact,
+			), fid_labels, pickle.HIGHEST_PROTOCOL)
 
 		i += 1
 
@@ -253,11 +254,13 @@ if __name__ == '__main__':
 						help = 'Only use complete examples, including recognized solvent, default y')
 	parser.add_argument('--tag', type = str, default = 'reaxys',
 						help = 'Data tag, default = reaxys')
+	parser.add_argument('--count', type = int, default = 0, help = 'Only count, dont actually save?')
 	args = parser.parse_args()
 
 	n = int(args.num)
 	complete_only = args.complete_only in ['y', 'Y', 'T', 't', 'true', '1']
 	tag = str(args.tag)
+	countonly = bool(args.count)
 	print('Only using complete records')
 
 	legend_data = {
@@ -280,15 +283,17 @@ if __name__ == '__main__':
 	}
 
 	# Open pickle file
-	fid_data = open(os.path.join(FROOT, '{}_data.pickle'.format(tag)), 'wb')
-	fid_labels = open(os.path.join(FROOT, '{}_labels.pickle'.format(tag)), 'wb')
+	if not countonly:
+		fid_data = open(os.path.join(FROOT, '{}_data.pickle'.format(tag)), 'wb')
+		fid_labels = open(os.path.join(FROOT, '{}_labels.pickle'.format(tag)), 'wb')
 
-	# First entry is the legend
-	pickle.dump(legend_data, fid_data, pickle.HIGHEST_PROTOCOL)
-	pickle.dump(legend_labels, fid_labels, pickle.HIGHEST_PROTOCOL)
+		# First entry is the legend
+		pickle.dump(legend_data, fid_data, pickle.HIGHEST_PROTOCOL)
+		pickle.dump(legend_labels, fid_labels, pickle.HIGHEST_PROTOCOL)
 
 	# Now get candidates
 	get_candidates(args.candidate_collection, n_max = n)
 
-	fid_data.close()
-	fid_labels.close()
+	if not countonly:
+		fid_data.close()
+		fid_labels.close()
