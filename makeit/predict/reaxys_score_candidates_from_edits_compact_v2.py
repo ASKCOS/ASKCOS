@@ -689,9 +689,6 @@ if __name__ == '__main__':
 		quit(1)
 
 	if bool(args.visualize):
-		import theano 
-		import matplotlib
-		from matplotlib import pyplot as plt
 		batch_size = 1
 		data = get_data(max_N_c = max_N_c, shuffle = False)
 		data_generator = data['test_generator']
