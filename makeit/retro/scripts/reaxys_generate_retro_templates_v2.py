@@ -39,12 +39,13 @@ from makeit.retro.draw import *
 # DATABASE
 from pymongo import MongoClient    # mongodb plugin
 client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
-db = client['transforms_retro_v3']
-TRANSFORM_DB = db['test']
+db = client['reaxys']
+TRANSFORM_DB = db['transforms_retro_v4']
 REACTION_DB = db['reactions']
 INSTANCE_DB = db['instances']
 CHEMICAL_DB = db['chemicals']
 reaction_smiles_field = 'RXN_SMILES'
+MAXIMUM_NUMBER_UNMAPPED_PRODUCT_ATOMS = 3
 
 def mols_from_smiles_list(all_smiles):
 	'''Given a list of smiles strings, this function creates rdkit
@@ -413,18 +414,20 @@ def get_special_groups(mol):
 	# Define templates, based on Functional_Group_Hierarchy.txt from Greg Laandrum
 	group_templates = [ 
 		'C(=O)Cl', # acid chloride
+		'C(=O)N', # amide
 		'C(=O)[O;H,-]', # carboxylic acid
 		'[$(S-!@[#6])](=O)(=O)(Cl)', # sulfonyl chloride
 		'[$(B-!@[#6])](O)(O)', # boronic acid
 		'[$(N-!@[#6])](=!@C=!@O)', # isocyanate
 		'[N;H0;$(N-[#6]);D2]=[N;D2]=[N;D1]', # azide
-		'O=C1N(Br)C(=O)CC1', # NBS brominating agent
+		'O=C1N([Br,I,F,Cl])C(=O)CC1', # NBS brominating agent
 		'C=O', # carbonyl
 		'ClS(Cl)=O', # thionyl chloride
-		'[Mg][Br,Cl]', # grinard (non-disassociated)
+		'[Mg,Li][Br,Cl]', # grinard (non-disassociated)
 		'[#6]S(=O)(=O)[O]', # RSO3 leaving group
 		'[O]S(=O)(=O)[O]', # SO4 group
 		'[N]=[N]=[C]', # diazo-alkyl
+		'C#N', # nitrile
 		]
 
 	# Build list
@@ -512,7 +515,7 @@ def main(N = 15, skip = 0, skip_id = 0):
 	total_partialmapped = 0
 	total_nonreaction = 0
 
-	N = min([N, REACTION_DB.count({'RX_SKW': 'mapped reaction'})])
+	# N = min([N, REACTION_DB.count({'RX_SKW': 'mapped reaction'})])
 
 	try: # to allow breaking
 		# Look for entries
@@ -541,11 +544,23 @@ def main(N = 15, skip = 0, skip_id = 0):
 				total_unmapped += 1
 				continue
 
+			# Check atom mapping
+			try:
+				prod_numatoms = example_doc['PROD_NUMATOMS']
+				frac_prod_mapped = example_doc['FRAC_PROD_MAPPED']
+				unmapped_atoms = prod_numatoms * (1 - frac_prod_mapped)
+				if unmapped_atoms > MAXIMUM_NUMBER_UNMAPPED_PRODUCT_ATOMS: 
+					continue
+			except KeyError as e:
+				continue
+
 			try:
 				# Unpack
 				reaction_smiles = str(example_doc[reaction_smiles_field])
 				reactants, agents, products = [mols_from_smiles_list(x) for x in 
 											[mols.split('.') for mols in reaction_smiles.split('>')]]
+				if None in reactants: continue 
+				if None in products: continue
 				[AllChem.RemoveHs(mol) for mol in reactants + agents + products]
 				[Chem.SanitizeMol(mol) for mol in reactants + agents + products]
 			except Exception as e:
