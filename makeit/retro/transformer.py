@@ -328,7 +328,7 @@ class RetroResult:
 				'smiles_split': precursor.smiles_list,
 				'score': precursor.retroscore,
 				'num_examples': precursor.num_examples,
-				'tforms': precursor.template_ids,
+				'tforms': sorted(list(precursor.template_ids)),
 				})
 			if i + 1 == n: 
 				break
@@ -351,10 +351,10 @@ class RetroPrecursor:
 		'''
 		mols = [Chem.MolFromSmiles(x) for x in self.smiles_list]
 		total_atoms = [x.GetNumHeavyAtoms() for x in mols]
-		ring_atoms = [sum([a.IsInRing() - a.GetIsAromatic() for a in x.GetAtoms()])	for x in mols]
+		ring_bonds = [sum([b.IsInRing() - b.GetIsAromatic() for b in x.GetBonds()])	for x in mols]
 		chiral_centers = [len(Chem.FindMolChiralCenters(x)) for x in mols]
 		self.retroscore = - 2.00 * np.sum(np.power(total_atoms, 1.5)) \
-								- 1.00 * np.sum(np.power(ring_atoms, 1.5)) \
+								- 1.00 * np.sum(np.power(ring_bonds, 1.5)) \
 								- 0.00 * np.sum(np.power(chiral_centers, 2.0))
 
 def apply_one_retrotemplate(mol, smiles, template):
