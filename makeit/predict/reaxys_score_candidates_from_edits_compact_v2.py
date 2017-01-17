@@ -708,7 +708,8 @@ if __name__ == '__main__':
 				plt.colorbar()
 				plt.tight_layout()
 				plt.savefig(os.path.join(FROOT, 'ex{}_output{}'.format(ex, i)))
-
+			with open(os.path.join(FROOT, 'ex{}.info'.format(ex)), 'w') as fid:
+				fid.write('{}'.format(labels))
 			ex += 1
 			raw_input('Pause...')
 	
