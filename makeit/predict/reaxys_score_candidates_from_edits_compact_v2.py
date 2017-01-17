@@ -44,7 +44,7 @@ upcoming minibatches, so the overall training time is substantially reduced.
 '''
 
 
-def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = 'tanh', l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0, enhancement_weight = 0.1, optimizer = Adadelta()):
+def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = 'tanh', l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0, enhancement_weight = 0.1, optimizer = Adadelta(), extra_outputs = False):
 	'''
 	Builds the feed forward model.
 
@@ -172,6 +172,11 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
 	score = Activation('softmax', name = "scores to probs")(unscaled_score)
 	#score = unscaled_score_r
 
+	if extra_outputs:
+		model = Model(input = [h_lost, h_gain, bond_lost, bond_gain, reagents, solvent, temp], 
+			output = [h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum, net_sum, net_sum_h, params, score])
+		return model
+
 	model = Model(input = [h_lost, h_gain, bond_lost, bond_gain, reagents, solvent, temp], 
 		output = [score])
 
@@ -259,7 +264,7 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 				fid.seek(filePos)
 
 				N = endIndex - startIndex # number of samples this batch
-				print('Serving up examples {} through {}'.format(startIndex, endIndex))
+				# print('Serving up examples {} through {}'.format(startIndex, endIndex))
 
 				docs = [pickle.load(fid) for j in range(startIndex, endIndex)]
 
@@ -662,7 +667,7 @@ if __name__ == '__main__':
 		if rebuild == 'y':
 			model = build(F_atom = F_atom, F_bond = F_bond, N_h1 = N_h1, 
 				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = opt, inner_act = inner_act,
-				context_weight = context_weight, enhancement_weight = enhancement_weight)
+				context_weight = context_weight, enhancement_weight = enhancement_weight, extra_outputs = bool(args.visualize))
 		else:
 			model = model_from_json(open(MODEL_FPATH).read())
 			model.compile(loss = 'categorical_crossentropy', 
@@ -679,7 +684,37 @@ if __name__ == '__main__':
 			print('could not write model to json')
 
 	if bool(args.test):
-		test(model)
+		data = get_data(max_N_c = max_N_c, shuffle = False)
+		test(model, data)
+		quit(1)
+
+	if bool(args.visualize):
+		import theano 
+		import matplotlib
+		from matplotlib import pyplot as plt
+		batch_size = 1
+		data = get_data(max_N_c = max_N_c, shuffle = False)
+		data_generator = data['test_generator']
+		label_generator = data['test_label_generator']
+		ex = 0
+		while True:
+			(x, y) = data_generator.next()
+			labels = label_generator.next()
+
+			z = model.predict(x)
+
+			for i, zz in enumerate(z):
+				plt.clf()
+				if len(zz.shape) == 3 and zz.shape[0] == 1:
+					zz = zz[0]
+				plt.pcolor(zz)
+				plt.colorbar()
+				plt.tight_layout()
+				plt.savefig(os.path.join(FROOT, 'ex{}_output{}'.format(ex, i)))
+
+			ex += 1
+			raw_input('Pause...')
+	
 		quit(1)
 
 	data = get_data(max_N_c = max_N_c, shuffle = True)
