@@ -43,6 +43,17 @@ upcoming minibatches, so the overall training time is substantially reduced.
 
 '''
 
+def msle_of_true(y_true, y_pred):
+	'''Custom loss function that uses the mean squared log error in predicted
+	yield, assuming that y_pred are unscaled predictions with the true 
+	outcome in the first index.'''
+	return K.square(K.log(K.clip(y_pred[:, 0:1], K.epsilon(), 1.0)) - K.log(K.clip(y_true, K.epsilon(), 1.0)))
+
+def mse_of_true(y_true, y_pred):
+	'''Custom loss function that uses the mean squared error in predicted
+	yield, assuming that y_pred are unscaled predictions with the true 
+	outcome in the first index.'''
+	return K.square(y_pred[:, 0:1] - y_true)
 
 def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = 'tanh', l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0, enhancement_weight = 0.1, optimizer = Adadelta(), extra_outputs = False):
 	'''
@@ -162,19 +173,28 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
 	# 	name = "propensity = K * exp(- (G0 + cC + eE + ... + vV) / T + enh.)"
 	# )(params_enhancement)
 
-	#### NON-EXPONENTIAL VERSION
 	unscaled_score = Lambda(
-		lambda x: x[:, :, 0] - context_weight * (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 9:15], axis = -1)) / (x[:, :, 15] + 273.15) + enhancement_weight * x[:, :, 8],
-		output_shape = lambda x: x[:2],
-		name = "propensity = logK - (G0 + cC + eE + ... + vV) / T + enh."
-	)(params_enhancement)
+			lambda x: x[:, :, 0] - context_weight * (x[:, :, 1] + K.sum(x[:, :, 2:8] * x[:, :, 9:15], axis = -1)) / (x[:, :, 15] + 273.15) + enhancement_weight * x[:, :, 8],
+			output_shape = lambda x: x[:2],
+			name = "propensity = logK - (G0 + cC + eE + ... + vV) / T + enh."
+		)(params_enhancement)
+	
+	if not TARGET_YIELD:
+		score = Activation('softmax', name = "scores to probs")(unscaled_score)
+	else:
+		scaled_score = Activation(lambda x: K.exp(x - 3.0), name = 'exponential activation')(unscaled_score)
+		# Do not scale score with softmax (which would force 100% conversion)
+		# Scale linearly
+		score = Lambda(
+			lambda x: x / K.tile(K.maximum(1.0, K.sum(x, axis = -1, keepdims = True)), (1, x.shape[1])),
+		name = "scale if sum(score)>1")(scaled_score)
 
-	score = Activation('softmax', name = "scores to probs")(unscaled_score)
+
 	#score = unscaled_score_r
 
 	if extra_outputs:
 		model = Model(input = [h_lost, h_gain, bond_lost, bond_gain, reagents, solvent, temp], 
-			output = [h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum, net_sum, net_sum_h, params, score])
+			output = [h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum, net_sum, net_sum_h, params, unscaled_score, score])
 		return model
 
 	model = Model(input = [h_lost, h_gain, bond_lost, bond_gain, reagents, solvent, temp], 
@@ -183,8 +203,11 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
 	model.summary()
 
 	# Now compile
-	model.compile(loss = 'categorical_crossentropy', optimizer = optimizer, 
-		metrics = ['accuracy'])
+	if not TARGET_YIELD:
+		model.compile(loss = 'categorical_crossentropy', optimizer = optimizer, 
+			metrics = ['accuracy'])
+	else:
+		model.compile(loss = mse_of_true, optimizer = optimizer)
 
 	return model
 
@@ -195,7 +218,10 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 	The starting and ending indices are specified explicitly so the
 	same function can be used for validation data as well
 
-	Input tensors are generated on-the-fly so there is less I/O'''
+	Input tensors are generated on-the-fly so there is less I/O
+
+	max_N_c is the maximum number of candidates to consider. This should ONLY be used
+	for training, not for validation or testing.'''
 
 	def bond_string_to_tuple(string):
 		split = string.split('-')
@@ -274,6 +300,7 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 				x_bond_lost = np.zeros((N, N_c, N_e3, F_bond), dtype=np.float32)
 				x_bond_gain = np.zeros((N, N_c, N_e4, F_bond), dtype=np.float32)
 				reaction_true_onehot = np.zeros((N, N_c), dtype=np.float32)
+				yields = np.zeros((N, 1), dtype=np.float32)
 
 				for i, doc in enumerate(docs):
 
@@ -313,6 +340,8 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 						reaction_true_onehot[i, :len(doc[REACTION_TRUE_ONEHOT])] = doc[REACTION_TRUE_ONEHOT]
 					else:
 						reaction_true_onehot[i, :min(len(doc[REACTION_TRUE_ONEHOT]), max_N_c)] = doc[REACTION_TRUE_ONEHOT][:max_N_c]
+					yields[i, 0] = doc[YIELD] / 100.0
+
 				# Get rid of NaNs
 				x_h_lost[np.isnan(x_h_lost)] = 0.0
 				x_h_gain[np.isnan(x_h_gain)] = 0.0
@@ -325,7 +354,12 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 
 				# print('Batch {} to {}'.format(startIndex, endIndex))
 				# yield (x, y) as tuple, but each one is a list
-				
+
+				if TARGET_YIELD:
+					y = yields
+				else:
+					y = reaction_true_onehot
+
 				yield (
 					[
 						x_h_lost,
@@ -337,7 +371,7 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 						np.array([doc[T] for doc in docs], dtype=np.float32), # temperature
 					],
 					[
-						reaction_true_onehot,
+						y,
 					],
 				)
 
@@ -454,12 +488,12 @@ def test(model, data):
 	print('Testing model')
 
 	fid = open(TEST_FPATH, 'w')
-	fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
+	fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
 		'reaction_smiles', 'train/val', 
 		'true_edit', 'prob_true_edit', 
 		'predicted_edit(or no. 2)', 'prob_predicted_edit(or no. 2)',
 		'rank_true_edit', 'true_smiles', 'predicted_smiles(or no. 2)',
-		'RXD_id'
+		'RXD_id','yield_true',
 	))
 
 	def test_on_set(fid, dataset, data_generator, label_generator, num_batches):
@@ -474,7 +508,7 @@ def test(model, data):
 		for batch_num in range(num_batches):
 			(x, y) = data_generator.next()
 			labels = label_generator.next()
-			y = y[0] # only one output, which is True/False
+			y = y[0] # only one output, which is True/False or yield
 		
 			# TODO: pre-fetch data in queue
 			preds = model.predict_on_batch(x)
@@ -483,23 +517,40 @@ def test(model, data):
 
 				edits = labels['candidate_edits'][i]
 				pred = preds[i, :] 
-				trueprob = pred[y[i,:] != 0][0] # prob assigned to true outcome
-				rank_true_edit = 1 + len(pred) - (ss.rankdata(pred))[np.argmax(y[i,:])]
-				
-				true_preds.append(trueprob)
-				our_preds.append(pred[np.argmax(y[i,:])])
-				if np.argmax(pred) == np.argmax(y[i,:]):
-					corr += 1
-				
-				# Get most informative labels for the highest predictions
-				if rank_true_edit != 1:
-					# record highest probability
-					most_likely_edit_i = np.argmax(pred)
-					most_likely_prob   = np.max(pred)
+				if not TARGET_YIELD:
+					trueprob = pred[y[i,:] != 0][0] # prob assigned to true outcome
+					rank_true_edit = 1 + len(pred) - (ss.rankdata(pred))[np.argmax(y[i,:])]
+					
+					true_preds.append(trueprob)
+					our_preds.append(pred[np.argmax(y[i,:])])
+					if np.argmax(pred) == np.argmax(y[i,:]):
+						corr += 1
+					
+					# Get most informative labels for the highest predictions
+					if rank_true_edit != 1:
+						# record highest probability
+						most_likely_edit_i = np.argmax(pred)
+						most_likely_prob   = np.max(pred)
+					else:
+						# record number two prediction
+						most_likely_edit_i = np.argmax(pred[pred != np.max(pred)])
+						most_likely_prob   = np.max(pred[pred != np.max(pred)])
+					trueyield = float(labels['reaction_true'][i].split(',y:')[1].split('%')[0])/100.0
+
+
 				else:
-					# record number two prediction
-					most_likely_edit_i = np.argmax(pred[pred != np.max(pred)])
-					most_likely_prob   = np.max(pred[pred != np.max(pred)])
+					trueprob = pred[0] # true outcome always at first index
+					trueyield = y[i, 0]
+					rank_true_edit = 1 + len(pred) - (ss.rankdata(pred))[0]
+					if rank_true_edit == 1: corr += 1
+					true_preds.append(trueprob)
+					our_preds.append(pred[0])
+					if rank_true_edit != 1:
+						most_likely_edit_i = np.argmax(pred)
+						most_likely_prob = np.max(pred)
+					else:
+						most_likely_edit_i = np.argmax(pred[1:]) # without first one
+						most_likely_prob = np.max(pred[1:])
 
 				try:
 					most_likely_smiles = labels['candidate_smiles'][i][most_likely_edit_i]
@@ -508,12 +559,13 @@ def test(model, data):
 					most_likely_smiles = 'no_reaction'
 					most_likely_edit   = 'no_reaction'
 
-				fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
+
+				fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
 					labels['reaction_true'][i], dataset, 
 					edits[np.argmax(y[i,:])], trueprob, 
 					most_likely_edit, most_likely_prob,
 					rank_true_edit, labels['reaction_true'][i].split('>')[-1], 
-					most_likely_smiles, labels['rxdid'][i],
+					most_likely_smiles, labels['rxdid'][i], trueyield
 				))
 
 		return our_preds, corr
@@ -609,6 +661,8 @@ if __name__ == '__main__':
 			help = 'Optimizer to use, default adadelta')
 	parser.add_argument('--inner_act', type = str, default = 'tanh',
 			help = 'Inner activation function, default "tanh" ')
+	parser.add_argument('--yd', type = int, default = 0,
+			help = 'Are we targeting yield? 0 or 1, default 0')
 
 	args = parser.parse_args()
 
@@ -617,6 +671,10 @@ if __name__ == '__main__':
 
 	F_atom = len(a[0])
 	F_bond = len(b[0])
+
+	# Temp fix because edits_to_vectors was updated, but data is still old
+	F_atom = 32
+	F_bond = 68
 	
 	nb_epoch           = int(args.nb_epoch)
 	batch_size         = int(args.batch_size)
@@ -626,11 +684,12 @@ if __name__ == '__main__':
 	N_hf               = int(args.Nhf)
 	l2v                = float(args.l2)
 	lr                 = float(args.lr)
-	max_N_c                = int(args.Nc) # number of candidate edit sets
+	max_N_c            = int(args.Nc) # number of candidate edit sets
 	context_weight     = float(args.context_weight)
 	enhancement_weight = float(args.enhancement_weight)
 	optimizer          = args.optimizer
 	inner_act          = args.inner_act
+	TARGET_YIELD       = bool(args.yd)
 
 	# THIS_FOLD_OUT_OF_FIVE = int(args.fold)
 	tag = args.tag
@@ -652,11 +711,16 @@ if __name__ == '__main__':
 	FROOT = os.path.join(FROOT, tag)
 	if not os.path.isdir(FROOT):
 		os.mkdir(FROOT)
-	MODEL_FPATH = os.path.join(FROOT, '{} model.json'.format(tag))
-	WEIGHTS_FPATH = os.path.join(FROOT, '{} weights.h5'.format(tag))
-	HIST_FPATH = os.path.join(FROOT, '{} hist.csv'.format(tag))
-	TEST_FPATH = os.path.join(FROOT, '{} probs.dat'.format(tag))
-	HISTOGRAM_FPATH = os.path.join(FROOT, '{} histogram %s.png'.format(tag))
+	MODEL_FPATH = os.path.join(FROOT, 'model.json')
+	WEIGHTS_FPATH = os.path.join(FROOT, 'weights.h5')
+	HIST_FPATH = os.path.join(FROOT, 'hist.csv')
+	TEST_FPATH = os.path.join(FROOT, 'probs.dat')
+	HISTOGRAM_FPATH = os.path.join(FROOT, 'histogram %s.png')
+	ARGS_FPATH = os.path.join(FROOT, 'args.json')
+
+	with open(ARGS_FPATH, 'w') as fid:
+		import json
+		json.dump(args.__dict__, fid)
 
 	DATA_FPATH = '{}_data.pickle'.format(args.data_tag)
 	LABELS_FPATH = '{}_labels.pickle'.format(args.data_tag)
@@ -670,7 +734,10 @@ if __name__ == '__main__':
 				context_weight = context_weight, enhancement_weight = enhancement_weight, extra_outputs = bool(args.visualize))
 		else:
 			model = model_from_json(open(MODEL_FPATH).read())
-			model.compile(loss = 'categorical_crossentropy', 
+			if TARGET_YIELD:
+				model.compile(loss = mse_of_true)
+			else:
+				model.compile(loss = 'categorical_crossentropy', 
 				optimizer = opt,
 				metrics = ['accuracy'])
 		model.load_weights(WEIGHTS_FPATH)
