@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Getting the time{% endblock %}
+{% block page_title %}Ajax test{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block javascript %}
+<script>
+$("#refresh_the_time").click(function () {
+	console.log('clicked');
+	$.ajax({
+		url: '/ajax/get_the_time/',
+		data: {
+			prevTime: $("#the_time").html(),
+		},
+		dataType: 'json',
+		success: function (data) {
+			$("#the_time").html(data.newTime);
+		},
+	});
+
+});
+</script>
+{% endblock %}
+
+
+{% block page_body %}
+
+
+<div id="the_time">{% if the_time %}{{ the_time }}{% endif %}</div>
+
+<div id="refresh_the_time">Refresh by clicking me</div>
+
+{% endblock %}

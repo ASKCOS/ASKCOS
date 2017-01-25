@@ -55,6 +55,11 @@ urlpatterns += [
     url(ur'^draw/reaction/(?P<smiles>.+)$', main.views.draw_reaction, name = 'draw_reaction'),
     url(ur'^draw/reaction_page/(?P<smiles>.+)$', main.views.draw_reaction_page, name = 'draw_reaction_page'),
 
-    # Showing a path
+    # Showing a path (testing)
     url(ur'^draw/synthesis_tree/$', main.views.draw_synthesis_tree, name = 'draw_synthesis_tree'),
+    url(ur'^draw/synthesis_tree/id=(?P<id>.+)$', main.views.draw_synthesis_tree, name = 'draw_synthesis_tree_click'),
+
+    # Using Ajax calls (testing)
+    url(ur'^test/the_time/$', main.views.the_time, name = 'the_time'),
+    url(ur'^ajax/get_the_time/$', main.views.get_the_time, name = 'get_the_time'),
 ]

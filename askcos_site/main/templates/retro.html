@@ -15,13 +15,6 @@
 
 <p>Begin by entering in the SMILES string of the target molecule.</p>
 
-{% if err %}
-<div class="error">{{ err }}</div>
-{% endif %}
-{% if warn %}
-<div class="warning">{{ warn }}</div>
-{% endif %}
-
 <form method="post" id="smiles_form" action="{% url 'retro_home' %}">
 <table>
 {{ form.as_table }}

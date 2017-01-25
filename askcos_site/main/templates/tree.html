@@ -11,15 +11,26 @@
 {% block sidebar_items %}{% endblock %}
 
 {% block page_body %}
+<h2>Target: {{ target }}</h2>
 
-{% if tree %}
+{% for tree in trees %}
+{% if trees|length > 1 %}
+<h3>Option {{ forloop.counter }}, score = {{ tree.score }}</h3>
+{% endif %}
 <div class="tree">
 	<ul>
 		<li>
 			{% include 'tree_child.html' with target=tree %}
 		</li>
 	</ul>
+	<!-- Fix height of tree block -->
+	<div class="clear"></div>
 </div>
+
+{% if not forloop.last %}
+<br><br>
 {% endif %}
+
+{% endfor %}
 
 {% endblock %}

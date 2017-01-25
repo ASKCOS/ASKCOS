@@ -2,22 +2,25 @@
 
 {% if target.is_chemical %}
 
-<a href="#" class="tooltip" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
+<a href="{% url 'draw_synthesis_tree_click' id=target.id %}" id="{{ target.id }}" class="tooltip" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
 <img src="{{ target.img }}" width="100">
 <span>
 	<center>
 		<font class="smiles">{{ target.smiles }}</font>
-		{% if target.ppg %}${{ target.ppg }}/g{% endif %}
+        {% if target.score %}<br>score: {{ target.score }}{% endif %}
+		{% if target.ppg %}<br>${{ target.ppg }}/g{% endif %}
 	</center>
 </span>
 </a>
 
 {% else %} 
-<a href="#" class="tooltip" style="border-color:black">
+
+<a href="#" id="{{ target.id }}" class="tooltip" style="border-color:black">
 <span>
-	{{ target.info }}
+    {{ target.info }}
 </span>
 </a>
+
 {% endif %}
 
 

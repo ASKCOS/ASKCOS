@@ -1,62 +1,30 @@
 from django.shortcuts import render, HttpResponse, redirect
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 import django.contrib.auth.views
 from forms import SmilesInputForm, DrawingInputForm, is_valid_smiles
 from bson.objectid import ObjectId
 import time
 
-### Retro transformer
-from db import db_client
-from django.conf import settings
-database = db_client[settings.RETRO_TRANSFORMS['database']]
-collection = database[settings.RETRO_TRANSFORMS['collection']]
-import makeit.retro.transformer as transformer 
-RetroTransformer = transformer.Transformer(
-	parallel = settings.RETRO_TRANSFORMS['parallel'], 
-	nb_workers = settings.RETRO_TRANSFORMS['nb_workers'],
-)
-mincount_retro = settings.RETRO_TRANSFORMS['mincount']
-RetroTransformer.load(collection, mincount = mincount_retro, get_retro = True, get_synth = False)
-print('Loaded {} retro templates'.format(RetroTransformer.num_templates))
-RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.format(RetroTransformer.num_templates,
-	mincount_retro, settings.RETRO_TRANSFORMS['database'], settings.RETRO_TRANSFORMS['collection'])
+import rdkit.Chem as Chem 
 
-### Forward transformer 
-database = db_client[settings.SYNTH_TRANSFORMS['database']]
-collection = database[settings.SYNTH_TRANSFORMS['collection']]
-SynthTransformer = transformer.Transformer()
-mincount_synth = settings.SYNTH_TRANSFORMS['mincount']
-SynthTransformer.load(collection, mincount = mincount_synth, get_retro = False, get_synth = True)
-print('Loaded {} forward templates'.format(SynthTransformer.num_templates))
-SYNTH_FOOTNOTE = 'Using {} forward templates (mincount {}) from {}/{}'.format(SynthTransformer.num_templates,
-	mincount_synth, settings.SYNTH_TRANSFORMS['database'], settings.SYNTH_TRANSFORMS['collection'])
+from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, BUYABLE_DB, Pricer, TransformerOnlyKnown
 
-### Databases
-db = db_client[settings.REACTIONS['database']]
-REACTION_DB = db[settings.REACTIONS['collection']]
-RETRO_LIT_FOOTNOTE = 'Searched {} known reactions from literature'.format(REACTION_DB.count())
+def the_time(request):
+	context = {
+		'the_time': time.time(),
+	}
 
-db = db_client[settings.INSTANCES['database']]
-INSTANCE_DB = db[settings.INSTANCES['collection']]
+	return render(request, 'get_time.html', context)
 
-db = db_client[settings.CHEMICALS['database']]
-CHEMICAL_DB = db[settings.CHEMICALS['collection']]
-
-db = db_client[settings.BUYABLES['database']]
-BUYABLE_DB = db[settings.BUYABLES['collection']]
-
-### Prices
-print('Loading prices...')
-import makeit.retro.pricer as pricer
-Pricer = pricer.Pricer()
-Pricer.load(CHEMICAL_DB, BUYABLE_DB)
-print('Loaded known prices')
-
-### Literaturue transformer
-import makeit.retro.transformer_onlyKnown as transformer_onlyKnown
-TransformerOnlyKnown = transformer_onlyKnown.TransformerOnlyKnown()
-TransformerOnlyKnown.load(CHEMICAL_DB, REACTION_DB)
+def get_the_time(request):
+	prevTime = request.GET.get('prevTime', None)
+	print('Prev time: {}'.format(prevTime))
+	data = {
+		'newTime': time.time()
+	}
+	return JsonResponse(data)
 
 def index(request):
 	'''
@@ -464,12 +432,46 @@ def draw(request):
 	return render(request, 'image.html', context)
 
 @login_required
-def draw_synthesis_tree(request):
+def draw_synthesis_tree(request, target = None, id = ''):
 	'''
 	Draw a synthesis tree
 	'''
 
 	context = {}
+
+	def assign_ids(target, counter = 1):
+		if target['children'] == []:
+			target['id'] = counter
+			return counter + 1
+		for i in range(len(target['children'])):
+			counter = assign_ids(target['children'][i], counter)
+			counter += 1
+		target['id'] = counter
+		return counter + 1
+
+
+	def score_target(target):
+		if target['children'] == []:
+			if 'is_reaction' in target: raise ValueError('Reaction nodes need children!')
+			target['score'] = score_smiles(target['smiles'], ppg = target['ppg'])
+		else:
+			# Recursively score
+			if 'is_reaction' in target: # reactions incur fixed -100 cost
+				target['score'] = -100 + sum([score_target(child) for child in target['children']])
+			else: # a chemical doesn't add any cost
+				target['score'] = sum([score_target(child) for child in target['children']])
+		return target['score']
+
+	def score_smiles(smiles, ppg = 0):
+		if ppg != 0: return 0 # buyable molecules are free! (ish)
+		mol = Chem.MolFromSmiles(smiles)
+		if not mol: return 1000 # invalid molecule, infinite score
+		total_atoms = mol.GetNumHeavyAtoms()
+		ring_bonds = sum([b.IsInRing() - b.GetIsAromatic() for b in mol.GetBonds()])
+		chiral_centers = len(Chem.FindMolChiralCenters(mol))
+		return  	- 2.00 * float(total_atoms) ** 1.5 \
+					- 1.00 * float(ring_bonds) ** 1.5 \
+					- 0.00 * float(chiral_centers) ** 2.0
 
 	def chem_dict(smiles, children = []):
 		return {
@@ -477,33 +479,79 @@ def draw_synthesis_tree(request):
 			'smiles' : smiles,
 			'img' : reverse('draw_smiles', kwargs={'smiles':smiles}),
 			'ppg' : Pricer.lookup_smiles(smiles),
-			'children': children
+			'children': children,
 		}
 
 	def rxn_dict(info, children = []):
 		return {
 			'is_reaction': True,
 			'info': info,
-			'children': children
+			'children': children,
 		}
 
-	target = 'CCCOCCC'
-	tree = chem_dict(target, children = [
-		rxn_dict('rxn1', children = [
-			chem_dict('CCCO'),
-			chem_dict('CCC[Br]')
-		]),
-		rxn_dict('rxn2', children = [
-			chem_dict('CCCO'),
-			chem_dict('CCC[Cl]', children = [
-				rxn_dict('Needs source of [Cl]', children = [
-					chem_dict('CCCO'),
-				])
-			])
-		]),
-	])
+	# def id_in_target(target, id):
+	# 	if target['id'] == int(id):
+	# 		return True 
+	# 	if target['children'] == []:
+	# 		return False 
+	# 	return any([id_in_target(child, id) for child in target['children']])
 
-	context['target'] = target
-	context['tree'] = tree
+	# def expand_by_id(target, id):
+	# 	'''Given a target tree and an ID, recursively find it and expand or collapse'''
+	# 	if target['id'] == int(id):
+	# 		if target['children'] == []:
+	# 			precursors = RetroTransformer.perform_retro(smiles).return_top(n=50)
+	# 			for smiles in precursor['smiles_split']
+	# 			pass
+	# 		else:
+	# 			#collapse
+	# 			pass
+	# 	else:
+	# 		[collapse_or_expand_by_id(child, id) for child in target['children']]
+
+	# Require a set of trees to use "clicked_on_id"
+	if id and 'working_trees' not in request.session:
+		context['err'] = 'There is not a set of synthesis trees in memory, so you cannot select an ID!'
+		return render(request, 'tree.html', context)
+
+	if 'working_trees' in request.session:
+		# Get trees and expand/collapse as necessary
+		trees = request.session['working_trees']
+		
+		# for i in range(len(trees)):
+		# 	if id_in_target(trees[i], id):
+				
+
+
+	else:
+		# Give an example
+		target = 'CCCOCCC'
+		tree1 = chem_dict(target, children = [
+			rxn_dict('rxn1', children = [
+				chem_dict('CCCO'),
+				chem_dict('CCC[Br]')
+			]),
+		])
+		tree2 = chem_dict(target, children = [
+			rxn_dict('rxn2', children = [
+				chem_dict('CCCO'),
+				chem_dict('CCC[Cl]', children = [
+					rxn_dict('Needs source of [Cl]', children = [
+						chem_dict('CCCO'),
+					])
+				])
+			]),
+		])
+		target += ' (example)'
+		trees = [tree2, tree1]
+	
+	counter = 1
+	for tree in trees:
+		counter = assign_ids(tree, counter)
+		score_target(tree)
+	context['target'] = trees[0]['smiles']
+	context['trees'] = sorted(trees, key = lambda x: x['score'], reverse = True)[:50]
+
+	request.session['working_trees'] = context['trees']
 
 	return render(request, 'tree.html', context)

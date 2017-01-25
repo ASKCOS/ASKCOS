@@ -12,13 +12,6 @@
 
 {% block page_body %}
 
-{% if err %}
-<div class="error">{{ err }}</div>
-{% endif %}
-{% if warn %}
-<div class="warning">{{ warn }}</div>
-{% endif %}
-
 {% if template %}
 <h4>
 	Template: <font class="smiles">{{ template.reaction_smarts }}</font><br>

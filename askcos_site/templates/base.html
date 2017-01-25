@@ -55,6 +55,14 @@
             </div>
 
             <div id="contents">
+            
+                {% if err %}
+                <div class="error">{{ err }}</div>
+                {% endif %}
+                {% if warn %}
+                <div class="warning">{{ warn }}</div>
+                {% endif %}
+
                 <h1>{% block page_title %}ASKCOS{% endblock %}</h1>
 
                 {% block page_body %}ASKCOS{% endblock %}
@@ -71,5 +79,7 @@
         
     </div>
 </div>
+<script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+{% block javascript %}{% endblock %}
 </body>
 </html>
