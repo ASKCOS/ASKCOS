@@ -9,7 +9,7 @@ import time
 
 import rdkit.Chem as Chem 
 
-from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, BUYABLE_DB, Pricer, TransformerOnlyKnown
+from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, BUYABLE_DB, Pricer, TransformerOnlyKnown, builder
 
 def the_time(request):
 	context = {
@@ -168,6 +168,70 @@ def retro_lit_target(request, smiles, max_n = 50):
 	context['lit_only'] = True
 	context['footnote'] = RETRO_LIT_FOOTNOTE
 	return render(request, 'retro.html', context)
+
+@login_required
+def retro_interactive(request):
+	'''Builds an interactive retrosynthesis page'''
+
+	context = {}
+	context['form'] = SmilesInputForm()
+
+	return render(request, 'retro_interactive.html', context)
+
+def ajax_smiles_to_image(request):
+	'''Takes an Ajax call with a smiles string
+	and returns the HTML for embedding an image'''
+
+	smiles = request.GET.get('smiles', None)
+	print('SMILES from Ajax: {}'.format(smiles))
+	mol = Chem.MolFromSmiles(smiles)
+	if not mol: 
+		return JsonResponse({'err': True})	
+	url = reverse('draw_smiles', kwargs={'smiles':smiles})
+	data = {
+		'html': '<img src="' + url + '">',
+	}
+	return JsonResponse(data)
+
+def ajax_start_retro(request):
+	'''Start builder'''
+	smiles = request.GET.get('smiles', None)
+	data = {'err': False}
+	if builder.is_running() and builder.is_target(smiles):
+		builder.unpause()
+	else:
+		builder.start_building(smiles)
+	return JsonResponse(data)
+
+def ajax_pause_retro(request):
+	'''Pause builder'''
+	data = {'err': False}
+	if not builder.is_target(None):
+		builder.pause()
+	else:
+		data['err'] = True 
+		data['message'] = 'Cannot pause if we have not started running'
+	return JsonResponse(data)
+
+def ajax_stop_retro(request):
+	'''Stop builder'''
+	data = {'err': False}
+	if builder.is_running():
+		builder.stop_building()
+	else:
+		data['err'] = True 
+		data['message'] = 'Cannot stop if we arent running!'
+	return JsonResponse(data)
+
+def ajax_update_retro(request):
+	'''Update displayed results'''
+	data = {'err': False}
+	if not builder.is_target(None):
+		data['html'] = 'Current builder has {} nodes<br>'.format(len(builder.tree_dict.items()))
+	else:
+		data['err'] = True 
+		data['message'] = 'Cannot show results if we have not started running'
+	return JsonResponse(data)
 
 @login_required
 def synth(request):

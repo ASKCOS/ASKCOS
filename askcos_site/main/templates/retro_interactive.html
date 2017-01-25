@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Retrosynthesis{% endblock %}
+{% block page_title %}Dynamic tree builder<span id="status"></span>{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block javascript %}
+<script>
+$("#id_smiles").change(function () {
+	console.log( $(this).val() );
+	$.ajax({
+		url: '/ajax/smiles_to_image/',
+		data: {
+			smiles: $(this).val(),
+		},
+		dataType: 'json',
+		success: function (data) {
+			if (data.err) {
+				$("#target_mol").html('error! could not parse');
+				$("#target_mol_wrapper").show();
+				$("#controls_wrapper").hide();
+			} else {
+				$("#target_mol").html(data.html);
+				$("#target_mol_wrapper").show();
+				$("#controls_wrapper").show();
+			}
+		},
+	});
+
+});
+$("#start_retro").click(function () {
+	console.log('starting retro');
+	$.ajax({
+		url: '/ajax/start_retro/',
+		data: {
+			smiles: $("#id_smiles").val(),
+		},
+		dataType: 'json',
+		success: function (data) {
+			if (data.err) {
+				alert(data.message);
+			} else {
+				$("#status").html(': running...');
+			}
+		}
+	});
+});
+$("#pause_retro").click(function () {
+	console.log('pausing retro');
+	$.ajax({
+		url: '/ajax/pause_retro/',
+		data: {
+			smiles: $("#id_smiles").val(),
+		},
+		dataType: 'json',
+		success: function (data) {
+			if (data.err) {
+				alert(data.message);
+			} else {
+				$("#status").html(': paused');
+			}
+		}
+	});
+});
+$("#stop_retro").click(function () {
+	console.log('stopping retro');
+	$.ajax({
+		url: '/ajax/stop_retro/',
+		data: {
+			smiles: $("#id_smiles").val(),
+		},
+		dataType: 'json',
+		success: function (data) {
+			if (data.err) {
+				alert(data.message);
+			} else {
+				$("#status").html(': stopped');
+			}
+		}
+	});
+});
+$("#update_retro").click(function () {
+	console.log('updating retro');
+	$.ajax({
+		url: '/ajax/update_retro/',
+		data: {
+			smiles: $("#id_smiles").val(),
+		},
+		dataType: 'json',
+		success: function (data) {
+			if (data.err) {
+				alert(data.message);
+			} else {
+				$("#results").html(data.html);
+			}
+		}
+	});
+});
+</script>
+{% endblock %}
+
+
+{% block page_body %}
+
+<table>
+
+{{ form.as_table }}
+
+<tr><th>{% csrf_token %}</th></tr>
+
+<!-- Placeholder for rendering image after a SMILES string is entered -->
+<tr id="target_mol_wrapper" style="display:none"><th style="vertical-align: text-top; text-align:left">Parsed structure:</th><td id="target_mol"></td></tr>
+
+<!-- Controls -->
+<tr id="controls_wrapper" style="display:none"><th style="vertical-align: bottom; text-align:left">Controls:</th>
+<td>
+	<button type="button" id="start_retro">Start</button>
+	<button type="button" id="pause_retro">Pause</button>
+	<button type="button" id="stop_retro">Stop</button>
+	<button type="button" id="update_retro">Update</button>
+</td>
+</tr>
+
+</table>
+
+<!-- Results -->
+<br/>
+<div id="results"></div>
+
+{% endblock %}

@@ -32,6 +32,14 @@ urlpatterns += [
     url(ur'^retro/target=(?P<smiles>.+)$', main.views.retro_target, name = 'retro_target'),
     url(ur'^retro/lit&target=(?P<smiles>.+)$', main.views.retro_lit_target, name = 'retro_lit_target'),
 
+    # Interactive retrosynthesis
+    url(ur'^retro_interactive/$', main.views.retro_interactive, name = 'retro_interactive'),
+    url(ur'^ajax/smiles_to_image/$', main.views.ajax_smiles_to_image, name = 'ajax_smiles_to_image'),
+    url(ur'^ajax/start_retro/$', main.views.ajax_start_retro, name = 'ajax_start_retro'),
+    url(ur'^ajax/pause_retro/$', main.views.ajax_pause_retro, name = 'ajax_pause_retro'),
+    url(ur'^ajax/stop_retro/$', main.views.ajax_stop_retro, name = 'ajax_stop_retro'),
+    url(ur'^ajax/update_retro/$', main.views.ajax_update_retro, name = 'ajax_update_retro'),
+
     # Forward synthesis
     url(r'^synth/$', main.views.synth, name = 'synth_home'),
     url(ur'^synth/target=(?P<smiles>.+)$', main.views.synth_target, name = 'synth_target'),
