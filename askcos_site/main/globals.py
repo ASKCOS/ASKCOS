@@ -53,3 +53,7 @@ TransformerOnlyKnown.load(CHEMICAL_DB, REACTION_DB)
 # Builder
 from makeit.webapp.treeBuilder import TreeBuilder 
 builder = TreeBuilder(Pricer = Pricer, RetroTransformer = RetroTransformer)
+
+from rdkit import RDLogger
+lg = RDLogger.logger()
+lg.setLevel(RDLogger.CRITICAL)

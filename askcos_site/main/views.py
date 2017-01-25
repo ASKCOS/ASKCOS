@@ -1,4 +1,5 @@
 from django.shortcuts import render, HttpResponse, redirect
+from django.template.loader import render_to_string
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -227,7 +228,11 @@ def ajax_update_retro(request):
 	'''Update displayed results'''
 	data = {'err': False}
 	if not builder.is_target(None):
-		data['html'] = 'Current builder has {} nodes<br>'.format(len(builder.tree_dict.items()))
+		data['html'] = builder.info_string()
+		print(builder.info_string())
+		data['html'] += '\n<br/>\n'
+		print(builder.get_trees())
+		data['html'] += render_to_string('trees_only.html', {'trees': builder.get_trees()})
 	else:
 		data['err'] = True 
 		data['message'] = 'Cannot show results if we have not started running'

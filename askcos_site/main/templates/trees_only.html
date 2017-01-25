@@ -1,0 +1,18 @@
+{% for tree in trees %}
+{% if trees|length > 1 %}
+<h3>Option {{ forloop.counter }}</h3>
+{% endif %}
+<div class="tree">
+	<ul>
+		<li>
+			{% include 'tree_child.html' with target=tree %}
+		</li>
+	</ul>
+	<!-- Fix height of tree block -->
+	<div class="clear"></div>
+</div>
+
+{% if not forloop.last %}
+<br><br>
+{% endif %}
+{% endfor %}

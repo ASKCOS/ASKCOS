@@ -2,8 +2,8 @@
 
 {% if target.is_chemical %}
 
-<a href="{% url 'draw_synthesis_tree_click' id=target.id %}" id="{{ target.id }}" class="tooltip" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
-<img src="{{ target.img }}" width="100">
+<a id="{{ target.id }}" class="tooltip" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
+<img src="{% url 'draw_smiles' target.smiles %}" width="100">
 <span>
 	<center>
 		<font class="smiles">{{ target.smiles }}</font>
