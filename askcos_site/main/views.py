@@ -231,8 +231,9 @@ def ajax_update_retro(request):
 		data['html'] = builder.info_string()
 		print(builder.info_string())
 		data['html'] += '\n<br/>\n'
-		print(builder.get_trees())
-		data['html'] += render_to_string('trees_only.html', {'trees': builder.get_trees()})
+		trees = builder.get_trees()
+		print('Got trees')
+		data['html'] += render_to_string('trees_only.html', {'trees': trees})
 	else:
 		data['err'] = True 
 		data['message'] = 'Cannot show results if we have not started running'

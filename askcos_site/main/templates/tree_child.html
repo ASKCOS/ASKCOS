@@ -3,7 +3,7 @@
 {% if target.is_chemical %}
 
 <a id="{{ target.id }}" class="tooltip" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
-<img src="{% url 'draw_smiles' target.smiles %}" width="100">
+<img src="{% url 'draw_smiles' target.smiles %}" width="75%">
 <span>
 	<center>
 		<font class="smiles">{{ target.smiles }}</font>
@@ -15,7 +15,7 @@
 
 {% else %} 
 
-<a href="#" id="{{ target.id }}" class="tooltip" style="border-color:black">
+<a id="{{ target.id }}" class="tooltip" style="border-color:black">
 <span>
     {{ target.info }}
 </span>
@@ -26,6 +26,7 @@
 
 <!-- Now add children recursively -->
 {% if target.children %}
+{% if target.children|length > 0 %}
     <ul>
         {% for child in target.children %}
         <li>
@@ -33,4 +34,5 @@
         </li>
         {% endfor %}
     </ul>
+{% endif %}
 {% endif %}
