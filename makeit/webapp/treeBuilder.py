@@ -9,7 +9,7 @@ from functools import partial # used for passing args to multiprocessing
 import time
 
 
-def expansion_worker(i, expansion_queues, results_queue, paused, done, retrotransformer):
+def expansion_worker(i, expansion_queues, results_queue, paused, done, retrotransformer, max_branching):
 	'''
 	The target for a worker Process to expand to generate precursors
 
@@ -36,7 +36,7 @@ def expansion_worker(i, expansion_queues, results_queue, paused, done, retrotran
 				#print('Worker {} grabbed {} (ID {}) to expand from queue {}'.format(i, smiles, _id, j))
 
 
-				results_queue.put((_id, get_children_from_smiles(retrotransformer, smiles)))
+				results_queue.put((_id, get_children_from_smiles(retrotransformer, smiles, max_branching)))
 				#print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
 				
 			except VanillaQueue.Empty:
@@ -44,14 +44,14 @@ def expansion_worker(i, expansion_queues, results_queue, paused, done, retrotran
 				pass
 
 
-def get_children_from_smiles(retrotransformer, smiles):
+def get_children_from_smiles(retrotransformer, smiles, max_branching = 20):
 	'''
 	For a worker that just grabbed a smiles string, this function will apply templates
 	and return a list of children 
 	'''
 
 	result = retrotransformer.perform_retro(smiles)
-	precursors = result.return_top(n = 20)
+	precursors = result.return_top(n = max_branching)
 	children = []
 	for precursor in precursors:
 		children.append((
@@ -173,26 +173,30 @@ class TreeBuilder:
 	each chemical and each reaction. Those have information about their children as well.
 	'''
 
-	def __init__(self, nb_workers = 10, max_depth = 3, Pricer = None, RetroTransformer = None):
+	def __init__(self, nb_workers = 10, max_depth = 3, max_branching = 20, Pricer = None, RetroTransformer = None):
 
 		# Number of workers to expand nodes
 		self.nb_workers = nb_workers
 		self.max_depth = max_depth
 		self.target = None
 		self.isRunning = False
+		self.max_branching = max_branching
 
 		self.Pricer = Pricer
 		self.RetroTransformer = RetroTransformer
 
 
 
-	def start_building(self, smiles, max_depth = None):
+	def start_building(self, smiles, max_depth = None, max_branching = None):
 		'''
 		Begin building the network
 		'''
 
 		if type(max_depth) != type(None):
 			self.max_depth = max_depth 
+
+		if type(max_branching) != type(None):
+			self.max_branching = max_branching
 
 		self.isRunning = True
 		self.target = smiles 
@@ -228,7 +232,7 @@ class TreeBuilder:
 
 		# Begin processes
 		for i in range(self.nb_workers):
-			p = Process(target = expansion_worker, args = (i, self.expansion_queues, self.results_queue, self.paused, self.done, self.RetroTransformer))
+			p = Process(target = expansion_worker, args = (i, self.expansion_queues, self.results_queue, self.paused, self.done, self.RetroTransformer, self.max_branching))
 			self.workers.append(p)
 			p.start()
 
