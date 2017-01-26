@@ -186,10 +186,13 @@ class TreeBuilder:
 
 
 
-	def start_building(self, smiles):
+	def start_building(self, smiles, max_depth = None):
 		'''
 		Begin building the network
 		'''
+
+		if type(max_depth) != type(None):
+			self.max_depth = max_depth 
 
 		self.isRunning = True
 		self.target = smiles 
@@ -237,6 +240,8 @@ class TreeBuilder:
 		'''
 		Stop building
 		'''
+
+		if not self.is_running(): return
 		
 		# Signal done
 		self.done.value = 1
@@ -290,7 +295,7 @@ class TreeBuilder:
 			string += '...at depth {:.1f}, {} {}<br/>\n'.format(depth, count, label)
 		return string
 
-	def get_trees(self):
+	def get_trees_dfs(self, max_trees = 25):
 		'''
 		This function recursively generates plausible synthesis trees where each chemical is
 		buyable. It is build as a generator, so it should be called multiple times until it returns
@@ -299,31 +304,6 @@ class TreeBuilder:
 		TODO: solve issues of cycles
 		'''
 
-		def chem_dict(_id, smiles, ppg, children = []):
-			return {
-				'id': _id,
-				'is_chemical': True,
-				'smiles' : smiles,
-				'ppg' : ppg,
-				'children': children,
-			}
-
-		def rxn_dict(_id, info, children = []):
-			return {
-				'id': _id,
-				'is_reaction': True,
-				'info': info,
-				'children': children,
-			}
-
-		# # Test tree list that works with the website 
-		# return [chem_dict(1, self.target, 0, children = [
-		# 			rxn_dict(2, 'rxn1', children = [
-		# 				chem_dict(3, 'CCCO', 1),
-		# 				chem_dict(4, 'CCC[Br]', 1)
-		# 			])
-		# 		])]
-
 		def viable_paths_starting_from_chemical(chem_id):
 			# Is this a terminal node of a buyable chemical?
 			if self.tree_dict[chem_id]['prod_of'] == []:
@@ -331,9 +311,9 @@ class TreeBuilder:
 					yield [] # so the calling function haas children == []
 			else:
 				for rxn_id in self.tree_dict[chem_id]['prod_of']:
-					rxn_info_string = '{} examples<br/>'.format(self.tree_dict[rxn_id]['num_examples'])
+					rxn_info_string = '{} examples'.format(self.tree_dict[rxn_id]['num_examples'])
 					if self.tree_dict[rxn_id]['necessary_reagent']:
-						rxn_info_string += 'requires source of {}'.format(self.tree_dict[rxn_id]['necessary_reagent'])
+						rxn_info_string += '<br>requires source of {}'.format(self.tree_dict[rxn_id]['necessary_reagent'])
 					for path in viable_paths_starting_from_reaction(rxn_id):
 						yield [rxn_dict(rxn_id, rxn_info_string, children = path)]
 
@@ -357,11 +337,137 @@ class TreeBuilder:
 			trees.append(tree)
 			counter += 1
 
-			if counter == 25:
+			if counter == max_trees:
 				print('Generated 25 trees, stopping looking for more...')
 				break
 
 		return trees
+
+	def get_trees_iddfs(self, max_trees = 25):
+		'''Get viable synthesis trees using an iterative deepening depth-first search'''
+
+
+		def IDDFS():
+			for depth in range(self.max_depth):
+				for path in DLS_chem(1, depth, headNode = True):
+					yield chem_dict(1, self.tree_dict[1]['smiles'], self.tree_dict[1]['ppg'], children = path)
+
+		def DLS_chem(chem_id, depth, headNode = False):
+			'''Expand at a fixed depth for the current node chem_id.
+
+			headNode indicates whether this is the first (head) node, in which case
+			we should expand it even if it is itself buyable'''
+
+			if depth == 0:
+				# Not allowing deeper - is this buyable?
+				if self.tree_dict[chem_id]['ppg']:
+					yield []  # viable node, calling function doesn't need children
+			else:
+				# Do we need to go deeper?
+				if self.tree_dict[chem_id]['ppg'] and not headNode:
+					yield [] # Nope, this is a viable node
+				else:
+					# Try going deeper via DLS_rxn function
+					for rxn_id in self.tree_dict[chem_id]['prod_of']:
+						rxn_info_string = '{} examples'.format(self.tree_dict[rxn_id]['num_examples'])
+						if self.tree_dict[rxn_id]['necessary_reagent']:
+							rxn_info_string += '<br>requires source of {}'.format(self.tree_dict[rxn_id]['necessary_reagent'])
+						for path in DLS_rxn(rxn_id, depth):
+							yield [rxn_dict(rxn_id, rxn_info_string, children = path)]
+
+		def DLS_rxn(rxn_id, depth):
+			'''Return children paths starting from a specific rxn_id
+
+			Weird case handling based on 1, 2, or 3 reactants'''
+			
+			# Define generators for each reactant node - decrement the depth!
+			generators = [DLS_chem(chem_id, depth - 1) for chem_id in self.tree_dict[rxn_id]['rcts']]
+
+			# Only one reactant? easy!
+			if len(generators) == 1:
+				chem_id = self.tree_dict[rxn_id]['rcts'][0]
+				for path in generators[0]:
+					yield [
+						chem_dict(chem_id, self.tree_dict[chem_id]['smiles'], self.tree_dict[chem_id]['ppg'], children = path)
+					]
+
+			# Two reactants? want to capture all combinations of each node's options
+			elif len(generators) == 2:
+				chem_id0 = self.tree_dict[rxn_id]['rcts'][0]
+				chem_id1 = self.tree_dict[rxn_id]['rcts'][1]
+				for path0 in generators[0]:
+					for path1 in generators[1]:
+						yield [
+							chem_dict(chem_id0, self.tree_dict[chem_id0]['smiles'], self.tree_dict[chem_id0]['ppg'], children = path0),
+							chem_dict(chem_id1, self.tree_dict[chem_id1]['smiles'], self.tree_dict[chem_id1]['ppg'], children = path1)
+						]
+					
+			# Three reactants? This is not elegant...
+			elif len(generators) == 3:
+				chem_id0 = self.tree_dict[rxn_id]['rcts'][0]
+				chem_id1 = self.tree_dict[rxn_id]['rcts'][1]
+				chem_id2 = self.tree_dict[rxn_id]['rcts'][2]
+				for path0 in generators[0]:
+					for path1 in generators[1]:
+						for path2 in generators[2]:
+							yield [
+								chem_dict(chem_id0, self.tree_dict[chem_id0]['smiles'], self.tree_dict[chem_id0]['ppg'], children = path0),
+								chem_dict(chem_id1, self.tree_dict[chem_id1]['smiles'], self.tree_dict[chem_id1]['ppg'], children = path1),
+								chem_dict(chem_id2, self.tree_dict[chem_id2]['smiles'], self.tree_dict[chem_id2]['ppg'], children = path2),
+							]
+
+			else:
+				print('Too many reactants! Only have cases 1-3 programmed')
+				raise ValueError('Too many reactants! Only have cases 1-3 programmed')
+
+		# Generate paths
+
+		import hashlib 
+		import json
+		done_trees = set()
+		trees = []
+		counter = 0
+		for tree in IDDFS():
+
+			hashkey = hashlib.sha1(json.dumps(tree, sort_keys=True)).hexdigest()
+
+			# print(tree)
+			# print(hashkey)
+
+			if hashkey in done_trees:
+				#print('Found duplicate!')
+				continue
+
+			done_trees.add(hashkey)
+			trees.append(tree)
+			counter += 1
+
+			if counter == max_trees:
+				print('Generated 25 trees, stopping looking for more...')
+				break
+
+		return trees
+
+
+
+def chem_dict(_id, smiles, ppg, children = []):
+	'''Chemical object as expected by website'''
+	return {
+		'id': _id,
+		'is_chemical': True,
+		'smiles' : smiles,
+		'ppg' : ppg,
+		'children': children,
+	}
+
+def rxn_dict(_id, info, children = []):
+	'''Reaction object as expected by website'''
+	return {
+		'id': _id,
+		'is_reaction': True,
+		'info': info,
+		'children': children,
+	}
 
 if __name__ == '__main__':
 
@@ -390,11 +496,34 @@ if __name__ == '__main__':
 	lg.setLevel(RDLogger.CRITICAL)
 
 	builder = TreeBuilder(Pricer = Pricer, RetroTransformer = RetroTransformer)
-	builder.start_building('CCCCOCCC')
-	print('Will wait 30 seconds')
-	time.sleep(5)
-	builder.stop_building(timeout = 10)
+	# builder.start_building('CCCCOCCC')
+	# print('Will wait 10 seconds')
+	# time.sleep(10)
+	# builder.stop_building(timeout = 10)
 
+	# print(builder.info_string())
+
+	# print('###########################################################')
+	# print('IDDDFS trees:')
+	# print(builder.get_trees_iddfs())
+
+
+
+	builder.start_building('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F')
+	print('Will wait 10 seconds')
+	time.sleep(10)
+	print(builder.info_string())
+	print('Will wait 10 seconds')
+	time.sleep(10)
+	print(builder.info_string())
+	print('Will wait 10 seconds')
+	time.sleep(10)
+	print(builder.info_string())
+	print('Will wait 10 seconds')
+	time.sleep(10)
 	print(builder.info_string())
 
-	print(builder.get_trees())
+	builder.stop_building(timeout = 5)
+	print('###########################################################')
+	print('IDDDFS trees:')
+	print(builder.get_trees_iddfs())
