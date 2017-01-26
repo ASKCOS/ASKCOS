@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Retrosynthesis{% endblock %}
-{% block page_title %}Dynamic tree builder<span id="status"></span>{% endblock %}
+{% block title %}Retrosynthesis Planner{% endblock %}
+{% block page_title %}Retrosynthesis Planner<span id="status"></span>{% endblock %}
 
 {% block extrahead %}{% endblock %}
 
 {% block navbar_items %}
+<a href="{% url 'main.views.retro_interactive' %}">Planner</a>
 {% endblock %}
 
 {% block sidebar_items %}{% endblock %}
@@ -21,6 +22,10 @@ $("#id_smiles").change(function () {
 		},
 		dataType: 'json',
 		success: function (data) {
+			$("#status").html('');
+			$("#statistics").html('');
+			$("#results").html('');
+			$("#start_retro").html('Start');
 			if (data.err) {
 				$("#target_mol").html('error! could not parse');
 				$("#target_mol_wrapper").show();
@@ -29,6 +34,7 @@ $("#id_smiles").change(function () {
 				$("#target_mol").html(data.html);
 				$("#target_mol_wrapper").show();
 				$("#controls_wrapper").show();
+				$("#id_smiles").val(data.smiles);
 			}
 		},
 	});
@@ -40,6 +46,7 @@ $("#start_retro").click(function () {
 		url: '/ajax/start_retro/',
 		data: {
 			smiles: $("#id_smiles").val(),
+			max_depth: $("#max_depth").val()
 		},
 		dataType: 'json',
 		success: function (data) {
@@ -47,6 +54,7 @@ $("#start_retro").click(function () {
 				alert(data.message);
 			} else {
 				$("#status").html(': running...');
+				$("#start_retro").html('Start');
 			}
 		}
 	});
@@ -64,6 +72,7 @@ $("#pause_retro").click(function () {
 				alert(data.message);
 			} else {
 				$("#status").html(': paused');
+				$("#start_retro").html('Resume')
 			}
 		}
 	});
@@ -81,6 +90,24 @@ $("#stop_retro").click(function () {
 				alert(data.message);
 			} else {
 				$("#status").html(': stopped');
+				$("#start_retro").html('Start');
+			}
+		}
+	});
+});
+$("#update_retro_stats").click(function () {
+	console.log('updating retro');
+	$.ajax({
+		url: '/ajax/update_retro_stats/',
+		data: {
+			smiles: $("#id_smiles").val(),
+		},
+		dataType: 'json',
+		success: function (data) {
+			if (data.err) {
+				alert(data.message);
+			} else {
+				$("#statistics").html(data.html_stats);
 			}
 		}
 	});
@@ -97,7 +124,8 @@ $("#update_retro").click(function () {
 			if (data.err) {
 				alert(data.message);
 			} else {
-				$("#results").html(data.html);
+				$("#statistics").html(data.html_stats);
+				$("#results").html(data.html_trees);
 			}
 		}
 	});
@@ -110,7 +138,7 @@ $("#update_retro").click(function () {
 
 <table>
 
-{{ form.as_table }}
+<tr><th>Enter target compound:</th><td><input id="id_smiles" maxlength="500" type="text"/></td></tr>
 
 <tr><th>{% csrf_token %}</th></tr>
 
@@ -120,16 +148,19 @@ $("#update_retro").click(function () {
 <!-- Controls -->
 <tr id="controls_wrapper" style="display:none"><th style="vertical-align: bottom; text-align:left">Controls:</th>
 <td>
-	<button type="button" id="start_retro">Start</button>
-	<button type="button" id="pause_retro">Pause</button>
-	<button type="button" id="stop_retro">Stop</button>
-	<button type="button" id="update_retro">Update</button>
+	Max. depth: <input type="text" id="max_depth" pattern="[1-9]" size="1" maxlength="1" value="4">
+	<button type="button" style="width:100px" id="start_retro">Start</button>
+	<button type="button" style="width:100px" id="pause_retro">Pause</button>
+	<button type="button" style="width:100px" id="stop_retro">Stop</button>
+	<button type="button" style="width:100px" id="update_retro_stats">Show stats</button>
+	<button type="button" style="width:100px" id="update_retro">Show results</button>
 </td>
 </tr>
 
 </table>
 
 <!-- Results -->
+<div id="statistics"></div>
 <br/>
 <div id="results"></div>
 

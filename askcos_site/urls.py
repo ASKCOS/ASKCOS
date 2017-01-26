@@ -38,6 +38,7 @@ urlpatterns += [
     url(ur'^ajax/start_retro/$', main.views.ajax_start_retro, name = 'ajax_start_retro'),
     url(ur'^ajax/pause_retro/$', main.views.ajax_pause_retro, name = 'ajax_pause_retro'),
     url(ur'^ajax/stop_retro/$', main.views.ajax_stop_retro, name = 'ajax_stop_retro'),
+    url(ur'^ajax/update_retro_stats/$', main.views.ajax_update_retro_stats, name = 'ajax_update_retro_stats'),
     url(ur'^ajax/update_retro/$', main.views.ajax_update_retro, name = 'ajax_update_retro'),
 
     # Forward synthesis

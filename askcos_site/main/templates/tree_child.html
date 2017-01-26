@@ -4,21 +4,25 @@
 
 <a id="{{ target.id }}" class="tooltip" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
 <img src="{% url 'draw_smiles' target.smiles %}" width="75%">
-<span>
+<div>
 	<center>
 		<font class="smiles">{{ target.smiles }}</font>
         {% if target.score %}<br>score: {{ target.score }}{% endif %}
 		{% if target.ppg %}<br>${{ target.ppg }}/g{% endif %}
 	</center>
-</span>
+</div>
 </a>
 
 {% else %} 
 
-<a id="{{ target.id }}" class="tooltip" style="border-color:black">
-<span>
-    {{ target.info }}
-</span>
+<a id="{{ target.id }}" {% if target.info or target.necessary_reagent %} class="tooltip" {% endif %} style="border-color:black">
+{% if target.num_examples %}{{ target.num_examples }} examples{% endif %}
+<div>
+    <center>
+        {% if target.info %}{{ target.info }}<br>{% endif %}
+        {% if target.necessary_reagent %}Needs source of {{ target.necessary_reagent }}{% endif %}
+    </center>
+</div>
 </a>
 
 {% endif %}

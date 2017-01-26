@@ -9,6 +9,7 @@ from bson.objectid import ObjectId
 import time
 
 import rdkit.Chem as Chem 
+import urllib2
 
 from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, BUYABLE_DB, Pricer, TransformerOnlyKnown, builder
 
@@ -185,29 +186,46 @@ def ajax_smiles_to_image(request):
 
 	smiles = request.GET.get('smiles', None)
 	print('SMILES from Ajax: {}'.format(smiles))
+
+	# Make sure we are not still building a previous tree...
+	builder.stop_building(timeout = 3) # just to be sure
+
 	mol = Chem.MolFromSmiles(smiles)
 	if not mol: 
-		return JsonResponse({'err': True})	
+		# Try to resolve using NIH
+		try:
+			smiles = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(smiles)).read()
+			print('Resolved smiles -> {}'.format(smiles))
+			mol = Chem.MolFromSmiles(smiles)
+			if not mol: return JsonResponse({'err': True})	
+		except: 
+			return JsonResponse({'err': True})	
+
 	url = reverse('draw_smiles', kwargs={'smiles':smiles})
 	data = {
 		'html': '<img src="' + url + '">',
+		'smiles': smiles,
 	}
+
 	return JsonResponse(data)
 
 def ajax_start_retro(request):
 	'''Start builder'''
 	smiles = request.GET.get('smiles', None)
+	max_depth = int(request.GET.get('max_depth', None))
 	data = {'err': False}
 	if builder.is_running() and builder.is_target(smiles):
 		builder.unpause()
 	else:
-		builder.start_building(smiles)
+		builder.stop_building(timeout = 3) # just to be sure
+		builder.start_building(smiles, max_depth = max_depth)
 	return JsonResponse(data)
 
 def ajax_pause_retro(request):
 	'''Pause builder'''
+	smiles = request.GET.get('smiles', None)
 	data = {'err': False}
-	if not builder.is_target(None):
+	if builder.is_target(smiles):
 		builder.pause()
 	else:
 		data['err'] = True 
@@ -218,22 +236,37 @@ def ajax_stop_retro(request):
 	'''Stop builder'''
 	data = {'err': False}
 	if builder.is_running():
-		builder.stop_building()
+		builder.stop_building(timeout = 3)
 	else:
 		data['err'] = True 
 		data['message'] = 'Cannot stop if we arent running!'
 	return JsonResponse(data)
 
+def ajax_update_retro_stats(request):
+	'''Update the statistics only'''
+	smiles = request.GET.get('smiles', None)
+	data = {'err': False}
+	if builder.is_target(smiles):
+		data['html_stats'] = builder.info_string()
+	else:
+		data['err'] = True
+		data['message'] = 'Cannot update stats if we have not started running!'
+	return JsonResponse(data)
+
+
 def ajax_update_retro(request):
 	'''Update displayed results'''
 	data = {'err': False}
-	if not builder.is_target(None):
-		data['html'] = builder.info_string()
+	smiles = request.GET.get('smiles', None)
+	if builder.is_target(smiles):
+		data['html_stats'] = builder.info_string()
 		print(builder.info_string())
-		data['html'] += '\n<br/>\n'
-		trees = builder.get_trees()
+		trees = builder.get_trees_iddfs()
 		print('Got trees')
-		data['html'] += render_to_string('trees_only.html', {'trees': trees})
+		if trees: 
+			data['html_trees'] = render_to_string('trees_only.html', {'trees': trees})
+		else:
+			data['html_trees'] = 'No trees resulting in buyable chemicals found!'
 	else:
 		data['err'] = True 
 		data['message'] = 'Cannot show results if we have not started running'

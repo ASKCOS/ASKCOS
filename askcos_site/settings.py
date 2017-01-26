@@ -125,7 +125,7 @@ MEDIA_URL = '/media/'
 RETRO_TRANSFORMS = {
     'database': 'reaxys',
     'collection': 'transforms_retro_v4', # 'lowe' or 'chematica'
-    'mincount': 500,
+    'mincount': 200,
     'parallel': False,
     'nb_workers': 1,
 }
