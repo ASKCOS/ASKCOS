@@ -212,13 +212,14 @@ def ajax_smiles_to_image(request):
 def ajax_start_retro(request):
 	'''Start builder'''
 	smiles = request.GET.get('smiles', None)
-	max_depth = int(request.GET.get('max_depth', None))
+	max_depth = int(request.GET.get('max_depth', 4))
+	max_branching = int(request.GET.get('max_branching', 25))
 	data = {'err': False}
 	if builder.is_running() and builder.is_target(smiles):
 		builder.unpause()
 	else:
 		builder.stop_building(timeout = 3) # just to be sure
-		builder.start_building(smiles, max_depth = max_depth)
+		builder.start_building(smiles, max_depth = max_depth, max_branching = max_branching)
 	return JsonResponse(data)
 
 def ajax_pause_retro(request):

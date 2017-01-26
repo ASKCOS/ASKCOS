@@ -30,10 +30,12 @@ $("#id_smiles").change(function () {
 				$("#target_mol").html('error! could not parse');
 				$("#target_mol_wrapper").show();
 				$("#controls_wrapper").hide();
+				$("#settings_wrapper").hide();
 			} else {
 				$("#target_mol").html(data.html);
 				$("#target_mol_wrapper").show();
 				$("#controls_wrapper").show();
+				$("#settings_wrapper").show();
 				$("#id_smiles").val(data.smiles);
 			}
 		},
@@ -46,7 +48,8 @@ $("#start_retro").click(function () {
 		url: '/ajax/start_retro/',
 		data: {
 			smiles: $("#id_smiles").val(),
-			max_depth: $("#max_depth").val()
+			max_depth: $("#max_depth").val(),
+			max_branching: $("#max_branching").val(),
 		},
 		dataType: 'json',
 		success: function (data) {
@@ -138,17 +141,24 @@ $("#update_retro").click(function () {
 
 <table>
 
-<tr><th>Enter target compound:</th><td><input id="id_smiles" maxlength="500" type="text"/></td></tr>
+<tr><th>Enter target compound:</th><td><input id="id_smiles" maxlength="500" size="40" type="text"/></td></tr>
 
 <tr><th>{% csrf_token %}</th></tr>
 
 <!-- Placeholder for rendering image after a SMILES string is entered -->
 <tr id="target_mol_wrapper" style="display:none"><th style="vertical-align: text-top; text-align:left">Parsed structure:</th><td id="target_mol"></td></tr>
 
+<!-- Settings -->
+<tr id="settings_wrapper" style="display:none"><th style="vertical-align: bottom; text-align:left">Settings:</th>
+<td>
+	Max. depth (1-9): <input type="text" id="max_depth" pattern="[1-9]" size="1" maxlength="1" value="4">
+	Max. branching factor: <input type="text" id="max_branching" pattern="[0-9]*" size="4" maxlength="4" value="20">
+</td>
+</tr>
+
 <!-- Controls -->
 <tr id="controls_wrapper" style="display:none"><th style="vertical-align: bottom; text-align:left">Controls:</th>
 <td>
-	Max. depth: <input type="text" id="max_depth" pattern="[1-9]" size="1" maxlength="1" value="4">
 	<button type="button" style="width:100px" id="start_retro">Start</button>
 	<button type="button" style="width:100px" id="pause_retro">Pause</button>
 	<button type="button" style="width:100px" id="stop_retro">Stop</button>
