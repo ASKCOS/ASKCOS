@@ -173,7 +173,7 @@ class TreeBuilder:
 	each chemical and each reaction. Those have information about their children as well.
 	'''
 
-	def __init__(self, nb_workers = 2, max_depth = 3, Pricer = None, RetroTransformer = None):
+	def __init__(self, nb_workers = 10, max_depth = 3, Pricer = None, RetroTransformer = None):
 
 		# Number of workers to expand nodes
 		self.nb_workers = nb_workers
@@ -311,11 +311,9 @@ class TreeBuilder:
 					yield [] # so the calling function haas children == []
 			else:
 				for rxn_id in self.tree_dict[chem_id]['prod_of']:
-					rxn_info_string = '{} examples'.format(self.tree_dict[rxn_id]['num_examples'])
-					if self.tree_dict[rxn_id]['necessary_reagent']:
-						rxn_info_string += '<br>requires source of {}'.format(self.tree_dict[rxn_id]['necessary_reagent'])
+					rxn_info_string = ''
 					for path in viable_paths_starting_from_reaction(rxn_id):
-						yield [rxn_dict(rxn_id, rxn_info_string, children = path)]
+						yield [rxn_dict(rxn_id, rxn_info_string, self.tree_dict[rxn_id]['necessary_reagent'], self.tree_dict[rxn_id]['num_examples'], children = path)]
 
 		def viable_paths_starting_from_reaction(rxn_id):
 			# TODO: fix this function so it returns the combinatorially-many results where a binary reaction
@@ -369,11 +367,9 @@ class TreeBuilder:
 				else:
 					# Try going deeper via DLS_rxn function
 					for rxn_id in self.tree_dict[chem_id]['prod_of']:
-						rxn_info_string = '{} examples'.format(self.tree_dict[rxn_id]['num_examples'])
-						if self.tree_dict[rxn_id]['necessary_reagent']:
-							rxn_info_string += '<br>requires source of {}'.format(self.tree_dict[rxn_id]['necessary_reagent'])
+						rxn_info_string = ''
 						for path in DLS_rxn(rxn_id, depth):
-							yield [rxn_dict(rxn_id, rxn_info_string, children = path)]
+							yield [rxn_dict(rxn_id, rxn_info_string, self.tree_dict[rxn_id]['necessary_reagent'], self.tree_dict[rxn_id]['num_examples'], children = path)]
 
 		def DLS_rxn(rxn_id, depth):
 			'''Return children paths starting from a specific rxn_id
@@ -460,12 +456,14 @@ def chem_dict(_id, smiles, ppg, children = []):
 		'children': children,
 	}
 
-def rxn_dict(_id, info, children = []):
+def rxn_dict(_id, info, necessary_reagent = '', num_examples = 0, children = []):
 	'''Reaction object as expected by website'''
 	return {
 		'id': _id,
 		'is_reaction': True,
 		'info': info,
+		'necessary_reagent': necessary_reagent,
+		'num_examples': num_examples,
 		'children': children,
 	}
 
