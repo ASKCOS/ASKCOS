@@ -56,7 +56,7 @@ def get_children_from_smiles(retrotransformer, smiles):
 	for precursor in precursors:
 		children.append((
 			{
-				'info': 'this is a reaction',
+				'necessary_reagent': precursor['necessary_reagent'],
 				'num_examples': precursor['num_examples'],
 				'score': precursor['score'],
 			},
@@ -220,6 +220,7 @@ class TreeBuilder:
 			'prod_of': [],
 			'rct_of': [],
 			'depth': 0,
+			'ppg': self.Pricer.lookup_smiles(smiles),
 		}
 
 		# Begin processes
@@ -294,6 +295,8 @@ class TreeBuilder:
 		This function recursively generates plausible synthesis trees where each chemical is
 		buyable. It is build as a generator, so it should be called multiple times until it returns
 		None or an error
+
+		TODO: solve issues of cycles
 		'''
 
 		def chem_dict(_id, smiles, ppg, children = []):
@@ -313,18 +316,53 @@ class TreeBuilder:
 				'children': children,
 			}
 
-		return [chem_dict(1, self.target, 0, children = [
-					rxn_dict(2, 'rxn1', children = [
-						chem_dict(3, 'CCCO', 1),
-						chem_dict(4, 'CCC[Br]', 1)
-					])
-				])]
+		# # Test tree list that works with the website 
+		# return [chem_dict(1, self.target, 0, children = [
+		# 			rxn_dict(2, 'rxn1', children = [
+		# 				chem_dict(3, 'CCCO', 1),
+		# 				chem_dict(4, 'CCC[Br]', 1)
+		# 			])
+		# 		])]
 
-		# Recursively generate paths
-		for path in viable_paths_starting_from_chemical(source_id = 1):
-			return chem_dict(source_id, self.tree_dict[source_id]['smiles'], children = path)
+		def viable_paths_starting_from_chemical(chem_id):
+			# Is this a terminal node of a buyable chemical?
+			if self.tree_dict[chem_id]['prod_of'] == []:
+				if self.tree_dict[chem_id]['ppg']:
+					yield [] # so the calling function haas children == []
+			else:
+				for rxn_id in self.tree_dict[chem_id]['prod_of']:
+					rxn_info_string = '{} examples<br/>'.format(self.tree_dict[rxn_id]['num_examples'])
+					if self.tree_dict[rxn_id]['necessary_reagent']:
+						rxn_info_string += 'requires source of {}'.format(self.tree_dict[rxn_id]['necessary_reagent'])
+					for path in viable_paths_starting_from_reaction(rxn_id):
+						yield [rxn_dict(rxn_id, rxn_info_string, children = path)]
 
-		
+		def viable_paths_starting_from_reaction(rxn_id):
+			# TODO: fix this function so it returns the combinatorially-many results where a binary reaction
+			# can be expanded around either of its nodes in any number of ways
+			children = []
+			for chem_id in self.tree_dict[rxn_id]['rcts']:
+				chem_children = viable_paths_starting_from_chemical(chem_id).next()
+				children.append(
+					chem_dict(chem_id, self.tree_dict[chem_id]['smiles'], self.tree_dict[chem_id]['ppg'], children = chem_children)
+				)
+			yield children
+
+		# Generate paths
+		trees = []
+		counter = 0
+		for path in viable_paths_starting_from_chemical(chem_id = 1):
+			tree = chem_dict(1, self.tree_dict[1]['smiles'], self.tree_dict[1]['ppg'], children = path)
+			#print(tree)
+			trees.append(tree)
+			counter += 1
+
+			if counter == 25:
+				print('Generated 25 trees, stopping looking for more...')
+				break
+
+		return trees
+
 if __name__ == '__main__':
 
 	from pymongo import MongoClient

@@ -329,6 +329,7 @@ class RetroResult:
 				'score': precursor.retroscore,
 				'num_examples': precursor.num_examples,
 				'tforms': sorted(list(precursor.template_ids)),
+				'necessary_reagent': precursor.necessary_reagent,
 				})
 			if i + 1 == n: 
 				break
@@ -339,11 +340,12 @@ class RetroPrecursor:
 	A class to store a single set of precursor(s) for a retrosynthesis
 	does NOT contain the target molecule information
 	'''
-	def __init__(self, smiles_list = [], template_id = -1, num_examples = 0):
+	def __init__(self, smiles_list = [], template_id = -1, num_examples = 0, necessary_reagent = ''):
 		self.retroscore = 0
 		self.num_examples = num_examples
 		self.smiles_list = smiles_list
 		self.template_ids = set([template_id])
+		self.necessary_reagent = necessary_reagent
 
 	def score(self):
 		'''
@@ -377,7 +379,7 @@ def apply_one_retrotemplate(mol, smiles, template):
 				x.UpdatePropertyCache()
 				Chem.SanitizeMol(x)
 		except Exception as e:
-			print(e)
+			#print(e) # fail quietly
 			continue
 		smiles_list = []
 		for x in outcome: 
@@ -386,6 +388,7 @@ def apply_one_retrotemplate(mol, smiles, template):
 			smiles_list = sorted(smiles_list),
 			template_id = template['_id'],
 			num_examples = template['count'],
+			necessary_reagent = template['necessary_reagent']
 		)
 		if '.'.join(precursor.smiles_list) == smiles: continue # no transformation
 		precursors.append(precursor)
