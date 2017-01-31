@@ -33,7 +33,7 @@ def mol_level_descriptors(mol):
 	
 	return (labels, attributes)
 
-def atom_level_descriptors(mol, include = ['functional'], asOneHot = False):
+def atom_level_descriptors(mol, include = ['functional'], asOneHot = False, ORIGINAL_VERSION = False):
 	'''
 	Given an RDKit mol, returns an N_atom-long list of lists,
 	each of which contains atom-level descriptors and their names
@@ -85,7 +85,7 @@ def atom_level_descriptors(mol, include = ['functional'], asOneHot = False):
 				attributes[i][-1] = 0.0
 	
 	if 'structural' in include:
-		[attributes[i].extend(atom_structural(mol.GetAtomWithIdx(i), asOneHot = asOneHot)) \
+		[attributes[i].extend(atom_structural(mol.GetAtomWithIdx(i), asOneHot = asOneHot, ORIGINAL_VERSION = ORIGINAL_VERSION)) \
 			for i in range(len(attributes))]
 		labels.append('--many structural--')
 
@@ -125,7 +125,7 @@ def bond_structural(bond, asOneHot = False, extraOne = False):
 
 	return np.array(attributes, dtype = att_dtype)
 
-def atom_structural(atom, asOneHot = False):
+def atom_structural(atom, asOneHot = False, ORIGINAL_VERSION = False):
 	'''
 	Returns a numpy array of attributes for an RDKit atom
 	- atomic number
@@ -134,16 +134,35 @@ def atom_structural(atom, asOneHot = False):
 	- formal charge
 	- is in a ring
 	- is aromatic
-    '''
+	'''
 
-   	# Redefine oneHotVector function
+	# Initialize
+	attributes = []
+
+	if ORIGINAL_VERSION: # F_atom = 32 mode
+		attributes += oneHotVectorFunc(
+			atom.GetAtomicNum(), 
+			[5, 6, 7, 8, 9, 15, 16, 17, 35, 53, 999]
+		)
+		attributes += oneHotVectorFunc(
+			len(atom.GetNeighbors()),
+			[0, 1, 2, 3, 4, 5]
+		)
+		attributes += oneHotVectorFunc(
+			atom.GetTotalNumHs(),
+			[0, 1, 2, 3, 4]
+		)
+		attributes.append(atom.GetFormalCharge())
+		attributes.append(atom.IsInRing())
+		attributes.append(atom.GetIsAromatic())
+		return np.array(attributes, dtype = att_dtype)
+
+	# Redefine oneHotVector function
 	if not asOneHot: 
 		oneHotVectorFunc = lambda x: x[0]
 	else:
 		oneHotVectorFunc = oneHotVector
 
-	# Initialize
-	attributes = []
 	# Add atomic number (todo: finish)
 	attributes += oneHotVectorFunc(
 		atom.GetAtomicNum(), 
@@ -186,14 +205,14 @@ def atom_structural(atom, asOneHot = False):
 
 
 
-def edits_to_vectors(edits, mol, atom_desc_dict = {}, return_atom_desc_dict = False):
+def edits_to_vectors(edits, mol, atom_desc_dict = {}, return_atom_desc_dict = False, ORIGINAL_VERSION = False):
 	'''
 	Given a set of edits (h_lost, h_gain, bond_lost, and bond_gain) from summarize_reaction_outcome,
 	this functionr eturns a set of vectors describiing those edits.
 	'''
 
 	if not atom_desc_dict:
-		atom_descriptors = atom_level_descriptors(mol, include = ['functional', 'structural'], asOneHot = True)[1]
+		atom_descriptors = atom_level_descriptors(mol, include = ['functional', 'structural'], asOneHot = True, ORIGINAL_VERSION = ORIGINAL_VERSION)[1]
 		atom_desc_dict = {a.GetProp('molAtomMapNumber'): atom_descriptors[i] for (i, a) in enumerate(mol.GetAtoms()) if a.HasProp('molAtomMapNumber')}
 	if return_atom_desc_dict:
 		return atom_desc_dict
