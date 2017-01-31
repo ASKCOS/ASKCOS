@@ -12,10 +12,11 @@ class Pricer:
 	are buyable.
 	'''
 
-	def __init__(self):
+	def __init__(self, by_xrn = False):
 
 		self.chemicals_source = None
 		self.buyables_source = None
+		self.by_xrn = False
 
 		self.prices = defaultdict(float) # default 0 ppg means not buyable
 		self.prices_by_xrn = defaultdict(float)
@@ -40,10 +41,11 @@ class Pricer:
 			buyable_dict[buyable_doc['_id']] = buyable_doc['ppg']
 			self.prices[smiles] = buyable_doc['ppg']
 
-		# Then pull chemicals source for XRNs (larger)
-		for chemical_doc in tqdm(self.chemicals_source.find({'buyable_id': {'$gt': -1}}, ['buyable_id'], no_cursor_timeout = True)):
-			if 'buyable_id' not in chemical_doc: continue
-			self.prices_by_xrn[chemical_doc['_id']] = buyable_dict[chemical_doc['buyable_id']]
+		if self.by_xrn:
+			# Then pull chemicals source for XRNs (larger)
+			for chemical_doc in tqdm(self.chemicals_source.find({'buyable_id': {'$gt': -1}}, ['buyable_id'], no_cursor_timeout = True)):
+				if 'buyable_id' not in chemical_doc: continue
+				self.prices_by_xrn[chemical_doc['_id']] = buyable_dict[chemical_doc['buyable_id']]
 
 	def lookup_smiles(self, smiles, alreadyCanonical = False):
 		'''
@@ -64,4 +66,5 @@ class Pricer:
 		'''
 		Looks up a price by Reaxys XRN.
 		'''
+		if not self.by_rxn: raise ValueError('Not initialized to look up prices by XRN!')
 		return self.prices_by_xrn[xrn]
