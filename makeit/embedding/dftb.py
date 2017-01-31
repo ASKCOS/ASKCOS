@@ -21,7 +21,7 @@ Geometry = GenFormat {
 Driver = gDIIS {
   MovedAtoms = 1:-1
   MaxForceComponent = 1E-4
-  MaxSteps = 100
+  MaxSteps = 200
   OutputPrefix = "geom.out"
 }
 
@@ -37,10 +37,10 @@ Hamiltonian = DFTB {
   MaxAngularMomentum {
 %s
   }
-  MaxSCCIterations = 500
+  MaxSCCIterations = 1000
   Mixer = DIIS{
     InitMixingParameter = 0.1
-    Generations = 10
+    Generations = 5
   }
   SCCTolerance = 1e-7
 }
@@ -72,18 +72,20 @@ L_max = {
 def make_input_files(mol, charge = 0.0):
 
 	new_mol = AllChem.AddHs(mol)
-	AllChem.EmbedMolecule(new_mol)
-	conf = new_mol.GetConformer()
-
+	
 	symbols = list(set([a.GetSymbol() for a in new_mol.GetAtoms()]))
 	num_atoms = len(new_mol.GetAtoms())
 
-	with open(os.path.join(dftb_root, 'geom.gen'), 'w') as fid:
-		fid.write('{} C\n'.format(num_atoms))
-		fid.write('  {}\n'.format(' '.join(symbols)))
-		for (i, a) in enumerate(new_mol.GetAtoms()):
-			fid.write('%i\t%i\t%f\t%f\t%f\n' % (i + 1, symbols.index(a.GetSymbol()) + 1, 
-				conf.GetAtomPosition(a.GetIdx()).x, conf.GetAtomPosition(a.GetIdx()).y, conf.GetAtomPosition(a.GetIdx()).z))
+	# Do we need to generate a geometry? Only if this is the first time
+	if charge == 0.0:
+		AllChem.EmbedMolecule(new_mol)
+		conf = new_mol.GetConformer()
+		with open(os.path.join(dftb_root, 'geom.gen'), 'w') as fid:
+			fid.write('{} C\n'.format(num_atoms))
+			fid.write('  {}\n'.format(' '.join(symbols)))
+			for (i, a) in enumerate(new_mol.GetAtoms()):
+				fid.write('%i\t%i\t%f\t%f\t%f\n' % (i + 1, symbols.index(a.GetSymbol()) + 1, 
+					conf.GetAtomPosition(a.GetIdx()).x, conf.GetAtomPosition(a.GetIdx()).y, conf.GetAtomPosition(a.GetIdx()).z))
 
 	maxangularmomentum = ''
 	for symbol in symbols:
@@ -93,11 +95,15 @@ def make_input_files(mol, charge = 0.0):
 			raise ValueError('Cannot run DFTB+ on this molecule because symbol {} does not have a defined MaxAngularMomentum!'.format(symbol))
 
 	with open(dftb_in, 'w') as fid:
-		fid.write(template_input_file % (charge, maxangularmomentum))
+		if charge == 0.0:
+			fid.write(template_input_file % (charge, maxangularmomentum))
+		else:
+			# Use optimized neutral geometry
+			fid.write(template_input_file.replace('geom.gen', 'geom.out.gen').replace('MaxSteps = 200', 'MaxSteps = 0') % (charge, maxangularmomentum))
 
 	return new_mol
 
-def read_results(mol, new_mol):
+def read_results(mol, new_mol, energylabel = 'energy', chargelabel = 'dftbCharge', Hchargelabel = 'dftbHCharge'):
 	'''given the results file of a DFTB+ calculation, add charges to mol'''
 
 	# Results "atom num" is 1 + AtomIdx for the RDKit object
@@ -110,15 +116,28 @@ def read_results(mol, new_mol):
 			atom_idx_map[a.GetIdx()] = a.GetNeighbors()[0].GetIdx()
 			hydrogen_idx.add(a.GetIdx())
 
-	skipped_lines = 0
+	skip_for_energy = 0
+	skip_for_charges = 0
 	with open(os.path.join(dftb_root, 'detailed.out'), 'r') as fid:
 		for line in fid:
-			if skipped_lines == 0:
+			if '************' in line:
+				skip_for_energy += 1
+				continue
+			if skip_for_energy == 1:
+				skip_for_energy += 1
+				continue
+			if skip_for_energy == 2:
+				line_split = [x for x in line.strip().split(' ') if x]
+				new_mol.SetDoubleProp(energylabel, float(line_split[1]))
+				mol.SetDoubleProp(energylabel, float(line_split[1]))
+				skip_for_energy += 1
+				continue
+			if skip_for_charges == 0:
 				if 'Net atomic charges' not in line: continue
 
 			# Skip "Net atomic charge" line and header line
-			if skipped_lines < 2:
-				skipped_lines += 1
+			if skip_for_charges < 2:
+				skip_for_charges += 1
 				continue 
 			line_split = [x for x in line.strip().split(' ') if x]
 
@@ -130,20 +149,20 @@ def read_results(mol, new_mol):
 			charge = float(line_split[1])
 
 			# Set values in explicit-H molecule
-			new_mol.GetAtomWithIdx(idx).SetDoubleProp('DFTB_pcharge', charge)
+			new_mol.GetAtomWithIdx(idx).SetDoubleProp(chargelabel, charge)
 
 			# Set values in implicit-H molecule
 			if idx in hydrogen_idx:
 				a = mol.GetAtomWithIdx(atom_idx_map[idx])
-				prev_H_pcharge = a.GetDoubleProp('DFTB_H_pcharge') if a.HasProp('DFTB_H_pcharge') else 0.0
-				a.SetDoubleProp('DFTB_H_pcharge', prev_H_pcharge + charge)
+				prev_H_pcharge = a.GetDoubleProp(Hchargelabel) if a.HasProp(Hchargelabel) else 0.0
+				a.SetDoubleProp(Hchargelabel, prev_H_pcharge + charge)
 			else:
-				mol.GetAtomWithIdx(idx).SetDoubleProp('DFTB_pcharge', charge)
+				mol.GetAtomWithIdx(idx).SetDoubleProp(chargelabel, charge)
 
 	# Set H_pcharge for remaining atoms
 	for a in mol.GetAtoms():
-		if not a.HasProp('DFTB_H_pcharge'):
-			a.SetDoubleProp('DFTB_H_pcharge', 0.0)
+		if not a.HasProp(Hchargelabel):
+			a.SetDoubleProp(Hchargelabel, 0.0)
 
 if __name__ == '__main__':
 
@@ -153,14 +172,22 @@ if __name__ == '__main__':
 		if not mol: continue 
 
 
-		charges = [0.0, -1.0, +1.0]
+		settings = [
+			(0.0, ''),
+			(-1.0, 'neg_'),
+			(+1.0, 'pos_'),
+		]
 
-		for charge in charges:
+		for (charge, label) in settings:
+
+			energylabel  = label + 'energy'
+			chargelabel  = label + 'dftbCharge'
+			Hchargelabel = label + 'dftbHCharge'
 
 			new_mol = make_input_files(mol, charge = charge)
 			os.chdir(os.path.dirname(dftb_root))
 			subprocess.call(dftb, shell = True)
-			read_results(mol, new_mol)
+			read_results(mol, new_mol, energylabel = energylabel, chargelabel = chargelabel, Hchargelabel = Hchargelabel)
 
 			print('Gastieger:')
 			import rdkit.Chem.rdPartialCharges as rdPartialCharges
@@ -168,18 +195,73 @@ if __name__ == '__main__':
 			print([(a.GetIdx(), a.GetSymbol(), a.GetProp('_GasteigerCharge'), a.GetProp('_GasteigerHCharge')) for a in mol.GetAtoms()])
 
 			print('DFTB+:')
-			print([(a.GetIdx(), a.GetSymbol(), a.GetProp('DFTB_pcharge'), a.GetProp('DFTB_H_pcharge')) for a in mol.GetAtoms()])
+			print([(a.GetIdx(), a.GetSymbol(), a.GetProp(chargelabel), a.GetProp(Hchargelabel)) for a in mol.GetAtoms()])
 
-			if charge:
-				fname = os.path.join(dftb_root, '{} charge{}.dat'.format(smiles, charge))
-			else:
-				fname = os.path.join(dftb_root, '{}.dat'.format(smiles))
-			with open(fname, 'w') as fid:
-				fid.write('smiles: {}, DFTB charge: {}\n'.format(smiles, charge))
-				fid.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(
-					'Idx', 'Symbol', 'GasteigerCharge', 'GasteigerHCharge', 'DFTB_pcharge', 'DFTB_H_pcharge'
-				))
-				for a in mol.GetAtoms():
-					fid.write('{}\t{}\t{}\t{}\t{}\t{}\n'.format(
-						a.GetIdx(), a.GetSymbol(), a.GetProp('_GasteigerCharge'), a.GetProp('_GasteigerHCharge'), a.GetProp('DFTB_pcharge'), a.GetProp('DFTB_H_pcharge')
-					))
+			print('Energy:')
+			print(mol.GetProp(energylabel))
+
+
+		# Now perform molecule-level calculations
+		IP = mol.GetDoubleProp('pos_energy') - mol.GetDoubleProp('energy')
+		EA = mol.GetDoubleProp('neg_energy') - mol.GetDoubleProp('energy')
+		mu = - (IP + EA) / 2.0 # negative chem potential
+		eta = IP - EA # hardness
+		S = 1.0 / eta # softness
+		omega = mu ** 2.0 / (2.0 * eta) # philicity
+
+
+		# Apply atom-level calculations
+		coefficients = [
+			(S, 'S_'),
+			(omega, 'W_'),
+		]
+
+		for a in mol.GetAtoms():
+			a.SetDoubleProp('Fukui_nuc', - a.GetDoubleProp('neg_dftbCharge') + a.GetDoubleProp('dftbCharge'))
+			a.SetDoubleProp('Fukui_elec', - a.GetDoubleProp('dftbCharge') + a.GetDoubleProp('pos_dftbCharge'))
+			a.SetDoubleProp('Fukui_rad', - (a.GetDoubleProp('neg_dftbCharge') - a.GetDoubleProp('pos_dftbCharge')) / 2.0)
+			a.SetDoubleProp('Fukui', a.GetDoubleProp('Fukui_nuc') - a.GetDoubleProp('Fukui_elec'))
+
+			for (coeff, label) in coefficients:
+				a.SetDoubleProp(label + 'Fukui_nuc', a.GetDoubleProp('Fukui_nuc') * coeff)
+				a.SetDoubleProp(label + 'Fukui_elec', a.GetDoubleProp('Fukui_elec') * coeff)
+				a.SetDoubleProp(label + 'Fukui_rad', a.GetDoubleProp('Fukui_rad') * coeff)
+				a.SetDoubleProp(label + 'Fukui', a.GetDoubleProp('Fukui') * coeff)
+
+		
+		cols = [
+			'_GasteigerCharge',
+			'_GasteigerHCharge',
+			'dftbCharge',
+			'dftbHCharge',
+			'pos_dftbCharge',
+			'pos_dftbHCharge',
+			'neg_dftbCharge',
+			'neg_dftbHCharge',
+			'Fukui_nuc',
+			'Fukui_elec',
+			'Fukui_rad',
+			'Fukui',
+			'S_Fukui_nuc',
+			'S_Fukui_elec',
+			'S_Fukui_rad',
+			'S_Fukui',
+			'W_Fukui_nuc',
+			'W_Fukui_elec',
+			'W_Fukui_rad',
+			'W_Fukui',
+		]
+
+		with open(os.path.join(os.path.dirname(dftb_root), '{}.dat'.format(smiles)), 'w') as fid: 
+			fid.write('SMILES\t{}\n'.format(smiles))
+			fid.write('Energy\t{}\n'.format(mol.GetDoubleProp('energy')))
+			fid.write('IP\t{}\n'.format(IP))
+			fid.write('EA\t{}\n'.format(EA))
+			fid.write('Mu (chem pot)\t{}\n'.format(mu))
+			fid.write('Eta (hardness)\t{}\n'.format(eta))
+			fid.write('S (softness)\t{}\n'.format(S))
+			fid.write('Omega (philicity)\t{}\n'.format(omega))
+
+			fid.write('Idx\tSymbol\t' + '\t'.join(cols) + '\n')
+			for a in mol.GetAtoms():
+				fid.write('{}\t{}\t'.format(a.GetIdx(), a.GetSymbol()) + '\t'.join([a.GetProp(label) for label in cols]) + '\n')
