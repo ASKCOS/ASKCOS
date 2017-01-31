@@ -414,7 +414,8 @@ class ForwardPredictor:
 		'''Return the top n outcomes'''
 
 		sorted_prods = sorted(self.products.items(), key = lambda x: x[1], reverse = True)
-		
+		if not sorted_prods: return []
+
 		prods, scores = zip(*sorted_prods)
 		probs = softmax(scores)
 		probs_truncated = softmax(scores[:n])
