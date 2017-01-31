@@ -55,7 +55,7 @@ def mse_of_true(y_true, y_pred):
 	outcome in the first index.'''
 	return K.square(y_pred[:, 0:1] - y_true)
 
-def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = 'tanh', l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0, enhancement_weight = 0.1, optimizer = Adadelta(), extra_outputs = False):
+def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = 'tanh', l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0, enhancement_weight = 0.1, optimizer = Adadelta(), extra_outputs = False, TARGET_YIELD = False, absolute_score = False):
 	'''
 	Builds the feed forward model.
 
@@ -179,7 +179,9 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
 			name = "propensity = logK - (G0 + cC + eE + ... + vV) / T + enh."
 		)(params_enhancement)
 	
-	if not TARGET_YIELD:
+	if absolute_score:
+		score = unscaled_score 
+	elif not TARGET_YIELD:
 		score = Activation('softmax', name = "scores to probs")(unscaled_score)
 	else:
 		scaled_score = Activation(lambda x: K.exp(x - 3.0), name = 'exponential activation')(unscaled_score)
@@ -731,7 +733,8 @@ if __name__ == '__main__':
 		if rebuild == 'y':
 			model = build(F_atom = F_atom, F_bond = F_bond, N_h1 = N_h1, 
 				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = opt, inner_act = inner_act,
-				context_weight = context_weight, enhancement_weight = enhancement_weight, extra_outputs = bool(args.visualize))
+				context_weight = context_weight, enhancement_weight = enhancement_weight, extra_outputs = bool(args.visualize),
+				TARGET_YIELD = TARGET_YIELD)
 		else:
 			model = model_from_json(open(MODEL_FPATH).read())
 			if TARGET_YIELD:
@@ -786,4 +789,5 @@ if __name__ == '__main__':
 	train(model, data)
 	model.save_weights(WEIGHTS_FPATH, overwrite = True) 
 	data = get_data(max_N_c = max_N_c, shuffle = False)
+
 	test(model, data)
