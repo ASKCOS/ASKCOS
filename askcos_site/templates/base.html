@@ -33,10 +33,18 @@
         </p>
 
         <p>
+        <a href="{% url 'main.views.synth_interactive' %}">
+        <div class="biglink">Forward Prediction</div></a>
+        <div class="linkdesc">Evaluate a proposed synthetic step</div>
+        </p>
+
+        <!-- BEGIN UNINTELLIGENT FORWARD ENUMERATION
+        <p>
         <a href="{% url 'main.views.synth' %}">
         <div class="biglink">One-step Forward Enumeration</div></a>
         <div class="linkdesc">Check possible reactions for a forward step</div>
         </p>    
+        END UNINTELLIGENT ENUMERATION -->
 
         <p>
         <a href="{% url 'main.views.draw' %}">
