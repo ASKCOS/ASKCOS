@@ -11,7 +11,7 @@ import time
 import rdkit.Chem as Chem 
 import urllib2
 
-from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, BUYABLE_DB, Pricer, TransformerOnlyKnown, builder
+from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, builder, predictor, PREDICTOR_FOOTNOTE
 
 def the_time(request):
 	context = {
@@ -176,11 +176,29 @@ def retro_interactive(request):
 	'''Builds an interactive retrosynthesis page'''
 
 	context = {}
-	context['form'] = SmilesInputForm()
+	context['warn'] = 'This module currently uses a shared backend object in Django, so there will be conflicts if more than one person tries to use this page at the same time.'
 
 	return render(request, 'retro_interactive.html', context)
 
-def ajax_smiles_to_image(request):
+@login_required
+def synth_interactive(request):
+	'''Builds an interactive forward synthesis page'''
+
+	context = {}
+	context['warn'] = 'This module currently uses a shared backend object in Django, so there will be conflicts if more than one person tries to use this page at the same time.'
+	context['footnote'] = PREDICTOR_FOOTNOTE
+
+	solvent_choices = []
+	for doc in SOLVENT_DB.find({'_id': {'$ne': 'default'}}):
+		solvent_choices.append({
+			'smiles': doc['smiles'],
+			'name': doc['name'],
+		})
+	context['solvent_choices'] = sorted(solvent_choices, key = lambda x: x['name'])
+
+	return render(request, 'synth_interactive.html', context)
+
+def ajax_smiles_to_image_retro(request):
 	'''Takes an Ajax call with a smiles string
 	and returns the HTML for embedding an image'''
 
@@ -208,6 +226,92 @@ def ajax_smiles_to_image(request):
 	}
 
 	return JsonResponse(data)
+
+def ajax_smiles_to_image_synth(request):
+	'''Takes an Ajax call with a smiles string
+	and returns the HTML for embedding an image'''
+	data = {'err': False}
+
+	smiles = request.GET.get('smiles', None)
+	print('SMILES from Ajax: {}'.format(smiles))
+
+	if not smiles:
+		data['html'] = 'no reagents'
+		data['smiles'] = smiles 
+		return JsonResponse(data)
+
+	mol = Chem.MolFromSmiles(smiles)
+	if not mol: 
+		# Try to resolve using NIH
+		try:
+			smiles = smiles.replace('.', ' and ')
+			smiles_list = [x.strip() for x in smiles.split(' and ')]
+			for i, smi in enumerate(smiles_list):
+				print(smi)
+				smi = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(urllib2.quote(smi))).read()
+				print('Resolved smiles -> {}'.format(smi))
+				mol = Chem.MolFromSmiles(smi)
+				if not mol: return JsonResponse({'err': True})	
+				smiles_list[i] = smi
+			smiles = '.'.join(smiles_list)
+		except: 
+			return JsonResponse({'err': True})
+
+	print('Resolved smiles: {}'.format(smiles))
+
+	url = reverse('draw_smiles', kwargs={'smiles':smiles})
+	data = {
+		'html': '<img src="' + url + '">',
+		'smiles': smiles,
+	}
+	return JsonResponse(data)
+
+
+def ajax_validate_temperature_synth(request):
+	'''Checks to see if a temperature is valid'''
+	data = {'err': False}
+
+	temperature = request.GET.get('temperature', None)
+	print('temperature from Ajax: {}'.format(temperature))
+
+	try:
+		temperature = float(temperature)
+		data['temperature'] = temperature 
+	except Exception as e:
+		data['err'] = True
+
+	return JsonResponse(data)
+
+
+def ajax_start_synth(request):
+	'''Perform the forward synthesis'''
+	data = {'err': False}
+
+	reactants = request.GET.get('reactants', None)
+	solvent = request.GET.get('solvent', None)
+	temperature = request.GET.get('temperature', None)
+	reagents = request.GET.get('reagents', None)
+	print('Conditions for forward synthesis:')
+	print('reactants: {}'.format(reactants))
+	print('solvent: {}'.format(solvent))
+	print('temp: {}'.format(temperature))
+	print('reagents: {}'.format(reagents))
+
+	startTime = time.time()
+	predictor.set_context(T = temperature, reagents = reagents, solvent = solvent)
+	print('Set context')
+	predictor.run_in_foreground(reactants = reactants, intended_product = '', quit_if_unplausible = False)
+	print('Ran in foreground')
+	outcomes = predictor.return_top(n = 25)
+	print('Got top outcomes')
+	data['html_time'] = '{:.3f} seconds elapsed'.format(time.time() - startTime)
+
+	if outcomes:
+		data['html'] = render_to_string('synth_outcomes_only.html', {'outcomes': outcomes})
+	else:
+		data['html'] = 'No outcomes found? That is weird...'
+	return JsonResponse(data)
+
 
 def ajax_start_retro(request):
 	'''Start builder'''
@@ -253,7 +357,6 @@ def ajax_update_retro_stats(request):
 		data['err'] = True
 		data['message'] = 'Cannot update stats if we have not started running!'
 	return JsonResponse(data)
-
 
 def ajax_update_retro(request):
 	'''Update displayed results'''

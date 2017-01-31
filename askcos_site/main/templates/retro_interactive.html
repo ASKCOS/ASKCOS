@@ -16,7 +16,7 @@
 $("#id_smiles").change(function () {
 	console.log( $(this).val() );
 	$.ajax({
-		url: '/ajax/smiles_to_image/',
+		url: '/ajax/smiles_to_image_retro/',
 		data: {
 			smiles: $(this).val(),
 		},

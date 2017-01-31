@@ -289,11 +289,17 @@ font.smiles {
     text-align: center;
 }
 
-
+.table_outcomes {
+    border-spacing: 20px;
+}
+.table_outcomes tr {
+    border-bottom: 1px;
+    border-color: solid #ccc;
+}
 
 
 /* BEGIN TREE CSS */
-* {margin: 0; padding: 0;}
+.tree {margin: 0; padding: 0;}
 
 .tree ul {
     padding-top: 20px; position: relative;

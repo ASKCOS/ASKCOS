@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Synthesis Predictor{% endblock %}
+{% block page_title %}Synthesis Predictor<span id="status"></span>{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'main.views.synth_interactive' %}">Predictor</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block javascript %}
+<script>
+$("#reactants").change(function () {
+	console.log( $(this).val() );
+	$.ajax({
+		url: '/ajax/smiles_to_image_synth/',
+		data: {
+			smiles: $(this).val(),
+		},
+		dataType: 'json',
+		success: function (data) {
+			if (data.err) {
+				$("#reactant_mol_wrapper").show();
+				$("#reactants_image").html('error! could not parse');
+				$("#controls_wrapper").hide();
+			} else {
+				$("#reactants_image").html(data.html);
+				$("#reactants").val(data.smiles)
+				$("#reactant_mol_wrapper").show();
+				$("#controls_wrapper").show();
+			}
+		},
+	});
+
+});
+$("#reagents").change(function () {
+	console.log( $(this).val() );
+	$.ajax({
+		url: '/ajax/smiles_to_image_synth/',
+		data: {
+			smiles: $(this).val(),
+		},
+		dataType: 'json',
+		success: function (data) {
+			if (data.err) {
+				$("#reagents_image").html('error! could not parse');
+				$("#reagent_mol_wrapper").show();
+				$("#controls_wrapper").hide();
+			} else {
+				$("#reagents").val(data.smiles)
+				$("#reagents_image").html(data.html);
+				$("#reagent_mol_wrapper").show();
+				$("#controls_wrapper").show();
+			}
+		},
+	});
+
+});
+$("#start_synth").click(function () {
+	console.log('starting synth');
+	$.ajax({
+		url: '/ajax/start_synth/',
+		data: {
+			reactants: $("#reactants").val(),
+			reagents: $("#reagents").val(),
+			solvent: $("#solvent").val(),
+			temperature: $("#temperature").val(),
+		},
+		dataType: 'json',
+		success: function (data) {
+			if (data.err) {
+				alert(data.message);
+			} else {
+				$("#results").html(data.html);
+				$("#time").html(data.html_time);
+			}
+		}
+	});
+});
+</script>
+{% endblock %}
+
+
+{% block page_body %}
+
+<table>
+
+<tr><th style="vertical-align: text-top; text-align:left">Reactants: </th><td><input id="reactants" maxlength="500" size="40" type="text"/></td></tr>
+
+<!-- Placeholder for rendering image after a SMILES string is entered -->
+<tr id="reactant_mol_wrapper" style="display:none"><th style="vertical-align: text-top; text-align:left">Parsed reactants:</th><td id="reactants_image"></td></tr>
+
+<tr><th>{% csrf_token %}</th></tr>
+
+<tr><th style="vertical-align: text-top; text-align:left">Reagents: </th><td><input id="reagents" maxlength="500" size="40" type="text"/></td></tr>
+
+<!-- Placeholder for rendering image after a SMILES string is entered -->
+<tr id="reagent_mol_wrapper" style="display:none"><th style="vertical-align: text-top; text-align:left">Parsed reagents:</th><td id="reagents_image"></td></tr>
+
+<tr><th style="vertical-align: text-top; text-align:left">Solvent: </th><td><select id="solvent">{% for solvent in solvent_choices %}<option value="{{ solvent.smiles }}" {% if solvent.name == 'toluene' %}selected{% endif %}>{{ solvent.name }}</option>{% endfor %}</select></td></tr>
+
+
+<tr><th style="vertical-align: text-top; text-align:left">Temperature (Celsius): </th><td><input id="temperature" maxlength="6" size="6" type="text" value="20"/></td></tr>
+
+<!-- Controls -->
+<tr id="controls_wrapper" style="display:none">
+<td colspan="2" style="width:100%">
+	<button type="button" style="width:100%" id="start_synth">Go</button>
+</td>
+</tr>
+</table>
+
+<!-- Results -->
+<br>
+<div id="time"></div>
+<br>
+<div id="results"></div>
+
+{% if footnote %}
+<br>
+<div style="font-size:smaller"><i>{{ footnote }}</i></div>
+{% endif %}
+
+{% endblock %}

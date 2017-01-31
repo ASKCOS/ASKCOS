@@ -1,0 +1,21 @@
+<table class="table_outcomes">
+<tr>
+	<th>Rank</th>
+	<th>Product (by edit)</th>
+	<th style="text-align: right">Probability</th>
+	<th style="text-align: right">Score</th>
+</tr>
+{% for outcome in outcomes %}
+<tr>
+	<td>{{ outcome.rank }}</td>
+	<td>
+		<center>
+			<img src="{% url 'draw_smiles' outcome.smiles %}"><br>
+			<font class="smiles">{{ outcome.smiles }}</font>
+		</center>
+	</td>
+	<td style="text-align: right">{{ outcome.prob }}</td>
+	<td style="text-align: right">{{ outcome.score }}</td>
+</tr>
+{% endfor %}
+</table>

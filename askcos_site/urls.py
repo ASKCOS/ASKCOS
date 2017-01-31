@@ -34,12 +34,17 @@ urlpatterns += [
 
     # Interactive retrosynthesis
     url(ur'^retro_interactive/$', main.views.retro_interactive, name = 'retro_interactive'),
-    url(ur'^ajax/smiles_to_image/$', main.views.ajax_smiles_to_image, name = 'ajax_smiles_to_image'),
+    url(ur'^ajax/smiles_to_image_retro/$', main.views.ajax_smiles_to_image_retro, name = 'ajax_smiles_to_image_retro'),
     url(ur'^ajax/start_retro/$', main.views.ajax_start_retro, name = 'ajax_start_retro'),
     url(ur'^ajax/pause_retro/$', main.views.ajax_pause_retro, name = 'ajax_pause_retro'),
     url(ur'^ajax/stop_retro/$', main.views.ajax_stop_retro, name = 'ajax_stop_retro'),
     url(ur'^ajax/update_retro_stats/$', main.views.ajax_update_retro_stats, name = 'ajax_update_retro_stats'),
     url(ur'^ajax/update_retro/$', main.views.ajax_update_retro, name = 'ajax_update_retro'),
+
+    # Interactive forward prediction
+    url(ur'^synth_interactive/$', main.views.synth_interactive, name = 'synth_interactive'),
+    url(ur'^ajax/smiles_to_image_synth/$', main.views.ajax_smiles_to_image_synth, name = 'ajax_smiles_to_image_synth'),
+    url(ur'^ajax/start_synth/$', main.views.ajax_start_synth, name = 'ajax_start_synth'),
 
     # Forward synthesis
     url(r'^synth/$', main.views.synth, name = 'synth_home'),
