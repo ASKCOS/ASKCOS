@@ -325,9 +325,9 @@ class ForwardPredictor:
 		# Solvent needs a lookup
 		solvent_mol = Chem.MolFromSmiles(solvent)
 		if solvent_mol: 
-			doc = SOLVENT_DB.find_one({'_id': Chem.MolToSmiles(solvent_mol)})
+			doc = self.SOLVENT_DB.find_one({'_id': Chem.MolToSmiles(solvent_mol)})
 		else:
-			doc = SOLVENT_DB.find_one({'name': solvent})
+			doc = self.SOLVENT_DB.find_one({'name': solvent})
 		if not doc:
 			return 'Could not parse solvent {}'.format(solvent)
 		solvent_vec = [doc['c'], doc['e'], doc['s'], doc['a'], doc['b'], doc['v']]
@@ -347,8 +347,14 @@ class ForwardPredictor:
 
 	def run(self, reactants = '', intended_product = '', quit_if_unplausible = False):
 		
+		# Force clear products
+		del self.products 
+		self.products = self.manager.dict()
+
 		reactants = Chem.MolFromSmiles(reactants)
-		if not reactants: raise ValueError('Could not parse reactants')
+		if not reactants: 
+			print('Could not parse reactants {}'.format(reactants))
+			raise ValueError('Could not parse reactants')
 		print('Number of reactant atoms: {}'.format(len(reactants.GetAtoms())))
 		# Report current reactant SMILES string
 		[a.ClearProp('molAtomMapNumber') for a in reactants.GetAtoms() if a.HasProp('molAtomMapNumber')]
@@ -398,8 +404,8 @@ class ForwardPredictor:
 		return bool(self.plausible.value)
 
 	def run_in_foreground(self, **kwargs):
-		predictor.run(**kwargs)
-		while not predictor.is_coord_done(): pass
+		self.run(**kwargs)
+		while not self.is_coord_done(): pass
 
 	def num_prods(self):
 		return self.products.__len__()
@@ -417,10 +423,11 @@ class ForwardPredictor:
 		for i in range(len(prods)):
 			if i == n: break 
 			outcomes.append({
+				'rank': i + 1,
 				'smiles': prods[i],
-				'score': scores[i],
-				'prob': probs[i],
-				'prob_trunc': probs_truncated[i],
+				'score': '{:.2f}'.format(scores[i]),
+				'prob': '{:.2e}'.format(probs[i]),
+				'prob_trunc': '{:.2e}'.format(probs_truncated[i]),
 			})
 		return outcomes
 
