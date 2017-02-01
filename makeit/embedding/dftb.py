@@ -7,7 +7,7 @@ import subprocess
 import rdkit.Chem as Chem 
 import rdkit.Chem.AllChem as AllChem
 
-dftb_root = '/home/ccoley/dftb+/dftbplus-1.3.0.x86_64-linux/'
+dftb_root = os.path.join(os.path.dirname(__file__), 'dftbplus-1.3.0.x86_64-linux')
 dftb = os.path.join(dftb_root, 'dftb+')
 dftb_in = os.path.join(dftb_root, 'dftb_in.hsd')
 
