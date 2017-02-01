@@ -24,6 +24,7 @@ try:
 except:
 	no_printing = True
 from makeit.embedding.descriptors import edits_to_vectors, oneHotVector # for testing
+from makeit.utils.threadsafe import threadsafe_generator
 import rdkit.Chem as Chem
 import theano.tensor as T
 from scipy.sparse import coo_matrix
@@ -213,6 +214,7 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
 
 	return model
 
+@threadsafe_generator
 def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False):
 	'''This function generates batches of data from the
 	pickle file since all the data can't fit in memory.
@@ -377,7 +379,7 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 					],
 				)
 
-
+@threadsafe_generator
 def label_generator(start_at, end_at, batch_size):
 	'''This function generates labels to match the data generated
 	by data_generator'''
@@ -668,15 +670,6 @@ if __name__ == '__main__':
 
 	args = parser.parse_args()
 
-	mol = Chem.MolFromSmiles('[C:1][C:2]')
-	(a, _, b, _) = edits_to_vectors((['1'],[],[('1','2',1.0)],[]), mol)
-
-	F_atom = len(a[0])
-	F_bond = len(b[0])
-
-	# Temp fix because edits_to_vectors was updated, but data is still old
-	F_atom = 32
-	F_bond = 68
 	
 	nb_epoch           = int(args.nb_epoch)
 	batch_size         = int(args.batch_size)
@@ -709,9 +702,10 @@ if __name__ == '__main__':
 		raise ValueError('Unrecognized optimizer')
 
 	# Labels
-	FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output')
+	FROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output')
 	FROOT = os.path.join(FROOT, tag)
 	if not os.path.isdir(FROOT):
+		print(FROOT)
 		os.mkdir(FROOT)
 	MODEL_FPATH = os.path.join(FROOT, 'model.json')
 	WEIGHTS_FPATH = os.path.join(FROOT, 'weights.h5')
@@ -726,6 +720,14 @@ if __name__ == '__main__':
 
 	DATA_FPATH = '{}_data.pickle'.format(args.data_tag)
 	LABELS_FPATH = '{}_labels.pickle'.format(args.data_tag)
+
+	this_dir = os.getcwd()
+	mol = Chem.MolFromSmiles('[CH3:1][CH3:2]')
+	(a, _, b, _) = edits_to_vectors((['1'],[],[('1','2',1.0)],[]), mol)
+	os.chdir(this_dir)
+
+	F_atom = len(a[0])
+	F_bond = len(b[0])
 
 	if bool(args.retrain):
 		print('Reloading from file')

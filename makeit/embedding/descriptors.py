@@ -100,7 +100,7 @@ def atom_level_descriptors(mol, include = ['functional'], asOneHot = False, ORIG
 		except KeyError as e: 
 			print(e)
 			dftb_atom_atts = [[0 for i in range(18)] for j in range(mol.GetNumAtoms())]
-		[attributes[i].extend(dftb_atom_atts[i] for i in range(mol.GetNumAtoms()))]
+		[attributes[i].extend(dftb_atom_atts[i]) for i in range(mol.GetNumAtoms())]
 		labels.append('--many DFTB--')
 
 	return (labels, attributes)
@@ -220,14 +220,14 @@ def atom_structural(atom, asOneHot = False, ORIGINAL_VERSION = False):
 
 
 
-def edits_to_vectors(edits, mol, atom_desc_dict = {}, return_atom_desc_dict = False, ORIGINAL_VERSION = False):
+def edits_to_vectors(edits, mol, atom_desc_dict = {}, return_atom_desc_dict = False, ORIGINAL_VERSION = False, include = ['functional', 'structural']):
 	'''
 	Given a set of edits (h_lost, h_gain, bond_lost, and bond_gain) from summarize_reaction_outcome,
 	this functionr eturns a set of vectors describiing those edits.
 	'''
 
 	if not atom_desc_dict:
-		atom_descriptors = atom_level_descriptors(mol, include = ['functional', 'structural', 'dftb'], asOneHot = True, ORIGINAL_VERSION = ORIGINAL_VERSION)[1]
+		atom_descriptors = atom_level_descriptors(mol, include = include, asOneHot = True, ORIGINAL_VERSION = ORIGINAL_VERSION)[1]
 		atom_desc_dict = {a.GetProp('molAtomMapNumber'): atom_descriptors[i] for (i, a) in enumerate(mol.GetAtoms()) if a.HasProp('molAtomMapNumber')}
 	if return_atom_desc_dict:
 		return atom_desc_dict
