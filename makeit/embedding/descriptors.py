@@ -4,6 +4,8 @@ import rdkit.Chem.rdMolDescriptors as rdMolDescriptors
 import rdkit.Chem.EState as EState
 import rdkit.Chem.rdPartialCharges as rdPartialCharges
 import rdkit.Chem.rdChemReactions as rdRxns
+from makeit.embedding.dftb import atom_dftb
+
 att_dtype = np.float32
 
 def oneHotVector(val, lst):
@@ -89,7 +91,20 @@ def atom_level_descriptors(mol, include = ['functional'], asOneHot = False, ORIG
 			for i in range(len(attributes))]
 		labels.append('--many structural--')
 
+	if 'dftb' in include:
+		try:
+			dftb_atom_atts = atom_dftb(mol)
+		except ValueError as e:# often, an invalid element
+			print(e)
+			dftb_atom_atts = [[0 for i in range(18)] for j in range(mol.GetNumAtoms())]
+		except KeyError as e: 
+			print(e)
+			dftb_atom_atts = [[0 for i in range(18)] for j in range(mol.GetNumAtoms())]
+		[attributes[i].extend(dftb_atom_atts[i] for i in range(mol.GetNumAtoms()))]
+		labels.append('--many DFTB--')
+
 	return (labels, attributes)
+
 
 def bond_structural(bond, asOneHot = False, extraOne = False):
 	'''
@@ -212,7 +227,7 @@ def edits_to_vectors(edits, mol, atom_desc_dict = {}, return_atom_desc_dict = Fa
 	'''
 
 	if not atom_desc_dict:
-		atom_descriptors = atom_level_descriptors(mol, include = ['functional', 'structural'], asOneHot = True, ORIGINAL_VERSION = ORIGINAL_VERSION)[1]
+		atom_descriptors = atom_level_descriptors(mol, include = ['functional', 'structural', 'dftb'], asOneHot = True, ORIGINAL_VERSION = ORIGINAL_VERSION)[1]
 		atom_desc_dict = {a.GetProp('molAtomMapNumber'): atom_descriptors[i] for (i, a) in enumerate(mol.GetAtoms()) if a.HasProp('molAtomMapNumber')}
 	if return_atom_desc_dict:
 		return atom_desc_dict

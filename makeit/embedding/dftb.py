@@ -21,7 +21,7 @@ Geometry = GenFormat {
 Driver = gDIIS {
   MovedAtoms = 1:-1
   MaxForceComponent = 1E-4
-  MaxSteps = 200
+  MaxSteps = 100
   OutputPrefix = "geom.out"
 }
 
@@ -37,10 +37,10 @@ Hamiltonian = DFTB {
   MaxAngularMomentum {
 %s
   }
-  MaxSCCIterations = 1000
+  MaxSCCIterations = 500
   Mixer = DIIS{
-    InitMixingParameter = 0.1
-    Generations = 5
+    InitMixingParameter = 0.2
+    Generations = 10
   }
   SCCTolerance = 1e-7
 }
@@ -72,6 +72,7 @@ L_max = {
 def make_input_files(mol, charge = 0.0):
 
 	new_mol = AllChem.AddHs(mol)
+	new_mol = replace_invalid_atoms(new_mol)
 	
 	symbols = list(set([a.GetSymbol() for a in new_mol.GetAtoms()]))
 	num_atoms = len(new_mol.GetAtoms())
@@ -92,7 +93,7 @@ def make_input_files(mol, charge = 0.0):
 		try:
 			maxangularmomentum += '    {} = "{}"\n'.format(symbol, L_max[symbol])
 		except KeyError:
-			raise ValueError('Cannot run DFTB+ on this molecule because symbol {} does not have a defined MaxAngularMomentum!'.format(symbol))
+			raise ValueError('Cannot run DFTB+ on this molecule because symbol {} does not have a defined MaxAngularMomentum! Could it be substituted for one of the elements for which we have parameters? Check {}'.format(symbol, __file__))
 
 	with open(dftb_in, 'w') as fid:
 		if charge == 0.0:
@@ -164,36 +165,54 @@ def read_results(mol, new_mol, energylabel = 'energy', chargelabel = 'dftbCharge
 		if not a.HasProp(Hchargelabel):
 			a.SetDoubleProp(Hchargelabel, 0.0)
 
-if __name__ == '__main__':
 
-	while True:
-		smiles = raw_input('Enter smiles: ')
-		mol = Chem.MolFromSmiles(smiles)
-		if not mol: continue 
+def replace_invalid_atoms(new_mol):
+	'''
+	Because DFTB+ only has parameters for some elements, we need to replace others
+	to trick the solver into working'''
+
+	for a in new_mol.GetAtoms():
+		if a.GetSymbol() in L_max: continue 
+		if a.GetAtomicNum() in range(21, 31) or a.GetAtomicNum() in range(39, 49): # transition metals
+			a.SetAtomicNum(30) # zinc
+		elif a.GetAtomicNum() == 3: # lithium
+			a.SetAtomicNum(11) # sodium
+		elif a.GetSymbol() == 'Si':
+			a.SetAtomicNum(6) # carbon
+		else:
+			raise ValueError('Atom {} not in list of possible DFTB elements, nor in our list of custom replacements'.format(a.GetSymbol()))
+	return new_mol
 
 
-		settings = [
-			(0.0, ''),
-			(-1.0, 'neg_'),
-			(+1.0, 'pos_'),
-		]
+def atom_dftb(mol, v = False, to_file = False):
+	'''Given a molecule, run a DFTB calculation and get descriptors'''
 
-		for (charge, label) in settings:
+	attributes = [[] for i in range(mol.GetNumAtoms())]
 
-			energylabel  = label + 'energy'
-			chargelabel  = label + 'dftbCharge'
-			Hchargelabel = label + 'dftbHCharge'
+	settings = [
+		(0.0, ''),
+		(-1.0, 'neg_'),
+		(+1.0, 'pos_'),
+	]
 
-			new_mol = make_input_files(mol, charge = charge)
-			os.chdir(os.path.dirname(dftb_root))
-			subprocess.call(dftb, shell = True)
-			read_results(mol, new_mol, energylabel = energylabel, chargelabel = chargelabel, Hchargelabel = Hchargelabel)
+	for (charge, label) in settings:
 
-			print('Gastieger:')
-			import rdkit.Chem.rdPartialCharges as rdPartialCharges
-			rdPartialCharges.ComputeGasteigerCharges(mol)
-			print([(a.GetIdx(), a.GetSymbol(), a.GetProp('_GasteigerCharge'), a.GetProp('_GasteigerHCharge')) for a in mol.GetAtoms()])
+		energylabel  = label + 'energy'
+		chargelabel  = label + 'dftbCharge'
+		Hchargelabel = label + 'dftbHCharge'
 
+		new_mol = make_input_files(mol, charge = charge)
+		os.chdir(os.path.dirname(dftb_root))
+		with open(os.path.join(os.path.dirname(dftb_root), 'log.txt'), 'w') as fid:
+			subprocess.call(dftb, shell = True, stdout = fid)
+		read_results(mol, new_mol, energylabel = energylabel, chargelabel = chargelabel, Hchargelabel = Hchargelabel)
+
+		#print('Gastieger:')
+		#import rdkit.Chem.rdPartialCharges as rdPartialCharges
+		#rdPartialCharges.ComputeGasteigerCharges(mol)
+		#print([(a.GetIdx(), a.GetSymbol(), a.GetProp('_GasteigerCharge'), a.GetProp('_GasteigerHCharge')) for a in mol.GetAtoms()])
+
+		if v:
 			print('DFTB+:')
 			print([(a.GetIdx(), a.GetSymbol(), a.GetProp(chargelabel), a.GetProp(Hchargelabel)) for a in mol.GetAtoms()])
 
@@ -201,57 +220,58 @@ if __name__ == '__main__':
 			print(mol.GetProp(energylabel))
 
 
-		# Now perform molecule-level calculations
-		IP = mol.GetDoubleProp('pos_energy') - mol.GetDoubleProp('energy')
-		EA = mol.GetDoubleProp('neg_energy') - mol.GetDoubleProp('energy')
-		mu = - (IP + EA) / 2.0 # negative chem potential
-		eta = IP - EA # hardness
-		S = 1.0 / eta # softness
-		omega = mu ** 2.0 / (2.0 * eta) # philicity
+	# Now perform molecule-level calculations
+	IP = mol.GetDoubleProp('pos_energy') - mol.GetDoubleProp('energy')
+	EA = mol.GetDoubleProp('neg_energy') - mol.GetDoubleProp('energy')
+	mu = - (IP + EA) / 2.0 # negative chem potential
+	eta = IP - EA # hardness
+	S = 1.0 / eta # softness
+	omega = mu ** 2.0 / (2.0 * eta) # philicity
 
 
-		# Apply atom-level calculations
-		coefficients = [
-			(S, 'S_'),
-			(omega, 'W_'),
-		]
+	# Apply atom-level calculations
+	coefficients = [
+		(S, 'S_'),
+		(omega, 'W_'),
+	]
 
-		for a in mol.GetAtoms():
-			a.SetDoubleProp('Fukui_nuc', - a.GetDoubleProp('neg_dftbCharge') + a.GetDoubleProp('dftbCharge'))
-			a.SetDoubleProp('Fukui_elec', - a.GetDoubleProp('dftbCharge') + a.GetDoubleProp('pos_dftbCharge'))
-			a.SetDoubleProp('Fukui_rad', - (a.GetDoubleProp('neg_dftbCharge') - a.GetDoubleProp('pos_dftbCharge')) / 2.0)
-			a.SetDoubleProp('Fukui', a.GetDoubleProp('Fukui_nuc') - a.GetDoubleProp('Fukui_elec'))
+	for i, a in enumerate(mol.GetAtoms()):
+		a.SetDoubleProp('Fukui_nuc', - a.GetDoubleProp('neg_dftbCharge') + a.GetDoubleProp('dftbCharge'))
+		a.SetDoubleProp('Fukui_elec', - a.GetDoubleProp('dftbCharge') + a.GetDoubleProp('pos_dftbCharge'))
+		a.SetDoubleProp('Fukui_rad', - (a.GetDoubleProp('neg_dftbCharge') - a.GetDoubleProp('pos_dftbCharge')) / 2.0)
+		a.SetDoubleProp('Fukui', a.GetDoubleProp('Fukui_nuc') - a.GetDoubleProp('Fukui_elec'))
 
-			for (coeff, label) in coefficients:
-				a.SetDoubleProp(label + 'Fukui_nuc', a.GetDoubleProp('Fukui_nuc') * coeff)
-				a.SetDoubleProp(label + 'Fukui_elec', a.GetDoubleProp('Fukui_elec') * coeff)
-				a.SetDoubleProp(label + 'Fukui_rad', a.GetDoubleProp('Fukui_rad') * coeff)
-				a.SetDoubleProp(label + 'Fukui', a.GetDoubleProp('Fukui') * coeff)
+		for (coeff, label) in coefficients:
+			a.SetDoubleProp(label + 'Fukui_nuc', a.GetDoubleProp('Fukui_nuc') * coeff)
+			a.SetDoubleProp(label + 'Fukui_elec', a.GetDoubleProp('Fukui_elec') * coeff)
+			a.SetDoubleProp(label + 'Fukui_rad', a.GetDoubleProp('Fukui_rad') * coeff)
+			a.SetDoubleProp(label + 'Fukui', a.GetDoubleProp('Fukui') * coeff)
 
-		
-		cols = [
-			'_GasteigerCharge',
-			'_GasteigerHCharge',
-			'dftbCharge',
-			'dftbHCharge',
-			'pos_dftbCharge',
-			'pos_dftbHCharge',
-			'neg_dftbCharge',
-			'neg_dftbHCharge',
-			'Fukui_nuc',
-			'Fukui_elec',
-			'Fukui_rad',
-			'Fukui',
-			'S_Fukui_nuc',
-			'S_Fukui_elec',
-			'S_Fukui_rad',
-			'S_Fukui',
-			'W_Fukui_nuc',
-			'W_Fukui_elec',
-			'W_Fukui_rad',
-			'W_Fukui',
-		]
+	
+	cols = [
+		#'_GasteigerCharge',
+		#'_GasteigerHCharge',
+		'dftbCharge',
+		'dftbHCharge',
+		'pos_dftbCharge',
+		'pos_dftbHCharge',
+		'neg_dftbCharge',
+		'neg_dftbHCharge',
+		'Fukui_nuc',
+		'Fukui_elec',
+		'Fukui_rad',
+		'Fukui',
+		'S_Fukui_nuc',
+		'S_Fukui_elec',
+		'S_Fukui_rad',
+		'S_Fukui',
+		'W_Fukui_nuc',
+		'W_Fukui_elec',
+		'W_Fukui_rad',
+		'W_Fukui',
+	]
 
+	if to_file:
 		with open(os.path.join(os.path.dirname(dftb_root), '{}.dat'.format(smiles)), 'w') as fid: 
 			fid.write('SMILES\t{}\n'.format(smiles))
 			fid.write('Energy\t{}\n'.format(mol.GetDoubleProp('energy')))
@@ -265,3 +285,23 @@ if __name__ == '__main__':
 			fid.write('Idx\tSymbol\t' + '\t'.join(cols) + '\n')
 			for a in mol.GetAtoms():
 				fid.write('{}\t{}\t'.format(a.GetIdx(), a.GetSymbol()) + '\t'.join([a.GetProp(label) for label in cols]) + '\n')
+
+	for i, a in enumerate(mol.GetAtoms()):
+		attributes[i].extend(
+			[a.GetDoubleProp(label) for label in cols]
+		)
+
+	return attributes
+
+
+
+if __name__ == '__main__':
+
+	while True:
+		smiles = raw_input('Enter smiles: ')
+		mol = Chem.MolFromSmiles(smiles)
+		if not mol: continue 
+
+
+		attributes = atom_dftb(mol, v = False, to_file = False)
+		print(attributes)
