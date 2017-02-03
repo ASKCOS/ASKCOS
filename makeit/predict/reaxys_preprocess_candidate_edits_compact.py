@@ -70,7 +70,7 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 
 		def get_sequential(self):
 			'''Sequential'''
-			for doc in examples.find({'found': True}, no_cursor_timeout = True):
+			for doc in examples.find({'found': True}, no_cursor_timeout = True).sort('_id', 1):
 				try:
 					if not doc: continue 
 					if doc['_id'] in self.done_ids: continue
@@ -97,6 +97,8 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 
 		reactants_check = Chem.MolFromSmiles(str(reactant_smiles))
 		if not reactants_check:
+			print('######### Could not parse reactants - that is weird...')
+			print(reactant_smiles)
 			continue
 
 		bools = [product_smiles_true == x for x in candidate_smiles]
@@ -131,17 +133,21 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 			print('Could not find RXD with ID {}'.format(reaction['_id']))
 			raise ValueError('Candidate reaction source not found?')
 		if complete_only and 'complete' not in rxd:
+			print('## this reaction was not complete?')
 			continue
 
 		#print('Total number of edit candidates: {} ({} valid)'.format(len(valid_edits), sum(valid_edits)))
 		
 		# Temp
 		T = string_or_range_to_float(rxd['RXD_T'])
-		if not T: 
+		if np.isnan(T): 
 			T = 20
-			if complete_only: continue # skip if T was unparseable
+			if complete_only: 
+				print('T: {}'.format(rxd['RXD_T']))
+				continue # skip if T was unparseable
 		if T == -1: 
 			T = 20
+			print('T: {}'.format(rxd['RXD_T']))
 			if complete_only: continue # skip if T not recorded
 
 		# Solvent(s)
@@ -149,10 +155,12 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 		unknown_solvents = []
 		context_info += 'solv:'
 		for xrn in rxd['RXD_SOLXRN']:
-			chem_doc = CHEMICAL_DB.find_one({'_id': xrn}, ['SMILES'])
+			chem_doc = CHEMICAL_DB.find_one({'_id': xrn}, ['SMILES', 'IDE_CN'])
 			if not chem_doc: continue
 			smiles = str(chem_doc['SMILES'])
-			if not smiles: continue 
+			if not smiles: 
+				print('IDE_CN: {} does not have a smiles'.format(chem_doc['IDE_CN']))
+				continue 
 			mol = Chem.MolFromSmiles(smiles)
 			if not mol: continue
 			smiles = Chem.MolToSmiles(mol)
@@ -160,7 +168,8 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 			context_info += smiles + ','
 			if not doc: 
 				unknown_solvents.append(smiles)
-				#print('Solvent {} not found in DB'.format(smiles))
+				print('Solvent {} not found in DB'.format(smiles))
+				#print('...but this record has {} total solvents'.format(len(set(rxd['RXD_SOLXRN']))))
 				context_info = context_info[:-1] + '?,' # add question mark to denote unfound
 				continue
 			solvent[0] += doc['c']
@@ -190,7 +199,7 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 			reagent_fp += np.array(AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits = 256))
 		context_info += 'T:{}'.format(T)
 		if complete_only: # should have info about time and yield
-			context_info += ',t:' + str(rxd['RXD_TIM']) + 'min,y:' + str(rxd['RXD_NYD']) + '%'
+			context_info += ',t:' + str(rxd['RXD_TIM']) + 'h,y:' + str(rxd['RXD_NYD']) + '%'
 		#print(context_info)
 
 		reaction_candidate_edits_compact = [
@@ -228,7 +237,7 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 
 			pickle.dump((
 				str(rxd['_id']),
-				str(reactant_smiles) + '>' + str(context_info) + '>' + str(product_smiles_true) + '[{}]'.format(len(zipsort)),
+				str(reactant_smiles) + '>' + str(context_info) + ',Nc:' + str(len(zipsort)) + '>' + str(product_smiles_true),
 				[z for (y, z, x) in zipsort],
 				reaction_candidate_edits_compact,
 			), fid_labels, pickle.HIGHEST_PROTOCOL)
@@ -236,10 +245,10 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 		i += 1
 
 		if i % 100 == 0:
-			print('Completed {}/{}'.format(i, n_max))
+			print('Completed {}/{} (have seen {} from DB)'.format(i, n_max, j+1))
 
 		if i == n_max:
-			print('Finished the requested {} examples'.format(n_max))
+			print('Finished the requested {} examples (required {} from DB)'.format(n_max, j+1))
 			break
 
 
