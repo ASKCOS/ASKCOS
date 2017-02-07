@@ -24,6 +24,7 @@ try:
 except:
 	no_printing = True
 from makeit.embedding.descriptors import edits_to_vectors, oneHotVector # for testing
+from makeit.utils.threadsafe import threadsafe_generator
 import rdkit.Chem as Chem
 import theano.tensor as T
 from scipy.sparse import coo_matrix
@@ -55,7 +56,7 @@ def mse_of_true(y_true, y_pred):
 	outcome in the first index.'''
 	return K.square(y_pred[:, 0:1] - y_true)
 
-def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = 'tanh', l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0, enhancement_weight = 0.1, optimizer = Adadelta(), extra_outputs = False):
+def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = 'tanh', l2v = 0.01, lr = 0.0003, N_hf = 20, context_weight = 150.0, enhancement_weight = 0.1, optimizer = Adadelta(), extra_outputs = False, TARGET_YIELD = False, absolute_score = False):
 	'''
 	Builds the feed forward model.
 
@@ -179,7 +180,9 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
 			name = "propensity = logK - (G0 + cC + eE + ... + vV) / T + enh."
 		)(params_enhancement)
 	
-	if not TARGET_YIELD:
+	if absolute_score:
+		score = unscaled_score 
+	elif not TARGET_YIELD:
 		score = Activation('softmax', name = "scores to probs")(unscaled_score)
 	else:
 		scaled_score = Activation(lambda x: K.exp(x - 3.0), name = 'exponential activation')(unscaled_score)
@@ -211,6 +214,7 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
 
 	return model
 
+@threadsafe_generator
 def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False):
 	'''This function generates batches of data from the
 	pickle file since all the data can't fit in memory.
@@ -375,7 +379,7 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 					],
 				)
 
-
+@threadsafe_generator
 def label_generator(start_at, end_at, batch_size):
 	'''This function generates labels to match the data generated
 	by data_generator'''
@@ -665,17 +669,6 @@ if __name__ == '__main__':
 			help = 'Are we targeting yield? 0 or 1, default 0')
 
 	args = parser.parse_args()
-
-	mol = Chem.MolFromSmiles('[C:1][C:2]')
-	(a, _, b, _) = edits_to_vectors((['1'],[],[('1','2',1.0)],[]), mol)
-
-	F_atom = len(a[0])
-	F_bond = len(b[0])
-
-	# Temp fix because edits_to_vectors was updated, but data is still old
-	if 'moreFeatures' not in args.data_tag:
-		F_atom = 32
-		F_bond = 68
 	
 	nb_epoch           = int(args.nb_epoch)
 	batch_size         = int(args.batch_size)
@@ -708,9 +701,10 @@ if __name__ == '__main__':
 		raise ValueError('Unrecognized optimizer')
 
 	# Labels
-	FROOT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'output')
+	FROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output')
 	FROOT = os.path.join(FROOT, tag)
 	if not os.path.isdir(FROOT):
+		print(FROOT)
 		os.mkdir(FROOT)
 	MODEL_FPATH = os.path.join(FROOT, 'model.json')
 	WEIGHTS_FPATH = os.path.join(FROOT, 'weights.h5')
@@ -726,13 +720,22 @@ if __name__ == '__main__':
 	DATA_FPATH = '{}_data.pickle'.format(args.data_tag)
 	LABELS_FPATH = '{}_labels.pickle'.format(args.data_tag)
 
+	this_dir = os.getcwd()
+	mol = Chem.MolFromSmiles('[CH3:1][CH3:2]')
+	(a, _, b, _) = edits_to_vectors((['1'],[],[('1','2',1.0)],[]), mol)
+	os.chdir(this_dir)
+
+	F_atom = len(a[0])
+	F_bond = len(b[0])
+
 	if bool(args.retrain):
 		print('Reloading from file')
 		rebuild = raw_input('Do you want to rebuild from scratch instead of loading from file? [n/y] ')
 		if rebuild == 'y':
 			model = build(F_atom = F_atom, F_bond = F_bond, N_h1 = N_h1, 
 				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = opt, inner_act = inner_act,
-				context_weight = context_weight, enhancement_weight = enhancement_weight, extra_outputs = bool(args.visualize))
+				context_weight = context_weight, enhancement_weight = enhancement_weight, extra_outputs = bool(args.visualize),
+				TARGET_YIELD = TARGET_YIELD)
 		else:
 			model = model_from_json(open(MODEL_FPATH).read())
 			if TARGET_YIELD:

@@ -6,3 +6,4 @@
 # Bad large data
 makeit/data/chemical_names_*
 test/*
+makeit/predict/output/*
