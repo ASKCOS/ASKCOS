@@ -156,6 +156,8 @@ def process_forever(queue, lock_pymongo):
 		try:
 			(rx, rxd) = queue.get()
 			process_one(rx, rxd, lock_pymongo)
+		except KeyError as e:
+			print('Key error!! {}'.format(e))
 		except QueueEmpty:
 			time.sleep(1)
 
@@ -252,9 +254,9 @@ if __name__ == '__main__':
 					if not process.is_alive():
 						new_process = Process(target=process_forever, args=(queue, lock_pymongo))
 						new_process.start()
-					processes[i] = new_process 
-					del process
-					print('### Restarted process {} ###'.format(i))
+						processes[i] = new_process 
+						del process
+						print('### Restarted process {} ###'.format(i))
 
 				continue # wait
 

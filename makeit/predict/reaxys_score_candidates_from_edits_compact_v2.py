@@ -673,8 +673,9 @@ if __name__ == '__main__':
 	F_bond = len(b[0])
 
 	# Temp fix because edits_to_vectors was updated, but data is still old
-	F_atom = 32
-	F_bond = 68
+	if 'moreFeatures' not in args.data_tag:
+		F_atom = 32
+		F_bond = 68
 	
 	nb_epoch           = int(args.nb_epoch)
 	batch_size         = int(args.batch_size)
