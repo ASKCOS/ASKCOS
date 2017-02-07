@@ -274,6 +274,7 @@ if __name__ == '__main__':
 	parser.add_argument('--tag', type = str, default = 'reaxys',
 						help = 'Data tag, default = reaxys')
 	parser.add_argument('--count', type = int, default = 0, help = 'Only count, dont actually save?')
+	parser.add_argument('--solvent_coll', type = str, default = 'solvents', help = 'Solvent collection: solvents or solvents_mn')
 	args = parser.parse_args()
 
 	n = int(args.num)
@@ -311,7 +312,7 @@ if __name__ == '__main__':
 		pickle.dump(legend_labels, fid_labels, pickle.HIGHEST_PROTOCOL)
 
 	# Now get candidates
-	get_candidates(args.candidate_collection, n_max = n)
+	get_candidates(args.candidate_collection, n_max = n, solvent_coll = args.solvent_coll)
 
 	if not countonly:
 		fid_data.close()
