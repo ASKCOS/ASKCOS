@@ -669,7 +669,6 @@ if __name__ == '__main__':
 			help = 'Are we targeting yield? 0 or 1, default 0')
 
 	args = parser.parse_args()
-
 	
 	nb_epoch           = int(args.nb_epoch)
 	batch_size         = int(args.batch_size)
@@ -791,5 +790,4 @@ if __name__ == '__main__':
 	train(model, data)
 	model.save_weights(WEIGHTS_FPATH, overwrite = True) 
 	data = get_data(max_N_c = max_N_c, shuffle = False)
-
 	test(model, data)
