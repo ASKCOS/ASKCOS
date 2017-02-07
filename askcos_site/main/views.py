@@ -3,6 +3,7 @@ from django.template.loader import render_to_string
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from django.conf import settings
 import django.contrib.auth.views
 from forms import SmilesInputForm, DrawingInputForm, is_valid_smiles
 from bson.objectid import ObjectId
@@ -195,6 +196,7 @@ def synth_interactive(request):
 			'name': doc['name'],
 		})
 	context['solvent_choices'] = sorted(solvent_choices, key = lambda x: x['name'])
+	context['mincount_default'] = settings.SYNTH_TRANSFORMS['mincount']
 
 	return render(request, 'synth_interactive.html', context)
 
@@ -291,19 +293,21 @@ def ajax_start_synth(request):
 	solvent = request.GET.get('solvent', None)
 	temperature = request.GET.get('temperature', None)
 	reagents = request.GET.get('reagents', None)
+	mincount = int(request.GET.get('mincount', None))
 	print('Conditions for forward synthesis:')
 	print('reactants: {}'.format(reactants))
 	print('solvent: {}'.format(solvent))
 	print('temp: {}'.format(temperature))
 	print('reagents: {}'.format(reagents))
+	print('mincount: {}'.format(mincount))
 
 	startTime = time.time()
 	predictor.set_context(T = temperature, reagents = reagents, solvent = solvent)
 	print('Set context')
-	predictor.run_in_foreground(reactants = reactants, intended_product = '', quit_if_unplausible = False)
+	predictor.run_in_foreground(reactants = reactants, intended_product = '', quit_if_unplausible = False, mincount = mincount)
 	print('Ran in foreground')
 	outcomes = predictor.return_top(n = 25)
-	print('Got top outcomes')
+	print('Got top outcomes, length {}'.format(len(outcomes)))
 	data['html_time'] = '{:.3f} seconds elapsed'.format(time.time() - startTime)
 
 	if outcomes:

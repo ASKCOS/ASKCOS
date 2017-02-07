@@ -132,7 +132,7 @@ RETRO_TRANSFORMS = {
 SYNTH_TRANSFORMS = {
     'database': 'reaxys',
     'collection': 'transforms_forward_v1'   ,
-    'mincount': 200, 
+    'mincount': 25, 
 }
 INSTANCES = {
     'database': 'reaxys',

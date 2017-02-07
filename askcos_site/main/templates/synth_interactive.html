@@ -68,6 +68,7 @@ $("#start_synth").click(function () {
 			reagents: $("#reagents").val(),
 			solvent: $("#solvent").val(),
 			temperature: $("#temperature").val(),
+			mincount: $("#mincount").val(),
 		},
 		dataType: 'json',
 		success: function (data) {
@@ -104,6 +105,8 @@ $("#start_synth").click(function () {
 
 
 <tr><th style="vertical-align: text-top; text-align:left">Temperature (Celsius): </th><td><input id="temperature" maxlength="6" size="6" type="text" value="20"/></td></tr>
+
+<tr><th style="vertical-align: text-top; text-align:left">Minimum template count: </th><td><input id="mincount" maxlength="6" size="6" type="text" value="{{ mincount_default }}"/></td></tr>
 
 <!-- Controls -->
 <tr id="controls_wrapper" style="display:none">
