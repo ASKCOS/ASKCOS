@@ -44,7 +44,7 @@ def string_or_range_to_float(text):
 	return np.nan
 
 
-def get_candidates(candidate_collection, outfile = '.', n_max = 500):
+def get_candidates(candidate_collection, outfile = '.', n_max = 500, solvent_coll = 'solvents'):
 	'''
 	Pull n example reactions, their candidates, and the true answer
 	'''
@@ -60,7 +60,7 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 	db = client['reaxys']
 	INSTANCE_DB = db['instances']
 	CHEMICAL_DB = db['chemicals']
-	SOLVENT_DB = db['solvents']
+	SOLVENT_DB = db[solvent_coll]
 
 	# Define generator
 	class Randomizer():
@@ -172,12 +172,22 @@ def get_candidates(candidate_collection, outfile = '.', n_max = 500):
 				#print('...but this record has {} total solvents'.format(len(set(rxd['RXD_SOLXRN']))))
 				context_info = context_info[:-1] + '?,' # add question mark to denote unfound
 				continue
-			solvent[0] += doc['c']
-			solvent[1] += doc['e']
-			solvent[2] += doc['s']
-			solvent[3] += doc['a']
-			solvent[4] += doc['b']
-			solvent[5] += doc['v']
+			if solvent_coll == 'solvents':
+				solvent[0] += doc['c']
+				solvent[1] += doc['e']
+				solvent[2] += doc['s']
+				solvent[3] += doc['a']
+				solvent[4] += doc['b']
+				solvent[5] += doc['v']
+			elif solvent_coll == 'solvents_mn':
+				solvent[0] += doc['n']
+				solvent[1] += doc['a']
+				solvent[2] += doc['b']
+				solvent[3] += doc['g']
+				solvent[4] += doc['e']
+				solvent[5] += doc['phi']
+			else:
+				raise ValueError('Unknown solvent_coll {}'.format(solvent_coll))
 		if solvent == [0, 0, 0, 0, 0, 0]:
 			if complete_only: continue # if solvent not parameterized, skip
 			doc = SOLVENT_DB.find_one({'_id': 'default'})
