@@ -147,7 +147,7 @@ def coordinator(workers_done, coordinator_done, apply_queue, results_queue, done
 			pass
 
 		# Is the intended product not the major product?
-		if intended_found and intended_score + 0.2 < max_score:
+		if intended_found and intended_score + 0.5 < max_score:
 			plausible.value = 0 # should be zero by default, but just to be safe
 			if quit_if_unplausible:
 				print('### intended product {} ({}) is significantly less likely than the current maximum-likelihood product {} ({})'.format(intended_product, intended_score, max_product, max_score))
@@ -345,7 +345,7 @@ class ForwardPredictor:
 		self.context = [reagent_fp, np.reshape(np.array(solvent_vec), (1, 6)), np.reshape(np.array(T), (1, 1))]
 
 
-	def run(self, reactants = '', intended_product = '', quit_if_unplausible = False):
+	def run(self, reactants = '', intended_product = '', quit_if_unplausible = False, mincount = 0):
 		
 		# Force clear products
 		del self.products 
@@ -378,6 +378,7 @@ class ForwardPredictor:
 
 		# Load up queue
 		for template in self.templates:
+			if template['count'] < mincount: break # dont queue up
 			self.apply_queue.put((template['rxn_f'], reactants))
 		for i in range(self.nb_workers):
 			self.workers_done[i] = False
