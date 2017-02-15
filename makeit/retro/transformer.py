@@ -3,6 +3,8 @@ from global_config import USE_STEREOCHEMISTRY
 import rdkit.Chem as Chem          
 from rdkit.Chem import AllChem
 import numpy as np
+from multiprocessing import Pool, cpu_count
+from functools import partial # used for passing args to multiprocessing
 
 class Transformer:
 	'''
@@ -10,18 +12,26 @@ class Transformer:
 	one-step retrosyntheses for a given molecule.
 	'''
 
-	def __init__(self):
+	def __init__(self, parallel = False, nb_workers = None):
 		self.source = None
 		self.templates = []
 		self.has_synth = False
 		self.has_retro = False
+		self.parallel = parallel 
+		self.nb_workers = nb_workers
 
+		# Make sure that nb_workers is okay if we're using a parallel implementation
+		if self.parallel and self.nb_workers == None:
+			self.nb_workers = cpu_count() - 1
+		if self.nb_workers <= 1:
+			self.parallel = False 
+			self.nb_workers = 1
 
 		# # MEMORY LEAK DEBUG
 		# from pympler.tracker import SummaryTracker
 		# self.tracker = SummaryTracker()
 
-	def load(self, collection, mincount = 4, get_retro = True, get_synth = True):
+	def load(self, collection, mincount = 4, get_retro = True, get_synth = True, lowe = False):
 		'''
 		Loads the object from a MongoDB collection containing transform
 		template records.
@@ -55,7 +65,8 @@ class Transformer:
 				'rxn_example': 			document['rxn_example'] if 'rxn_example' in document else '',
 				'explicit_H': 			document['explicit_H'] if 'explicit_H' in document else False,
 				'_id':	 				document['_id'] if '_id' in document else -1,
-				'product_smiles':		document['product_smiles'] if 'product_smiles' in document else [],			
+				'product_smiles':		document['product_smiles'] if 'product_smiles' in document else [],	
+				'necessary_reagent':	document['necessary_reagent'] if 'necessary_reagent' in document else '',		
 			}
 
 			# Frequency/popularity score
@@ -84,16 +95,18 @@ class Transformer:
 			# Define forward version, too
 			if get_synth:
 				try:
-					products, reactants = reaction_smarts.split('>>')
-					reaction_smarts_forward = '(' + reactants + ')>>(' + products + ')'
-					rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_forward)
+					if lowe:
+						reaction_smarts_synth = '(' + reaction_smarts.split('>')[2] + ')>>(' + reaction_smarts.split('>')[0] + ')'
+					else:
+						reaction_smarts_synth = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
+					rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_synth)
 					#if rxn_f.Validate() == (0, 0):
 					if rxn_f.Validate()[1] == 0:
 						template['rxn_f'] = rxn_f
 					else:
 						template['rxn_f'] = None
 				except Exception as e:
-					print('Couldnt load forward: {}: {}'.format(reaction_smarts_forward, e))
+					print('Couldnt load forward: {}: {}'.format(reaction_smarts_synth, e))
 					template['rxn_f'] = None
 
 			# Need to have either a retro or forward reaction be valid
@@ -133,37 +146,20 @@ class Transformer:
 		# Initialize results object
 		result = RetroResult(smiles)
 
-		# Try each in turn
-		for template in self.templates:
-			try:
-				byproducts = [Chem.MolFromSmiles(x) for x in template['product_smiles']]
-				outcomes = template['rxn'].RunReactants([mol] + byproducts)
-			except Exception as e:
-				print('warning: {}'.format(e))
-				print(template['reaction_smarts'])
-				continue
-			if not outcomes: continue
-			for j, outcome in enumerate(outcomes):
-				try:
-					for x in outcome:
-						x.UpdatePropertyCache()
-						Chem.SanitizeMol(x)
-						[a.SetProp('molAtomMapNumber', a.GetProp('old_molAtomMapNumber')) \
-							for (i, a) in enumerate(x.GetAtoms()) \
-							if 'old_molAtomMapNumber' in a.GetPropsAsDict()]
-				except Exception as e:
-					print(e)
-					continue
-				smiles_list = []
-				for x in outcome: 
-					smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = USE_STEREOCHEMISTRY).split('.'))
-				precursor = RetroPrecursor(
-					smiles_list = sorted(smiles_list),
-					template_id = template['_id'],
-					num_examples = template['count'],
-				)
-				if '.'.join(precursor.smiles_list) == smiles: continue # no transformation
-				result.add_precursor(precursor)
+		if not self.parallel:
+			# Try each in turn
+			for template in self.templates:
+				for precursor in apply_one_retrotemplate(mol, smiles, template):
+					result.add_precursor(precursor)
+		else:
+			# Parallel implementation - define what the starting mol is
+			apply_one_retrotemplate_to_mol = partial(apply_one_retrotemplate, mol, smiles)
+			pool = Pool(self.nb_workers)
+			for precursors in pool.imap_unordered(apply_one_retrotemplate_to_mol, self.templates, chunksize = 50):
+				for precursor in precursors:
+					result.add_precursor(precursor)
+			pool.close()
+			pool.join()
 
 		return result
 
@@ -207,9 +203,6 @@ class Transformer:
 					for x in outcome:
 						x.UpdatePropertyCache()
 						Chem.SanitizeMol(x)
-						[a.SetProp('molAtomMapNumber', a.GetProp('old_molAtomMapNumber')) \
-							for (i, a) in enumerate(x.GetAtoms()) \
-							if 'old_molAtomMapNumber' in a.GetPropsAsDict()]
 				except Exception as e:
 					#print(e)
 					continue
@@ -264,8 +257,7 @@ class ForwardResult:
 		for old_product in self.products:
 			if product.smiles_list == old_product.smiles_list:
 				# Just add this template_id and score
-				old_product.template_ids = list(set(old_product.template_ids + 
-													product.template_ids))
+				old_product.template_ids |= set(product.template_ids)
 				old_product.num_examples += product.num_examples
 				return
 		# New!
@@ -283,7 +275,7 @@ class ForwardResult:
 				'smiles': '.'.join(product.smiles_list),
 				'smiles_split': product.smiles_list,
 				'num_examples': product.num_examples,
-				'tforms': product.template_ids,
+				'tforms': sorted(list(product.template_ids)),
 				})
 			if i + 1 == n: 
 				break
@@ -295,7 +287,7 @@ class ForwardProduct:
 	'''
 	def __init__(self, smiles_list = [], template_id = -1, num_examples = 0):
 		self.smiles_list = smiles_list
-		self.template_ids = [template_id]
+		self.template_ids = set([template_id])
 		self.num_examples = num_examples
 
 class RetroResult:
@@ -315,8 +307,7 @@ class RetroResult:
 		for old_precursor in self.precursors:
 			if precursor.smiles_list == old_precursor.smiles_list:
 				# Just need to add the fact that this template_id can make it
-				old_precursor.template_ids = list(set(old_precursor.template_ids + 
-					                                  precursor.template_ids))
+				old_precursor.template_ids |= set(precursor.template_ids)
 				old_precursor.num_examples += precursor.num_examples
 				return
 		# New! Need to score and add to list
@@ -337,7 +328,8 @@ class RetroResult:
 				'smiles_split': precursor.smiles_list,
 				'score': precursor.retroscore,
 				'num_examples': precursor.num_examples,
-				'tforms': precursor.template_ids,
+				'tforms': sorted(list(precursor.template_ids)),
+				'necessary_reagent': precursor.necessary_reagent,
 				})
 			if i + 1 == n: 
 				break
@@ -348,11 +340,12 @@ class RetroPrecursor:
 	A class to store a single set of precursor(s) for a retrosynthesis
 	does NOT contain the target molecule information
 	'''
-	def __init__(self, smiles_list = [], template_id = -1, num_examples = 0):
+	def __init__(self, smiles_list = [], template_id = -1, num_examples = 0, necessary_reagent = ''):
 		self.retroscore = 0
 		self.num_examples = num_examples
 		self.smiles_list = smiles_list
-		self.template_ids = [template_id]
+		self.template_ids = set([template_id])
+		self.necessary_reagent = necessary_reagent
 
 	def score(self):
 		'''
@@ -360,8 +353,43 @@ class RetroPrecursor:
 		'''
 		mols = [Chem.MolFromSmiles(x) for x in self.smiles_list]
 		total_atoms = [x.GetNumHeavyAtoms() for x in mols]
-		ring_atoms = [sum([a.IsInRing() for a in x.GetAtoms()])	for x in mols]
+		ring_bonds = [sum([b.IsInRing() - b.GetIsAromatic() for b in x.GetBonds()])	for x in mols]
 		chiral_centers = [len(Chem.FindMolChiralCenters(x)) for x in mols]
-		self.retroscore = - 1.00 * np.sum(np.power(total_atoms, 1.5)) \
-								- 2.00 * np.sum(np.power(ring_atoms, 1.5)) \
+		self.retroscore = - 2.00 * np.sum(np.power(total_atoms, 1.5)) \
+								- 1.00 * np.sum(np.power(ring_bonds, 1.5)) \
 								- 0.00 * np.sum(np.power(chiral_centers, 2.0))
+
+def apply_one_retrotemplate(mol, smiles, template):
+	'''Takes a mol object and applies a single template, returning
+	a list of precursors'''
+	precursors = []
+	try:
+		if template['product_smiles']:
+			react_mol = Chem.MolFromSmiles(smiles + '.' + '.'.join(template['product_smiles']))
+		else:
+			react_mol = mol 
+		outcomes = template['rxn'].RunReactants([react_mol])
+	except Exception as e:
+		print('warning: {}'.format(e))
+		print(template['reaction_smarts'])
+		return []
+	for j, outcome in enumerate(outcomes):
+		try:
+			for x in outcome:
+				x.UpdatePropertyCache()
+				Chem.SanitizeMol(x)
+		except Exception as e:
+			#print(e) # fail quietly
+			continue
+		smiles_list = []
+		for x in outcome: 
+			smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = USE_STEREOCHEMISTRY).split('.'))
+		precursor = RetroPrecursor(
+			smiles_list = sorted(smiles_list),
+			template_id = template['_id'],
+			num_examples = template['count'],
+			necessary_reagent = template['necessary_reagent']
+		)
+		if '.'.join(precursor.smiles_list) == smiles: continue # no transformation
+		precursors.append(precursor)
+	return precursors

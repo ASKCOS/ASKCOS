@@ -16,21 +16,20 @@ from keras.optimizers import *
 from keras.layers.convolutional import Convolution1D, Convolution2D
 from keras.regularizers import l2
 from keras.utils.np_utils import to_categorical
-from makeit.predict.preprocess_candidates import *
 from makeit.embedding.descriptors import edits_to_vectors, oneHotVector # for testing
 import rdkit.Chem as Chem
 import theano.tensor as T
-from scipy.sparse import coo_matrix
 import cPickle as pickle
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt    # for visualization
 import scipy.stats as ss
-
+import itertools
+import time
 
 
 def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c = 500, inner_act = 'tanh',
-		l2v = 0.01, lr = 0.0003, N_hf = 0):
+		l2v = 0.01, lr = 0.0003, N_hf = 0, optimizer = 'sgd'):
 	'''
 	Builds the feed forward model.
 
@@ -111,10 +110,13 @@ def build(F_atom = 1, F_bond = 1, N_e = 5, N_h1 = 100, N_h2 = 50, N_h3 = 0, N_c 
 	model = Model(input = [h_lost, h_gain, bond_lost, bond_gain], output = [score])
 
 	# Now compile
-	sgd = SGD(lr = lr, decay = 1e-4, momentum = 0.9)
+	if optimizer in ['adam', 'Adam']:
+		opt = Adam(lr = lr)
+	else:
+		opt = SGD(lr = lr)
 	# model.compile(loss = 'binary_crossentropy', optimizer = sgd, 
 	# 	metrics = ['binary_accuracy'])
-	model.compile(loss = 'categorical_crossentropy', optimizer = sgd, 
+	model.compile(loss = 'categorical_crossentropy', optimizer = opt, 
 		metrics = ['accuracy'])
 
 	model.summary()
@@ -138,6 +140,7 @@ def train(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 					z = get_z_data(z_files[fnum])
 					(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = get_x_data(x_files[fnum], z)
 					y = get_y_data(y_files[fnum])
+					z = rearrange_for_5fold_cv(z)
 					
 				hist = model.fit([x_h_lost, x_h_gain, x_bond_lost, x_bond_gain], y, 
 					nb_epoch = 1, 
@@ -169,6 +172,25 @@ def train(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8):
 
 	return True
 
+def rearrange_for_5fold_cv(lst):
+	'''Puts the test fold at the end of the list.
+
+	Messy implementation, but whatever'''
+
+	if THIS_FOLD_OUT_OF_FIVE not in [1,2,3,4,5]:
+		raise ValueError('Invalid CV fold {}'.format(THIS_FOLD_OUT_OF_FIVE))
+
+	N = len(lst) / 5
+	# print('REARRANGING FOR CV FOLD {}'.format(THIS_FOLD_OUT_OF_FIVE))
+	chunks = [lst[i:i+N] for i in range(0, len(lst), N)]
+	new_lst = list(itertools.chain.from_iterable(chunks[:(THIS_FOLD_OUT_OF_FIVE-1)])) + \
+		list(itertools.chain.from_iterable(chunks[THIS_FOLD_OUT_OF_FIVE:])) + \
+		list(itertools.chain.from_iterable(chunks[(THIS_FOLD_OUT_OF_FIVE-1):THIS_FOLD_OUT_OF_FIVE]))
+	if type(lst) == type(np.array(1)):
+		return np.array(new_lst)
+	return new_lst
+
+
 def get_x_data(fpath, z):
 	'''
 	Reads the candidate edits and returns an input tensor:
@@ -182,8 +204,24 @@ def get_x_data(fpath, z):
 	# Check if we've already populated these matrices once
 	if os.path.isfile(fpath + '_processed'):
 		with open(fpath + '_processed', 'rb') as infile:
-			(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = pickle.load(infile)	
-		return (x_h_lost, x_h_gain, x_bond_lost, x_bond_gain)
+			(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = pickle.load(infile)
+
+		if mask_input != None:
+			offset = x_bond_lost.shape[-1] - x_h_lost.shape[-1]
+                                # Set atom attributes to zero
+                        x_h_lost[:, :, :, mask_input] = 0 # H_lost
+                        x_h_gain[:, :, :, mask_input] = 0 # H_gain
+                                # Set atom attributes within bond attributes to zero
+                        x_bond_lost[:, :, :, mask_input] = 0 # Bond_lost
+                        x_bond_lost[:, :, :, mask_input + offset] = 0 # Bond_lost
+                        x_bond_gain[:, :, :, mask_input] = 0 # Bond_gain
+                        x_bond_gain[:, :, :, mask_input + offset] = 0 # Bond_gain
+                        print('Set index {} and {} to zero'.format(mask_input, mask_input + offset))
+
+		return (rearrange_for_5fold_cv(x_h_lost), 
+			    rearrange_for_5fold_cv(x_h_gain), 
+			    rearrange_for_5fold_cv(x_bond_lost), 
+			    rearrange_for_5fold_cv(x_bond_gain))
 
 	# Otherwise, we need to do it...
 	with open(fpath, 'rb') as infile:
@@ -219,23 +257,27 @@ def get_x_data(fpath, z):
 		x_bond_lost[np.isnan(x_bond_lost)] = 0.0
 		x_bond_gain[np.isnan(x_bond_gain)] = 0.0
 		x_h_lost[np.isinf(x_h_lost)] = 0.0
-                x_h_gain[np.isinf(x_h_gain)] = 0.0
-                x_bond_lost[np.isinf(x_bond_lost)] = 0.0
-                x_bond_gain[np.isinf(x_bond_gain)] = 0.0
+		x_h_gain[np.isinf(x_h_gain)] = 0.0
+		x_bond_lost[np.isinf(x_bond_lost)] = 0.0
+		x_bond_gain[np.isinf(x_bond_gain)] = 0.0
 
 		# Dump file so we don't have to do that again
 		with open(fpath + '_processed', 'wb') as outfile:
 			pickle.dump((x_h_lost, x_h_gain, x_bond_lost, x_bond_gain), outfile, pickle.HIGHEST_PROTOCOL)
 		print('Converted {} to features for the first (and only) time'.format(fpath))
-		return (x_h_lost, x_h_gain, x_bond_lost, x_bond_gain)
+		return (rearrange_for_5fold_cv(x_h_lost), 
+			    rearrange_for_5fold_cv(x_h_gain), 
+			    rearrange_for_5fold_cv(x_bond_lost), 
+			    rearrange_for_5fold_cv(x_bond_gain))
 
 def get_y_data(fpath):
 	with open(fpath, 'rb') as infile:
-		y = pickle.load(infile)
+		y = rearrange_for_5fold_cv(pickle.load(infile))
 		y = np.array([y_i.index(True) for y_i in y])
 		return to_categorical(y, nb_classes = N_c)
 
 def get_z_data(fpath):
+	# DONT REARRANGE FOR CV UNTIL AFTER GETTING X DATA
 	with open(fpath, 'rb') as infile:
 		z = pickle.load(infile)
 		return z
@@ -262,23 +304,30 @@ def pred_histogram(model, x_files, y_files, z_files, tag = '', split_ratio = 0.8
 	dataset = ''; trueprob = 0; trueprobs = []
 
 	for fnum in range(len(x_files)):
+
 		print('Testing file number {}'.format(fnum))
 		# Data must be pre-padded
 		z = get_z_data(z_files[fnum])
-		x = list(get_x_data(x_files[fnum], z))
+		(x_h_lost, x_h_gain, x_bond_lost, x_bond_gain) = list(get_x_data(x_files[fnum], z))
 		y = get_y_data(y_files[fnum])
+		z = rearrange_for_5fold_cv(z)
+
+                print('y')
+                print(y)
 
 		# Getting unprocessed x data
 		with open(x_files[fnum], 'rb') as infile:
 			all_edits = pickle.load(infile)
+                all_edits = rearrange_for_5fold_cv(all_edits)
 
-		preds = model.predict(x, batch_size = batch_size)
-		trueprobs = []
+		preds = model.predict([x_h_lost, x_h_gain, x_bond_lost, x_bond_gain], batch_size = batch_size)
+		print(preds)
+                trueprobs = []
 
 		for i in range(preds.shape[0]): 
-			rank_true_edit = 0
+                        rank_true_edit = 0
 			edits = all_edits[i]
-			pred = preds[i, :] # Iterate through each sample
+                      	pred = preds[i, :] # Iterate through each sample
 			trueprob = pred[y[i,:] != 0][0] # prob assigned to true outcome
 			trueprobs.append(trueprob)
 			rank_true_edit = 1 + len(pred) - (ss.rankdata(pred))[np.argmax(y[i,:])]
@@ -380,7 +429,7 @@ if __name__ == '__main__':
 	parser.add_argument('--Nhf', type = int, default = 0,
 						help = 'Number of hidden nodes in layer between summing ' +
 								'and final score, default 0')
-	parser.add_argument('--tag', type = str, default = int(time.time()),
+	parser.add_argument('--tag', type = str, default = str(int(time.time())),
 						help = 'Tag for this model')
 	parser.add_argument('--retrain', type = bool, default = False,
 		                help = 'Retrain with loaded weights, default False')
@@ -392,10 +441,18 @@ if __name__ == '__main__':
 		                help = 'Data folder with data files')
 	parser.add_argument('--lr', type = float, default = 0.01, 
 						help = 'Learning rate, default 0.01')
+	parser.add_argument('--Nc', type = int, default = 500,
+						help = 'Number of candidates per example, default 500')
 	# parser.add_argument('--dr', type = float, default = 0.5,
 	# 					help = 'Dropout rate, default 0.5')
 	parser.add_argument('--visualize', type = bool, default = False,
 		                help = 'Whether or not to visualize weights ONLY, default False')
+	parser.add_argument('--fold', type = int, default = 5, 
+						help = 'Which fold of the 5-fold CV is this? Defaults 5')
+	parser.add_argument('--optimizer', type = str, default = 'SGD',
+						help = 'Optimizer? Adam or SGD right now, default SGD')
+	parser.add_argument('--mask', type = int, default = -1,
+				help = 'Index of atom attribute to mask, default -1 (none)')	
 	args = parser.parse_args()
 
 	x_files = sorted([os.path.join(args.data, dfile) \
@@ -411,6 +468,12 @@ if __name__ == '__main__':
 	print(y_files)
 	print(z_files)
 
+
+        ### DEBUGGING
+        #x_files = [x_files[0]]
+        #y_files = [y_files[0]]
+        #z_files = [z_files[0]]
+
 	mol = Chem.MolFromSmiles('[C:1][C:2]')
 	(a, _, b, _) = edits_to_vectors((['1'],[],[('1','2',1.0)],[]), mol)
 
@@ -425,25 +488,33 @@ if __name__ == '__main__':
 	N_hf = int(args.Nhf)
 	l2v = float(args.l2)
 	lr = float(args.lr)
-	N_c = 100 # number of candidate edit sets
+	N_c = int(args.Nc) # number of candidate edit sets
 	N_e = 5 # maximum number of edits per class
+	mask_input = int(args.mask) if int(args.mask) != -1 else None
 
-	tag = args.tag
+	THIS_FOLD_OUT_OF_FIVE = int(args.fold)
+	tag = args.tag + ' fold{}'.format(args.fold)
+
+        print('FOLD: {}'.format(THIS_FOLD_OUT_OF_FIVE))
 
 	if bool(args.retrain):
 		print('Reloading from file')
 		model = model_from_json(open(os.path.join(FROOT, 'model{}.json'.format(tag))).read())
-		model.compile(loss = 'categorical_crossentropy', 
-			optimizer = SGD(lr = lr, decay = 1e-4, momentum = 0.9),
+		model.compile(loss = 'categorical_crossentropy',
+                        optimizer = SGD(lr = lr),
 			metrics = ['accuracy']
 		)
-		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)))
+		model.load_weights(os.path.join(FROOT, 'weights{}.h5'.format(tag)), by_name = True)
+                print('Loaded weights from file')
 	else:
-		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr)
+		model = build(F_atom = F_atom, F_bond = F_bond, N_e = N_e, N_c = N_c, N_h1 = N_h1, N_h2 = N_h2, 
+			N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = args.optimizer)
 		with open(os.path.join(FROOT, 'model{}.json'.format(tag)), 'w') as outfile:
         	        outfile.write(model.to_json())
 
 	if bool(args.test):
+                ## DEBUGGING
+                #train(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
 		pred_histogram(model, x_files, y_files, z_files, tag = tag, split_ratio = 0.8)
 		quit(1)
 	elif bool(args.visualize):
