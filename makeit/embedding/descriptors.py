@@ -150,6 +150,12 @@ def atom_structural(atom, asOneHot = False, ORIGINAL_VERSION = False):
 	- is in a ring
 	- is aromatic
 	'''
+	# Redefine oneHotVector function
+	if not asOneHot: 
+		oneHotVectorFunc = lambda x: x[0]
+	else:
+		oneHotVectorFunc = oneHotVector
+
 
 	# Initialize
 	attributes = []
@@ -172,12 +178,7 @@ def atom_structural(atom, asOneHot = False, ORIGINAL_VERSION = False):
 		attributes.append(atom.GetIsAromatic())
 		return np.array(attributes, dtype = att_dtype)
 
-	# Redefine oneHotVector function
-	if not asOneHot: 
-		oneHotVectorFunc = lambda x: x[0]
-	else:
-		oneHotVectorFunc = oneHotVector
-
+	
 	# Add atomic number (todo: finish)
 	attributes += oneHotVectorFunc(
 		atom.GetAtomicNum(), 
