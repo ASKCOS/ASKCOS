@@ -141,27 +141,8 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
 	
 	return model
 
-def rearrange_for_5fold_cv(lst):
-	'''Puts the test fold at the end of the list.
-
-	Messy implementation, but whatever'''
-
-	if THIS_FOLD_OUT_OF_FIVE not in [1,2,3,4,5]:
-		raise ValueError('Invalid CV fold {}'.format(THIS_FOLD_OUT_OF_FIVE))
-
-	N = len(lst) / 5
-	# print('REARRANGING FOR CV FOLD {}'.format(THIS_FOLD_OUT_OF_FIVE))
-	chunks = [lst[i:i+N] for i in range(0, len(lst), N)]
-	new_lst = list(itertools.chain.from_iterable(chunks[:(THIS_FOLD_OUT_OF_FIVE-1)])) + \
-		list(itertools.chain.from_iterable(chunks[THIS_FOLD_OUT_OF_FIVE:])) + \
-		list(itertools.chain.from_iterable(chunks[(THIS_FOLD_OUT_OF_FIVE-1):THIS_FOLD_OUT_OF_FIVE]))
-	if type(lst) == type(np.array(1)):
-		return np.array(new_lst)
-	return new_lst
-
-
 @threadsafe_generator
-def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False):
+def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False, allowable_batchNums = set()):
 	'''This function generates batches of data from the
 	pickle file since all the data can't fit in memory.
 
@@ -171,7 +152,10 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 	Input tensors are generated on-the-fly so there is less I/O
 
 	max_N_c is the maximum number of candidates to consider. This should ONLY be used
-	for training, not for validation or testing.'''
+	for training, not for validation or testing.
+
+	"mybatchnums" is a new list that contains the batch indices (across the whole dataset) that belong
+	to this particular generator. This allows for CV splitting *outside* of this function.'''
 
 	def bond_string_to_tuple(string):
 		split = string.split('-')
@@ -231,6 +215,8 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 			if shuffle: np.random.shuffle(batchNums)
 
 			for batchNum in batchNums:
+				if batchNum not in allowable_batchNums: continue
+
 				(filePos, startIndex, endIndex) = fileInfo[batchNum]
 				(N, N_c, N_e1, N_e2, N_e3, N_e4) = batchDims[batchNum]
 				fid.seek(filePos)
@@ -314,7 +300,7 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 				)
 
 @threadsafe_generator
-def label_generator(start_at, end_at, batch_size):
+def label_generator(start_at, end_at, batch_size, allowable_batchNums = set()):
 	'''This function generates labels to match the data generated
 	by data_generator'''
 
@@ -339,7 +325,9 @@ def label_generator(start_at, end_at, batch_size):
 			else:
 				fid.seek(filePos_start_at)
 
-			for startIndex in range(start_at, end_at, batch_size):
+			for batchNum, startIndex in enumerate(range(start_at, end_at, batch_size)):
+				if batchNum not in allowable_batchNums: continue
+
 				endIndex = min(startIndex + batch_size, end_at)
 
 				docs = [pickle.load(fid) for j in range(startIndex, endIndex)]
@@ -364,28 +352,70 @@ def get_data(max_N_c = None, shuffle = False):
 		legend_labels = pickle.load(fid)
 
 	N_samples =  legend_data['N_examples']
-	N_train = int(N_samples * split_ratio[0])
-	N_val = int(N_samples * split_ratio[1])
-	N_test = N_samples - N_train - N_val
+
+	# New approach: each generator takes whole set, but use allowable_batchNums to filter down
+	from sklearn.cross_validation import KFold
+	pseudoRandomCV = KFold(len(range(0, N_samples, batch_size)), n_folds = 5, shuffle = True, random_state = 0)
+	
+	# Stupid solution since KFold can't be indexed
+	for i, (trainval_batches, test_batches) in enumerate(pseudoRandomCV):
+		if i == (FOLD_NUM - 1): break
+
+	print(trainval_batches)
+	np.random.seed(0)
+	np.random.shuffle(trainval_batches)
+	train_batches = trainval_batches[:int(len(trainval_batches) * split_ratio[0] / (split_ratio[0] + split_ratio[1]))]
+	val_batches   = trainval_batches[int(len(trainval_batches) * split_ratio[0] / (split_ratio[0] + split_ratio[1])):]
+
+
+	print('Train batches: {}'.format(train_batches))
+	print('Val batches: {}'.format(val_batches))
+	print('Test batches: {}'.format(test_batches))
+	
+	N_train = len(train_batches) * batch_size
+	N_val = len(val_batches) * batch_size
+	N_test = len(test_batches) * batch_size
 	print('Total number of samples: {}'.format(N_samples))
 	print('Training   on {}% - {}'.format(split_ratio[0]*100, N_train))
 	print('Validating on {}% - {}'.format(split_ratio[1]*100, N_val))
 	print('Testing    on {}% - {}'.format((1-split_ratio[1]-split_ratio[0])*100, N_test))
 
+	# return {
+	# 	'N_samples': N_samples,
+	# 	'N_train': N_train,
+	# 	#
+	# 	'train_generator': data_generator(0, N_train, batch_size, max_N_c = max_N_c, shuffle = shuffle),
+	# 	'train_label_generator': label_generator(0, N_train, batch_size),
+	# 	'train_nb_samples': N_train,
+	# 	#
+	# 	'val_generator': data_generator(N_train, N_train + N_val, batch_size),
+	# 	'val_label_generator': label_generator(N_train, N_train + N_val, batch_size),
+	# 	'val_nb_samples': N_val,
+	# 	#
+	# 	'test_generator': data_generator(N_train + N_val, N_samples, batch_size),
+	# 	'test_label_generator': label_generator(N_train + N_val, N_samples, batch_size),
+	# 	'test_nb_samples': N_test,
+	# 	#
+	# 	#
+	# 	'batch_size': batch_size,
+	# }
+
+
+
 	return {
 		'N_samples': N_samples,
 		'N_train': N_train,
 		#
-		'train_generator': data_generator(0, N_train, batch_size, max_N_c = max_N_c, shuffle = shuffle),
-		'train_label_generator': label_generator(0, N_train, batch_size),
+		'train_generator': data_generator(0, N_samples, batch_size, max_N_c = max_N_c, shuffle = shuffle, allowable_batchNums = train_batches),
+		'train_label_generator': label_generator(0, N_samples, batch_size, allowable_batchNums = train_batches),
 		'train_nb_samples': N_train,
 		#
-		'val_generator': data_generator(N_train, N_train + N_val, batch_size),
-		'val_label_generator': label_generator(N_train, N_train + N_val, batch_size),
+		'val_generator': data_generator(0, N_samples, batch_size, allowable_batchNums = val_batches),
+		'val_label_generator': label_generator(0, N_samples, batch_size, allowable_batchNums = val_batches),
 		'val_nb_samples': N_val,
 		#
-		'test_generator': data_generator(N_train + N_val, N_samples, batch_size),
-		'test_label_generator': label_generator(N_train + N_val, N_samples, batch_size),
+		'test_generator': data_generator(0, N_samples, batch_size, allowable_batchNums = test_batches),
+		'test_label_generator': label_generator(0, N_samples, batch_size, allowable_batchNums = test_batches),
 		'test_nb_samples': N_test,
 		#
 		#
@@ -574,8 +604,8 @@ if __name__ == '__main__':
 			help = 'Optimizer to use, default adadelta')
 	parser.add_argument('--inner_act', type = str, default = 'tanh',
 			help = 'Inner activation function, default "tanh" ')
-	parser.add_argument('--fold', type = int, default = 5, 
-						help = 'Which fold of the 5-fold CV is this? Defaults 5')
+	parser.add_argument('--fold', type = int, default = 1, 
+						help = 'Which fold of the 5-fold CV is this? Defaults 1')
 
 	args = parser.parse_args()
 
@@ -591,9 +621,10 @@ if __name__ == '__main__':
 	max_N_c            = int(args.Nc) # number of candidate edit sets
 	optimizer          = args.optimizer
 	inner_act          = args.inner_act
+	FOLD_NUM           = int(args.fold)
 
 	# THIS_FOLD_OUT_OF_FIVE = int(args.fold)
-	tag = args.tag
+	tag = args.tag + str(args.fold)
 
 	split_ratio = (0.7, 0.1) # 80% training, 10% validation, balance testing
 
