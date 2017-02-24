@@ -38,6 +38,23 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
 	N_h2: number of hidden nodes in second layer
 	inner_act: activation function 
 	'''
+	if BASELINE_MODEL:
+		FPs = Input(shape = (None, 1024), name = "FPs")
+		features = TimeDistributed(Dense(N_hf, activation = inner_act), name = "FPs to features")(FPs)
+		unscaled_score = TimeDistributed(Dense(1, activation = 'linear'), name = "features to score")(features)
+		dynamic_flattener       = lambda x: T.reshape(x, (x.shape[0], x.shape[1]), ndim  = x.ndim-1)
+		dynamic_flattener_shape = lambda x: (None, x[1])
+		unscaled_score_flat    = Lambda(dynamic_flattener, output_shape = dynamic_flattener_shape, name = "flatten")(unscaled_score)
+		if absolute_score:
+			score = unscaled_score_flat 
+		else:
+			score = Activation('softmax', name = "scores to probs")(unscaled_score_flat)
+		model = Model(input = [FPs], 
+			output = [score])
+		model.summary()
+		model.compile(loss = 'categorical_crossentropy', optimizer = optimizer, 
+				metrics = ['accuracy'])
+		return model
 
 	h_lost    = Input(shape = (None, None, F_atom), name = "H_lost")
 	h_gain    = Input(shape = (None, None, F_atom), name = "H_gain")
@@ -226,6 +243,9 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 
 				docs = [pickle.load(fid) for j in range(startIndex, endIndex)]
 
+				if BASELINE_MODEL:
+					x = np.zeros((N, N_c, 1024), dtype = np.float32) 
+
 				# Initialize numpy arrays for x_h_lost, etc.
 				x_h_lost = np.zeros((N, N_c, N_e1, F_atom), dtype=np.float32)
 				x_h_gain = np.zeros((N, N_c, N_e2, F_atom), dtype=np.float32)
@@ -238,6 +258,9 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 					for (c, edit_string) in enumerate(doc[CANDIDATE_EDITS_COMPACT]):
 						if c >= N_c: 
 							break
+
+						if BASELINE_MODEL:
+							x[i, c, :] = doc[legend_data['prod_FPs']][c]
 						
 						edit_string_split = edit_string.split(';')
 						edits = [
@@ -287,17 +310,22 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 
 				y = reaction_true_onehot
 
-				yield (
-					[
-						x_h_lost,
-						x_h_gain,
-						x_bond_lost,
-						x_bond_gain,
-					],
-					[
-						y,
-					],
-				)
+				if BASELINE_MODEL:
+					yield ([x], [y])
+
+				else:
+
+					yield (
+						[
+							x_h_lost,
+							x_h_gain,
+							x_bond_lost,
+							x_bond_gain,
+						],
+						[
+							y,
+						],
+					)
 
 @threadsafe_generator
 def label_generator(start_at, end_at, batch_size, allowable_batchNums = set()):
@@ -562,9 +590,9 @@ def test(model, data):
 		except:
 			pass
 
-	histogram(train_preds, 'TRAIN', HISTOGRAM_FPATH % 'train', train_acc)
-	histogram(val_preds, 'VAL', HISTOGRAM_FPATH % 'val', val_acc)
-	histogram(test_preds, 'TEST', HISTOGRAM_FPATH % 'test', test_acc)
+	histogram(train_preds, 'TRAIN', HISTOGRAM_FPATH('train'), train_acc)
+	histogram(val_preds, 'VAL', HISTOGRAM_FPATH('val'), val_acc)
+	histogram(test_preds, 'TEST', HISTOGRAM_FPATH('test'), test_acc)
 
 
 if __name__ == '__main__':
@@ -606,6 +634,8 @@ if __name__ == '__main__':
 			help = 'Inner activation function, default "tanh" ')
 	parser.add_argument('--fold', type = int, default = 1, 
 						help = 'Which fold of the 5-fold CV is this? Defaults 1')
+	parser.add_argument('--baseline', type = int, default = 0 ,
+					help = 'Baseline fingerprint model? Default 0')
 
 	args = parser.parse_args()
 
@@ -622,6 +652,7 @@ if __name__ == '__main__':
 	optimizer          = args.optimizer
 	inner_act          = args.inner_act
 	FOLD_NUM           = int(args.fold)
+	BASELINE_MODEL     = bool(int(args.baseline))
 
 	# THIS_FOLD_OUT_OF_FIVE = int(args.fold)
 	tag = args.tag + str(args.fold)
@@ -648,7 +679,7 @@ if __name__ == '__main__':
 	WEIGHTS_FPATH = os.path.join(FROOT, 'weights.h5')
 	HIST_FPATH = os.path.join(FROOT, 'hist.csv')
 	TEST_FPATH = os.path.join(FROOT, 'probs.dat')
-	HISTOGRAM_FPATH = os.path.join(FROOT, 'histogram %s.png')
+	HISTOGRAM_FPATH = lambda x: os.path.join(FROOT, 'histogram {}.png'.format(x))
 	ARGS_FPATH = os.path.join(FROOT, 'args.json')
 
 	with open(ARGS_FPATH, 'w') as fid:
