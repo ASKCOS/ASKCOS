@@ -38,17 +38,19 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
 	N_h2: number of hidden nodes in second layer
 	inner_act: activation function 
 	'''
-	if BASELINE_MODEL:
+	if BASELINE_MODEL or HYBRID_MODEL:
 		FPs = Input(shape = (None, 1024), name = "FPs")
-		features = TimeDistributed(Dense(N_hf, activation = inner_act), name = "FPs to features")(FPs)
-		unscaled_score = TimeDistributed(Dense(1, activation = 'linear'), name = "features to score")(features)
+		FP_features = TimeDistributed(Dense(N_hf, activation = inner_act), name = "FPs to features")(FPs)
+		unscaled_FP_score = TimeDistributed(Dense(1, activation = 'linear'), name = "features to score")(FP_features)
 		dynamic_flattener       = lambda x: T.reshape(x, (x.shape[0], x.shape[1]), ndim  = x.ndim-1)
 		dynamic_flattener_shape = lambda x: (None, x[1])
-		unscaled_score_flat    = Lambda(dynamic_flattener, output_shape = dynamic_flattener_shape, name = "flatten")(unscaled_score)
+		unscaled_FP_score_flat    = Lambda(dynamic_flattener, output_shape = dynamic_flattener_shape, name = "flatten_FP")(unscaled_FP_score)
+	
+	if BASELINE_MODEL:
 		if absolute_score:
-			score = unscaled_score_flat 
+			score = unscaled_FP_score_flat 
 		else:
-			score = Activation('softmax', name = "scores to probs")(unscaled_score_flat)
+			score = Activation('softmax', name = "scores to probs")(unscaled_FP_score_flat)
 		model = Model(input = [FPs], 
 			output = [score])
 		model.summary()
@@ -134,6 +136,22 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
 	dynamic_flattener_shape = lambda x: (None, x[1])
 
 	unscaled_score_flat    = Lambda(dynamic_flattener, output_shape = dynamic_flattener_shape, name = "flatten")(unscaled_score)
+
+
+	if HYBRID_MODEL:
+		merged_score = merge([unscaled_score_flat , unscaled_FP_score_flat], mode = 'sum', name = "Merge FP contribution and edit contribution")
+		if absolute_score:
+			score = merged_score
+		else:
+			score = Activation('softmax', name = "scores to probs")(merged_score)
+		model = Model(input = [h_lost, h_gain, bond_lost, bond_gain, FPs], 
+			output = [score])
+		model.summary()
+		model.compile(loss = 'categorical_crossentropy', optimizer = optimizer, 
+			metrics = ['accuracy'])
+		return model
+	
+
 
 	if absolute_score:
 		score = unscaled_score_flat 
@@ -243,7 +261,7 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 
 				docs = [pickle.load(fid) for j in range(startIndex, endIndex)]
 
-				if BASELINE_MODEL:
+				if BASELINE_MODEL or HYBRID_MODEL:
 					x = np.zeros((N, N_c, 1024), dtype = np.float32) 
 
 				# Initialize numpy arrays for x_h_lost, etc.
@@ -259,7 +277,7 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 						if c >= N_c: 
 							break
 
-						if BASELINE_MODEL:
+						if BASELINE_MODEL or HYBRID_MODEL:
 							x[i, c, :] = doc[legend_data['prod_FPs']][c]
 						
 						edit_string_split = edit_string.split(';')
@@ -312,6 +330,20 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 
 				if BASELINE_MODEL:
 					yield ([x], [y])
+
+				elif HYBRID_MODEL:
+					yield (
+						[
+							x_h_lost,
+							x_h_gain,
+							x_bond_lost,
+							x_bond_gain,
+							x
+						],
+						[
+							y,
+						],
+					)
 
 				else:
 
@@ -407,28 +439,6 @@ def get_data(max_N_c = None, shuffle = False):
 	print('Training   on {}% - {}'.format(split_ratio[0]*100, N_train))
 	print('Validating on {}% - {}'.format(split_ratio[1]*100, N_val))
 	print('Testing    on {}% - {}'.format((1-split_ratio[1]-split_ratio[0])*100, N_test))
-
-	# return {
-	# 	'N_samples': N_samples,
-	# 	'N_train': N_train,
-	# 	#
-	# 	'train_generator': data_generator(0, N_train, batch_size, max_N_c = max_N_c, shuffle = shuffle),
-	# 	'train_label_generator': label_generator(0, N_train, batch_size),
-	# 	'train_nb_samples': N_train,
-	# 	#
-	# 	'val_generator': data_generator(N_train, N_train + N_val, batch_size),
-	# 	'val_label_generator': label_generator(N_train, N_train + N_val, batch_size),
-	# 	'val_nb_samples': N_val,
-	# 	#
-	# 	'test_generator': data_generator(N_train + N_val, N_samples, batch_size),
-	# 	'test_label_generator': label_generator(N_train + N_val, N_samples, batch_size),
-	# 	'test_nb_samples': N_test,
-	# 	#
-	# 	#
-	# 	'batch_size': batch_size,
-	# }
-
-
 
 	return {
 		'N_samples': N_samples,
@@ -636,6 +646,9 @@ if __name__ == '__main__':
 						help = 'Which fold of the 5-fold CV is this? Defaults 1')
 	parser.add_argument('--baseline', type = int, default = 0 ,
 					help = 'Baseline fingerprint model? Default 0')
+	parser.add_argument('--hybrid', type = int, default = 0, 
+					help = 'Hybrid fingerprint +edit model? default 0')
+
 
 	args = parser.parse_args()
 
@@ -653,6 +666,7 @@ if __name__ == '__main__':
 	inner_act          = args.inner_act
 	FOLD_NUM           = int(args.fold)
 	BASELINE_MODEL     = bool(int(args.baseline))
+	HYBRID_MODEL       = bool(int(args.hybrid))
 
 	# THIS_FOLD_OUT_OF_FIVE = int(args.fold)
 	tag = args.tag + str(args.fold)
