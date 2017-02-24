@@ -15,6 +15,7 @@ import re
 import time
 from tqdm import tqdm
 import cPickle as pickle
+import itertools 
 
 
 if __name__ == '__main__':
@@ -25,6 +26,8 @@ if __name__ == '__main__':
 						help = 'Collection of candidates to write to; defaults to candidate_edits_8_9_16')
 	parser.add_argument('--singleonly', type = bool, default = True,
 						help = 'Whether to record major product only; defaults to True')
+	parser.add_argument('--check', type = bool, default = False,
+						help = 'Whether to check already-done ones or not')
 	
 	args = parser.parse_args()
 	v = bool(args.v)
@@ -38,10 +41,11 @@ if __name__ == '__main__':
 	candidates = db[args.candidate_collection]
 
 	done_ids = set()
-	for doc in candidates.find({'found_hartenfeller': {'$exists': True}}, []):
-		done_ids.add(doc['_id'])
-	print('Checked completed entries')
-	print('{} records have hartenfeller checked'.format(len(done_ids)))
+	if args.check:
+		for doc in candidates.find({'found_hartenfeller': {'$exists': True}}, []):
+			done_ids.add(doc['_id'])
+		print('Checked completed entries')
+		print('{} records have hartenfeller checked'.format(len(done_ids)))
 
 	
 	fid_templates = open('makeit/predict/hartenfeller.txt', 'r')
@@ -88,26 +92,32 @@ if __name__ == '__main__':
 		for template in templates:
 			if found_true: break
 
-			# Perform transformation
-			try:
-				outcomes = template.RunReactants(reactants)
-			except Exception as e:
-				continue
-			if not outcomes: continue # no match
-			for j, outcome in enumerate(outcomes):
-				outcome = outcome[0] # all products represented as single mol by transforms
+			# Try all combinations of reactants that fit template
+			combinations = itertools.combinations(reactants, rxn.GetNumReactantTemplates())
+			unique_product_sets = []
+			for combination in combinations:
 
-				# Reduce to largest (longest) product only?
-				candidate_smiles = Chem.MolToSmiles(outcome, isomericSmiles = USE_STEREOCHEMISTRY)
+				# Perform transformation
+				try:
+					outcomes = template.RunReactants(list(combination))
+				except Exception as e:
+					continue
+				if not outcomes: continue # no match
+				for j, outcome in enumerate(outcomes):
+					outcome = outcome[0] # all products represented as single mol by transforms
 
-				candidate_smiles = max(candidate_smiles.split('.'), key = len)
-				outcome = Chem.MolFromSmiles(candidate_smiles)
+					# Reduce to largest (longest) product only?
+					candidate_smiles = Chem.MolToSmiles(outcome, isomericSmiles = USE_STEREOCHEMISTRY)
 
-				# Remove mapping before matching
-				[x.ClearProp('molAtomMapNumber') for x in outcome.GetAtoms() if x.HasProp('molAtomMapNumber')] # remove atom mapping from outcome
-				if Chem.MolToSmiles(outcome, isomericSmiles = USE_STEREOCHEMISTRY) == product_smiles:
-					if v: print('Matched true [{}]'.format(product_smiles))
-					found_true = True
+					candidate_smiles = max(candidate_smiles.split('.'), key = len)
+					outcome = Chem.MolFromSmiles(candidate_smiles)
+					if not outcome: continue
+
+					# Remove mapping before matching
+					[x.ClearProp('molAtomMapNumber') for x in outcome.GetAtoms() if x.HasProp('molAtomMapNumber')] # remove atom mapping from outcome
+					if Chem.MolToSmiles(outcome, isomericSmiles = USE_STEREOCHEMISTRY) == product_smiles:
+						if v: print('Matched true [{}]'.format(product_smiles))
+						found_true = True
 
 
 		# Prepare doc and insert
