@@ -9,11 +9,12 @@ from collections import defaultdict
 from tqdm import tqdm
 
 
-BUYABLE_BASE_SCORE = -100
-REACTION_COST = 20
+BUYABLE_BASE_SCORE = 0
+REACTION_COST = 100
 UPPER_LIMIT_SCORE = np.inf
 
-REACTION_LIMIT = 1000000
+REACTION_LIMIT = 5000000
+MAX_CHEMICALS = 100
 
 def func_UPPER_LIMIT_SCORE(x = 'optional'):
 	return UPPER_LIMIT_SCORE
@@ -39,42 +40,29 @@ if __name__ == '__main__':
 		print('Reloading previously saved chemicals')
 		with open(os.path.join(FROOT, 'initial_chemicals.pickle'), 'rb') as fid:
 			xrn_to_value  = pickle.load(fid)
-			xrn_to_smiles = pickle.load(fid)
-			xrn_to_fp     = pickle.load(fid)
-
 	else:
 		# Populate dictionary of chemicals with known buyables
 		print('Getting chemicals')
-		for i, chem_doc in enumerate(CHEMICAL_DB.find({'buyable_id': {'$gt': -1}}, ['SMILES', 'M2_fp1024', 'buyable_id'], no_cursor_timeout = True)):
+		for i, chem_doc in enumerate(CHEMICAL_DB.find({'buyable_id': {'$gt': -2}}, ['_id'])):
 
-			if i % 100 == 0: print(i)
-
-			if 'SMILES' not in chem_doc: continue 
-			if 'M2_fp1024' not in chem_doc: continue 
-			
-
-			xrn_to_smiles[chem_doc['_id']] = chem_doc['SMILES']
-
-			if 'buyable_id' in chem_doc: 
-				xrn_to_value[chem_doc['_id']] = BUYABLE_BASE_SCORE
-				xrn_to_fp[chem_doc['_id']] = np.unpackbits(pickle.loads(chem_doc['M2_fp1024']))
+			if i % 10 == 0: print(i)
+			xrn_to_value[chem_doc['_id']] = BUYABLE_BASE_SCORE
+				
 		print('Found {} buyable chemicals from DB'.format(len(xrn_to_value)))
 
 		with open(os.path.join(FROOT, 'initial_chemicals.pickle'), 'wb') as fid:
 			pickle.dump(xrn_to_value, fid, pickle.HIGHEST_PROTOCOL)
-			pickle.dump(xrn_to_smiles, fid, pickle.HIGHEST_PROTOCOL)
 
 	if os.path.isfile(os.path.join(FROOT, 'firstpass_chemicals.pickle')):
 		print('Reloading previously saved chemicals (after going through reactions)')
 		with open(os.path.join(FROOT, 'firstpass_chemicals.pickle'), 'rb') as fid:
 			xrn_to_value  = pickle.load(fid)
-			xrn_to_smiles = pickle.load(fid)
 
 	else:
 
 		def go_through_once():
 			# Look through the reactions
-			for rxn_doc in tqdm(REACTION_DB.find({}, ['RX_RXRN', 'RX_PXRN'], no_cursor_timeout = True).limit(REACTION_LIMIT)):
+			for rxn_doc in tqdm(REACTION_DB.find({}, ['RX_RXRN', 'RX_PXRN']).limit(REACTION_LIMIT)):
 				if len(rxn_doc['RX_RXRN']) == 0: continue 
 				if len(rxn_doc['RX_PXRN']) == 0: continue 
 				# What is the most expensive reactant required for this reaction?
@@ -99,28 +87,30 @@ if __name__ == '__main__':
 		go_through_once()
 		print('Getting reactions (third time)')
 		go_through_once()
-		print('Getting reactions (fourth time)')
-		go_through_once()
-
+	
 		print('Saving reactions (no fingerprints)')
 		with open(os.path.join(FROOT, 'firstpass_chemicals.pickle'), 'wb') as fid:
 			pickle.dump(xrn_to_value, fid, pickle.HIGHEST_PROTOCOL)
-			pickle.dump(xrn_to_smiles, fid, pickle.HIGHEST_PROTOCOL)
-
-
-	raw_input('Pausing before saving...')
 
 	# Now go back and get fingerprints for other chemicals
 	print('Getting fingerprints for chemicals and saving')
+	from random import shuffle
+	xrns = xrn_to_value.keys()
+	shuffle(xrns)
 	with open(os.path.join(FROOT, 'data.pickle'), 'wb') as outfid:
-		for xrn in tqdm(shuffle(xrn_to_value.keys())):
-			if (xrn not in xrn_to_smiles) or (xrn not in xrn_to_fp):
-				chem_doc = CHEMICAL_DB.find_one({'_id': xrn}, ['SMILES', 'M2_fp1024'])
-				if not chem_doc: continue
-				if 'M2_fp1024' not in chem_doc: continue
+		counter = 0
+		for i, xrn in tqdm(enumerate(xrns)):
+			if xrn_to_value[xrn] == np.inf: continue
 
-				smiles = chem_doc['SMILES']
-				fp = np.unpackbits(pickle.loads(chem_doc['M2_fp1024']))
+			if counter == MAX_CHEMICALS: break
 
-				pickle.dump((xrn, smiles, fp, xrn_to_value[xrn]), outfid)
-			
+			chem_doc = CHEMICAL_DB.find_one({'_id': xrn}, ['SMILES', 'M2_fp1024'])
+			if not chem_doc: continue
+			if 'M2_fp1024' not in chem_doc: continue
+			if 'SMILES' not in chem_doc: continue
+
+			smiles = chem_doc['SMILES']
+			fp = np.unpackbits(pickle.loads(chem_doc['M2_fp1024']))
+
+			pickle.dump((xrn, smiles, fp, xrn_to_value[xrn]), outfid)
+			counter += 1
