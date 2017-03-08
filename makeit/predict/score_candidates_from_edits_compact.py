@@ -648,6 +648,8 @@ if __name__ == '__main__':
 					help = 'Baseline fingerprint model? Default 0')
 	parser.add_argument('--hybrid', type = int, default = 0, 
 					help = 'Hybrid fingerprint +edit model? default 0')
+	parser.add_argument('--sandbox', type = int, default = 0,
+					help = 'Sandbox mode, default 0')
 
 
 	args = parser.parse_args()
@@ -713,16 +715,8 @@ if __name__ == '__main__':
 
 	if bool(args.retrain):
 		print('Reloading from file')
-		rebuild = raw_input('Do you want to rebuild from scratch instead of loading from file? [n/y] ')
-		if rebuild == 'y':
-			model = build(F_atom = F_atom, F_bond = F_bond, N_h1 = N_h1, 
-				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = opt, inner_act = inner_act,
-				extra_outputs = bool(args.visualize))
-		else:
-			model = model_from_json(open(MODEL_FPATH).read())
-			model.compile(loss = 'categorical_crossentropy', 
-			optimizer = opt,
-			metrics = ['accuracy'])
+		model = build(F_atom = F_atom, F_bond = F_bond, N_h1 = N_h1, 
+				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = opt, inner_act = inner_act)
 		model.load_weights(WEIGHTS_FPATH)
 	else:
 		model = build(F_atom = F_atom, F_bond = F_bond, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, inner_act = inner_act, optimizer = opt)
@@ -731,6 +725,62 @@ if __name__ == '__main__':
 				outfile.write(model.to_json())
 		except:
 			print('could not write model to json')
+
+	if bool(args.sandbox):
+		
+		INFO_FPATH = os.path.join(FROOT, 'weight_info.txt')
+		with open(INFO_FPATH, 'w') as fid:
+
+			fid.write('Index\tHlost\tHgain\tBondlost(1)\tBondlost(2)\tBondgain(1)\tBondgain(2)\n')
+			(W1, b1) = model.get_layer(name = "embed H_lost 1").get_weights()
+			(W2, b2) = model.get_layer(name = "embed H_lost 2").get_weights()
+			(W3, b3) = model.get_layer(name = "embed H_lost 3").get_weights()
+			(W4, b4) = model.get_layer(name = "reaction embedding post-sum").get_weights()
+			(W5, b5) = model.get_layer(name = "feature to score").get_weights()
+			Wtotal_Hlost = np.dot(np.dot(np.dot(np.dot(W1, W2), W3), W4), W5).flatten()
+
+			(W1, b1) = model.get_layer(name = "embed H_gain 1").get_weights()
+			(W2, b2) = model.get_layer(name = "embed H_gain 2").get_weights()
+			(W3, b3) = model.get_layer(name = "embed H_gain 3").get_weights()
+			(W4, b4) = model.get_layer(name = "reaction embedding post-sum").get_weights()
+			(W5, b5) = model.get_layer(name = "feature to score").get_weights()
+			Wtotal_Hgain = np.dot(np.dot(np.dot(np.dot(W1, W2), W3), W4), W5).flatten()
+
+			(W1, b1) = model.get_layer(name = "embed bond_lost 1").get_weights()
+			(W2, b2) = model.get_layer(name = "embed bond_lost 2").get_weights()
+			(W3, b3) = model.get_layer(name = "embed bond_lost 3").get_weights()
+			(W4, b4) = model.get_layer(name = "reaction embedding post-sum").get_weights()
+			(W5, b5) = model.get_layer(name = "feature to score").get_weights()
+			Wtotal_bondlost = np.dot(np.dot(np.dot(np.dot(W1, W2), W3), W4), W5).flatten()
+
+			(W1, b1) = model.get_layer(name = "embed bond_gain 1").get_weights()
+			(W2, b2) = model.get_layer(name = "embed bond_gain 2").get_weights()
+			(W3, b3) = model.get_layer(name = "embed bond_gain 3").get_weights()
+			(W4, b4) = model.get_layer(name = "reaction embedding post-sum").get_weights()
+			(W5, b5) = model.get_layer(name = "feature to score").get_weights()
+			Wtotal_bondgain = np.dot(np.dot(np.dot(np.dot(W1, W2), W3), W4), W5).flatten()
+
+			offset = F_bond - F_atom
+			for i in range(offset):
+
+				if i < F_atom:
+					fid.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(i, Wtotal_Hlost[i], Wtotal_Hgain[i], 
+						Wtotal_bondlost[i], Wtotal_bondlost[i + offset],
+						Wtotal_bondgain[i], Wtotal_bondgain[i + offset]))
+				else:
+					fid.write('{}\t\t\t{}\t\t{}\t\n'.format(i, Wtotal_bondlost[i], Wtotal_bondgain[i]))
+
+
+
+
+		while True:
+			try:
+				command = raw_input('Command: ')
+				exec command
+			except Exception as e:
+				print(e)
+				continue 
+
 
 	if bool(args.test):
 		data = get_data(max_N_c = max_N_c, shuffle = False)
