@@ -251,6 +251,7 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 
 			for batchNum in batchNums:
 				if batchNum not in allowable_batchNums: continue
+				#print('data grabbed batchNum {}'.format(batchNum))
 
 				(filePos, startIndex, endIndex) = fileInfo[batchNum]
 				(N, N_c, N_e1, N_e2, N_e3, N_e4) = batchDims[batchNum]
@@ -372,6 +373,8 @@ def label_generator(start_at, end_at, batch_size, allowable_batchNums = set()):
 			# Is this the first iteration?
 			if filePos_start_at == -1:
 
+				fid.seek(0)
+
 				# Remember where data starts
 				legend_labels = pickle.load(fid) # first doc is legend
 				CANDIDATE_SMILES = legend_labels['candidate_smiles']
@@ -386,11 +389,12 @@ def label_generator(start_at, end_at, batch_size, allowable_batchNums = set()):
 				fid.seek(filePos_start_at)
 
 			for batchNum, startIndex in enumerate(range(start_at, end_at, batch_size)):
-				if batchNum not in allowable_batchNums: continue
-
+				
 				endIndex = min(startIndex + batch_size, end_at)
 
 				docs = [pickle.load(fid) for j in range(startIndex, endIndex)]
+				
+				if batchNum not in allowable_batchNums: continue
 				yield {
 					'candidate_smiles': [doc[CANDIDATE_SMILES] for doc in docs],
 					'candidate_edits':  [doc[CANDIDATE_EDITS] for doc in docs],
@@ -514,6 +518,7 @@ def test(model, data):
 		for batch_num in range(num_batches):
 			(x, y) = data_generator.next()
 			labels = label_generator.next()
+			#raw_input('pause...')
 			y = y[0] # only one output, which is True/False or yield
 		
 			# TODO: pre-fetch data in queue
@@ -604,6 +609,167 @@ def test(model, data):
 	histogram(val_preds, 'VAL', HISTOGRAM_FPATH('val'), val_acc)
 	histogram(test_preds, 'TEST', HISTOGRAM_FPATH('test'), test_acc)
 
+def test_mask(model, data):
+	'''
+	Given a trained model and a list of samples, this function tests
+	the model while masking inputs with average values from the training set
+	'''
+
+	masks = [
+		(0, 'H_lost', [0], 'Crippen contribution to logP'),
+		(0, 'H_lost', [1], 'Crippen contribution to MR'),
+		(0, 'H_lost', [2], 'TPSA contribution'),
+		(0, 'H_lost', [3], 'Labute ASA'),
+		(0, 'H_lost', [4], 'Estate Index'),
+		(0, 'H_lost', [5], 'Gasteiger partial charge'),
+		(0, 'H_lost', [6], 'Gasteiger H partial charge'),
+		(0, 'H_lost', range(7, 18), 'Atomic number as one-hot'),
+		(0, 'H_lost', range(18, 24), 'Number of neighbors as one-hot'),
+		(0, 'H_lost', range(24, 29), 'Number of hydrogens as one-hot'),
+		(0, 'H_lost', [29], 'Formal charge'),
+		(0, 'H_lost', [30], 'Is in ring'),
+		(0, 'H_lost', [31], 'Is aromatic'),
+		#
+		(1, 'H_gain', [0], 'Crippen contribution to logP'),
+		(1, 'H_gain', [1], 'Crippen contribution to MR'),
+		(1, 'H_gain', [2], 'TPSA contribution'),
+		(1, 'H_gain', [3], 'Labute ASA'),
+		(1, 'H_gain', [4], 'Estate Index'),
+		(1, 'H_gain', [5], 'Gasteiger partial charge'),
+		(1, 'H_gain', [6], 'Gasteiger H partial charge'),
+		(1, 'H_gain', range(7, 18), 'Atomic number as one-hot'),
+		(1, 'H_gain', range(18, 24), 'Number of neighbors as one-hot'),
+		(1, 'H_gain', range(24, 29), 'Number of hydrogens as one-hot'),
+		(1, 'H_gain', [29], 'Formal charge'),
+		(1, 'H_gain', [30], 'Is in ring'),
+		(1, 'H_gain', [31], 'Is aromatic'),
+		#
+		(2, 'bond_lost', [0, 36], 'Crippen contribution to logP'),
+		(2, 'bond_lost', [1, 37], 'Crippen contribution to MR'),
+		(2, 'bond_lost', [2, 38], 'TPSA contribution'),
+		(2, 'bond_lost', [3, 39], 'Labute ASA'),
+		(2, 'bond_lost', [4, 40], 'Estate Index'),
+		(2, 'bond_lost', [5, 41], 'Gasteiger partial charge'),
+		(2, 'bond_lost', [6, 42], 'Gasteiger H partial charge'),
+		(2, 'bond_lost', range(7, 18) + range(43, 54), 'Atomic number as one-hot'),
+		(2, 'bond_lost', range(18, 24) + range(54, 60), 'Number of neighbors as one-hot'),
+		(2, 'bond_lost', range(24, 29) + range(60, 65), 'Number of hydrogens as one-hot'),
+		(2, 'bond_lost', [29, 65], 'Formal charge'),
+		(2, 'bond_lost', [30, 66], 'Is in ring'),
+		(2, 'bond_lost', [31, 67], 'Is aromatic'),
+		(2, 'bond_lost', [32], 'Is single'),
+		(2, 'bond_lost', [33], 'Is aromatic'),
+		(2, 'bond_lost', [34], 'Is double'),
+		(2, 'bond_lost', [35], 'Is triple'),
+		#
+		(3, 'bond_gain', [0, 36], 'Crippen contribution to logP'),
+		(3, 'bond_gain', [1, 37], 'Crippen contribution to MR'),
+		(3, 'bond_gain', [2, 38], 'TPSA contribution'),
+		(3, 'bond_gain', [3, 39], 'Labute ASA'),
+		(3, 'bond_gain', [4, 40], 'Estate Index'),
+		(3, 'bond_gain', [5, 41], 'Gasteiger partial charge'),
+		(3, 'bond_gain', [6, 42], 'Gasteiger H partial charge'),
+		(3, 'bond_gain', range(7, 18) + range(43, 54), 'Atomic number as one-hot'),
+		(3, 'bond_gain', range(18, 24) + range(54, 60), 'Number of neighbors as one-hot'),
+		(3, 'bond_gain', range(24, 29) + range(60, 65), 'Number of hydrogens as one-hot'),
+		(3, 'bond_gain', [29, 65], 'Formal charge'),
+		(3, 'bond_gain', [30, 66], 'Is in ring'),
+		(3, 'bond_gain', [31, 67], 'Is aromatic'),
+		(3, 'bond_gain', [32], 'Is single'),
+		(3, 'bond_gain', [33], 'Is aromatic'),
+		(3, 'bond_gain', [34], 'Is double'),
+		(3, 'bond_gain', [35], 'Is triple'),
+	]
+	values = []
+
+	print('Testing model')
+
+	fid = open(MASKTEST_FPATH, 'w')
+	fid.write('{}\t{}\t{}\t{}\t{}\n'.format(
+		'Edit index', 'Edit type', 'Indices', 'Description', 'Test set accuracy'
+	))
+
+
+	train_data_generator = data['train_generator']
+	train_label_generator = data['train_label_generator']
+	train_num_batches = int(np.ceil(data['train_nb_samples']/float(data['batch_size'])))
+
+
+	test_data_generator = data['test_generator']
+	test_label_generator = data['test_label_generator']
+	test_num_batches = int(np.ceil(data['test_nb_samples']/float(data['batch_size'])))
+
+
+	for (edit_index, edit_type, indices, description) in masks:
+
+		avg_value = np.zeros((len(indices),), dtype = np.float32)
+		N = 0
+
+		for batch_num in range(train_num_batches):
+			(x, y) = train_data_generator.next()
+			# use fact that true outcome is always candidate 0
+			# average across candidates AND across edits
+			edit_slice = x[edit_index]
+			# print(edit_slice.shape)
+
+			true_edit_slice = edit_slice[:, 0, :, :]
+			
+			has_edit = np.any(true_edit_slice != 0.0, axis = -1)	
+			# print('has_edit')
+			# print(has_edit)
+			# print(has_edit.shape)
+
+			for k, index in enumerate(indices):
+				value_slice = true_edit_slice[:, :, index]
+				# print('value slice')
+				# print(value_slice)
+				# print(value_slice.shape)
+
+				# print('value slice_hasedit')
+				# print(value_slice[has_edit])
+				# print(value_slice[has_edit].shape)
+
+				# print(avg_value)
+				avg_value[k] += np.mean(value_slice[has_edit])
+				# print(avg_value)
+
+		avg_value = avg_value / float(train_num_batches)
+		print('For masks {}, {}, {}, {}, average value {}'.format(edit_index, edit_type, str(indices), description, avg_value))
+
+		corr = 0
+		N = 0
+		for batch_num in range(test_num_batches):
+			(x, y) = test_data_generator.next()
+			labels = test_label_generator.next()
+
+			edit_slice = x[edit_index]
+			has_edit = np.any(has_edit != 0.0, axis = -1)	
+			
+			# Overwrite value with average
+			for k, index in enumerate(indices):
+				# print('this index index {}, index {}'.format(k, index))
+				# print(x[edit_index].shape)
+				# print(x[edit_index][:, :, :, index].shape)
+				x[edit_index][:, :, :, index][has_edit] = avg_value[k]
+
+			y = y[0] # only one output, which is True/False or yield
+		
+			# TODO: pre-fetch data in queue
+			preds = model.predict_on_batch(x)
+
+			for i in range(preds.shape[0]): 
+				N += 1
+				if np.argmax(preds[i, :]) == np.argmax(y[i,:]):
+					corr += 1
+				
+		fid.write('{}\t{}\t{}\t{}\t{}\n'.format(
+			edit_index, edit_type, indices, description, corr / float(N),
+		))
+
+		print('Using masks {}, {}, {}, {}, accuracy {}'.format(edit_index, edit_type, indices, description, corr / float(N)))
+
+	fid.close()
+
 
 if __name__ == '__main__':
 
@@ -650,6 +816,8 @@ if __name__ == '__main__':
 					help = 'Hybrid fingerprint +edit model? default 0')
 	parser.add_argument('--sandbox', type = int, default = 0,
 					help = 'Sandbox mode, default 0')
+	parser.add_argument('--masktest', type = int, default = 0,
+					help = 'Test with masking indices, default 0')
 
 
 	args = parser.parse_args()
@@ -695,6 +863,7 @@ if __name__ == '__main__':
 	WEIGHTS_FPATH = os.path.join(FROOT, 'weights.h5')
 	HIST_FPATH = os.path.join(FROOT, 'hist.csv')
 	TEST_FPATH = os.path.join(FROOT, 'probs.dat')
+	MASKTEST_FPATH = os.path.join(FROOT, 'mask_test.tdf')
 	HISTOGRAM_FPATH = lambda x: os.path.join(FROOT, 'histogram {}.png'.format(x))
 	ARGS_FPATH = os.path.join(FROOT, 'args.json')
 
@@ -718,8 +887,6 @@ if __name__ == '__main__':
 		model = build(F_atom = F_atom, F_bond = F_bond, N_h1 = N_h1, 
 				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = opt, inner_act = inner_act)
 		model.load_weights(WEIGHTS_FPATH)
-	else:
-		model = build(F_atom = F_atom, F_bond = F_bond, N_h1 = N_h1, N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, inner_act = inner_act, optimizer = opt)
 		try:
 			with open(MODEL_FPATH, 'w') as outfile:
 				outfile.write(model.to_json())
@@ -786,6 +953,12 @@ if __name__ == '__main__':
 		data = get_data(max_N_c = max_N_c, shuffle = False)
 		test(model, data)
 		quit(1)
+
+	if bool(args.masktest):
+		data = get_data(shuffle = False)
+		test_mask(model, data)
+		quit(1)
+
 	data = get_data(max_N_c = max_N_c, shuffle = True)
 	train(model, data)
 	model.save_weights(WEIGHTS_FPATH, overwrite = True) 
