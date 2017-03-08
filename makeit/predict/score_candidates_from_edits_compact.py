@@ -251,6 +251,7 @@ def data_generator(start_at, end_at, batch_size, max_N_c = None, shuffle = False
 
 			for batchNum in batchNums:
 				if batchNum not in allowable_batchNums: continue
+				#print('data grabbed batchNum {}'.format(batchNum))
 
 				(filePos, startIndex, endIndex) = fileInfo[batchNum]
 				(N, N_c, N_e1, N_e2, N_e3, N_e4) = batchDims[batchNum]
@@ -386,11 +387,12 @@ def label_generator(start_at, end_at, batch_size, allowable_batchNums = set()):
 				fid.seek(filePos_start_at)
 
 			for batchNum, startIndex in enumerate(range(start_at, end_at, batch_size)):
-				if batchNum not in allowable_batchNums: continue
-
+				
 				endIndex = min(startIndex + batch_size, end_at)
 
 				docs = [pickle.load(fid) for j in range(startIndex, endIndex)]
+				
+				if batchNum not in allowable_batchNums: continue
 				yield {
 					'candidate_smiles': [doc[CANDIDATE_SMILES] for doc in docs],
 					'candidate_edits':  [doc[CANDIDATE_EDITS] for doc in docs],
@@ -514,6 +516,7 @@ def test(model, data):
 		for batch_num in range(num_batches):
 			(x, y) = data_generator.next()
 			labels = label_generator.next()
+			#raw_input('pause...')
 			y = y[0] # only one output, which is True/False or yield
 		
 			# TODO: pre-fetch data in queue
@@ -717,7 +720,7 @@ if __name__ == '__main__':
 		if rebuild == 'y':
 			model = build(F_atom = F_atom, F_bond = F_bond, N_h1 = N_h1, 
 				N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, lr = lr, optimizer = opt, inner_act = inner_act,
-				extra_outputs = bool(args.visualize))
+				extra_outputs = False)
 		else:
 			model = model_from_json(open(MODEL_FPATH).read())
 			model.compile(loss = 'categorical_crossentropy', 
