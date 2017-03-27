@@ -76,4 +76,11 @@ urlpatterns += [
     # Using Ajax calls (testing)
     url(ur'^test/the_time/$', main.views.the_time, name = 'the_time'),
     url(ur'^ajax/get_the_time/$', main.views.get_the_time, name = 'get_the_time'),
+
+    # Separation
+    url(r'^separation/input/$', main.views.sep_input, name='input'),
+
+    # Nearest Neighbor Setup
+    url(r'^nnRecommendation/setup/$', main.views.nn_predictor_setup, name='setup'),
+
 ]
