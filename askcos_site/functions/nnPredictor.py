@@ -24,8 +24,10 @@ CHEMICAL_DB = db['chemicals']
 SOLVENT_DB = db['solvents']
 
 froot = "C:\Users\lfhea\Dropbox (MIT)\RxnClassifier"
-FROOT2 = os.path.join(froot, 'reaxys_instance2')
+FROOT2 = os.path.join(froot, 'reaxys_instance2/2MRxnModel')
 figure_root = os.path.join(froot, 'figures')
+
+
 
 # Load all the instance IDs
 rxd_ids = []
@@ -213,7 +215,7 @@ class nn_condition_predictor():
     def __init__(self, nn_model=lshf_nn, rxn_ids=rxd_ids):
         self.nnModel = nn_model
         self.rxn_ids = rxn_ids
-        self.num_cond = 2
+        self.num_cond = 1
         self.dist_limit = 0.3
         self.outputString = True
 
