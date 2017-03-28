@@ -23,22 +23,30 @@ INSTANCE_DB = db['instances']
 CHEMICAL_DB = db['chemicals']
 SOLVENT_DB = db['solvents']
 
-froot = "C:\Users\lfhea\Dropbox (MIT)\RxnClassifier"
-FROOT2 = os.path.join(froot, 'reaxys_instance2/2MRxnModel')
-figure_root = os.path.join(froot, 'figures')
+# froot = "C:\Users\lfhea\Dropbox (MIT)\RxnClassifier"
+# FROOT2 = os.path.join(froot, 'reaxys_instance2/2MRxnModel')
+# figure_root = os.path.join(froot, 'figures')
+
+project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+model_dir = os.path.join(project_dir, 'testModel')
 
 
-
-# Load all the instance IDs
+# Load all the instance IDs from the test model
 rxd_ids = []
 rxn_ids = []
-with open(os.path.join(FROOT2, 'fpNN-10_2MRxn_info.txt'), 'r') as infile:
+with open(os.path.join(model_dir, '1650000-1699999_10NN_20000SRR_info.txt'), 'r') as infile:
     rxn_ids.append(infile.readlines()[1:])  # a list of str(rxn_ids) with '\n'
 for id in rxn_ids[0]:
     rxd_ids.append(id.replace('\n', ''))
+# Load the test NN model
+lshf_nn = joblib.load(os.path.join(model_dir, '1650000-1699999_10NN_20000SRR_lshf.pickle'))
 
-# Load the NN model
-lshf_nn = joblib.load(os.path.join(FROOT2, 'fpNN-10_2MRxn_lshf.pickle'))
+# with open(os.path.join(FROOT2, 'fpNN-10_2MRxn_info.txt'), 'r') as infile:
+#     rxn_ids.append(infile.readlines()[1:])  # a list of str(rxn_ids) with '\n'
+# for id in rxn_ids[0]:
+#     rxd_ids.append(id.replace('\n', ''))
+# # Load the NN model
+# lshf_nn = joblib.load(os.path.join(FROOT2, 'fpNN-10_2MRxn_lshf.pickle'))
 
 
 def string_or_range_to_float(text):
