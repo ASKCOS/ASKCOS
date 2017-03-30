@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}ASKCOS homepage{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'main.views.sep_input' %}">SPARC Separation Input</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block page_body %}
+<p>Begin by entering in the required information for the separation.</p>
+
+<form method="post" id="sepInput" action="{% url 'input' %}">
+<table>
+{{ form.as_table }}
+	<th>{% csrf_token %}</th>
+	<td>
+		<input type="submit" value="Input complete" name="sep_input">
+	</td>
+</table>
+</form>
+
+{% endblock %}

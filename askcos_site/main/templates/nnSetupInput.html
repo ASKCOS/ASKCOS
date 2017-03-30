@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}ASKCOS homepage{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'main.views.nn_predictor_setup' %}">Nearest Neighbor Reaction Condition Predictor Setup</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block page_body %}
+<p>Begin by entering in the required information for the predictor.</p>
+
+<form method="post" id="nnSetup" action="{% url 'setup' %}">
+<table>
+{{ form.as_table }}
+	<th>{% csrf_token %}</th>
+	<td>
+		<input type="submit" value="Setup Input Complete" name="predictor setup">
+	</td>
+</table>
+</form>
+
+{% endblock %}
