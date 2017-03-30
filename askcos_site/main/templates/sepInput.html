@@ -13,7 +13,7 @@
 {% block page_body %}
 <p>Begin by entering in the required information for the separation.</p>
 
-<form method="post" id="sepInput" action="{% url 'input' %}">
+<form method="post" id="sepInput" action="{% url 'sepInput' %}">
 <table>
 {{ form.as_table }}
 	<th>{% csrf_token %}</th>

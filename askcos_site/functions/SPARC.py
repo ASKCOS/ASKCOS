@@ -11,7 +11,7 @@ import numpy as np
 class OrgSolvent():
     """Organic solvent used in liquid-liquid extraction in a flow system"""
 
-    def __init__(self, smiles='', name=''):
+    def __init__(self, smiles='', name='orgSlvt'):
         self.smiles = smiles
         self.name = name
 
@@ -19,10 +19,11 @@ class OrgSolvent():
         return self.smiles
 
     def getName(self):
-        if not self.name:
-            return self.smiles
-        else:
-            return self.name
+        return self.name
+        # if not self.name:
+        #     return self.smiles
+        # else:
+        #     return self.name
 
 
 class OrgPhase():
@@ -43,7 +44,10 @@ class OrgPhase():
         return self.frac
 
     def getName(self):
-        return self.one.getName() + '-' + self.two.getName() + '({})'.format(self.frac)
+        if self.two:
+            return self.one.getName() + '-' + self.two.getName() + '({})'.format(self.frac)
+        else:
+            return self.one.getName()
 
 
 class AquPhase():
@@ -125,57 +129,57 @@ def opt_cond_requested(f_org_list=None, p_org_list=None, p_aqu_list=None,
 
     def opt_cond_yield(conds_max_forg, conds_min_forg, max_phase, min_phase):
         result = []
-        if max_phase is 'aqu':
+        if max_phase == 'aqu':
             result.append(conds_min_forg)
-            if min_phase is 'aqu':
+            if min_phase == 'aqu':
                 result.append(conds_max_forg)
-            elif min_phase is 'org':
+            elif min_phase == 'org':
                 result.append(conds_min_forg)
-        elif max_phase is 'org':
+        elif max_phase == 'org':
             result.append(conds_max_forg)
-            if min_phase is 'aqu':
+            if min_phase == 'aqu':
                 result.append(conds_max_forg)
-            elif min_phase is 'org':
+            elif min_phase == 'org':
                 result.append(conds_min_forg)
         else:
-            if min_phase is 'aqu':
+            if min_phase == 'aqu':
                 result.append(conds_max_forg)
-            elif min_phase is 'org':
+            elif min_phase == 'org':
                 result.append(conds_min_forg)
         return result
 
     def opt_cond_purity(conds_max_porg, conds_min_porg, conds_max_paqu, conds_min_paqu, max_phase, min_phase):
         result = []
-        if max_phase is 'aqu':
+        if max_phase == 'aqu':
             result.append(conds_max_paqu)
-            if min_phase is 'aqu':
+            if min_phase == 'aqu':
                 result.append(conds_min_paqu)
-            elif min_phase is 'org':
+            elif min_phase == 'org':
                 result.append(conds_min_porg)
-        elif max_phase is 'org':
+        elif max_phase == 'org':
             result.append(conds_max_porg)
-            if min_phase is 'aqu':
+            if min_phase == 'aqu':
                 result.append(conds_min_paqu)
-            elif min_phase is 'org':
+            elif min_phase == 'org':
                 result.append(conds_min_porg)
         else:
-            if min_phase is 'aqu':
+            if min_phase == 'aqu':
                 result.append(conds_min_paqu)
-            elif min_phase is 'org':
+            elif min_phase == 'org':
                 result.append(conds_min_porg)
         return result
 
-    if tgt_prop is 'y':
+    if tgt_prop == 'y':
         return opt_cond_yield(conds_max_forg, conds_min_forg, max_phase, min_phase)
-    elif tgt_prop is 'p':
+    elif tgt_prop == 'p':
         return opt_cond_purity(conds_max_porg, conds_min_porg, conds_max_paqu, conds_min_paqu, max_phase, min_phase)
-    elif tgt_prop is 'b':
+    elif tgt_prop == 'b':
         result = []
         result.append(opt_cond_yield(conds_max_forg, conds_min_forg, max_phase, min_phase))
         result.append(opt_cond_purity(conds_max_porg, conds_min_porg, conds_max_paqu, conds_min_paqu, max_phase, min_phase))
         return result
     else:
-        err_msg = "Invalid target property, options are yield 'y', purity 'p', or both 'b'"
+        err_msg = "Invalid target property {} {}, options are yield 'y', purity 'p', or both 'b'".format(tgt_prop, type(tgt_prop))
         return err_msg
 
 
@@ -222,10 +226,11 @@ def SPARC_logD(molecule_smi, org, aqu, temp=25.0, pHmin=0.0, pHincrement=0.1):
         "ionic_strength": aqu.getIonicStrength(),
         "smiles": molecule_smi
     }
+    # print(task)
 
     myResponse = requests.post(url, json=task)
     # print 'Status', myResponse.status_code
-    # print myResponse.content
+    # print(myResponse.content)
     # print myResponse.headers['content-type']
 
     # For successful API call, response code will be 200 (OK)
@@ -422,6 +427,7 @@ def sep_pH_flowratio(org, aqu, molecules=[], c_orgs=[], c_aqus=[], temp=25.0, pH
         pHlist, logD_list, f_org, f_aqu, c_org, c_aqu, p_org, p_aqu = \
             sep_at_different_pH(org, aqu, molecules, c_orgs, c_aqus, flowRatio_oa=r, temp=temp, pHmin=pHmin,
                                 pHincrement=pHincrement, logDs_cal=logDs_cal, savePic=False, saveCSV=False)
+
         logDs_cal = logD_list
         f_aqu_list[:, i, :] = f_aqu
         f_org_list[:, i, :] = f_org
@@ -573,19 +579,20 @@ class SeparationDesigner():
         self.pHStep = 0.1
         self.minFlowRatio = 0.1
         self.maxFlowRatio = 10
+        self.num_flowratio = 10
 
         # Score
         self.scoreFunc = None
 
     def load_designer(self, userInput):
         """load the designer with necessary information from user input"""
-        self.tgtMol = userInput['tgt_smiles']
+        self.tgtMol = str(userInput['tgt_smiles'])
         other_mol = str(userInput['other_smiles']).split(',')
         self.molecules = [mol for mol in other_mol]
-        self.tgtProp = userInput['opt_tgt_choice']
-        self.optVar = userInput['opt_option']
-        self.maxPhase = userInput['max_phase']
-        if userInput['min_phase']: self.minPhase = userInput['min_phase']
+        self.tgtProp = str(userInput['opt_tgt_choice'])
+        self.optVar = str(userInput['opt_option'])
+        self.maxPhase = str(userInput['max_phase'])
+        if userInput['min_phase']: self.minPhase = str(userInput['min_phase'])
 
         # Organic phase defined by the user
         slvt1 = OrgSolvent(userInput['org1'])
@@ -610,9 +617,12 @@ class SeparationDesigner():
         if userInput['pH_step']: self.pHStep = userInput['pH_step']
         if userInput['flow_ratio_min']: self.minFlowRatio = userInput['flow_ratio_min']
         if userInput['flow_ratio_max']: self.maxFlowRatio = userInput['flow_ratio_max']
-        if userInput['aqu_conc']: self.aquInitConc = userInput['aqu_conc']
-        if userInput['org_conc']: self.orgInitConc = userInput['org_conc']
-        if userInput['score_func']: self.scoreFunc = userInput['score_func']
+        if userInput['num_flowratio']: self.num_flowratio = userInput['num_flowratio']
+        aquC = userInput['aqu_conc'].split(',')
+        self.aquInitConc = [float(x) for x in aquC]
+        orgC = userInput['org_conc'].split(',')
+        self.orgInitConc = [float(x) for x in orgC]
+        # if userInput['score_func']: self.scoreFunc = userInput['score_func']
 
     #### To do: def org_solvent_selection(), about how to go through the list of solvents available
 
@@ -637,9 +647,9 @@ class SeparationDesigner():
             for mol in self.molecules:
                 mol_list.append(mol)
             fd, fo, fa, po, pa, pHlist, logD_list, f_org_list, c_org_list, c_aqu_list, p_org_list, p_aqu_list = \
-                sep_at_different_pH(mol_list, c_org=self.orgInitConc, c_aqu=self.aquInitConc, org=self.org,
-                                      aqu=self.aqu, flowRatio_oa=self.flowRatio, temp=25.0, pHmin=0.0,
-                                      pHincrement=0.1, logDs_cal=None, savePic=True, saveCSV=False)
+                sep_at_different_pH(org=self.org, aqu=self.aqu, molecules=mol_list, c_org=self.orgInitConc,
+                                    c_aqu=self.aquInitConc, flowRatio_oa=self.flowRatio, temp=25.0, pHmin=0.0,
+                                    pHincrement=0.1, logDs_cal=None, savePic=True, saveCSV=False)
             if at_pH:
                 pH = self.aqu.getpH()
                 if pH in pHlist:
@@ -682,8 +692,9 @@ class SeparationDesigner():
                 return fd, fo, fa, po, pa # logD, fraction_org, fraction_aqu, purity_org, purity_aqu
 
 
-    def opt_sep_pH_flow(self, num_flowratio=10):
+    def opt_sep_pH_flow(self):
         """pH and flow rate ratio optimization given the solvents"""
+        # global f_org_list, p_org_list, p_aqu_list, conds, fo, fa, po, pa
         if not self.tgtMol:
             print('No target molecules input!')
             pass
@@ -698,35 +709,35 @@ class SeparationDesigner():
         for mol in self.molecules:
             mol_list.append(mol)
 
-        if self.optVar is 'b':
+        if self.optVar == 'b':
             fo, fa, po, pa, pHlist, logD_list, flow_oa_ratio, \
             f_org_list, f_aqu_list, c_org_list, c_aqu_list, p_org_list, p_aqu_list = \
                 sep_pH_flowratio(org=self.org, aqu=self.aqu, molecules=mol_list, c_orgs=self.orgInitConc,
                                  c_aqus=self.aquInitConc, temp=self.temp, pHincrement=self.pHStep,
-                                 min_fr=self.minFlowRatio, max_fr=self.maxFlowRatio, num_fr=num_flowratio,
+                                 min_fr=self.minFlowRatio, max_fr=self.maxFlowRatio, num_fr=self.num_flowratio,
                                  plotPlot=True, showPlot=False, savePlot=True)
             conds = [pHlist, flow_oa_ratio]
 
-        elif self.optVar is 'h':
+        elif self.optVar == 'h':
             fd, fo, fa, po, pa, pHlist, logD_list,f_org_list, c_org_list, c_aqu_list, p_org_list, p_aqu_list = \
                 sep_at_different_pH(org=self.org, aqu=self.aqu, molecules=mol_list, c_org=self.orgInitConc,
                                     c_aqu=self.aquInitConc, flowRatio_oa=self.flowRatio, temp=self.temp, pHmin=0.0,
                                     pHincrement=self.pHStep, logDs_cal=None, savePic=True, saveCSV=False)
             conds = [pHlist]
 
-        elif self.optVar is 'f':
+        else: # self.optVar is 'f'
             fo, fa, po, pa, flow_oa_ratio, logD_list, f_org_list, f_aqu_list, p_org_list, p_aqu_list = \
                 sep_at_different_flowratio(org=self.org, aqu=self.aqu, molecules=mol_list, c_orgs=self.orgInitConc,
                                            c_aqus=self.aquInitConc, temp=self.temp, min_fr=self.minFlowRatio,
-                                           max_fr=self.maxFlowRatio, num_fr=num_flowratio, savePlot=True)
+                                           max_fr=self.maxFlowRatio, num_fr=self.num_flowratio, savePlot=True)
             conds = [flow_oa_ratio]
 
-        if self.tgtProp is 'y':
+        if self.tgtProp == 'y':
             result = opt_cond_requested(f_org_list=f_org_list, p_org_list=p_org_list, p_aqu_list=p_aqu_list,
                                         tgt_idx=0, conds=conds, max_phase=self.maxPhase, min_phase=self.minPhase,
                                         tgt_prop=self.tgtProp)
             return fo, fa, result
-        elif self.tgtProp is 'p':
+        elif self.tgtProp == 'p':
             if self.aquInitConc and self.orgInitConc:
                 result = opt_cond_requested(f_org_list=f_org_list, p_org_list=p_org_list, p_aqu_list=p_aqu_list,
                                             tgt_idx=0, conds=conds, max_phase=self.maxPhase, min_phase=self.minPhase,
@@ -747,25 +758,3 @@ class SeparationDesigner():
                                             tgt_prop='y')
                 err_msg = 'Only fraction yield optimized due to missing initial concentrations'
                 return fo, fa, result, err_msg
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

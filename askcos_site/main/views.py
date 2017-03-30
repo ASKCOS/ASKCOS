@@ -14,6 +14,8 @@ import urllib2
 
 from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, builder, predictor, PREDICTOR_FOOTNOTE
 from forms import nnSetup, sepInput
+from askcos_site.functions.SPARC import SeparationDesigner
+from askcos_site.functions.nnPredictor import NNConditionPredictor
 
 def the_time(request):
     context = {
@@ -768,13 +770,18 @@ def draw_synthesis_tree(request, target = None, id = ''):
 
     return render(request, 'tree.html', context)
 
-def nn_predictor_setup(request):
+def nn_predictor_setup(request,):
     context = {}
     if request.method == 'POST':
         context['form'] = nnSetup(request.POST)
 
         if not context['form'].is_valid():
             context['err'] = 'Invalid input'
+        else:
+            nnPred = NNConditionPredictor()
+            nnPred.load_predictor(context['form'].cleaned_data)
+            ### **** reactions, paths ****
+
     else:
         context['form'] = nnSetup()
     return render(request, 'nnSetupInput.html', context)
@@ -786,6 +793,15 @@ def sep_input(request):
 
         if not context['form'].is_valid():
             context['err'] = 'Invalid input'
+        else:
+            SD = SeparationDesigner()
+            SD.load_designer(context['form'].cleaned_data)
+            output = SD.opt_sep_pH_flow()
+            ## Render format is not right yet...
+            context['output'] = {
+                'img1' : 'f_aqu.png',
+                'results' : output[-1]
+            }
     else:
         context['form'] = sepInput()
     return render(request, 'sepInput.html', context)
