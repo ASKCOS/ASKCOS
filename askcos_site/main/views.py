@@ -786,6 +786,17 @@ def nn_predictor_setup(request,):
         context['form'] = nnSetup()
     return render(request, 'nnSetupInput.html', context)
 
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+def draw_fig(request, fig):
+    '''
+    Returns a png response for figure object
+    '''
+    response = HttpResponse(content_type = 'img/png')
+    canvas = FigureCanvas(fig)
+    canvas.print_png(response)
+    return response
+
+
 def sep_input(request):
     context = {}
     if request.method == 'POST':
@@ -797,10 +808,16 @@ def sep_input(request):
             SD = SeparationDesigner()
             SD.load_designer(context['form'].cleaned_data)
             output = SD.opt_sep_pH_flow()
-            ## Render format is not right yet...
+
+            # Convert Figure objects into URLs
+            imgs = []
+            for f in output[1:]:
+                imgs.append(reverse('draw_fig', kwargs={'fig': f}))
+
+            # Pass output into context
             context['output'] = {
-                'img1' : 'f_aqu.png',
-                'results' : output[-1]
+                'result': output[0],
+                'imgs': imgs
             }
     else:
         context['form'] = sepInput()

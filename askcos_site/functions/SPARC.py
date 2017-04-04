@@ -101,25 +101,43 @@ def opt_cond(tgtArry, conds, idx=0, maxi=True):
     :param conds: a list of the conditions (list or array)
     :param idx: the idx for the target molecule, default=0 for the SeparationDesigner
     :param maxi: whether to choose the maximum in tgtArray, default=True
-    :return: the list of optimal conditions
+    :return: the list of optimal conditions [opt cond A (np.array), opt cond B], [A1, B1] conditions for optimum 1
     """
     tgt = tgtArry[idx] # data for the target molecule
-    if maxi is True:
-        value = np.nanmax(tgt)
+    ts = tgt.shape
+    n_err = 0
+    for c, cond in enumerate(conds):
+        if cond.shape[0] != ts[c]:
+            print('Condition {} provided mismatches the corresponding dimension of the tgtArray'.format(c))
+            n_err += 1
+            break
+    if n_err > 0:
+        return None
     else:
-        value = np.nanmin(tgt)
-    loc = np.where(tgt == value) # a tuple of np.array, the first index for all the hits, the second index, the third...
-    try:
-        opt_conds = []
-        for c, cond in enumerate(conds):
-            opt_conds.append(cond[loc[c][0]])
-        return opt_conds
-    except Exception as e:
-        print('Condition {} has en exception {}'.format(c, e))
+        if maxi is True:
+            value = np.nanmax(tgt)
+        else:
+            value = np.nanmin(tgt)
+        loc = np.where(tgt == value) # a tuple of np.array, the first index for all the hits, the second index, the third...
+        # loc: a tuple of np.array, len(loc) = len(conds), (index among the first cond, index among the second, ...)
+        try:
+            opt_conds = []
+            for c, cond in enumerate(conds):
+                opt_conds.append(cond[loc[c]].tolist())
+            return opt_conds
+        except Exception as e:
+            print('Condition {} has en exception {}'.format(c, e))
 
 
 def opt_cond_requested(f_org_list=None, p_org_list=None, p_aqu_list=None,
                        tgt_idx=0, conds=[], max_phase='', min_phase='', tgt_prop=''):
+    """
+    :return: a list of list of optimal conditions for the opt goals
+    For both yield and purity, [yield related, purity related]
+    For either yield and purity, only yield or only purity, [max_phase, mix_phase], min_phase results are optional
+    For each phase, [condA, condB, ...], each cond is an np.array, [condA1, condB1] for optimum 1
+    """
+
     conds_max_forg = opt_cond(f_org_list, idx=tgt_idx, conds=conds, maxi=True)
     conds_min_forg = opt_cond(f_org_list, idx=tgt_idx, conds=conds, maxi=False)
     conds_max_porg = opt_cond(p_org_list, idx=tgt_idx, conds=conds, maxi=True)
@@ -135,17 +153,24 @@ def opt_cond_requested(f_org_list=None, p_org_list=None, p_aqu_list=None,
                 result.append(conds_max_forg)
             elif min_phase == 'org':
                 result.append(conds_min_forg)
+            else:
+                pass
         elif max_phase == 'org':
             result.append(conds_max_forg)
             if min_phase == 'aqu':
                 result.append(conds_max_forg)
             elif min_phase == 'org':
                 result.append(conds_min_forg)
+            else:
+                pass
         else:
+            result.append([])
             if min_phase == 'aqu':
                 result.append(conds_max_forg)
             elif min_phase == 'org':
                 result.append(conds_min_forg)
+            else:
+                pass
         return result
 
     def opt_cond_purity(conds_max_porg, conds_min_porg, conds_max_paqu, conds_min_paqu, max_phase, min_phase):
@@ -156,17 +181,24 @@ def opt_cond_requested(f_org_list=None, p_org_list=None, p_aqu_list=None,
                 result.append(conds_min_paqu)
             elif min_phase == 'org':
                 result.append(conds_min_porg)
+            else:
+                pass
         elif max_phase == 'org':
             result.append(conds_max_porg)
             if min_phase == 'aqu':
                 result.append(conds_min_paqu)
             elif min_phase == 'org':
                 result.append(conds_min_porg)
+            else:
+                pass
         else:
+            result.append([])
             if min_phase == 'aqu':
                 result.append(conds_min_paqu)
             elif min_phase == 'org':
                 result.append(conds_min_porg)
+            else:
+                pass
         return result
 
     if tgt_prop == 'y':
@@ -187,7 +219,7 @@ def sep_2D_plot(x, y, x_name, y_name, molecules, semilogx=False, savePic=False):
     """2D plot to compare all the molecules
     :param x: data for x-axis
     :param y: data for y-axis, y[i,j], where i is for a molecule, j is for a data point corresponding to a x value
-    :return: if savePic is True, then .png image, otherwise a plot
+    :return: if savePic is True, then .png image, otherwise a 'matplotlib.figure.Figure' object
     """
     fig = plt.figure()
     plt.xlabel(x_name)
@@ -206,7 +238,7 @@ def sep_2D_plot(x, y, x_name, y_name, molecules, semilogx=False, savePic=False):
     if savePic:
         file_name = y_name.replace(' ', '_')
         fig.savefig('{}.png'.format(file_name), bbox_extra_artists=(lgd,), bbox_inches='tight')
-        return fig
+    return fig
 
 
 def SPARC_logD(molecule_smi, org, aqu, temp=25.0, pHmin=0.0, pHincrement=0.1):
@@ -298,13 +330,13 @@ def logD_pH(molecules, org, aqu, temp=25.0, pHmin=0.0, pHincrement=0.1, savePic=
 
 
 def sep_at_different_pH(org, aqu, molecules=[], c_org=[], c_aqu=[], flowRatio_oa=None, temp=25.0, pHmin=0.0,
-                        pHincrement=0.1, logDs_cal=None, savePic=False, saveCSV=False):
+                        pHincrement=0.1, logDs_cal=None, saveCSV=False, plotPic=False, savePic=False):
     """
     Given solvents, flow rate ratio, concentrations in both phases, calculate the extraction efficiency
     and purity of each compound at different pH values
     :param molecules: a list of SMILES for molecules
     :param c_org, c_aqu: a list of concentrations of each molecule in two phases
-    :param savePic, saveCSV: Boolean variable, default False
+    :param savePic, saveCSV, plotPic: Boolean variable, default False
     """
 
     if flowRatio_oa is None:
@@ -332,6 +364,7 @@ def sep_at_different_pH(org, aqu, molecules=[], c_org=[], c_aqu=[], flowRatio_oa
             for j in range(min(len(valuePair), n_pHPts)):
                 pHlist.append(valuePair[j][0])
                 logD_list[i, j] = valuePair[j][1]
+            pHlist = np.array(pHlist)
     else: # when logD_list is provided
         logD_list = logDs_cal
         pHlist = np.linspace(pHmin, 14.0, n_pHPts)
@@ -375,7 +408,7 @@ def sep_at_different_pH(org, aqu, molecules=[], c_org=[], c_aqu=[], flowRatio_oa
                                  f_aqu_list[i, j], p_org_list[i, j], p_aqu_list[i, j], c_org_list[i,j], c_aqu_list[i,j]))
         csvFile.close()
 
-    if savePic:
+    if plotPic:
         # logD w.r.t. pH
         y_name = 'logD {}-water'.format(org.getName())
         fd = sep_2D_plot(pHlist, logD_list, 'pH', y_name, molecules, semilogx=False, savePic=savePic)
@@ -426,7 +459,8 @@ def sep_pH_flowratio(org, aqu, molecules=[], c_orgs=[], c_aqus=[], temp=25.0, pH
         r = flow_oa_ratio[i]
         pHlist, logD_list, f_org, f_aqu, c_org, c_aqu, p_org, p_aqu = \
             sep_at_different_pH(org, aqu, molecules, c_orgs, c_aqus, flowRatio_oa=r, temp=temp, pHmin=pHmin,
-                                pHincrement=pHincrement, logDs_cal=logDs_cal, savePic=False, saveCSV=False)
+                                pHincrement=pHincrement, logDs_cal=logDs_cal, saveCSV=False,
+                                plotPic=False, savePic=False)
 
         logDs_cal = logD_list
         f_aqu_list[:, i, :] = f_aqu
@@ -474,14 +508,13 @@ def sep_pH_flowratio(org, aqu, molecules=[], c_orgs=[], c_aqus=[], temp=25.0, pH
         pa = surface_plt(p_aqu_list, 'p_aqu', showP=showPlot, saveP=savePlot)
         po = surface_plt(p_org_list, 'p_org', showP=showPlot, saveP=savePlot)
 
-    if plotPlot and savePlot:
-        return fo, fa, po, pa, pHlist, logD_list, flow_oa_ratio, \
-               f_org_list, f_aqu_list, c_org_list, c_aqu_list, p_org_list, p_aqu_list
+        return fo, fa, po, pa, pHlist, logD_list, flow_oa_ratio, f_org_list, f_aqu_list,\
+               c_org_list, c_aqu_list, p_org_list, p_aqu_list
     else:
         return pHlist, logD_list, flow_oa_ratio, f_org_list, f_aqu_list, c_org_list, c_aqu_list, p_org_list, p_aqu_list
 
 def sep_at_different_flowratio(org, aqu, molecules=[], c_orgs=[], c_aqus=[], temp=25.0,
-                               min_fr=0.1, max_fr=10, num_fr=10, savePlot=True):
+                               min_fr=0.1, max_fr=10, num_fr=10, plotPic=True, savePlot=False):
     pH_list, logD_list, flow_oa_ratio, f_org_list, f_aqu_list, c_org_list, c_aqu_list, p_org_list, p_aqu_list = \
         sep_pH_flowratio(org, aqu, molecules, c_orgs, c_aqus, temp, pHincrement=0.1,
                          min_fr=min_fr, max_fr=max_fr, num_fr=num_fr, plotPlot=False, showPlot=False, savePlot=False)
@@ -522,7 +555,7 @@ def sep_at_different_flowratio(org, aqu, molecules=[], c_orgs=[], c_aqus=[], tem
         p_org = find_in_list(p_org_list)
         p_aqu = find_in_list(p_aqu_list)
 
-    if savePlot:
+    if plotPic:
         # # logD w.r.t. flow rate ratio
         # y_name = 'logD {}-water'.format(org.getName())
         # fd = sep_2D_plot(flow_oa_ratio, logD, 'flow rate ratio', y_name, molecules, semilogx=True, savePic=savePlot)
@@ -649,7 +682,7 @@ class SeparationDesigner():
             fd, fo, fa, po, pa, pHlist, logD_list, f_org_list, c_org_list, c_aqu_list, p_org_list, p_aqu_list = \
                 sep_at_different_pH(org=self.org, aqu=self.aqu, molecules=mol_list, c_org=self.orgInitConc,
                                     c_aqu=self.aquInitConc, flowRatio_oa=self.flowRatio, temp=25.0, pHmin=0.0,
-                                    pHincrement=0.1, logDs_cal=None, savePic=True, saveCSV=False)
+                                    pHincrement=0.1, logDs_cal=None, saveCSV=False, plotPic=True, savePic=False)
             if at_pH:
                 pH = self.aqu.getpH()
                 if pH in pHlist:
@@ -689,11 +722,14 @@ class SeparationDesigner():
                     print('{}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}'.format(
                         mol, logD[m], f_org[m], 1-f_org[m], c_org[m], c_aqu[m], p_org[m], p_aqu[m]))
             else:
-                return fd, fo, fa, po, pa # logD, fraction_org, fraction_aqu, purity_org, purity_aqu
+                return fd, fo, fa, po, pa, pHlist, logD_list, f_org_list, c_org_list, c_aqu_list, p_org_list, p_aqu_list
+                # Figure objects: logD, fraction_org, fraction_aqu, purity_org, purity_aqu
 
 
     def opt_sep_pH_flow(self):
-        """pH and flow rate ratio optimization given the solvents"""
+        """pH and flow rate ratio optimization given the solvents
+        :return: a list of list of optimal conditions for the opt goals, and figures
+        """
         # global f_org_list, p_org_list, p_aqu_list, conds, fo, fa, po, pa
         if not self.tgtMol:
             print('No target molecules input!')
@@ -715,34 +751,35 @@ class SeparationDesigner():
                 sep_pH_flowratio(org=self.org, aqu=self.aqu, molecules=mol_list, c_orgs=self.orgInitConc,
                                  c_aqus=self.aquInitConc, temp=self.temp, pHincrement=self.pHStep,
                                  min_fr=self.minFlowRatio, max_fr=self.maxFlowRatio, num_fr=self.num_flowratio,
-                                 plotPlot=True, showPlot=False, savePlot=True)
-            conds = [pHlist, flow_oa_ratio]
+                                 plotPlot=True, showPlot=False, savePlot=False)
+            conds = [flow_oa_ratio, pHlist]
 
         elif self.optVar == 'h':
             fd, fo, fa, po, pa, pHlist, logD_list,f_org_list, c_org_list, c_aqu_list, p_org_list, p_aqu_list = \
                 sep_at_different_pH(org=self.org, aqu=self.aqu, molecules=mol_list, c_org=self.orgInitConc,
                                     c_aqu=self.aquInitConc, flowRatio_oa=self.flowRatio, temp=self.temp, pHmin=0.0,
-                                    pHincrement=self.pHStep, logDs_cal=None, savePic=True, saveCSV=False)
+                                    pHincrement=self.pHStep, logDs_cal=None, saveCSV=False, plotPic=True, savePic=False)
             conds = [pHlist]
 
         else: # self.optVar is 'f'
             fo, fa, po, pa, flow_oa_ratio, logD_list, f_org_list, f_aqu_list, p_org_list, p_aqu_list = \
                 sep_at_different_flowratio(org=self.org, aqu=self.aqu, molecules=mol_list, c_orgs=self.orgInitConc,
                                            c_aqus=self.aquInitConc, temp=self.temp, min_fr=self.minFlowRatio,
-                                           max_fr=self.maxFlowRatio, num_fr=self.num_flowratio, savePlot=True)
+                                           max_fr=self.maxFlowRatio, num_fr=self.num_flowratio,
+                                           plotPic=True, savePlot=False)
             conds = [flow_oa_ratio]
 
         if self.tgtProp == 'y':
             result = opt_cond_requested(f_org_list=f_org_list, p_org_list=p_org_list, p_aqu_list=p_aqu_list,
                                         tgt_idx=0, conds=conds, max_phase=self.maxPhase, min_phase=self.minPhase,
                                         tgt_prop=self.tgtProp)
-            return fo, fa, result
+            return result, fo, fa
         elif self.tgtProp == 'p':
             if self.aquInitConc and self.orgInitConc:
                 result = opt_cond_requested(f_org_list=f_org_list, p_org_list=p_org_list, p_aqu_list=p_aqu_list,
                                             tgt_idx=0, conds=conds, max_phase=self.maxPhase, min_phase=self.minPhase,
                                             tgt_prop=self.tgtProp)
-                return po, pa, result
+                return result, po, pa
             else:
                 err_msg = 'Please provide initial concentration for all the species'
                 return err_msg
@@ -751,10 +788,34 @@ class SeparationDesigner():
                 result = opt_cond_requested(f_org_list=f_org_list, p_org_list=p_org_list, p_aqu_list=p_aqu_list,
                                             tgt_idx=0, conds=conds, max_phase=self.maxPhase, min_phase=self.minPhase,
                                             tgt_prop=self.tgtProp)
-                return fo, fa, po, pa, result
+                return result, fo, fa, po, pa
             else:
                 result = opt_cond_requested(f_org_list=f_org_list, p_org_list=p_org_list, p_aqu_list=p_aqu_list,
                                             tgt_idx=0, conds=conds, max_phase=self.maxPhase, min_phase=self.minPhase,
                                             tgt_prop='y')
-                err_msg = 'Only fraction yield optimized due to missing initial concentrations'
-                return fo, fa, result, err_msg
+                print('Only fraction yield optimized due to missing initial concentrations')
+                return result, fo, fa
+
+    def result_to_html_table(self, result):
+        """
+        Convert numpy.array results into a html table
+        Not really working now in the .html part
+        """
+        html = '<table>'
+        if self.tgtProp == 'y' or self.tgtProp == 'p':
+            for m in result: # maximization and minimization
+                for c in m: # flow rate ratio and pH
+                    html += '<tr>'
+                    for n in c: # actual conditions
+                        html += "<td>{}</td>".format(n)
+                    html += '</tr>'
+        else:
+            for p in result: # yield and purity
+                for m in p:
+                    for c in m:  # flow rate ratio and pH
+                        html += '<tr>'
+                        for n in c:  # actual conditions
+                            html += "<td>{}</td>".format(n)
+                        html += '</tr>'
+        html += '</table>'
+        return html
