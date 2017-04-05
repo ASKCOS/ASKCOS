@@ -5,7 +5,6 @@ import cPickle as pickle
 import numpy as np
 import random
 import matplotlib.pyplot as plt
-from termcolor import colored
 from collections import Counter, defaultdict
 from sklearn.neighbors import NearestNeighbors as NN
 from sklearn.externals import joblib
