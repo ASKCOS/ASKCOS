@@ -186,6 +186,11 @@ if __name__ == '__main__':
             
             context_dict[rxn_smiles] = [T1, t1, y1, slvt1, rgt1, cat1]
 
+            # Add reagent to reactants for the purpose of forward prediction
+            # this is important for necessary reagents, e.g., chlorine source
+            if rgt1:
+                reactants.append(rgt1)
+
             # Merge cat and reagent
             if rgt1 and cat1: 
                 rgt1 = rgt1 + '.' + cat1 
@@ -195,10 +200,6 @@ if __name__ == '__main__':
             if '.' in slvt1:
                 slvt1 = slvt1.split('.')[0]
 
-            # Add reagent to reactants for the purpose of forward prediction
-            # this is important for necessary reagents, e.g., chlorine source
-            if rgt1:
-                reactants.append(rgt1)
 
 
             error = predictor.set_context(T = T1, reagents = rgt1, solvent = slvt1)
