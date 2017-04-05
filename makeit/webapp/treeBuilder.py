@@ -7,6 +7,7 @@ import Queue as VanillaQueue
 from multiprocessing import Pool, cpu_count, Process, Manager, Queue
 from functools import partial # used for passing args to multiprocessing
 import time
+import sys
 
 
 def expansion_worker(i, expansion_queues, results_queue, paused, done, retrotransformer, max_branching):
@@ -443,7 +444,7 @@ class TreeBuilder:
 			counter += 1
 
 			if counter == max_trees:
-				print('Generated 25 trees, stopping looking for more...')
+				print('Generated {} trees, stopping looking for more...'.format(max_trees))
 				break
 
 		return trees

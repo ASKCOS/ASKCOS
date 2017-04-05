@@ -8,6 +8,7 @@ from multiprocessing import Pool, cpu_count, Process, Manager, Queue
 from functools import partial # used for passing args to multiprocessing
 import time
 import os
+import sys
 
 from makeit.embedding.descriptors import edits_to_vectors
 from makeit.predict.summarize_reaction_outcome import summarize_reaction_outcome
@@ -44,27 +45,29 @@ def template_worker(i, workers_done, apply_queue, results_queue, done, F_atom, F
 					[a.SetProp('molAtomMapNumber', a.GetProp('old_molAtomMapNumber')) \
 						for a in outcome.GetAtoms() \
 						if 'old_molAtomMapNumber' in a.GetPropsAsDict()]
-				except Exception as e:
-					continue			
+						
 				
-				# Reduce to largest (longest) product only
-				candidate_smiles = Chem.MolToSmiles(outcome, isomericSmiles = USE_STEREOCHEMISTRY)
-				candidate_smiles = max(candidate_smiles.split('.'), key = len)
-				outcome = Chem.MolFromSmiles(candidate_smiles)
+					# Reduce to largest (longest) product only
+					candidate_smiles = Chem.MolToSmiles(outcome, isomericSmiles = USE_STEREOCHEMISTRY)
+					candidate_smiles = max(candidate_smiles.split('.'), key = len)
+					outcome = Chem.MolFromSmiles(candidate_smiles)
+						
+					# Find what edits were made
+					edits = summarize_reaction_outcome(reactants, outcome)
+
+					# Remove mapping before matching
+					[x.ClearProp('molAtomMapNumber') for x in outcome.GetAtoms() if x.HasProp('molAtomMapNumber')] # remove atom mapping from outcome
+
+					# Overwrite candidate_smiles without atom mapping numbers
+					candidate_smiles = Chem.MolToSmiles(outcome, isomericSmiles = USE_STEREOCHEMISTRY)
+
+					# Add to ongoing list
+					if (candidate_smiles, edits) not in candidate_list:
+						candidate_list.append((candidate_smiles, edits))
+
+				except Exception as e:
+					continue	
 					
-				# Find what edits were made
-				edits = summarize_reaction_outcome(reactants, outcome)
-
-				# Remove mapping before matching
-				[x.ClearProp('molAtomMapNumber') for x in outcome.GetAtoms() if x.HasProp('molAtomMapNumber')] # remove atom mapping from outcome
-
-				# Overwrite candidate_smiles without atom mapping numbers
-				candidate_smiles = Chem.MolToSmiles(outcome, isomericSmiles = USE_STEREOCHEMISTRY)
-
-				# Add to ongoing list
-				if (candidate_smiles, edits) not in candidate_list:
-					candidate_list.append((candidate_smiles, edits))
-
 			# Convert to tensors
 			for (candidate_smiles, edits) in candidate_list:
 				edit_h_lost_vec, edit_h_gain_vec, \
@@ -97,6 +100,9 @@ def template_worker(i, workers_done, apply_queue, results_queue, done, F_atom, F
 				x = [x_h_lost, x_h_gain, x_bond_lost, x_bond_gain]
 				results_queue.put((candidate_smiles, x))
 				#print('Worker {} added candidate {} to results for scoring'.format(i, candidate_smiles))
+
+				sys.stdout.flush()
+				sys.stderr.flush()
 			
 		except VanillaQueue.Empty:
 			workers_done[i] = True 
@@ -147,12 +153,12 @@ def coordinator(workers_done, coordinator_done, apply_queue, results_queue, done
 			pass
 
 		# Is the intended product not the major product?
-		if intended_found and intended_score + 0.5 < max_score:
+		if intended_found and intended_score + 0.693 < max_score:
 			plausible.value = 0 # should be zero by default, but just to be safe
 			if quit_if_unplausible:
 				print('### intended product {} ({}) is significantly less likely than the current maximum-likelihood product {} ({})'.format(intended_product, intended_score, max_product, max_score))
 				print('Quitting and flushing apply_queue')
-				while not apply_queue.empty(): apply_queue.get()
+				while not apply_queue.empty(): apply_queue.get(timeout = 0.1)
 				coordinator_done.value = 1
 				break
 
@@ -168,7 +174,7 @@ def coordinator(workers_done, coordinator_done, apply_queue, results_queue, done
 			# except VanillaQueue.Empty:
 			# 	pass
 			coordinator_done.value = 1
-			if intended_found and intended_score + 0.2 > max_score:
+			if intended_found and intended_score + 0.693 > max_score:
 				plausible.value = 1
 			break
 
@@ -431,6 +437,7 @@ class ForwardPredictor:
 				'prob': '{:.2e}'.format(probs[i]),
 				'prob_trunc': '{:.2e}'.format(probs_truncated[i]),
 			})
+
 		return outcomes
 
 if __name__ == '__main__':
