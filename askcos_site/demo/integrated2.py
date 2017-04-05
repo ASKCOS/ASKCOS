@@ -7,18 +7,23 @@ if __name__ == '__main__':
     import time
     import os
     fid = open(os.path.join(os.path.dirname(__file__), 'integrated_log.txt'), 'w')
+    fid_success = open(os.path.join(os.path.dirname(__file__), 'integrated_log_success.txt'), 'w')
     zero_time = time.time()
 
-    def print_and_log(text):
+    def print_and_log(text, success=False):
         print(text)
         fid.write('[{%6.1f}] \t %s \n' % (time.time() - zero_time, text))
+        if success:
+            fid_success.write('[{%6.1f}] \t %s \n' % (time.time() - zero_time, text))
 
     # Atropine
     TARGET = 'CN3[C@H]1CC[C@@H]3C[C@@H](C1)OC(=O)C(CO)c2ccccc2'
-    # # Fluconazole
-    # TARGET = 'OC(Cn1cncn1)(Cn1cncn1)c1ccc(F)cc1F'
+    # Fluconazole
+    TARGET = 'OC(Cn1cncn1)(Cn1cncn1)c1ccc(F)cc1F'
     # Diphenhydramine
-    #TARGET = 'O(CCN(C)C)C(c1ccccc1)c2ccccc2'
+    TARGET = 'O(CCN(C)C)C(c1ccccc1)c2ccccc2'
+    # Diazepam
+    TARGET = 'CN1C(=O)CN=C(c2ccccc2)c3cc(Cl)ccc13'
 
 
     expansion_time = 60
@@ -136,14 +141,14 @@ if __name__ == '__main__':
     import rdkit.Chem as Chem
 
     TARGET = Chem.MolToSmiles(Chem.MolFromSmiles(TARGET), isomericSmiles = False)
-    print_and_log('Target: {}'.format(TARGET))
+    print_and_log('Target: {}'.format(TARGET), success=True)
     builder.start_building(TARGET, max_depth = max_depth, max_branching = max_branching)
-    print_and_log('Will wait {} seconds'.format(expansion_time))
+    print_and_log('Will wait {} seconds'.format(expansion_time), success=True)
     time.sleep(expansion_time)
-    print_and_log(builder.info_string())
+    print_and_log(builder.info_string(), success=True)
 
     builder.stop_building(timeout = 5)
-    print_and_log('###########################################################')
+    print_and_log('###########################################################', success=True)
     time.sleep(2)
 
     # Now define the reaction-checking function
@@ -240,10 +245,10 @@ if __name__ == '__main__':
 
             # Now report
             if all_plausible and this_is_the_target:
-                print_and_log('################################################')
-                print_and_log('Found completely plausible tree!')
-                print_and_log(tree)
-                print_and_log('################################################')
+                print_and_log('################################################', success=True)
+                print_and_log('Found completely plausible tree!', success=True)
+                print_and_log(tree, success=True)
+                print_and_log('################################################', success=True)
             elif this_is_the_target:
                 print_and_log('Found tree with unfeasible children...thats not helpful')
         elif this_is_the_target:
@@ -380,4 +385,13 @@ if __name__ == '__main__':
     del predictor
     del NN
     fid.close()
+
+    with open(os.path.join(os.path.dirname(__file__), 'integrated_log.txt'), 'w') as fid:
+        fid.write('Reaction smiles \t Context \t Plausibility \n')
+        for rxn_smiles in plausibility_dict.keys():
+            fid.write('{} \t {} \t {:.3f}'.format(
+                rxn_smiles, context_dict[rxn_smiles], plausibility_dict[rxn_smiles]
+            ))
+
+
     quit(1)
