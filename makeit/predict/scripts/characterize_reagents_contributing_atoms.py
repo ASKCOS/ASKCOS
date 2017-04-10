@@ -67,6 +67,7 @@ if __name__ == '__main__':
 			'catalysts': defaultdict(int),
 			'solvents': defaultdict(int),
 		}, as_agent)
+	print('Starting at ID > {}'.format(start_at_id))
 	# first key = the fragment that's contributed
 	# reagents = dict mapping xrn to # occurrences
 
@@ -77,7 +78,7 @@ if __name__ == '__main__':
 			]}, ['RX_NVAR', 'RXN_SMILES'], no_cursor_timeout = True))):
 		if 'RXN_SMILES' not in rx_doc: continue
 
-		# Save every 10,000
+		# Save every 50,000
 		if i % 50000 == 0:
 			with open(backup_file, 'wb') as fid:
 				pickle.dump(dict(as_agent), fid, protocol = pickle.HIGHEST_PROTOCOL)
@@ -96,7 +97,11 @@ if __name__ == '__main__':
 		# Now load into RDKit
 		product = Chem.MolFromSmiles(prod_smiles)
 		if not product: continue 
-		AllChem.RemoveHs(product)
+		try:
+			AllChem.RemoveHs(product)
+		except ValueError as e:
+			print(e)
+			continue
 
 		# Find unmapped atom IDs
 		unmapped_ids = [
@@ -141,6 +146,7 @@ if __name__ == '__main__':
 	docs = []
 	for (key, val) in as_agent.iteritems():
 		val['_id'] = key
+		val['num_atoms'] = key.count('[')
 		val['count'] = len(val['references'])
 		doc.append(val)
 

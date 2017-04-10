@@ -96,7 +96,7 @@ def StitchPILsHorizontally(imgs):
 	height = max(heights)
 	widths = [img.size[0] for img in imgs]
 	width = sum(widths)
-	res = Image.new('RGBA', (width, height), (255, 255, 255, 255))
+	res = Image.new('RGBA', (width, height), (255, 255, 255, 0))
 
 	# Add in sub-images
 	for i, img in enumerate(imgs):

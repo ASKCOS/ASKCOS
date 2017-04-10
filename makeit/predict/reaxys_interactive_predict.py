@@ -78,6 +78,8 @@ def preprocess_candidate_edits(reactants, candidate_list):
 	candidate_edits =  [b for (a, b) in candidate_list]
 
 	print('Generated {} unique edit sets'.format(len(candidate_list)))
+	padUpTo = len(candidate_list)
+	N_e = 10
 
 	# Initialize
 	x_h_lost = np.zeros((1, padUpTo, N_e, F_atom))
@@ -87,11 +89,11 @@ def preprocess_candidate_edits(reactants, candidate_list):
 
 	# Populate arrays
 	for (c, edits) in enumerate(candidate_edits):
-		if any([len(edit) > 5 for edit in edits]):
+		if any([len(edit) > N_e for edit in edits]):
 			continue
 		if c == padUpTo: break
 		edit_h_lost_vec, edit_h_gain_vec, \
-			edit_bond_lost_vec, edit_bond_gain_vec = edits_to_vectors(edits, reactants)
+			edit_bond_lost_vec, edit_bond_gain_vec = edits_to_vectors(edits, reactants, ORIGINAL_VERSION = True)
 		for (e, edit_h_lost) in enumerate(edit_h_lost_vec):
 			x_h_lost[0, c, e, :] = edit_h_lost
 		for (e, edit_h_gain) in enumerate(edit_h_gain_vec):

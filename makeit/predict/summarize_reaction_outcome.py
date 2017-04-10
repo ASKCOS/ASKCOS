@@ -12,7 +12,7 @@ def summarize_reaction_outcome(mols, outcome):
 
 	for atom_prev in mols.GetAtoms():
 		atomMapNumber = atom_prev.GetProp('molAtomMapNumber')
-		atom_new = [a for a in outcome.GetAtoms() if a.GetProp('molAtomMapNumber') == atomMapNumber]
+		atom_new = [a for a in outcome.GetAtoms() if a.HasProp('molAtomMapNumber') and a.GetProp('molAtomMapNumber') == atomMapNumber]
 		if not atom_new: continue
 		atom_new = atom_new[0]
 		

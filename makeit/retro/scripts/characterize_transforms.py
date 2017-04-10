@@ -24,7 +24,7 @@ def get_counts_templates(collection):
 	in a MongoDB collection
 	'''
 	docs = range(collection.find({}, ['count', 'reaction_smarts']).count())
-	for (i, doc) in enumerate(collection.find().limit(len(docs))):
+	for (i, doc) in enumerate(collection.find({}, ['count', 'reaction_smarts']).limit(len(docs))):
 		docs[i] = (doc['count'] if 'count' in doc else 0, \
 			       doc['reaction_smarts'] if 'reaction_smarts' in doc else '')
 	return [x for x in docs if x[0] != 0 and x[1] != '']
@@ -122,4 +122,4 @@ if __name__ == '__main__':
 	probability_v_rank(get_counts(collection), 
 		out = os.path.join(out_folder, '{}-{}'.format(db_name, collection_name)))
 	top_templates(get_counts_templates(collection), 
-		os.path.join(out_folder, '{}-{}'.format(db_name, collection_name)), n = 10)
+		os.path.join(out_folder, '{}-{}'.format(db_name, collection_name)), n = 500)

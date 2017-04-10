@@ -10,10 +10,9 @@ import h5py # needed for save_weights, fails otherwise
 from keras import backend as K 
 import theano
 from keras.models import Sequential, Model, model_from_json
-from keras.layers import Dense, Activation, Input
+from keras.layers import Dense, Activation, Input, merge
 from keras.layers.core import Flatten, Permute, Reshape, Dropout, Lambda, RepeatVector
 from keras.layers.wrappers import TimeDistributed
-from keras.engine.topology import Merge, merge
 from keras.optimizers import SGD, Adam, Adadelta
 from keras.layers.convolutional import Convolution1D, Convolution2D
 from keras.regularizers import l2
@@ -669,6 +668,7 @@ if __name__ == '__main__':
 			help = 'Are we targeting yield? 0 or 1, default 0')
 
 	args = parser.parse_args()
+
 	
 	nb_epoch           = int(args.nb_epoch)
 	batch_size         = int(args.batch_size)
@@ -790,4 +790,5 @@ if __name__ == '__main__':
 	train(model, data)
 	model.save_weights(WEIGHTS_FPATH, overwrite = True) 
 	data = get_data(max_N_c = max_N_c, shuffle = False)
+
 	test(model, data)

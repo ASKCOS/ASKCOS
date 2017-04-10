@@ -67,7 +67,7 @@ def template_worker(i, workers_done, apply_queue, results_queue, done, F_atom, F
 
 				except Exception as e:
 					continue	
-					
+
 			# Convert to tensors
 			for (candidate_smiles, edits) in candidate_list:
 				edit_h_lost_vec, edit_h_gain_vec, \
@@ -158,8 +158,14 @@ def coordinator(workers_done, coordinator_done, apply_queue, results_queue, done
 			if quit_if_unplausible:
 				print('### intended product {} ({}) is significantly less likely than the current maximum-likelihood product {} ({})'.format(intended_product, intended_score, max_product, max_score))
 				print('Quitting and flushing apply_queue')
+				# Flush queue
 				while not apply_queue.empty(): apply_queue.get(timeout = 0.1)
 				coordinator_done.value = 1
+				# Wait for workers to finish
+				while not all(workers_done): time.sleep(0.1)
+				# Flush queues again
+				while not apply_queue.empty(): apply_queue.get(timeout = 0.1)
+				while not results_queue.empty(): results_queue.get(timeout = 0.1)
 				break
 
 		# Are we finished?
