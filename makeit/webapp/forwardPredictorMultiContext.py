@@ -396,11 +396,11 @@ class ForwardPredictor:
 			solvent = doc['name']
 
 			# Unreacting reagents
-			reagents = [Chem.MolFromSmiles(reagent) for reagent in reagents.split('.')]
-			if None in reagents:
+			reagents_mols = [Chem.MolFromSmiles(reagent) for reagent in reagents.split('.')]
+			if None in reagents_mols:
 				return 'Could not parse all reagents!'
 			reagent_fp = np.zeros((1, 256))
-			for reagent in reagents:
+			for reagent in reagents_mols:
 				reagent_fp += np.array(AllChem.GetMorganFingerprintAsBitVect(reagent, 2, nBits = 256))
 			
 			# Save list
