@@ -374,7 +374,10 @@ class TreeBuilder:
 					for rxn_id in self.tree_dict[chem_id]['prod_of']:
 						rxn_info_string = ''
 						for path in DLS_rxn(rxn_id, depth):
-							yield [rxn_dict(rxn_id, rxn_info_string, self.tree_dict[rxn_id]['necessary_reagent'], self.tree_dict[rxn_id]['num_examples'], children = path)]
+							yield [rxn_dict(rxn_id, rxn_info_string, self.tree_dict[rxn_id]['necessary_reagent'], 
+								             self.tree_dict[rxn_id]['num_examples'], 
+								             children = path,
+								             smiles = '.'.join(sorted([self.tree_dict[x]['smiles'] for x in self.tree_dict[rxn_id]['rcts']])) + '>>' + self.tree_dict[chem_id]['smiles'])]
 
 		def DLS_rxn(rxn_id, depth):
 			'''Return children paths starting from a specific rxn_id
@@ -461,7 +464,7 @@ def chem_dict(_id, smiles, ppg, children = []):
 		'children': children,
 	}
 
-def rxn_dict(_id, info, necessary_reagent = '', num_examples = 0, children = []):
+def rxn_dict(_id, info, necessary_reagent = '', num_examples = 0, children = [], smiles = ''):
 	'''Reaction object as expected by website'''
 	return {
 		'id': _id,
@@ -470,6 +473,7 @@ def rxn_dict(_id, info, necessary_reagent = '', num_examples = 0, children = [])
 		'necessary_reagent': necessary_reagent,
 		'num_examples': num_examples,
 		'children': children,
+		'smiles': smiles,
 	}
 
 if __name__ == '__main__':
@@ -512,16 +516,7 @@ if __name__ == '__main__':
 
 
 
-	builder.start_building('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F')
-	print('Will wait 10 seconds')
-	time.sleep(10)
-	print(builder.info_string())
-	print('Will wait 10 seconds')
-	time.sleep(10)
-	print(builder.info_string())
-	print('Will wait 10 seconds')
-	time.sleep(10)
-	print(builder.info_string())
+	builder.start_building('CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3')
 	print('Will wait 10 seconds')
 	time.sleep(10)
 	print(builder.info_string())

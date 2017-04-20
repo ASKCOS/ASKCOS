@@ -49,7 +49,7 @@ class Transformer:
 			filter_dict = {}
 
 		# Look for all templates in collection
-		for document in collection.find(filter_dict, ['_id', 'reaction_smarts', 'necessary_reagent']):
+		for document in collection.find(filter_dict, ['_id', 'reaction_smarts', 'necessary_reagent', 'count']):
 			# Skip if no reaction SMARTS
 			if 'reaction_smarts' not in document: continue
 			reaction_smarts = str(document['reaction_smarts'])
