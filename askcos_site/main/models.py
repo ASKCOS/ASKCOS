@@ -1,7 +1,6 @@
 from django.db import models
 
 class SeparationInput(models.Model):
-    # Molecules
     tgt_smiles = models.CharField("Enter SMILES string of the target molecule", max_length=200)
     other_smiles = models.CharField('Enter SMILES strings of other solute molecules separated with comma',
                                    max_length=800)
@@ -10,31 +9,33 @@ class SeparationInput(models.Model):
     org1 = models.CharField("Enter SMILES string of the organic solvent", max_length=200)
     org2 = models.CharField("Enter SMILES string of a second organic solvent and its molar fraction "
                             "separated with comma, otherwise 'None", max_length=200, blank=True)
-    pH = models.FloatField("Enter the pH of the aqueous phase or 'None'", blank=True)
-    ionic_strength = models.FloatField("Enter the ionic strength of the aqueous phase or 'None", blank=True)
+    pH = models.FloatField("Enter the pH of the aqueous phase or blank", blank=True)
+    ionic_strength = models.FloatField("Enter the ionic strength of the aqueous phase or blank", blank=True)
 
-    temp = models.FloatField("Enter the separation temperature in Celsius degree or 'None'", blank=True)
-    flow_ratio = models.FloatField("Enter the org/aqu flow rate ratio or 'None'", blank=True)
+    temp = models.FloatField("Enter the separation temperature in Celsius degree or blank", blank=True)
+    flow_ratio = models.FloatField("Enter the org/aqu flow rate ratio or blank", blank=True)
 
     # Optimization parameters
-    pH_step = models.FloatField('Enter the pH increment for optimization or None', blank=True)
-    flow_ratio_min = models.FloatField("The min org/aqu flow rate ratio or 'None'", blank=True)
-    flow_ratio_max = models.FloatField("The max org/aqu flow rate ratio or 'None'", blank=True)
+    OPT_CHOICES = (('h', 'pH_only'), ('f', 'flow_only'), ('b', 'both'))
+    opt_option = models.CharField("What to vary: pH, flow or both:", max_length=1, choices=OPT_CHOICES)
+    pH_step = models.FloatField('If to vary pH, enter the pH increment for optimization or blank', blank=True)
+    flow_ratio_min = models.FloatField("If to vary org/aqu flow rate ratio, enter the minimum or blank", blank=True)
+    flow_ratio_max = models.FloatField("If to vary org/aqu flow rate ratio, enter the maximum or blank", blank=True)
+    num_flowratio = models.IntegerField("The number of flowratios in the range or blank", blank=True)
 
-    PHASE_CHOICES = [('a', 'aqueous'), ('o', 'organic'), ('e','either')]
+    PHASE_CHOICES = (('aqu', 'aqueous'), ('org', 'organic'), ('e', 'either'))
     max_phase = models.CharField("In which phase the target molecule should be concentrated:",
-                                 max_length=1, choices=PHASE_CHOICES)
-    min_phase = models.CharField("In which phase the target molecule should be minimized:",
-                                 max_length=1, choices=PHASE_CHOICES, blank=True)
+                                 max_length=3, choices=PHASE_CHOICES)
+    min_phase = models.CharField("In which phase the target molecule should be minimized or leave blank:",
+                                 max_length=3, choices=PHASE_CHOICES, blank=True)
 
-    OPT_TGT_CHOICES = [('y', 'yield'), ('p', 'purity'), ('b', 'both')]
+    OPT_TGT_CHOICES = (('y', 'yield'), ('p', 'purity'), ('b', 'both'))
     opt_tgt_choice = models.CharField('Select the optimization target(s) of interest',
                                       max_length=1, choices=OPT_TGT_CHOICES)
-    if opt_tgt_choice is ('p' or 'b'):
-        aqu_conc = models.CharField("Enter the concentration for each molecule or 'None' "
-                                         "in the aqueous phase and separate with comma", max_length=200, blank=True)
-        org_conc = models.CharField("Enter the concentration for each molecule or 'None' "
-                                         "in the organic phase and separate with comma", max_length=200, blank=True)
+    aqu_conc = models.CharField("If purity needed, enter the concentration for each molecule in the aqueous phase "
+                                "and separate with comma", max_length=200)
+    org_conc = models.CharField("If purity needed, enter the concentration for each molecule in the organic phase "
+                                "and separate with comma", max_length=200)
 
     ##### TO DO:
         # solvent selection option

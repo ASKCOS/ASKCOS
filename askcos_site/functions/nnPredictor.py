@@ -207,16 +207,16 @@ def rxn_condition_predictor_amongNN(dists, idx, rxd_ids, num_c=1, dist_limit=0.3
                 rgt = rgt_counter.most_common(1)[0][0]
                 for r in range(len(rt)):
                     if rt[r] == rgt:
+                        int_id2 = rxd_ids[n_id[r]]
+                        context2, T2, t2, y2, slvt2, rgt2, cat2 = instance_rxn_condition(int_id2)
                         break
-                int_id2 = rxd_ids[n_id[r]]
-                context2, T2, t2, y2, slvt2, rgt2, cat2 = instance_rxn_condition(int_id2)
 
             if outputString:
                 return context1, context2
             else:
                 return [T1, t1, y1, slvt1, rgt1, cat1], [T2, t2, y2, slvt2, rgt2, cat2]
 
-class nn_condition_predictor():
+class NNConditionPredictor():
     """Reaction condition predictor based on Nearest Neighbor method"""
 
     def __init__(self, nn_model=lshf_nn, rxn_ids=rxd_ids):
