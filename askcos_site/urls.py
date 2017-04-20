@@ -40,6 +40,7 @@ urlpatterns += [
     url(ur'^ajax/stop_retro/$', main.views.ajax_stop_retro, name = 'ajax_stop_retro'),
     url(ur'^ajax/update_retro_stats/$', main.views.ajax_update_retro_stats, name = 'ajax_update_retro_stats'),
     url(ur'^ajax/update_retro/$', main.views.ajax_update_retro, name = 'ajax_update_retro'),
+    url(ur'^ajax/evaluate_rxnsmiles/$', main.views.ajax_evaluate_rxnsmiles, name = 'ajax_evaluate_rxnsmiles'),
 
     # Interactive forward prediction
     url(ur'^synth_interactive/$', main.views.synth_interactive, name = 'synth_interactive'),

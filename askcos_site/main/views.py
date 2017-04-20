@@ -12,10 +12,10 @@ import time
 import rdkit.Chem as Chem 
 import urllib2
 
-from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, builder, predictor, PREDICTOR_FOOTNOTE
+from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, builder, predictor, PREDICTOR_FOOTNOTE, NN_PREDICTOR, DONE_SYNTH_PREDICTIONS
 from forms import nnSetup, sepInput
 from askcos_site.functions.SPARC import SeparationDesigner
-from askcos_site.functions.nnPredictor import NNConditionPredictor
+
 
 def the_time(request):
     context = {
@@ -221,6 +221,7 @@ def ajax_smiles_to_image_retro(request):
             print('Resolved smiles -> {}'.format(smiles))
             mol = Chem.MolFromSmiles(smiles)
             if not mol: return JsonResponse({'err': True})
+            smiles = Chem.MolToSmiles(mol)
         except:
             return JsonResponse({'err': True})
 
@@ -381,6 +382,82 @@ def ajax_update_retro(request):
     else:
         data['err'] = True
         data['message'] = 'Cannot show results if we have not started running'
+    return JsonResponse(data)
+
+def ajax_evaluate_rxnsmiles(request):
+    '''Evaluate rxn_smiles'''
+    data = {'err': False}
+    smiles = request.GET.get('smiles', None)
+    if smiles in DONE_SYNTH_PREDICTIONS:
+        data = DONE_SYNTH_PREDICTIONS[smiles]
+        return JsonResponse(data)
+    reactants = smiles.split('>>')[0].split('.')
+    products = smiles.split('>>')[1].split('.')
+    NN_PREDICTOR.outputString = False
+    print('...trying to get predicted context')
+    try:
+        [T1, t1, y1, slvt1, rgt1, cat1] = NN_PREDICTOR.step_condition([reactants, products])
+    except Exception as e:
+        data['err'] = True 
+        data['message'] = '{}'.format(e)
+        print(e)
+        return JsonResponse(data)
+    if slvt1 and slvt1[-1] == '.': 
+        slvt1 = slvt1[:-1]
+    if rgt1 and rgt1[-1] == '.':
+        rgt1 = rgt1[:-1]
+    if cat1 and cat1[-1] == '.':
+        cat1 = cat1[:-1]
+    # Add reagent to reactants for the purpose of forward prediction
+    # this is important for necessary reagents, e.g., chlorine source
+    if rgt1:
+        reactants.append(rgt1)
+    # Merge cat and reagent
+    if rgt1 and cat1: 
+        rgt1 = rgt1 + '.' + cat1 
+    elif cat1:
+        rgt1 = cat1
+    if '.' in slvt1:
+        slvt1 = slvt1.split('.')[0]
+    error = predictor.set_context(T = T1, reagents = rgt1, solvent = slvt1)
+    if error is not None:
+        print('Recommended context: {}'.format([T1, t1, y1, slvt1, rgt1, cat1]))
+        print('NN recommended unrecognizable context for {}'.format(rxn_smiles))
+        data['err'] = True 
+        data['message'] = 'NN could not come up with condition recommendation'
+        return JsonResponse(data)
+    
+    # Run predictor
+    try:
+        predictor.run_in_foreground(reactants = '.'.join(reactants), intended_product = products[0], quit_if_unplausible = False)
+        outcomes = predictor.return_top()
+
+        print('Recommended context: {}'.format([T1, t1, y1, slvt1, rgt1, cat1]))
+        print(outcomes[:3])
+        plausible = 0
+        for outcome in outcomes:
+            if outcome['smiles'] == products[0]:
+                plausible = float(outcome['prob'])
+                break
+        if not rgt1: rgt1 = 'no '
+        if not cat1: cat1 = 'no '
+        data['html'] = 'Plausibility score: {}'.format(plausible)
+        data['html'] += '<br><br>Conditions: {} C, {} solvent, {} reagents, {} catalyst'.format(T1, slvt1, rgt1, cat1)
+        data['html'] += '<br>nearest-neighbor got {}% yield'.format(y1)
+        data['html'] += '<br>Most likely product: {}'.format(outcomes[0]['smiles'])
+
+        B = 150.
+        R = 255. - (plausible > 0.5) * (plausible - 0.5) * (255. - B) * 2.
+        G = 255. - (plausible < 0.5) * (0.5 - plausible) * (255. - B) * 2.
+        data['html_color'] = str('#%02x%02x%02x' % (int(R), int(G), int(B)))
+
+    except Exception as e:
+        print(e)
+        data['err'] = True 
+        data['message'] = '{}'.format(e)
+    
+    # Save response
+    DONE_SYNTH_PREDICTIONS[smiles] = data
     return JsonResponse(data)
 
 @login_required

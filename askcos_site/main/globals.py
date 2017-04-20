@@ -19,7 +19,7 @@ database = db_client[settings.SYNTH_TRANSFORMS['database']]
 SYNTH_DB = database[settings.SYNTH_TRANSFORMS['collection']]
 SynthTransformer = transformer.Transformer()
 mincount_synth = settings.SYNTH_TRANSFORMS['mincount']
-SynthTransformer.load(SYNTH_DB, mincount = 100000000000000, get_retro = False, get_synth = True)
+SynthTransformer.load(SYNTH_DB, mincount = mincount_synth, get_retro = False, get_synth = True)
 print('Loaded {} forward templates'.format(SynthTransformer.num_templates))
 SYNTH_FOOTNOTE = 'Using {} forward templates (mincount {}) from {}/{}'.format(SynthTransformer.num_templates,
 	mincount_synth, settings.SYNTH_TRANSFORMS['database'], settings.SYNTH_TRANSFORMS['collection'])
@@ -64,6 +64,24 @@ predictor.load_templates(mincount = mincount_synth)
 predictor.load_model(settings.PREDICTOR['trained_model_path'])
 PREDICTOR_FOOTNOTE = 'Results generated using {} forward synthetic templates (mincount {}) from {}/{}, scored by a trained machine learning model: '.format(predictor.num_templates,	mincount_synth, settings.SYNTH_TRANSFORMS['database'], settings.SYNTH_TRANSFORMS['collection']) + settings.PREDICTOR['info']
 
+# NN predictor
+from sklearn.externals import joblib
+from askcos_site.functions.nnPredictor import NNConditionPredictor
+# Load all the instance IDs from the test model
+rxd_ids = []
+rxn_ids = []
+with open(settings.CONTEXT_REC['info_path'], 'r') as infile:
+    rxn_ids.append(infile.readlines()[1:])  # a list of str(rxn_ids) with '\n'
+for id in rxn_ids[0]:
+    rxd_ids.append(id.replace('\n', ''))
+print('Read context recommendation info file from {}'.format(settings.CONTEXT_REC['info_path']))
+lshf_nn = joblib.load(settings.CONTEXT_REC['model_path'])
+print('Loaded context recommendation nearest-neighbor model from {}'.format(settings.CONTEXT_REC['model_path']))
+NN_PREDICTOR = NNConditionPredictor(nn_model=lshf_nn, rxn_ids=rxd_ids)
+# Keeping track of what reactions have already been done
+DONE_SYNTH_PREDICTIONS = {}
+
+# Setting logging low
 from rdkit import RDLogger
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)

@@ -2,7 +2,8 @@
 
 {% if target.is_chemical %}
 
-<a id="{{ target.id }}" class="tooltip" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
+<div id="{{ target.id }}" class="chem">
+<a class="tooltip" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
 <img src="{% url 'draw_smiles' target.smiles %}" width="75%">
 <div>
 	<center>
@@ -12,18 +13,23 @@
 	</center>
 </div>
 </a>
+</div>
 
 {% else %} 
 
-<a id="{{ target.id }}" {% if target.info or target.necessary_reagent %} class="tooltip" {% endif %} style="border-color:black">
+<div targetid="{{ target.id }}" class="rxn rxn{{ target.id }}" smiles="{{ target.smiles }}">
+<a targetid="{{ target.id }}" class="tooltip tooltip{{ target.id }}" style="border-color:black">
 {% if target.num_examples %}{{ target.num_examples }} examples{% endif %}
 <div>
     <center>
+        <p class="eval{{ target.id }}">Click to evaluate!</p>
         {% if target.info %}{{ target.info }}<br>{% endif %}
         {% if target.necessary_reagent %}Needs source of {{ target.necessary_reagent }}{% endif %}
+
     </center>
 </div>
 </a>
+</div>
 
 {% endif %}
 
