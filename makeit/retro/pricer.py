@@ -39,7 +39,10 @@ class Pricer:
 			else:
 				smiles = buyable_doc['smiles_flat']
 			buyable_dict[buyable_doc['_id']] = buyable_doc['ppg']
-			self.prices[smiles] = buyable_doc['ppg']
+			if self.prices[smiles]: # already in dict as non-zero, so keep cheaper
+				self.prices[smiles] = min(buyable_doc['ppg'], self.prices[smiles])
+			else:
+				self.prices[smiles] = buyable_doc['ppg']
 
 		if self.by_xrn:
 			# Then pull chemicals source for XRNs (larger)
