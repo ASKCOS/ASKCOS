@@ -64,7 +64,7 @@
 					{% endif %}
 				</font>
 				{% if not forloop.last %} + {% endif %}{% endfor %}
-				<a href="{% url 'synth_target' precursor.smiles %}">&rarr; ?</a>
+				<a href="{% url 'synth_interactive_target' precursor.smiles %}">&rarr; ?</a>
 				<br>
 				<a><img src="{% url 'draw_smiles' precursor.smiles %}" onclick="toggle_visibility('expand{{ precursor.rank }}');"></a>
 				

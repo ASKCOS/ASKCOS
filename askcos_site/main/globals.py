@@ -1,3 +1,8 @@
+# Setting logging low
+from rdkit import RDLogger
+lg = RDLogger.logger()
+lg.setLevel(RDLogger.CRITICAL)
+
 ### Retro transformer
 from db import db_client
 from django.conf import settings
@@ -5,8 +10,8 @@ database = db_client[settings.RETRO_TRANSFORMS['database']]
 RETRO_DB = database[settings.RETRO_TRANSFORMS['collection']]
 import makeit.retro.transformer as transformer 
 RetroTransformer = transformer.Transformer(
-	parallel = settings.RETRO_TRANSFORMS['parallel'], 
-	nb_workers = settings.RETRO_TRANSFORMS['nb_workers'],
+	parallel = settings.RETRO_TRANSFORMER['parallel'], 
+	nb_workers = settings.RETRO_TRANSFORMER['nb_workers'],
 )
 mincount_retro = settings.RETRO_TRANSFORMS['mincount']
 RetroTransformer.load(RETRO_DB, mincount = mincount_retro, get_retro = True, get_synth = False)
@@ -59,10 +64,10 @@ builder = TreeBuilder(Pricer = Pricer, RetroTransformer = RetroTransformer)
 
 # Intelligent predictor
 from makeit.webapp.forwardPredictor import ForwardPredictor 
-predictor = ForwardPredictor(nb_workers = 2, TRANSFORM_DB = SYNTH_DB, SOLVENT_DB = SOLVENT_DB)
+predictor = ForwardPredictor(nb_workers = settings.PREDICTOR['nb_workers'], TRANSFORM_DB = SYNTH_DB, SOLVENT_DB = SOLVENT_DB)
 predictor.load_templates(mincount = mincount_synth)
 predictor.load_model(settings.PREDICTOR['trained_model_path'])
-PREDICTOR_FOOTNOTE = 'Results generated using {} forward synthetic templates (mincount {}) from {}/{}, scored by a trained machine learning model: '.format(predictor.num_templates,	mincount_synth, settings.SYNTH_TRANSFORMS['database'], settings.SYNTH_TRANSFORMS['collection']) + settings.PREDICTOR['info']
+PREDICTOR_FOOTNOTE = 'Results generated using <= {} forward synthetic templates (mincount >= {}) from {}/{}, scored by a trained machine learning model: '.format(predictor.num_templates,	mincount_synth, settings.SYNTH_TRANSFORMS['database'], settings.SYNTH_TRANSFORMS['collection']) + settings.PREDICTOR['info']
 
 # NN predictor
 from sklearn.externals import joblib
@@ -80,8 +85,3 @@ print('Loaded context recommendation nearest-neighbor model from {}'.format(sett
 NN_PREDICTOR = NNConditionPredictor(nn_model=lshf_nn, rxn_ids=rxd_ids)
 # Keeping track of what reactions have already been done
 DONE_SYNTH_PREDICTIONS = {}
-
-# Setting logging low
-from rdkit import RDLogger
-lg = RDLogger.logger()
-lg.setLevel(RDLogger.CRITICAL)

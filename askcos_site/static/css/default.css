@@ -432,3 +432,13 @@ a.tooltip div
 
 /* Clear to make div blocks take up the right amount of space */
 .clear { clear: both; }
+
+/* Hide number arrows */
+input[type='number'] {
+    -moz-appearance:textfield;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+}

@@ -44,6 +44,7 @@ urlpatterns += [
 
     # Interactive forward prediction
     url(ur'^synth_interactive/$', main.views.synth_interactive, name = 'synth_interactive'),
+    url(ur'^synth_interactive/reactants=(?P<reactants>.+)$', main.views.synth_interactive, name = 'synth_interactive_target'),
     url(ur'^ajax/smiles_to_image_synth/$', main.views.ajax_smiles_to_image_synth, name = 'ajax_smiles_to_image_synth'),
     url(ur'^ajax/start_synth/$', main.views.ajax_start_synth, name = 'ajax_start_synth'),
 

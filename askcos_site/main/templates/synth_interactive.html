@@ -81,6 +81,26 @@ $("#start_synth").click(function () {
 		}
 	});
 });
+// On load, if entries defined, switch it out
+$(document).ready(function() {
+	if ("{{reactants}}" != "") {
+		$("#reactants").val("{{reactants}}");
+		$("#reactants").trigger("change");
+	}
+	if ("{{reagents}}" != "") {
+		$("#reagents").val("{{reagents}}");
+		$("#reagents").trigger("change");
+	}
+	if ("{{solvent}}" != "") {
+		$("#solvent").val("{{solvent}}");
+	}
+	if ("{{temperature}}" != "") {
+		$("#temperature").val("{{temperature}}");
+	}
+	if ("{{mincount}}" != "") {
+		$("#mincount").val("{{mincount}}");
+	}
+});
 </script>
 {% endblock %}
 
@@ -101,12 +121,12 @@ $("#start_synth").click(function () {
 <!-- Placeholder for rendering image after a SMILES string is entered -->
 <tr id="reagent_mol_wrapper" style="display:none"><th style="vertical-align: text-top; text-align:left">Parsed reagents:</th><td id="reagents_image"></td></tr>
 
-<tr><th style="vertical-align: text-top; text-align:left">Solvent: </th><td><select id="solvent">{% for solvent in solvent_choices %}<option value="{{ solvent.smiles }}" {% if solvent.name == 'toluene' %}selected{% endif %}>{{ solvent.name }}</option>{% endfor %}</select></td></tr>
+<tr><th style="vertical-align: text-top; text-align:left">Solvent: </th><td><select id="solvent">{% for solvent in solvent_choices %}<option value="{{ solvent.smiles }}" {% if solvent.name == solventselected %}selected{% endif %}>{{ solvent.name }}</option>{% endfor %}</select></td></tr>
 
 
-<tr><th style="vertical-align: text-top; text-align:left">Temperature (Celsius): </th><td><input id="temperature" maxlength="6" size="6" type="text" value="20"/></td></tr>
+<tr><th style="vertical-align: text-top; text-align:left">Temperature (Celsius): </th><td><input id="temperature" maxlength="6" size="6" type="text" value="{{ temperature }}"/></td></tr>
 
-<tr><th style="vertical-align: text-top; text-align:left">Minimum template count: </th><td><input id="mincount" maxlength="6" size="6" type="text" value="{{ mincount_default }}"/></td></tr>
+<tr><th style="vertical-align: text-top; text-align:left">Minimum template count: </th><td><input id="mincount" maxlength="6" size="6" type="text" value="{{ mincount }}"/></td></tr>
 
 <!-- Controls -->
 <tr id="controls_wrapper" style="display:none">

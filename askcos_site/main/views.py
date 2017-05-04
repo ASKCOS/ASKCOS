@@ -182,15 +182,28 @@ def retro_interactive(request):
     context = {}
     context['warn'] = 'This module currently uses a shared backend object in Django, so there will be conflicts if more than one person tries to use this page at the same time.'
 
+    context['max_depth_default'] = 4
+    context['max_branching_default'] = 20
+    context['retro_mincount_default'] = settings.RETRO_TRANSFORMS['mincount']
+    context['synth_mincount_default'] = settings.SYNTH_TRANSFORMS['mincount']
+
     return render(request, 'retro_interactive.html', context)
 
 @login_required
-def synth_interactive(request):
+def synth_interactive(request, reactants='', reagents='', solvent='toluene', temperature='20', mincount=''):
     '''Builds an interactive forward synthesis page'''
 
-    context = {}
+    print(request.POST)
+    print(reactants)
+    context = {} 
     context['warn'] = 'This module currently uses a shared backend object in Django, so there will be conflicts if more than one person tries to use this page at the same time.'
     context['footnote'] = PREDICTOR_FOOTNOTE
+
+    context['reactants'] = reactants
+    context['reagents'] = reagents
+    context['solventselected'] = solvent
+    context['temperature'] = temperature
+    context['mincount'] = mincount if mincount != '' else settings.SYNTH_TRANSFORMS['mincount']
 
     solvent_choices = []
     for doc in SOLVENT_DB.find({'_id': {'$ne': 'default'}}):
@@ -199,7 +212,6 @@ def synth_interactive(request):
             'name': doc['name'],
         })
     context['solvent_choices'] = sorted(solvent_choices, key = lambda x: x['name'])
-    context['mincount_default'] = settings.SYNTH_TRANSFORMS['mincount']
 
     return render(request, 'synth_interactive.html', context)
 
@@ -326,12 +338,13 @@ def ajax_start_retro(request):
     smiles = request.GET.get('smiles', None)
     max_depth = int(request.GET.get('max_depth', 4))
     max_branching = int(request.GET.get('max_branching', 25))
+    retro_mincount = int(request.GET.get('retro_mincount', 0))
     data = {'err': False}
     if builder.is_running() and builder.is_target(smiles):
         builder.unpause()
     else:
         builder.stop_building(timeout = 3) # just to be sure
-        builder.start_building(smiles, max_depth = max_depth, max_branching = max_branching)
+        builder.start_building(smiles, max_depth=max_depth, max_branching=max_branching, mincount=retro_mincount)
     return JsonResponse(data)
 
 def ajax_pause_retro(request):
@@ -388,8 +401,9 @@ def ajax_evaluate_rxnsmiles(request):
     '''Evaluate rxn_smiles'''
     data = {'err': False}
     smiles = request.GET.get('smiles', None)
-    if smiles in DONE_SYNTH_PREDICTIONS:
-        data = DONE_SYNTH_PREDICTIONS[smiles]
+    synth_mincount = int(request.GET.get('synth_mincount', 0))
+    if '{}-{}'.format(smiles, synth_mincount) in DONE_SYNTH_PREDICTIONS:
+        data = DONE_SYNTH_PREDICTIONS['{}-{}'.format(smiles, synth_mincount)]
         return JsonResponse(data)
     reactants = smiles.split('>>')[0].split('.')
     products = smiles.split('>>')[1].split('.')
@@ -419,7 +433,7 @@ def ajax_evaluate_rxnsmiles(request):
         rgt1 = cat1
     if '.' in slvt1:
         slvt1 = slvt1.split('.')[0]
-    error = predictor.set_context(T = T1, reagents = rgt1, solvent = slvt1)
+    error = predictor.set_context(T=T1, reagents=rgt1, solvent=slvt1)
     if error is not None:
         print('Recommended context: {}'.format([T1, t1, y1, slvt1, rgt1, cat1]))
         print('NN recommended unrecognizable context for {}'.format(rxn_smiles))
@@ -429,22 +443,29 @@ def ajax_evaluate_rxnsmiles(request):
     
     # Run predictor
     try:
-        predictor.run_in_foreground(reactants = '.'.join(reactants), intended_product = products[0], quit_if_unplausible = False)
+        predictor.run_in_foreground(reactants='.'.join(reactants), intended_product=products[0], quit_if_unplausible=False, mincount=synth_mincount)
         outcomes = predictor.return_top()
 
         print('Recommended context: {}'.format([T1, t1, y1, slvt1, rgt1, cat1]))
         print(outcomes[:3])
         plausible = 0
-        for outcome in outcomes:
+        rank = '?'
+        for i, outcome in enumerate(outcomes):
             if outcome['smiles'] == products[0]:
                 plausible = float(outcome['prob'])
+                rank = i + 1
                 break
         if not rgt1: rgt1 = 'no '
         if not cat1: cat1 = 'no '
-        data['html'] = 'Plausibility score: {}'.format(plausible)
-        data['html'] += '<br><br>Conditions: {} C, {} solvent, {} reagents, {} catalyst'.format(T1, slvt1, rgt1, cat1)
+        data['html'] = 'Plausibility score: {} (rank {}/{})'.format(plausible, rank, len(outcomes))
+        data['html'] += '<br><br><u>Top conditions</u>'
+        data['html'] += '<br>{} C'.format(T1)
+        data['html'] += '<br>{} solvent'.format(slvt1)
+        data['html'] += '<br>{} reagents'.format(rgt1)
+        data['html'] += '<br>{} catalyst'.format(cat1)
         data['html'] += '<br>nearest-neighbor got {}% yield'.format(y1)
-        data['html'] += '<br>Most likely product: {}'.format(outcomes[0]['smiles'])
+        data['html'] += '<br>Predicted major product: {}'.format(outcomes[0]['smiles'])
+        data['html'] += '<br>(calc. used synth_mincount {})'.format(synth_mincount)
 
         B = 150.
         R = 255. - (plausible > 0.5) * (plausible - 0.5) * (255. - B) * 2.
@@ -457,7 +478,7 @@ def ajax_evaluate_rxnsmiles(request):
         data['message'] = '{}'.format(e)
     
     # Save response
-    DONE_SYNTH_PREDICTIONS[smiles] = data
+    DONE_SYNTH_PREDICTIONS['{}-{}'.format(smiles, synth_mincount)] = data
     return JsonResponse(data)
 
 @login_required
