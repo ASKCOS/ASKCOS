@@ -122,6 +122,7 @@ class Transformer:
 			# Add to list
 			self.templates.append(template)
 		self.num_templates = len(self.templates)
+		self.reorder()
 
 	def reorder(self):
 		'''
@@ -131,8 +132,15 @@ class Transformer:
 		'''
 		self.templates[:] = [x for x in sorted(self.templates, key = lambda z: z['count'], reverse = True)]
 
+	def top_templates(self, mincount=0):
+		'''Generator to return only top templates. 
+		Assumes templates are already sorted'''
+		for template in self.templates: 
+			if template['count'] < mincount: 
+				break
+			yield template
 
-	def perform_retro(self, smiles):
+	def perform_retro(self, smiles, mincount=0):
 		'''
 		Performs a one-step retrosynthesis given a SMILES string of a
 		target molecule by applying each transformation template
@@ -148,14 +156,14 @@ class Transformer:
 
 		if not self.parallel:
 			# Try each in turn
-			for template in self.templates:
+			for template in self.top_templates(mincount=mincount):
 				for precursor in apply_one_retrotemplate(mol, smiles, template):
 					result.add_precursor(precursor)
 		else:
 			# Parallel implementation - define what the starting mol is
 			apply_one_retrotemplate_to_mol = partial(apply_one_retrotemplate, mol, smiles)
 			pool = Pool(self.nb_workers)
-			for precursors in pool.imap_unordered(apply_one_retrotemplate_to_mol, self.templates, chunksize = 50):
+			for precursors in pool.imap_unordered(apply_one_retrotemplate_to_mol, self.top_templates(mincount=mincount), chunksize = 50):
 				for precursor in precursors:
 					result.add_precursor(precursor)
 			pool.close()
@@ -163,7 +171,7 @@ class Transformer:
 
 		return result
 
-	def perform_forward(self, smiles, stop_if = None, progbar = False, singleonly = False):
+	def perform_forward(self, smiles, stop_if=None, progbar=False, singleonly=False, mincount=0):
 		'''
 		Performs a forward synthesis (i.e., reaction enumeration) given
 		a SMILES string by applying each transformation template in 
@@ -184,9 +192,9 @@ class Transformer:
 		# Draw?
 		if progbar:
 			from tqdm import tqdm
-			generator = tqdm(self.templates)
+			generator = tqdm(self.top_templates(mincount=mincount))
 		else:
-			generator = self.templates
+			generator = self.top_templates(mincount=mincount)
 
 		# Try each in turn
 		for template in generator:
