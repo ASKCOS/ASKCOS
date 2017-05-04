@@ -5,6 +5,7 @@ import cPickle as pickle
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+from termcolor import colored
 from collections import Counter, defaultdict
 from sklearn.neighbors import NearestNeighbors as NN
 from sklearn.externals import joblib
@@ -22,15 +23,10 @@ INSTANCE_DB = db['instances']
 CHEMICAL_DB = db['chemicals']
 SOLVENT_DB = db['solvents']
 
-# # froot = "C:\Users\lfhea\Dropbox (MIT)\RxnClassifier"
-# # FROOT2 = os.path.join(froot, 'reaxys_instance2/2MRxnModel')
-# # figure_root = os.path.join(froot, 'figures')
-
-# project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# model_dir = os.path.join(project_dir, 'testModel')
-
 
 # # Load all the instance IDs from the test model
+# project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# model_dir = os.path.join(project_dir, 'testModel')
 # rxd_ids = []
 # rxn_ids = []
 # with open(os.path.join(model_dir, '1650000-1699999_10NN_20000SRR_info.txt'), 'r') as infile:
@@ -39,12 +35,18 @@ SOLVENT_DB = db['solvents']
 #     rxd_ids.append(id.replace('\n', ''))
 # # Load the test NN model
 # lshf_nn = joblib.load(os.path.join(model_dir, '1650000-1699999_10NN_20000SRR_lshf.pickle'))
-# # with open(os.path.join(FROOT2, 'fpNN-10_2MRxn_info.txt'), 'r') as infile:
-# #     rxn_ids.append(infile.readlines()[1:])  # a list of str(rxn_ids) with '\n'
-# # for id in rxn_ids[0]:
-# #     rxd_ids.append(id.replace('\n', ''))
-# # # Load the NN model
-# # lshf_nn = joblib.load(os.path.join(FROOT2, 'fpNN-10_2MRxn_lshf.pickle'))
+
+
+# Load the full model
+model_dir = '/home/yrwang/askcos/2MRxnModel'
+rxd_ids = []
+rxn_ids = []
+with open(os.path.join(model_dir, 'fpNN-10_2MRxn_info.txt'), 'r') as infile:
+    rxn_ids.append(infile.readlines()[1:])  # a list of str(rxn_ids) with '\n'
+for id in rxn_ids[0]:
+    rxd_ids.append(id.replace('\n', ''))
+# Load the NN model
+lshf_nn = joblib.load(os.path.join(model_dir, 'fpNN-10_2MRxn_lshf.pickle'))
 
 
 def string_or_range_to_float(text):
@@ -168,6 +170,7 @@ def create_rxn_Morgan2FP(rsmi, psmi, fpsize=1024, useFeatures=True):
 
 def rxn_condition_predictor_amongNN(dists, idx, rxd_ids, num_c=1, dist_limit=0.3, outputString=True):
     """Reaction condition recommendation among the top 10 NN, maximum 2 recommendations
+
         dists, idx: np.array output from NearestNeighbor model for one rxn (10L, )
         The second recommendation is based on the most popular reagents within dist_limit
     """
@@ -180,7 +183,7 @@ def rxn_condition_predictor_amongNN(dists, idx, rxd_ids, num_c=1, dist_limit=0.3
         if num_c == 1 or dists[0] > dist_limit:
             print('Conditions for Top1 NN is used')
             if dists[0] > dist_limit:
-                print ('No neighbor is found within a cosine distance of {}'.format(dist_limit))
+                print('No neighbor is found within a cosine distance of {}'.format(dist_limit))
 
             if outputString:
                 return context1
@@ -215,10 +218,32 @@ def rxn_condition_predictor_amongNN(dists, idx, rxd_ids, num_c=1, dist_limit=0.3
             else:
                 return [T1, t1, y1, slvt1, rgt1, cat1], [T2, t2, y2, slvt2, rgt2, cat2]
 
+
+def n_rxn_condition(n, dists, idx, rxd_ids, dist_limit=0.3):
+    """Reaction condition list from the top 10 NN
+
+    :param n: int, the number of nearest neighbors to extract rxn conditions from, n <= 10 here
+    :param dists, idx: np.array output from NearestNeighbor model for one rxn (10L, )
+    :param rxd_ids: the list of instance IDs for all the instances in the database
+    :return: A list of reaction conditions [(temp, time, yield, solvents, reagents, cats), (), ]
+    """
+    if n > int(idx.shape[0]):
+        print('More rxn condition options requested than the number of NN, n is set to {}'.format(idx.shape[1]))
+    if dists[0] > dist_limit:
+        print('No neighbor is found within a cosine distance of {}'.format(dist_limit))
+
+    contexts = []
+    for i, rid in enumerate(idx):
+        if i >= n:
+            break
+        contexts.append(instance_rxn_condition(rxd_ids[rid])[1:]) # T, t, y, slvt, rgt, cat
+    return contexts
+
+
 class NNConditionPredictor():
     """Reaction condition predictor based on Nearest Neighbor method"""
 
-    def __init__(self, nn_model=None, rxn_ids=None):
+    def __init__(self, nn_model=lshf_nn, rxn_ids=rxd_ids):
         self.nnModel = nn_model
         self.rxn_ids = rxn_ids
         self.num_cond = 1
@@ -241,6 +266,16 @@ class NNConditionPredictor():
         return rxn_condition_predictor_amongNN(dists[0], ids[0], rxd_ids=self.rxn_ids, num_c=self.num_cond,
                                                dist_limit=self.dist_limit, outputString=self.outputString)
 
+    def step_n_conditions(self, n, rxn):
+        """n reaction condition recommendations for a reaction
+
+            rxn: [list of reactant SMILES strings, list of product SMILES strings]
+            return: lists of condition tuples
+        """
+        rxn_fp = create_rxn_Morgan2FP(rxn[0], rxn[1], fpsize=1024, useFeatures=True)
+        dists, ids =self.nnModel.kneighbors(rxn_fp)  # (1L, 10L)
+        return n_rxn_condition(n, dists[0], ids[0], rxd_ids=self.rxn_ids, dist_limit=self.dist_limit)
+
     def path_condition(self, path):
         """Reaction condition recommendation for a reaction path with multiple reactions
 
@@ -258,4 +293,3 @@ class NNConditionPredictor():
             contexts.append(rxn_condition_predictor_amongNN(dist, ids[i], rxd_ids=self.rxn_ids, num_c=self.num_cond,
                                                             dist_limit=self.dist_limit, outputString=self.outputString))
         return contexts
-
