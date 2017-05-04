@@ -178,12 +178,12 @@ $(document).ready(function() {
 
 <table>
 
-<tr><th>Target compound:</th><td colspan="0"><input id="id_smiles" maxlength="500" size="40" type="text"/></td></tr>
+<tr><th>Target compound:</th><td colspan="4"><input id="id_smiles" maxlength="500" size="40" type="text"/></td></tr>
 
 <tr><th>{% csrf_token %}</th></tr>
 
 <!-- Placeholder for rendering image after a SMILES string is entered -->
-<tr id="target_mol_wrapper" style="display:none"><th style="vertical-align: text-top; text-align:left">Parsed structure:</th><td id="target_mol" colspan="0"></td></tr>
+<tr id="target_mol_wrapper" style="display:none"><th style="vertical-align: text-top; text-align:left">Parsed structure:</th><td id="target_mol" colspan="4"></td></tr>
 
 <!-- Settings -->
 <tbody id="settings_wrapper" style="display:none">
@@ -207,7 +207,7 @@ $(document).ready(function() {
 
 <!-- Controls -->
 <tr id="controls_wrapper" style="display:none"><th style="vertical-align: bottom; text-align:left">Controls:</th>
-<td colspan="0">
+<td colspan="4">
     <button type="button" style="width:120px" id="start_retro">Start</button>
     <button type="button" style="width:120px" id="pause_retro">Pause</button>
     <button type="button" style="width:120px" id="stop_retro">Stop</button>
