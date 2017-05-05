@@ -148,7 +148,7 @@ def coordinator(workers_done, coordinator_done, apply_queue, results_queue, done
 				if score > max_score[i]:
 					max_score[i] = score
 					max_product[i] = product_smiles
-					print('Current most-likely product for context {}: {}'.format(i, max_product[i]))
+					#print('Current most-likely product for context {}: {}'.format(i, max_product[i]))
 
 				# Is this the intended product?
 				if product_smiles == intended_product:
@@ -377,12 +377,15 @@ class ForwardPredictor:
 
 		self.contexts = []
 		self.context_labels = []
+		errors = []
 		for (T, reagents, solvent) in contexts:
 			# Temperature is easy
 			try:
 				T = float(T)
 			except TypeError:
-				return 'Cannot convert temperature {} to float'.format(T)
+				#return 'Cannot convert temperature {} to float'.format(T)
+				errors.append('cannot convert temp {} to float'.format(T))
+				continue
 
 			# Solvent needs a lookup
 			solvent_mol = Chem.MolFromSmiles(solvent)
@@ -391,14 +394,18 @@ class ForwardPredictor:
 			else:
 				doc = self.SOLVENT_DB.find_one({'name': solvent})
 			if not doc:
-				return 'Could not parse solvent {}'.format(solvent)
+				#return 'Could not parse solvent {}'.format(solvent)
+				errors.append('could not parse solvent {}'.format(solvent))
+				continue
 			solvent_vec = [doc['c'], doc['e'], doc['s'], doc['a'], doc['b'], doc['v']]
 			solvent = doc['name']
 
 			# Unreacting reagents
 			reagents_mols = [Chem.MolFromSmiles(reagent) for reagent in reagents.split('.')]
 			if None in reagents_mols:
-				return 'Could not parse all reagents!'
+				#return 'Could not parse all reagents!'
+				errors.append('could not parse all reagents')
+				continue
 			reagent_fp = np.zeros((1, 256))
 			for reagent in reagents_mols:
 				reagent_fp += np.array(AllChem.GetMorganFingerprintAsBitVect(reagent, 2, nBits = 256))
@@ -406,7 +413,8 @@ class ForwardPredictor:
 			# Save list
 			self.contexts.append([reagent_fp, np.reshape(np.array(solvent_vec), (1, 6)), np.reshape(np.array(T), (1, 1))])
 			self.context_labels.append('T:{}, rgt:{}, solv:{}'.format(T, reagents, solvent))
-
+			errors.append(False)
+		return errors
 
 	def run(self, reactants = '', intended_product = '', quit_if_unplausible = False, mincount = 0):
 		
@@ -485,7 +493,7 @@ class ForwardPredictor:
 				[(prod, score[j]) for (prod, score) in self.products.items()], 
 				key = lambda x: x[1], reverse = True
 			)
-			print(sorted_prods)
+			# print(sorted_prods)
 			if not sorted_prods: return []
 
 			prods, scores = zip(*sorted_prods)

@@ -142,7 +142,7 @@ def coordinator(workers_done, coordinator_done, apply_queue, results_queue, done
 			if score > max_score:
 				max_score = score
 				max_product = product_smiles
-				print('Current most-likely product: {}'.format(max_product))
+				#print('Current most-likely product: {}'.format(max_product))
 
 			# Is this the intended product?
 			if product_smiles == intended_product:
