@@ -455,6 +455,7 @@ class ForwardPredictor:
 			self.workers_done[i] = False
 
 		# Start the coordinator
+		self.done.value = 0
 		self.coordinator_done.value = 0
 		self.plausible.value = 0
 		self.coordinator = Process(target = coordinator, args = (self.workers_done, self.coordinator_done, self.apply_queue, self.results_queue, self.done, self.model, self.contexts, self.products, self.intended_product, self.plausible, self.quit_if_unplausible))
