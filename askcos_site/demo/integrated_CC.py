@@ -106,7 +106,7 @@ def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1
             else:
                 # Run predictor
                 predictor.run_in_foreground(reactants='.'.join(reactants), intended_product=products[0],
-                                            quit_if_unplausible=True)
+                                            quit_if_unplausible=False)
                 outcomes = predictor.return_top(n=RANK_THRESHOLD_FOR_INCLUSION)
                 plausible = 0.
                 for outcome in outcomes:
@@ -169,7 +169,7 @@ def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1
 
 
     # Now define the search (redundant with builder)
-    def IDDFS_generator(tree_dict={}, max_depth=3):
+    def IDDFS_generator(tree_dict={}, max_depth=max_depth):
         '''Get viable synthesis trees using an iterative deepening depth-first search'''
 
         def DLS_chem(chem_id, depth, headNode=False):
