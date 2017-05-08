@@ -11,7 +11,7 @@ from sklearn.neighbors import NearestNeighbors as NN
 from sklearn.externals import joblib
 # from draw import ReactionStringToImage
 from rdkit import Chem, DataStructs
-from rdkit.Chem import AllChem, Descriptors
+from rdkit.Chem import AllChem
 
 # DATABASE
 from pymongo import MongoClient  # mongodb plugin
@@ -76,7 +76,7 @@ def string_or_range_to_float(text):
     return None
 
 
-def instance_rxn_condition(int_id):
+def instance_rxn_condition(INSTANCE_DB, int_id):
     """Return the reaction conditions of a particular instance with known instance ID"""
     doc = INSTANCE_DB.find_one({'_id': int_id})
 
@@ -168,7 +168,7 @@ def create_rxn_Morgan2FP(rsmi, psmi, fpsize=1024, useFeatures=True):
     return pfp
 
 
-def rxn_condition_predictor_amongNN(dists, idx, rxd_ids, num_c=1, dist_limit=0.3, outputString=True):
+def rxn_condition_predictor_amongNN(INSTANCE_DB, dists, idx, rxd_ids, num_c=1, dist_limit=0.3, outputString=True):
     """Reaction condition recommendation among the top 10 NN, maximum 2 recommendations
 
         dists, idx: np.array output from NearestNeighbor model for one rxn (10L, )
@@ -179,7 +179,7 @@ def rxn_condition_predictor_amongNN(dists, idx, rxd_ids, num_c=1, dist_limit=0.3
         return None
     else:
         int_id = rxd_ids[idx[0]]
-        context1, T1, t1, y1, slvt1, rgt1, cat1 = instance_rxn_condition(int_id)
+        context1, T1, t1, y1, slvt1, rgt1, cat1 = instance_rxn_condition(INSTANCE_DB, int_id)
         if num_c == 1 or dists[0] > dist_limit:
             print('Conditions for Top1 NN is used')
             if dists[0] > dist_limit:
@@ -196,13 +196,13 @@ def rxn_condition_predictor_amongNN(dists, idx, rxd_ids, num_c=1, dist_limit=0.3
                     n_id.append(idx[i + 1])
             if len(n_id) < 3:
                 int_id2 = rxd_ids[idx[1]]
-                context2, T2, t2, y2, slvt2, rgt2, cat2 = instance_rxn_condition(int_id2)
+                context2, T2, t2, y2, slvt2, rgt2, cat2 = instance_rxn_condition(INSTANCE_DB, int_id2)
                 if len(n_id) == 0:
                     print('No second neighbor is found within a cosine distance of {}'.format(dist_limit))
             else:
                 rt = []
                 for ids in n_id:
-                    rr = instance_rxn_condition(rxd_ids[ids])[5]
+                    rr = instance_rxn_condition(INSTANCE_DB, rxd_ids[ids])[5]
                     rt.append(rr)
                 rts = tuple(rt)
                 rgt_counter = Counter(rts)
@@ -210,7 +210,7 @@ def rxn_condition_predictor_amongNN(dists, idx, rxd_ids, num_c=1, dist_limit=0.3
                 for r in range(len(rt)):
                     if rt[r] == rgt:
                         int_id2 = rxd_ids[n_id[r]]
-                        context2, T2, t2, y2, slvt2, rgt2, cat2 = instance_rxn_condition(int_id2)
+                        context2, T2, t2, y2, slvt2, rgt2, cat2 = instance_rxn_condition(INSTANCE_DB, int_id2)
                         break
 
             if outputString:
@@ -219,7 +219,7 @@ def rxn_condition_predictor_amongNN(dists, idx, rxd_ids, num_c=1, dist_limit=0.3
                 return [T1, t1, y1, slvt1, rgt1, cat1], [T2, t2, y2, slvt2, rgt2, cat2]
 
 
-def n_rxn_condition(n, dists, idx, rxd_ids, dist_limit=0.3):
+def n_rxn_condition(INSTANCE_DB, n, dists, idx, rxd_ids, dist_limit=0.3):
     """Reaction condition list from the top 10 NN
 
     :param n: int, the number of nearest neighbors to extract rxn conditions from, n <= 10 here
@@ -236,19 +236,20 @@ def n_rxn_condition(n, dists, idx, rxd_ids, dist_limit=0.3):
     for i, rid in enumerate(idx):
         if i >= n:
             break
-        contexts.append(instance_rxn_condition(rxd_ids[rid])[1:]) # T, t, y, slvt, rgt, cat
+        contexts.append(instance_rxn_condition(INSTANCE_DB, rxd_ids[rid])[1:]) # T, t, y, slvt, rgt, cat
     return contexts
 
 
 class NNConditionPredictor():
     """Reaction condition predictor based on Nearest Neighbor method"""
 
-    def __init__(self, nn_model=lshf_nn, rxn_ids=rxd_ids):
+    def __init__(self, nn_model=lshf_nn, rxn_ids=rxd_ids, INSTANCE_DB=None):
         self.nnModel = nn_model
         self.rxn_ids = rxn_ids
         self.num_cond = 1
         self.dist_limit = 0.3
         self.outputString = True
+        self.INSTANCE_DB = INSTANCE_DB
 
     def load_predictor(self, userInput):
         self.num_cond = userInput['num_cond']
@@ -263,7 +264,7 @@ class NNConditionPredictor():
         """
         rxn_fp = create_rxn_Morgan2FP(rxn[0], rxn[1], fpsize=1024, useFeatures=True)
         dists, ids =self.nnModel.kneighbors(rxn_fp)  # (1L, 10L)
-        return rxn_condition_predictor_amongNN(dists[0], ids[0], rxd_ids=self.rxn_ids, num_c=self.num_cond,
+        return rxn_condition_predictor_amongNN(self.INSTANCE_DB, dists[0], ids[0], rxd_ids=self.rxn_ids, num_c=self.num_cond,
                                                dist_limit=self.dist_limit, outputString=self.outputString)
 
     def step_n_conditions(self, n, rxn):
@@ -274,7 +275,7 @@ class NNConditionPredictor():
         """
         rxn_fp = create_rxn_Morgan2FP(rxn[0], rxn[1], fpsize=1024, useFeatures=True)
         dists, ids =self.nnModel.kneighbors(rxn_fp)  # (1L, 10L)
-        return n_rxn_condition(n, dists[0], ids[0], rxd_ids=self.rxn_ids, dist_limit=self.dist_limit)
+        return n_rxn_condition(INSTANCE_DB, n, dists[0], ids[0], rxd_ids=self.rxn_ids, dist_limit=self.dist_limit)
 
     def path_condition(self, path):
         """Reaction condition recommendation for a reaction path with multiple reactions
@@ -290,6 +291,6 @@ class NNConditionPredictor():
         dists, ids = self.nnModel.kneighbors(rxn_fps)  # (nL, 10L)
         contexts = []
         for i, dist in enumerate(dists):
-            contexts.append(rxn_condition_predictor_amongNN(dist, ids[i], rxd_ids=self.rxn_ids, num_c=self.num_cond,
+            contexts.append(rxn_condition_predictor_amongNN(INSTANCE_DB, dist, ids[i], rxd_ids=self.rxn_ids, num_c=self.num_cond,
                                                             dist_limit=self.dist_limit, outputString=self.outputString))
         return contexts
