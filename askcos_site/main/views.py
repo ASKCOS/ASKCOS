@@ -36,6 +36,7 @@ def index(request):
     '''
     Homepage
     '''
+    print('Somebody loaded the index page!')
     return render(request, 'index.html')
 
 def login(request):
@@ -215,6 +216,15 @@ def synth_interactive(request, reactants='', reagents='', solvent='toluene', tem
 
     return render(request, 'synth_interactive.html', context)
 
+def ajax_error_wrapper(ajax_func):
+    def ajax_func_call(*args, **kwargs):
+        try:
+            return ajax_func(*args, **kwargs)
+        except Exception as e:
+            return JsonResponse({'err':True, 'message': str(e)})
+    return ajax_func_call
+
+@ajax_error_wrapper
 def ajax_smiles_to_image_retro(request):
     '''Takes an Ajax call with a smiles string
     and returns the HTML for embedding an image'''
@@ -245,6 +255,7 @@ def ajax_smiles_to_image_retro(request):
 
     return JsonResponse(data)
 
+@ajax_error_wrapper
 def ajax_smiles_to_image_synth(request):
     '''Takes an Ajax call with a smiles string
     and returns the HTML for embedding an image'''
@@ -284,7 +295,7 @@ def ajax_smiles_to_image_synth(request):
     }
     return JsonResponse(data)
 
-
+@ajax_error_wrapper
 def ajax_validate_temperature_synth(request):
     '''Checks to see if a temperature is valid'''
     data = {'err': False}
@@ -300,7 +311,7 @@ def ajax_validate_temperature_synth(request):
 
     return JsonResponse(data)
 
-
+@ajax_error_wrapper
 def ajax_start_synth(request):
     '''Perform the forward synthesis'''
     data = {'err': False}
@@ -332,7 +343,7 @@ def ajax_start_synth(request):
         data['html'] = 'No outcomes found? That is weird...'
     return JsonResponse(data)
 
-
+@ajax_error_wrapper
 def ajax_start_retro(request):
     '''Start builder'''
     smiles = request.GET.get('smiles', None)
@@ -347,6 +358,7 @@ def ajax_start_retro(request):
         builder.start_building(smiles, max_depth=max_depth, max_branching=max_branching, mincount=retro_mincount)
     return JsonResponse(data)
 
+@ajax_error_wrapper
 def ajax_pause_retro(request):
     '''Pause builder'''
     smiles = request.GET.get('smiles', None)
@@ -358,6 +370,7 @@ def ajax_pause_retro(request):
         data['message'] = 'Cannot pause if we have not started running'
     return JsonResponse(data)
 
+@ajax_error_wrapper
 def ajax_stop_retro(request):
     '''Stop builder'''
     data = {'err': False}
@@ -368,6 +381,7 @@ def ajax_stop_retro(request):
         data['message'] = 'Cannot stop if we arent running!'
     return JsonResponse(data)
 
+@ajax_error_wrapper
 def ajax_update_retro_stats(request):
     '''Update the statistics only'''
     smiles = request.GET.get('smiles', None)
@@ -379,6 +393,7 @@ def ajax_update_retro_stats(request):
         data['message'] = 'Cannot update stats if we have not started running!'
     return JsonResponse(data)
 
+@ajax_error_wrapper
 def ajax_update_retro(request):
     '''Update displayed results'''
     data = {'err': False}
@@ -397,6 +412,7 @@ def ajax_update_retro(request):
         data['message'] = 'Cannot show results if we have not started running'
     return JsonResponse(data)
 
+@ajax_error_wrapper
 def ajax_evaluate_rxnsmiles(request):
     '''Evaluate rxn_smiles'''
     data = {'err': False}
@@ -435,7 +451,7 @@ def ajax_evaluate_rxnsmiles(request):
         slvt1 = slvt1.split('.')[0]
     error = predictor.set_context(T=T1, reagents=rgt1, solvent=slvt1)
     if error is not None:
-        print('Recommended context: {}'.format([T1, t1, y1, slvt1, rgt1, cat1]))
+        print('Recommended context failed: {}'.format([T1, t1, y1, slvt1, rgt1, cat1]))
         print('NN recommended unrecognizable context for {}'.format(rxn_smiles))
         data['err'] = True 
         data['message'] = 'NN could not come up with condition recommendation'
@@ -447,7 +463,7 @@ def ajax_evaluate_rxnsmiles(request):
         outcomes = predictor.return_top()
 
         print('Recommended context: {}'.format([T1, t1, y1, slvt1, rgt1, cat1]))
-        print(outcomes[:3])
+        print(outcomes[:min(len(outcomes), 3)])
         plausible = 0
         rank = '?'
         for i, outcome in enumerate(outcomes):
