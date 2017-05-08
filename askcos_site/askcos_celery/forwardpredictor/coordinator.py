@@ -14,6 +14,9 @@ from celery.result import allow_join_result
 import numpy as np 
 import time
 import os
+from rdkit import RDLogger
+lg = RDLogger.logger()
+lg.setLevel(RDLogger.CRITICAL)
 
 CORRESPONDING_QUEUE = 'fp_coordinator'
 SOLVENT_DB = None
@@ -190,7 +193,7 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
     reactants = Chem.MolFromSmiles(reactants)
     if not reactants: 
         print('Could not parse reactants {}'.format(reactants))
-        raise ValueError('Could not parse reactants')
+        return [[] for i in range(len(contexts))]
     print('Number of reactant atoms: {}'.format(len(reactants.GetAtoms())))
     # Report current reactant SMILES string
     [a.ClearProp(str('molAtomMapNumber')) for a in reactants.GetAtoms() if a.HasProp(str('molAtomMapNumber'))]
@@ -239,7 +242,8 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
     # Convert to tensors
     Nc = len(candidate_edits)
     if Nc == 0:
-        raise ValueError('No candidate products found at all...?')
+        print('No candidate products found at all...?')
+        return [[] for i in range(len(contexts))]
     Ne1 = 1
     Ne2 = 1
     Ne3 = 1

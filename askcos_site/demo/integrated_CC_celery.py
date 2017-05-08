@@ -12,18 +12,23 @@ def wait_to_get_result(res, timeout=120, update_freq=5, sleep=0.1, label='result
     '''Helper func to wrap around a .get call'''
     time_start = time.time()
     time_last_update = time_start - update_freq
-    while True:
-        time_now = time.time()
-        if res.ready():
-            return res.get()
-        if time_now - time_start > timeout:
-            return res.get(timeout=0.) # let timeout error get raised
-        if time_now - time_last_update >= update_freq:
-            print('Waiting for {}, {:.2f}s elapsed, timeout at {}'.format(
-                label, time_now - time_start, timeout
-            ))
-            time_last_update = time_now
-        time.sleep(sleep)
+    try:
+        while True:
+            time_now = time.time()
+            if res.ready():
+                return res.get()
+            if time_now - time_start > timeout:
+                return res.get(timeout=0.) # let timeout error get raised
+            if time_now - time_last_update >= update_freq:
+                print('Waiting for {}, {:.2f}s elapsed, timeout at {}'.format(
+                    label, time_now - time_start, timeout
+                ))
+                time_last_update = time_now
+            time.sleep(sleep)
+    except KeyboardInterrupt:
+        res.revoke(terminate=True)
+        res.forget() # gracefully(?) exit
+        raise(KeyboardInterrupt)
 
 
 def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1000):

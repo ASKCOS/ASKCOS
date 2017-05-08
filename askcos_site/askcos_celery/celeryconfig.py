@@ -1,3 +1,5 @@
+from kombu import Exchange, Queue
+
 TASK_SERIALIZER = 'json'
 RESULT_SERIALIZER = 'json'
 ACCEPT_CONTENT = ['json']
@@ -6,6 +8,13 @@ ENABLE_UTC = True
 
 RESULT_EXPIRES = 600 # only keep results for 10 minutes max
 
+# Custom task queues - necessary to get priority for tree expansion! (RabbitMQ assumed)
+TASK_QUEUES = [
+    Queue('tb_worker', Exchange('tb_worker'), routing_key='tb_worker',
+        queue_arguments={'x-max-priority': 10}),
+]
+
+# Task routes (to make sure workers are task-specific)
 TASK_ROUTES = {
     'askcos_site.askcos_celery.treebuilder.worker.*': {'queue': 'tb_worker'},
     'askcos_site.askcos_celery.treebuilder.coordinator.*': {'queue': 'tb_coordinator'},

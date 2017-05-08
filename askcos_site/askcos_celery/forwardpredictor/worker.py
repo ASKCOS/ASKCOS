@@ -7,11 +7,14 @@ from __future__ import absolute_import, unicode_literals, print_function
 from celery import shared_task
 from celery.signals import celeryd_init
 import time
-from makeit.predict.summarize_reaction_outcome import summarize_reaction_outcome
+from rdkit import RDLogger
+lg = RDLogger.logger()
+lg.setLevel(RDLogger.CRITICAL)
 
 CORRESPONDING_QUEUE = 'fp_worker'
 templates = None
 Chem = None
+summarize_reaction_outcome = None
 
 @celeryd_init.connect
 def configure_worker(options={},**kwargs):
@@ -23,6 +26,7 @@ def configure_worker(options={},**kwargs):
 
     global templates
     global Chem
+    global summarize_reaction_outcome
     
     # Get Django settings
     from django.conf import settings
@@ -34,6 +38,7 @@ def configure_worker(options={},**kwargs):
 
     # Rdkit
     import rdkit.Chem as Chem 
+    from makeit.predict.summarize_reaction_outcome import summarize_reaction_outcome
 
     # Load templates
     from .common import load_templates

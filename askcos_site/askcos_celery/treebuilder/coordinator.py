@@ -16,6 +16,10 @@ from celery.result import allow_join_result
 # NOTE: allow_join_result is only because the treebuilder worker is separate
 import time
 
+from rdkit import RDLogger
+lg = RDLogger.logger()
+lg.setLevel(RDLogger.CRITICAL)
+
 CORRESPONDING_QUEUE = 'tb_coordinator'
 get_top_precursors = None
 Pricer = None
@@ -220,9 +224,13 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
     chem_to_id = {smiles: 1}
     buyable_leaves = set()
     
-    def expand(smiles):
-        return get_top_precursors.delay(smiles, mincount=mincount, 
-            max_branching=max_branching)
+    def expand(smiles, priority=0):
+        # Cannot use 'delay' wrapper if we want to use priority arg, so use apply_async
+        return get_top_precursors.apply_async(
+            args=(smiles,), 
+            kwargs={'mincount':mincount, 'max_branching':max_branching}, 
+            priority=priority
+        )
 
     # Initialize
     tree_dict[1] = {
@@ -239,7 +247,7 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
     time_last_report = 0.
 
     # Add first expansion
-    pending_results = [expand(smiles)]
+    pending_results = [expand(smiles, priority=99)]
 
     while len(pending_results) > 0:
         time_now = time.time()
@@ -278,7 +286,7 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
                                 # Do we need to expand now? This is only if
                                 # (a) was previously at max_depth, and (b) not buyable
                                 if prev_depth == max_depth and not tree_dict[chem_id]['ppg']:
-                                    pending_results.append(expand(mol))
+                                    pending_results.append(expand(mol, priority=tree_dict[chem_id]['depth']))
 
                         except KeyError:
                             # New chemical?
@@ -305,7 +313,7 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
                                 buyable_leaves.add(chem_id)
                             elif tree_dict[chem_id]['depth'] < max_depth:
                                 # Add to queue to get expanded
-                                pending_results.append(expand(mol))
+                                pending_results.append(expand(mol, priority=tree_dict[chem_id]['depth']))
 
                         # Keep track of chem_ids
                         chem_ids.append(chem_id)
@@ -337,7 +345,8 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
         if time_now >= time_goal:
             break
 
-    # Clear results
+    # Clear results - cancel any pending expansions
+    [res.revoke(terminate=True) for res in pending_results]
     [res.forget() for res in pending_results]
 
     # Return trees

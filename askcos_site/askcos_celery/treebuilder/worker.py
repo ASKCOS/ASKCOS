@@ -10,6 +10,9 @@ transformer and grabs templates from the database.
 from __future__ import absolute_import, unicode_literals, print_function
 from celery import shared_task
 from celery.signals import celeryd_init
+from rdkit import RDLogger
+lg = RDLogger.logger()
+lg.setLevel(RDLogger.CRITICAL)
 
 CORRESPONDING_QUEUE = 'tb_worker'
 
