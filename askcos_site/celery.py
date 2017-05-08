@@ -21,5 +21,6 @@ app = Celery('askcos_site', broker='amqp://localhost', backend='django-db',
 #   should have a `CELERY_` prefix.
 app.config_from_object('django.conf:settings',)# namespace='CELERY')
 
+
 if __name__ == '__main__':
     app.start()

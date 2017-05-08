@@ -27,8 +27,8 @@ def wait_to_get_result(res, timeout=120, update_freq=5, sleep=0.1, label='result
             time.sleep(sleep)
     except KeyboardInterrupt:
         res.revoke(terminate=True)
-        res.forget() # gracefully(?) exit
-        raise(KeyboardInterrupt)
+        # res.forget() # gracefully(?) exit
+        raise(KeyboardInterrupt('Propagating interrupt after revoking most recent task!'))
 
 
 def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1000):

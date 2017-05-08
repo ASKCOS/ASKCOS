@@ -1,3 +1,4 @@
+from __future__ import absolute_import, unicode_literals, print_function
 from kombu import Exchange, Queue
 
 TASK_SERIALIZER = 'json'
@@ -10,9 +11,15 @@ RESULT_EXPIRES = 600 # only keep results for 10 minutes max
 
 # Custom task queues - necessary to get priority for tree expansion! (RabbitMQ assumed)
 TASK_QUEUES = [
-    Queue('tb_worker', Exchange('tb_worker'), routing_key='tb_worker',
-        queue_arguments={'x-max-priority': 10}),
+    Queue('tb_worker', Exchange('tb_worker'), routing_key='tb_worker', max_priority=10, queue_arguments={'x-max-priority': 10}),
 ]
+CELERY_QUEUES = TASK_QUEUES
+
+# global max priority setting
+task_acks_late = True 
+CELERY_ACKS_LATE = True
+CELERYD_PREFETCH_MULTIPLIER = 1
+worker_prefetch_multiplier = 1
 
 # Task routes (to make sure workers are task-specific)
 TASK_ROUTES = {
@@ -22,5 +29,5 @@ TASK_ROUTES = {
     'askcos_site.askcos_celery.forwardpredictor.coordinator.*': {'queue': 'fp_coordinator'}, 
     'askcos_site.askcos_celery.contextrecommender.worker.*': {'queue': 'context_worker'},   
 }
-
 CELERY_ROUTES = TASK_ROUTES
+

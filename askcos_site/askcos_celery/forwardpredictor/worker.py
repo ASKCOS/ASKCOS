@@ -95,7 +95,8 @@ def get_candidate_edits(reactants_smiles, start_at, end_at):
                     # Add to ongoing list
                     candidate_list.append((candidate_smiles, edits))
                 except Exception as e: # other RDKit error?
-                    print(e)
+                    #print(e) # fail quietly
+                    continue
         except IndexError: # out of range w/ templates
             break 
         except Exception as e: # other RDKit error?

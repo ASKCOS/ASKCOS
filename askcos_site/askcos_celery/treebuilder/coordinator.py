@@ -14,6 +14,7 @@ from celery import shared_task
 from celery.signals import celeryd_init
 from celery.result import allow_join_result 
 # NOTE: allow_join_result is only because the treebuilder worker is separate
+from celery.exceptions import Terminated
 import time
 
 from rdkit import RDLogger
@@ -216,6 +217,9 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
     status of the expansion. Search "on_message task progress" for examples'''
 
     print('Treebuilder coordinator was asked to expand {}'.format(smiles))
+    print('Treebuilder coordinator: mincount {}, max_depth {}, max_branching {}, max_ppg {}, max_time {}, max_trees {}'.format(
+        mincount, max_depth, max_branching, max_ppg, max_time, max_trees
+    ))
 
     global Pricer
     global get_top_precursors
@@ -226,10 +230,11 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
     
     def expand(smiles, priority=0):
         # Cannot use 'delay' wrapper if we want to use priority arg, so use apply_async
+        #print('Treebuilder coordinator has added a chemical with priority {} ({})'.format(priority, smiles))
         return get_top_precursors.apply_async(
             args=(smiles,), 
             kwargs={'mincount':mincount, 'max_branching':max_branching}, 
-            priority=priority
+            priority=int(priority),
         )
 
     # Initialize
@@ -338,8 +343,8 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
                 'depth_dict': at_depth,
             })
             time_last_report = time_now 
-            print('Updated state: {} chems and {} rxns'.format(num_chemicals, num_reactions))
-            print('{:.1f} seconds left'.format(time_goal - time_now))
+            print('Treebuilder coordinator: updated state: {} chems and {} rxns'.format(num_chemicals, num_reactions))
+            print('Treebuilder coordinator: {:.1f} seconds left'.format(time_goal - time_now))
 
         # Break when appropriate
         if time_now >= time_goal:
@@ -347,7 +352,7 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
 
     # Clear results - cancel any pending expansions
     [res.revoke(terminate=True) for res in pending_results]
-    [res.forget() for res in pending_results]
+    # [res.forget() for res in pending_results]
 
     # Return trees
     return (tree_status(tree_dict), get_trees_iddfs(tree_dict, max_depth, max_trees))
