@@ -62,11 +62,11 @@ def get_context_recommendation(rxn, n=1):
     rxn = [reacants, products], where each is a list of SMILES
     n = number of contexts to return'''
 
+    global NN_PREDICTOR
+
     print('Context recommender worker got a request for rxn {}>>{} and n {}'.format(
         '.'.join(rxn[0]), '.'.join(rxn[1]), n
     ))
-
-    global NN_PREDICTOR
 
     if n == 1:
         return NN_PREDICTOR.step_condition(rxn)

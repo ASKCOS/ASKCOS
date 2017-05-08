@@ -152,7 +152,7 @@ def softmax(x):
     return e_x / e_x.sum()
 
 @shared_task
-def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=50):
+def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
     '''Evaluate the plausibility of a proposed forward reaction
 
     reactants = SMILES of reactants
@@ -193,7 +193,7 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=50):
     atom_desc_dict = edits_to_vectors([], reactants, return_atom_desc_dict=True)
 
     # Figure out what templates we are going to use
-    end_at = 0
+    end_at = len(template_counts)
     for (i, count) in enumerate(template_counts):
         if count < mincount:
             end_at = i
@@ -206,6 +206,7 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=50):
             get_candidate_edits.delay(reactants_smiles=reactants_smiles, start_at=start_at, 
                 end_at=start_at + chunksize)
         )
+    print('Added {} chunks'.format(len(pending_results)))
 
     # Wait to collect all candidates
     candidate_edits = []
@@ -222,7 +223,6 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=50):
                 
         # Update list
         pending_results = [res for (i, res) in enumerate(pending_results) if i not in is_ready]
-
 
     # Convert to tensors
     Nc = len(candidate_edits)

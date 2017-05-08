@@ -278,7 +278,7 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
                                 # Do we need to expand now? This is only if
                                 # (a) was previously at max_depth, and (b) not buyable
                                 if prev_depth == max_depth and not tree_dict[chem_id]['ppg']:
-                                    pending_results.add(expand(mol))
+                                    pending_results.append(expand(mol))
 
                         except KeyError:
                             # New chemical?
