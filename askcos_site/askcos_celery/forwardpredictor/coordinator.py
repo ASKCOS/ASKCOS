@@ -25,6 +25,8 @@ Chem = None
 AllChem = None
 edits_to_vectors = None
 get_candidate_edits = None
+solvent_smiles_to_params = {} 
+solvent_name_to_smiles = {}
 
 def load_model(folder, F_atom, F_bond):
     '''Load a trained Keras model'''
@@ -59,7 +61,7 @@ def load_model(folder, F_atom, F_bond):
     model.load_weights(WEIGHTS_FPATH, by_name = True)
     return model
 
-def context_to_mats(SOLVENT_DB, reagents='', solvent='toluene', T='20'):
+def context_to_mats(reagents='', solvent='toluene', T='20'):
     # Temperature is easy
     try:
         T = float(T)
@@ -67,15 +69,16 @@ def context_to_mats(SOLVENT_DB, reagents='', solvent='toluene', T='20'):
         print('Cannot convert temperature {} to float'.format(T))
         return None
 
-    # Solvent needs a lookup
-    solvent_mol = Chem.MolFromSmiles(solvent)
-    if solvent_mol: 
-        doc = SOLVENT_DB.find_one({'_id': Chem.MolToSmiles(solvent_mol)})
-    else:
-        doc = SOLVENT_DB.find_one({'name': solvent})
-    if not doc:
-        print('Could not parse solvent {}'.format(solvent))
-        return None
+    # Look up solvent from saved dicts
+    try:
+        solvent_mol = Chem.MolFromSmiles(solvent)
+        doc = solvent_smiles_to_params[Chem.MolToSmiles(solvent_mol)]
+    except Exception: # KeyError or Boost.Python.ArgumentError
+        try:
+            doc = solvent_smiles_to_params[solvent_name_to_smiles[solvent]]
+        except KeyError:
+            print('Could not parse solvent {}'.format(solvent))
+            return None
     solvent_vec = [doc['c'], doc['e'], doc['s'], doc['a'], doc['b'], doc['v']]
     solvent = doc['name']
 
@@ -99,7 +102,6 @@ def configure_coordinator(options={},**kwargs):
         return
     print('### STARTING UP A FORWARD PREDICTOR COORDINATOR ###')
 
-    global SOLVENT_DB
     global template_counts
     global model 
     global F_atom 
@@ -108,6 +110,8 @@ def configure_coordinator(options={},**kwargs):
     global AllChem 
     global edits_to_vectors
     global get_candidate_edits
+    global solvent_smiles_to_params
+    global solvent_name_to_smiles
 
     # Get Django settings
     from django.conf import settings
@@ -128,6 +132,15 @@ def configure_coordinator(options={},**kwargs):
     import rdkit.Chem as Chem 
     import rdkit.Chem.AllChem as AllChem
     from makeit.embedding.descriptors import edits_to_vectors
+
+    # Save solvent info
+    print('Look for solvent info')
+    for doc in SOLVENT_DB.find():
+        try:
+            solvent_name_to_smiles[doc['name']] = doc['_id']
+            solvent_smiles_to_params[doc['_id']] = doc 
+        except KeyError:
+            print('solvent doc {} missing a name'.format(doc))
 
     # Feature sizes
     print('Getting feature sizes')
@@ -164,7 +177,6 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
 
     print('Forward predictor coordinator was asked to expand {}'.format(reactants))
 
-    global SOLVENT_DB
     global template_counts
     global model 
     global F_atom 
@@ -272,7 +284,7 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
     # Make prediction(s)
     all_outcomes = []
     for (T, reagents, solvent) in contexts:
-        xc = context_to_mats(SOLVENT_DB, reagents=reagents, solvent=solvent, T=T)
+        xc = context_to_mats(reagents=reagents, solvent=solvent, T=T)
         if xc is None: # unparseable
             all_outcomes.append([])
             continue
