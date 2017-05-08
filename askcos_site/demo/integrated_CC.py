@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import argparse
+import numpy as np
 from rdkit import RDLogger
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
@@ -13,19 +14,24 @@ def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1
     global done_trees
     global print_and_log
 
+    global predictor 
+    global predictor_mc
+    global builder 
+    global NN
+
     TARGET = Chem.MolToSmiles(Chem.MolFromSmiles(TARGET), isomericSmiles=False)
     print_and_log('Target: {}'.format(TARGET), success=True)
     builder.start_building(TARGET, max_depth=max_depth, max_branching=max_branching)
     print_and_log('Will wait {} seconds'.format(expansion_time), success=True)
     time.sleep(expansion_time)
-    print_and_log(builder.info_string(), success=True)
-
     builder.stop_building(timeout=5)
+    print_and_log(builder.info_string(), success=True, summary=True)
     print_and_log('###########################################################', success=True)
     time.sleep(2)
 
     # Function to recontruct the plausible tree
     def construct_plausible_tree(tree, depth=0):
+        overall_plausibility = 1.0
         if not tree['children']:
             print_and_log('Depth {}: buyable chemical: {}'.format(depth, tree['smiles']), success=True)
         else:
@@ -42,13 +48,32 @@ def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1
                 depth, rxn_smiles, plausibility_dict[rxn_smiles]), success=True)
             print_and_log('Recommended context: {}'.format(context_dict[rxn_smiles]), success=True)
             print_and_log('Necessary reagents: {}'.format(necessary_reagent), success=True)
+            overall_plausibility *= plausibility_dict[rxn_smiles]
             depth += 1
             for child in rxn['children']:
-                construct_plausible_tree(child, depth=depth)
+                overall_plausibility *= construct_plausible_tree(child, depth=depth)
+        return overall_plausibility
+
+    # Helper
+    def fix_rgt_cat_slvt(rgt1, cat1, slvt1):
+        # Merge cat and reagent for forward predictor
+        if rgt1 and cat1:
+            rgt1 = rgt1 + '.' + cat1
+        elif cat1:
+            rgt1 = cat1
+        # Reduce solvent to single one
+        if '.' in slvt1:
+            slvt1 = slvt1.split('.')[0]
+        return (rgt1, cat1, slvt1)
+
+    def trim_trailing_period(txt):
+        if txt:
+            if txt[-1] == '.':
+                return txt[:-1]
+        return txt
 
     # Now define the reaction-checking function
     # Get context / evaluate?
-
     def check_this_reaction(tree, this_is_the_target=False):
         '''Evaluates this reaction and all its children'''
         print_and_log('---------------')
@@ -72,38 +97,79 @@ def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1
             plausible = plausibility_dict[rxn_smiles]
 
         else:
+            # It is easier to test multiplel contexts when there is no necessary_reagent
+            if not necessary_reagent: 
+                print_and_log('no necessary reagent needed - using multicontext approach')
+                contexts = NN.step_n_conditions(n=MAX_NUM_CONTEXTS, rxn=[reactants, products])
+                contexts_for_predictor = []
+                for (T1, t1, y1, slvt1, rgt1, cat1) in contexts:
+                    slvt1 = trim_trailing_period(slvt1)
+                    rgt1 = trim_trailing_period(rgt1)
+                    cat1 = trim_trailing_period(cat1)
+                    (rgt1, cat1, slvt1) = fix_rgt_cat_slvt(rgt1, cat1, slvt1)
+                    contexts_for_predictor.append((T1, rgt1, slvt1))
+                
+                errors = predictor_mc.set_contexts(contexts_for_predictor)
+                context_dict[rxn_smiles] = contexts_for_predictor
+                if all(errors):
+                    print(errors)
+                    print_and_log('All contexts unrecognizable for rxn {}'.format(rxn_smiles))
+                    print_and_log('Recommended: {}'.format(contexts_for_predictor))
+                    plausibility_dict[rxn_smiles] = 0.
+                    return 0.
+                if any(errors):
+                    contexts_for_predictor = [context for (i, context) in enumerate(contexts_for_predictor) if not errors[i]]
+                    contexts = [context for (i, context) in enumerate(contexts) if not errors[i]]
+                    errors = predictor_mc.set_contexts(contexts_for_predictor)
+                    context_dict[rxn_smiles] = contexts_for_predictor
+                    if any(errors):
+                        print_and_log('Errors remain after filtering contexts...what? {}'.format(rxn_smiles))
+                        plausibility_dict[rxn_smiles] = 0.
+                        return 0.
 
-            [T1, t1, y1, slvt1, rgt1, cat1] = NN.step_condition([reactants, products])
-            if slvt1 and slvt1[-1] == '.':
-                slvt1 = slvt1[:-1]
-            if rgt1 and rgt1[-1] == '.':
-                rgt1 = rgt1[:-1]
-            if cat1 and cat1[-1] == '.':
-                cat1 = cat1[:-1]
-
-            context_dict[rxn_smiles] = [T1, t1, y1, slvt1, rgt1, cat1]
-
-            # Add reagent to reactants for the purpose of forward prediction
-            # this is important for necessary reagents, e.g., chlorine source
-            if rgt1:
-                reactants.append(rgt1)
-
-            # Merge cat and reagent
-            if rgt1 and cat1:
-                rgt1 = rgt1 + '.' + cat1
-            elif cat1:
-                rgt1 = cat1
-
-            if '.' in slvt1:
-                slvt1 = slvt1.split('.')[0]
-
-            error = predictor.set_context(T=T1, reagents=rgt1, solvent=slvt1)
-            if error is not None:
-                print_and_log('Recommended context: {}'.format([T1, t1, y1, slvt1, rgt1, cat1]))
-                print_and_log('NN recommended unrecognizable context for {}'.format(rxn_smiles))
-                plausible = 0.
+                predictor_mc.run_in_foreground(reactants='.'.join(reactants), intended_product=products[0],
+                                                quit_if_unplausible=False)
+                all_outcomes = predictor_mc.return_top(n=RANK_THRESHOLD_FOR_INCLUSION)
+                plausible = [0. for i in range(len(all_outcomes))]
+                for i, outcomes in enumerate(all_outcomes):
+                    for outcome in outcomes:
+                        if outcome['smiles'] == products[0]:
+                            plausible[i] = float(outcome['prob'])
+                            break
+                best_context_i = np.argmax(plausible)
+                plausible = plausible[best_context_i]
+                context_dict[rxn_smiles] = contexts_for_predictor[best_context_i]
+                print_and_log('Recommended BEST context out of {} attempted: {}'.format(len(contexts), contexts[best_context_i]))
+                print_and_log('plausible? {}'.format(plausible))
+                print_and_log(all_outcomes[best_context_i][:min(3, len(all_outcomes[best_context_i]))])
+                plausibility_dict[rxn_smiles] = plausible
 
             else:
+                print_and_log('necessary reagent: {}'.format(necessary_reagent))
+                [T1, t1, y1, slvt1, rgt1, cat1] = NN.step_condition([reactants, products])
+                slvt1 = trim_trailing_period(slvt1)
+                rgt1 = trim_trailing_period(rgt1)
+                cat1 = trim_trailing_period(cat1)
+                context_dict[rxn_smiles] = [T1, t1, y1, slvt1, rgt1, cat1]
+
+                # Add reagent to reactants for the purpose of forward prediction
+                # this is important for necessary reagents, e.g., chlorine source
+                if not rgt1 and necessary_reagent:
+                    #TODO: add a match to see if the rgt1 is even capable of providing the right atoms
+                    print_and_log('necessary reagent not found!')
+                    plausibility_dict[rxn_smiles] = 0.
+                    return 0.
+                if rgt1:
+                    reactants.append(rgt1)
+                
+                (rgt1, cat1, slvt1) = fix_rgt_cat_slvt(rgt1, cat1, slvt1)
+                error = predictor.set_context(T=T1, reagents=rgt1, solvent=slvt1)
+                if error is not None:
+                    print_and_log('Recommended context: {}'.format([T1, t1, y1, slvt1, rgt1, cat1]))
+                    print_and_log('NN recommended unrecognizable context for {}'.format(rxn_smiles))
+                    plausibility_dict[rxn_smiles] = 0.
+                    return 0.
+
                 # Run predictor
                 predictor.run_in_foreground(reactants='.'.join(reactants), intended_product=products[0],
                                             quit_if_unplausible=False)
@@ -117,22 +183,20 @@ def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1
                 print_and_log('Recommended context: {}'.format([T1, t1, y1, slvt1, rgt1, cat1]))
                 print_and_log('plausible? {}'.format(plausible))
                 print_and_log(outcomes[:min(3, len(outcomes))])
-
-            plausibility_dict[rxn_smiles] = plausible
+                plausibility_dict[rxn_smiles] = plausible
 
         # Look at children?
         if plausible:
-            all_plausible = True
+            all_plausible = plausible
             for child in rxn['children']:
-                child_plausible = check_this_reaction(child)
-                if not child_plausible:
-                    all_plausible = False
+                all_plausible *= check_this_reaction(child)
 
             # Now report
             if all_plausible and this_is_the_target:
                 plausible_trees.append(tree)
                 print_and_log('################################################', success=True)
                 print_and_log('Found completely plausible tree!', success=True)
+                print_and_log('Overall plausibility for whole tree: {}'.format(all_plausible), success=True)
                 print_and_log(tree, success=True)
                 construct_plausible_tree(tree, depth=0)
                 print_and_log('################################################', success=True)
@@ -288,16 +352,9 @@ def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1
             break
 
     print_and_log('Got out of final IDDFS_generator loop, done with program')
-    builder.stop_building()
     predictor.stop()
+    predictor_mc.stop()
     print_and_log('Stopped builder and predictor')
-    # del builder
-    # del predictor
-    # del NN
-    fid.close()
-    fid_success.close()
-
-    # quit(1)
 
 if __name__ == '__main__':
 
@@ -320,6 +377,10 @@ if __name__ == '__main__':
                         help = 'Rank threshold for considering a reaction to be plausible, default 10')
     parser.add_argument('--max_expansions', type=int, default=8,
                         help = 'Maximum number of search expansions to try, default 8')
+    parser.add_argument('--max_contexts', type=int, default=10,
+                        help = 'Maximum number of contexts to try when reagents not necessary, default 10')
+    parser.add_argument('--max_ppg', type=int, default=1e10,
+                        help = 'Maximum price per gram for a buyable chemical, default 1e10')
     args = parser.parse_args()
 
     
@@ -330,6 +391,8 @@ if __name__ == '__main__':
     max_trees = int(args.max_trees)
     TARGET = str(args.TARGET)
     RANK_THRESHOLD_FOR_INCLUSION = int(args.rank_threshold)
+    MAX_NUM_CONTEXTS = int(args.max_contexts)
+    max_ppg = int(args.max_ppg)
 
     import urllib2
     smiles = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(TARGET)).read()
@@ -394,10 +457,6 @@ if __name__ == '__main__':
         mincount_retro = RETRO_TRANSFORMS['mincount']
         RetroTransformer.load(RETRO_DB, mincount=mincount_retro, get_retro=True, get_synth=False)
         print('Loaded {} retro templates'.format(RetroTransformer.num_templates))
-        RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.format(RetroTransformer.num_templates,
-                                                                                             mincount_retro,
-                                                                                             RETRO_TRANSFORMS['database'],
-                                                                                             RETRO_TRANSFORMS['collection'])
 
         ### Forward transformer
         database = db_client[SYNTH_TRANSFORMS['database']]
@@ -406,10 +465,6 @@ if __name__ == '__main__':
         mincount_synth = SYNTH_TRANSFORMS['mincount']
         SynthTransformer.load(SYNTH_DB, mincount=100000000000000, get_retro=False, get_synth=True)
         print('Loaded {} forward templates'.format(SynthTransformer.num_templates))
-        SYNTH_FOOTNOTE = 'Using {} forward templates (mincount {}) from {}/{}'.format(SynthTransformer.num_templates,
-                                                                                      mincount_synth,
-                                                                                      SYNTH_TRANSFORMS['database'],
-                                                                                      SYNTH_TRANSFORMS['collection'])
 
         ### Databases
         db = db_client[REACTIONS['database']]
@@ -433,8 +488,9 @@ if __name__ == '__main__':
         import makeit.retro.pricer as pricer
 
         Pricer = pricer.Pricer()
-        Pricer.load(CHEMICAL_DB, BUYABLE_DB)
-        print('Loaded known prices')
+        Pricer.load(CHEMICAL_DB, BUYABLE_DB, max_ppg=max_ppg)
+        print('Loaded {} known prices'.format(len(Pricer.prices)))
+
 
         # Builder
         from makeit.webapp.treeBuilder import TreeBuilder
@@ -443,13 +499,15 @@ if __name__ == '__main__':
 
         # Intelligent predictor
         from makeit.webapp.forwardPredictor import ForwardPredictor
+        from makeit.webapp.forwardPredictorMultiContext import ForwardPredictor as FPMC
 
         predictor = ForwardPredictor(nb_workers=4, TRANSFORM_DB=SYNTH_DB, SOLVENT_DB=SOLVENT_DB)
         predictor.load_templates(mincount=mincount_synth)
         predictor.load_model(PREDICTOR['trained_model_path'])
-        PREDICTOR_FOOTNOTE = 'Results generated using {} forward synthetic templates (mincount {}) from {}/{}, scored by a trained machine learning model: '.format(
-            predictor.num_templates, mincount_synth, SYNTH_TRANSFORMS['database'], SYNTH_TRANSFORMS['collection']) + \
-                             PREDICTOR['info']
+        predictor_mc = FPMC(nb_workers=4, TRANSFORM_DB=SYNTH_DB, SOLVENT_DB=SOLVENT_DB)
+        predictor_mc.load_templates(mincount=mincount_synth)
+        predictor_mc.load_model(PREDICTOR['trained_model_path'])
+
 
         ## Context recommendation
         from askcos_site.functions.nnPredictor import NNConditionPredictor, lshf_nn, rxd_ids
@@ -477,7 +535,7 @@ if __name__ == '__main__':
             os.mkdir(FROOT)
         fid = open(os.path.join(FROOT, '{}_integrated_log.txt'.format(attempt_number)), 'w')
         fid_success = open(os.path.join(FROOT, '{}_integrated_log_success.txt'.format(attempt_number)), 'w')
-        fid_summary = open(os.path.join(FROOT, '{}_integrated_settings.txt'.format(attempt_number)), 'w')
+        fid_summary = open(os.path.join(FROOT, '{}_integrated_summary.txt'.format(attempt_number)), 'w')
         fid_summary.write('Target compound\t{}\n'.format(TARGET_LABEL))
         fid_summary.write('Target SMILES\t{}\n\n'.format(TARGET))
         fid_summary.write('Minimum retro template count\t{}\n'.format(args.retro_mincount))
@@ -486,14 +544,17 @@ if __name__ == '__main__':
         fid_summary.write('Maximum depth\t{}\n'.format(max_depth))
         fid_summary.write('Maximum branching\t{}\n'.format(max_branching))
         fid_summary.write('Rank threshold for considering rxn plausible\t{}\n'.format(RANK_THRESHOLD_FOR_INCLUSION))
+        fid_summary.write('Number of contexts recommended when no necessary_reagent\t{}\n'.format(MAX_NUM_CONTEXTS))
         fid_summary.write('Maximum trees considered\t{}\n\n'.format(max_trees))
         zero_time = time.time()
 
-        def print_and_log(text, success=False):
+        def print_and_log(text, success=False, summary=False):
             print(text)
             fid.write('[{%6.1f}] \t %s \n' % (time.time() - zero_time, text))
             if success:
                 fid_success.write('[{%6.1f}] \t %s \n' % (time.time() - zero_time, text))
+            if summary:
+                fid_summary.write('{}\n'.format(text))
         
         print('This is expansion {}'.format(attempt_number))
         print('Current parameters: expansion_time={}, max_depth={}, max_branching={}, max_trees={}'.format(
@@ -501,7 +562,7 @@ if __name__ == '__main__':
 
         main(TARGET=TARGET, expansion_time=expansion_time, max_depth=max_depth, max_branching=max_branching, max_trees=max_trees)
 
-        fid_summary.write('Total processing time for this attempt (s)\t{}\n'.format(time.time() - zero_time))
+        fid_summary.write('\nTotal processing time for this attempt (s)\t{}\n'.format(time.time() - zero_time))
         fid_summary.write('Total number of reactions evaluated so far\t{}\n'.format(len(plausibility_dict)))
         fid_summary.write('Total number of plausible trees found so far\t{}\n\n'.format(len(plausible_trees)))
         for plausible_tree in plausible_trees:
