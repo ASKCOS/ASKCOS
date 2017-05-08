@@ -13,6 +13,7 @@ from celery.result import allow_join_result
 # NOTE: allow_join_result is only because the worker is separate
 import numpy as np 
 import time
+import os
 
 CORRESPONDING_QUEUE = 'fp_coordinator'
 SOLVENT_DB = None
@@ -20,8 +21,12 @@ model = None
 template_counts = None
 F_atom = None
 F_bond = None
+Chem = None
+AllChem = None
+edits_to_vectors = None
+get_candidate_edits = None
 
-def load_model(folder):
+def load_model(folder, F_atom, F_bond):
     '''Load a trained Keras model'''
 
     # Get model args
@@ -42,12 +47,14 @@ def load_model(folder):
     inner_act          = args['inner_act']
     TARGET_YIELD       = False
 
+    print('building model')
     from makeit.predict.reaxys_score_candidates_from_edits_compact_v2 import build
-    model = build(F_atom = self.F_atom, F_bond = self.F_bond, N_h1 = N_h1, 
+    model = build(F_atom = F_atom, F_bond = F_bond, N_h1 = N_h1, 
             N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, inner_act = inner_act,
             context_weight = context_weight, enhancement_weight = enhancement_weight, TARGET_YIELD = TARGET_YIELD,
             absolute_score = True)
 
+    print('Loading weights')
     WEIGHTS_FPATH = os.path.join(folder, 'weights.h5')
     model.load_weights(WEIGHTS_FPATH, by_name = True)
     return model
@@ -57,7 +64,8 @@ def context_to_mats(SOLVENT_DB, reagents='', solvent='toluene', T='20'):
     try:
         T = float(T)
     except TypeError:
-        return 'Cannot convert temperature {} to float'.format(T)
+        print('Cannot convert temperature {} to float'.format(T))
+        return None
 
     # Solvent needs a lookup
     solvent_mol = Chem.MolFromSmiles(solvent)
@@ -66,14 +74,16 @@ def context_to_mats(SOLVENT_DB, reagents='', solvent='toluene', T='20'):
     else:
         doc = SOLVENT_DB.find_one({'name': solvent})
     if not doc:
-        return 'Could not parse solvent {}'.format(solvent)
+        print('Could not parse solvent {}'.format(solvent))
+        return None
     solvent_vec = [doc['c'], doc['e'], doc['s'], doc['a'], doc['b'], doc['v']]
     solvent = doc['name']
 
     # Unreacting reagents
     reagents = [Chem.MolFromSmiles(reagent) for reagent in reagents.split('.')]
     if None in reagents:
-        return 'Could not parse all reagents!'
+        print('Could not parse all reagents!')
+        return None
     reagent_fp = np.zeros((1, 256))
     for reagent in reagents:
         reagent_fp += np.array(AllChem.GetMorganFingerprintAsBitVect(reagent, 2, nBits = 256))
@@ -94,38 +104,47 @@ def configure_coordinator(options={},**kwargs):
     global model 
     global F_atom 
     global F_bond
-    
+    global Chem
+    global AllChem 
+    global edits_to_vectors
+    global get_candidate_edits
+
     # Get Django settings
     from django.conf import settings
 
     # Database
     from database import db_client
     db = db_client[settings.SYNTH_TRANSFORMS['database']]
-    SYNTH_DB = database[settings.SYNTH_TRANSFORMS['collection']]
+    SYNTH_DB = db[settings.SYNTH_TRANSFORMS['collection']]
     db = db_client[settings.SOLVENTS['database']]
     SOLVENT_DB = db[settings.SOLVENTS['collection']]
 
-    # RDKit for layer sizes
-    import rdkit.Chem as Chem 
-    import rdkit.Chem.AllChem as AllChem 
-
     # Misc.
-    from makeit.embedding.descriptors import edits_to_vectors
+    print('Loading .common/.worker')
     from .common import load_templates
     from .worker import get_candidate_edits
 
+    print('Loading RDKit and descriptor modules')
+    import rdkit.Chem as Chem 
+    import rdkit.Chem.AllChem as AllChem
+    from makeit.embedding.descriptors import edits_to_vectors
+
     # Feature sizes
+    print('Getting feature sizes')
     mol = Chem.MolFromSmiles('[C:1][C:2]')
     (a, _, b, _) = edits_to_vectors((['1'],[],[('1','2',1.0)],[]), mol)
     F_atom = len(a[0])
     F_bond = len(b[0])
 
     # Intelligent predictor
+    print('Loading templates')
     mincount_synth = settings.SYNTH_TRANSFORMS['mincount']
     template_counts = load_templates(SYNTH_DB=SYNTH_DB, mincount=mincount_synth, 
         countsonly=True)
-    model = load_model(settings.PREDICTOR['trained_model_path'])
+    print('Loading trained model')
+    model = load_model(settings.PREDICTOR['trained_model_path'], F_atom, F_bond)
     print('Loaded trained Keras model')
+    print('Finished initializing forward predictor coordinator')
 
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
@@ -133,22 +152,27 @@ def softmax(x):
     return e_x / e_x.sum()
 
 @shared_task
-def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=10):
+def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=50):
     '''Evaluate the plausibility of a proposed forward reaction
 
     reactants = SMILES of reactants
-    reagents = smiles of reagents
-    solvent = smiles or name of solvent
-    T = temperature
+    contexts = a list of tuples:
+        reagents = smiles of reagents
+        solvent = smiles or name of solvent
+        T = temperature
     mincount = minimum count for forward synthetic templates'''
 
-    print('Treebuilder coordinator was asked to expand {}'.format(smiles))
+    print('Forward predictor coordinator was asked to expand {}'.format(reactants))
 
     global SOLVENT_DB
     global template_counts
     global model 
     global F_atom 
     global F_bond
+    global Chem
+    global AllChem 
+    global edits_to_vectors
+    global get_candidate_edits
 
     # Get atom descriptors
     reactants = Chem.MolFromSmiles(reactants)
@@ -157,18 +181,13 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=10):
         raise ValueError('Could not parse reactants')
     print('Number of reactant atoms: {}'.format(len(reactants.GetAtoms())))
     # Report current reactant SMILES string
-    [a.ClearProp('molAtomMapNumber') for a in reactants.GetAtoms() if a.HasProp('molAtomMapNumber')]
+    [a.ClearProp(str('molAtomMapNumber')) for a in reactants.GetAtoms() if a.HasProp(str('molAtomMapNumber'))]
     print('Reactants w/o map: {}'.format(Chem.MolToSmiles(reactants)))
     # Add new atom map numbers
-    [a.SetProp('molAtomMapNumber', str(i+1)) for (i, a) in enumerate(reactants.GetAtoms())]
+    [a.SetProp(str('molAtomMapNumber'), str(i+1)) for (i, a) in enumerate(reactants.GetAtoms())]
     # Report new reactant SMILES string
     print('Reactants w/ map: {}'.format(Chem.MolToSmiles(reactants)))
     reactants_smiles = Chem.MolToSmiles(reactants)
-
-    if intended_product:
-        intended_product = Chem.MolFromSmiles(intended_product)
-    if intended_product:
-        intended_product = Chem.MolToSmiles(intended_product, isomericSmiles=True)
 
     # Pre-calc descriptors for this set of reactants
     atom_desc_dict = edits_to_vectors([], reactants, return_atom_desc_dict=True)
@@ -184,12 +203,12 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=10):
     pending_results = []
     for start_at in range(0, end_at, chunksize):
         pending_results.append(
-            get_candidate_edits.delay(reactants=reactants, start_at=start_at, 
+            get_candidate_edits.delay(reactants_smiles=reactants_smiles, start_at=start_at, 
                 end_at=start_at + chunksize)
         )
 
     # Wait to collect all candidates
-    candidate_edits = set()
+    candidate_edits = []
     while len(pending_results) > 0:
 
         # Look for done results
@@ -197,7 +216,8 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=10):
         with allow_join_result(): # required to use .get()
             for i in is_ready:
                 for candidate_edit in pending_results[i].get(timeout=1):
-                    candidate_edits.add(candidate_edit)
+                    if candidate_edit not in candidate_edits:
+                        candidate_edits.append(candidate_edit)
                 pending_results[i].forget()
                 
         # Update list
@@ -251,10 +271,12 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=10):
 
     # Make prediction(s)
     all_outcomes = []
-    all_plausibilities = []
     for (T, reagents, solvent) in contexts:
         xc = context_to_mats(SOLVENT_DB, reagents=reagents, solvent=solvent, T=T)
-        scores = np.flatten(model.predict(x + context)[0])
+        if xc is None: # unparseable
+            all_outcomes.append([])
+            continue
+        scores = model.predict(x + xc)[0]
         probs = softmax(scores)
 
         # Sort

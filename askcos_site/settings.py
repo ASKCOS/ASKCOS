@@ -13,6 +13,13 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 PROJECT_PATH = os.path.dirname(__file__)
 
+# Celery 
+import djcelery
+djcelery.setup_loader()
+
+# Get settings from separate celeryconfig.py
+from askcos_celery.celeryconfig import *
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
@@ -60,6 +67,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'askcos_site.main',
+    'django_celery_results',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -125,14 +133,18 @@ MEDIA_URL = '/media/'
 RETRO_TRANSFORMS = {
     'database': 'reaxys',
     'collection': 'transforms_retro_v4', # 'lowe' or 'chematica'
-    'mincount': 500,
-    'parallel': False,
-    'nb_workers': 1,
+    'mincount': 100,
+}
+RETRO_TRANSFORMER = { 
+    'parallel': True,
+    'nb_workers': 2,
 }
 SYNTH_TRANSFORMS = {
     'database': 'reaxys',
-    'collection': 'transforms_forward_v1'   ,
-    'mincount': 200, 
+    'collection': 'transforms_forward_v1',
+    'mincount': 50, 
+}
+SYNTH_TRANSFORMER = {
 }
 INSTANCES = {
     'database': 'reaxys',
@@ -156,13 +168,14 @@ SOLVENTS = {
 }
 
 PREDICTOR = {
-    'trained_model_path': '/home/ccoley/ML Chemistry/Make-It/makeit/predict/output/01_23_2017',
+    'nb_workers': 4,
+    'trained_model_path': '/home/ccoley/Make-It/makeit/predict/output/01_23_2017',
     'info': '01-23-17, model trained on 80k Reaxys examples, validated on 10k, tested on 10k. Nh1_200, Nh2_200, Nh3_200, l2_0, Nc_5000, enh_weight_0d1, context_weight_50, opt_adadelta, batch_5, moreFeatures'
 }
 
 CONTEXT_REC = {
-    'info_path': os.path.join(PROJECT_PATH, 'testModel', '1650000-1699999_10NN_20000SRR_info.txt'),
-    'model_path': os.path.join(PROJECT_PATH, 'testModel', '1650000-1699999_10NN_20000SRR_lshf.pickle'),
+    'info_path': '/data1/ASKCOS/2MRxnModel/fpNN-10_2MRxn_info.txt',
+    'model_path': '/data1/ASKCOS/2MRxnModel/fpNN-10_2MRxn_lshf.pickle',
 }
 
 # LOGIN
