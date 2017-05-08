@@ -80,7 +80,7 @@ def tree_status(tree_dict):
     num_chemicals = 0
     num_reactions = 0
     at_depth = {}
-    for node in tree_dict.values():
+    for _id, node in tree_dict.iteritems():
         depth = node['depth']
         if depth % 1 == 0:
             num_chemicals += 1
@@ -94,6 +94,7 @@ def tree_status(tree_dict):
 
 def get_trees_iddfs(tree_dict, max_depth, max_trees=25):
     '''Get viable synthesis trees using an iterative deepening depth-first search'''
+    from itertools import product
 
     def IDDFS():
         for depth in range(max_depth):
@@ -125,9 +126,7 @@ def get_trees_iddfs(tree_dict, max_depth, max_trees=25):
                              smiles = '.'.join(sorted([tree_dict[x]['smiles'] for x in tree_dict[rxn_id]['rcts']])) + '>>' + tree_dict[chem_id]['smiles'])]
 
     def DLS_rxn(rxn_id, depth):
-        '''Return children paths starting from a specific rxn_id
-
-        Weird case handling based on 1, 2, or 3 reactants'''
+        '''Return children paths starting from a specific rxn_id'''
         
         # Define generators for each reactant node - decrement the depth!
         generators = [DLS_chem(chem_id, depth - 1) for chem_id in tree_dict[rxn_id]['rcts']]
@@ -167,7 +166,8 @@ def get_trees_iddfs(tree_dict, max_depth, max_trees=25):
 
         else:
             print('Too many reactants! Only have cases 1-3 programmed')
-            raise ValueError('Too many reactants! Only have cases 1-3 programmed')
+            #raise ValueError('Too many reactants! Only have cases 1-3 programmed')
+            # do not yield anything
 
     # Generate paths
 
@@ -341,6 +341,4 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
     [res.forget() for res in pending_results]
 
     # Return trees
-    return get_trees_iddfs(tree_dict, max_depth, max_trees)
-
-    
+    return (tree_status(tree_dict), get_trees_iddfs(tree_dict, max_depth, max_trees))
