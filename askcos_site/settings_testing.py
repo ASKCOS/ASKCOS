@@ -13,6 +13,13 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 PROJECT_PATH = os.path.dirname(__file__)
 
+# Celery 
+import djcelery
+djcelery.setup_loader()
+
+# Get settings from separate celeryconfig.py
+from askcos_celery.celeryconfig import *
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
@@ -60,8 +67,8 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'askcos_site.main',
+    'django_celery_results',
 )
-
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
