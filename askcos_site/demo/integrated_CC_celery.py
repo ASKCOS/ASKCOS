@@ -6,6 +6,25 @@ import numpy as np
 from rdkit import RDLogger
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
+import rdkit.Chem as Chem 
+
+def wait_to_get_result(res, timeout=120, update_freq=5, sleep=0.1, label='result'):
+    '''Helper func to wrap around a .get call'''
+    time_start = time.time()
+    time_last_update = time_start - update_freq
+    while True:
+        time_now = time.time()
+        if res.ready():
+            return res.get()
+        if time_now - time_start > timeout:
+            return res.get(timeout=0.) # let timeout error get raised
+        if time_now - time_last_update >= update_freq:
+            print('Waiting for {}, {:.2f}s elapsed, timeout at {}'.format(
+                label, time_now - time_start, timeout
+            ))
+            time_last_update = time_now
+        time.sleep(sleep)
+
 
 def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1000):
     global context_dict
@@ -97,9 +116,8 @@ def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1
                 print('Starting forward predictor')
                 all_outcomes_res = get_outcomes.delay('.'.join(reactants), contexts_for_predictor,
                     top_n=RANK_THRESHOLD_FOR_INCLUSION)
-                while not all_outcomes_res.ready():
-                    print('waiting...')
-                    time.sleep(1)
+                all_outcomes = wait_to_get_result(all_outcomes_res, timeout=300, update_freq=5, sleep=0.1, 
+                    label='forward predictor results (multi-context)')
                 print('Done!')
                 all_outcomes = all_outcomes_res.get()
                 plausible = [0. for i in range(len(all_outcomes))]
@@ -140,11 +158,9 @@ def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1
                 print('Starting forward predictor (one context)')
                 all_outcomes_res = get_outcomes.delay('.'.join(reactants), 
                     [(T1, rgt1, slvt1)], top_n=RANK_THRESHOLD_FOR_INCLUSION)
-                while not all_outcomes_res.ready():
-                    print('waiting...')
-                    time.sleep(1)
+                all_outcomes = wait_to_get_result(all_outcomes_res, timeout=300, update_freq=5, sleep=0.1, 
+                    label='forward predictor results (single-context)')
                 print('Done!')
-                all_outcomes = all_outcomes_res.get()
                 outcomes = all_outcomes[0]
                 plausible = 0.
                 for outcome in outcomes:
@@ -182,12 +198,19 @@ def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1
     print('Starting expansion of tree')
     tree_result = get_buyable_paths.delay(TARGET, max_time=expansion_time, max_depth=max_depth, 
         max_branching=max_branching, max_trees=max_trees)
+    (tree_status, trees) = wait_to_get_result(tree_result, timeout=expansion_time*1.5, update_freq=5, 
+        label='trees for target {} (t={:.1f}, d={}, b={}, max_trees={})'.format(
+            TARGET, expansion_time, max_depth, max_branching, max_trees
+        ))
 
-    while not tree_result.ready():
-        print('Expanding...')
-        time.sleep(5)
-    trees = tree_result.get()
+    # Save status
+    (num_chemicals, num_reactions, at_depth) = tree_status
+    print_and_log('After expanding, {} total chemicals and {} total reactions'.format(num_chemicals, num_reactions),
+        success=True, summary=True)
+    for (depth, count) in sorted(at_depth.iteritems(), key=lambda x: x[0]):
+        print_and_log('At depth {}, {} nodes'.format(depth, count), success=True, summary=True)
 
+    # Evaluate
     for tree in trees:
         # Step 1 - check if with exception
         if tree is None:
@@ -195,7 +218,6 @@ def main(TARGET, expansion_time=60.0, max_depth=5, max_branching=30, max_trees=1
             continue
         # Step 2 - check feasibility
         check_this_reaction(tree, this_is_the_target=True)
-
 
     print_and_log('Done with all trees found')
     return
@@ -243,6 +265,10 @@ if __name__ == '__main__':
 
     import urllib2
     smiles = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(TARGET)).read()
+    mol = Chem.MolFromSmiles(smiles)
+    if not mol:
+        raise ValueError('Could not resolve SMILES ({}) in a way parseable by RDKit'.format(smiles))
+    smiles = Chem.MolToSmiles(mol)
     print('Resolved {} smiles -> {}'.format(TARGET, smiles))
     TARGET_LABEL = TARGET 
     TARGET = smiles
@@ -251,34 +277,29 @@ if __name__ == '__main__':
 
     from askcos_site.askcos_celery.contextrecommender.worker import get_context_recommendation
     res = get_context_recommendation.delay([['CCO','CCBr'],['CCOCC']], n=1)
-    while not res.ready():
-        print('Waiting for context recommender to come online..')
-        time.sleep(1)
+    wait_to_get_result(res, timeout=120, update_freq=1, sleep=0.1, 
+        label='context recommender to come online')
 
     from askcos_site.askcos_celery.treebuilder.worker import get_top_precursors
     res = get_top_precursors.delay('CCCCCOCCCNC(=O)CCC')
-    while not res.ready():
-        print('Waiting for treebuilder worker to come online..')
-        time.sleep(1)
+    wait_to_get_result(res, timeout=120, update_freq=1, sleep=0.1, 
+        label='a tree builder worker to come online')
 
     from askcos_site.askcos_celery.treebuilder.coordinator import get_buyable_paths
-    res = get_buyable_paths.delay('CCCOCCC', max_time=5)
-    while not res.ready():
-        print('Waiting for treebuilder coordinator to come online..')
-        time.sleep(1)
+    res = get_buyable_paths.delay('CCCOCCC', mincount=0, max_branching=10, max_depth=2, 
+        max_ppg=1e8, max_time=10, max_trees=1, reporting_freq=5)
+    wait_to_get_result(res, timeout=120, update_freq=1, sleep=0.1, 
+        label='a tree builder coordinator to come online')
 
     from askcos_site.askcos_celery.forwardpredictor.worker import get_candidate_edits
-    res = get_candidate_edits.delay(reactants_smiles='[C:1][C:2][O:3].[Br:4][C:5]', start_at=0, 
-                end_at=10)
-    while not res.ready():
-        print('Waiting for forward predictor worker to come online..')
-        time.sleep(1)
+    res = get_candidate_edits.delay(reactants_smiles='[C:1][C:2][O:3].[Br:4][C:5]', start_at=0, end_at=100)
+    wait_to_get_result(res, timeout=120, update_freq=1, sleep=0.1, 
+        label='a forward predictor worker to come online')
 
     from askcos_site.askcos_celery.forwardpredictor.coordinator import get_outcomes
-    res = get_outcomes.delay('CCCO.CCCBr', contexts=[('20','[Na+].[OH-]', 'water')], mincount=100)
-    while not res.ready():
-        print('Waiting for forward predictor coord to come online..')
-        time.sleep(1)
+    res = get_outcomes.delay('CCCO.CCCBr', contexts=[('20','[Na+].[OH-]', 'water'), ('30', '', 'toluene')], mincount=100)
+    wait_to_get_result(res, timeout=120, update_freq=1, sleep=0.1, 
+        label='a forward predictor coordinator to come online')
 
     context_dict = {}
     plausibility_dict = {}
@@ -341,7 +362,7 @@ if __name__ == '__main__':
 
         # Save assessed-chemicals
         with open(os.path.join(FROOT, 'integrated_plog.txt'), 'w') as plog:
-            plog.write('Target: {}.\nReaction smiles \t Context \t Plausibility \n'.format(TARGET))
+            plog.write('Target: {}\nReaction smiles \t Context \t Plausibility \n'.format(TARGET))
             for rxn_smiles in plausibility_dict.keys():
                 plog.write('{} \t {} \t {:.3f} \n'.format(
                     rxn_smiles, context_dict[rxn_smiles], plausibility_dict[rxn_smiles]
