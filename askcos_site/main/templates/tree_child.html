@@ -17,7 +17,7 @@
 
 {% else %} 
 
-<div targetid="{{ target.id }}" class="rxn rxn{{ target.id }}" smiles="{{ target.smiles }}">
+<div targetid="{{ target.id }}" class="rxn rxn{{ target.id }}" smiles="{{ target.smiles }}" necessaryreagent="{{ target.necessary_reagent }}">
 <a targetid="{{ target.id }}" class="tooltip tooltip{{ target.id }}" style="border-color:black">
 {% if target.num_examples %}{{ target.num_examples }} examples{% endif %}
 <div>

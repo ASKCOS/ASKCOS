@@ -8,6 +8,7 @@ import django.contrib.auth.views
 from forms import SmilesInputForm, DrawingInputForm, is_valid_smiles
 from bson.objectid import ObjectId
 import time
+import numpy as np 
 
 import rdkit.Chem as Chem 
 import urllib2
@@ -65,12 +66,20 @@ def retro(request):
         else:
             # Identify target
             smiles = context['form'].cleaned_data['smiles']
-            if 'retro_lit' in request.POST: return redirect('retro_lit_target', smiles = smiles)
+            if 'retro_lit' in request.POST: return redirect('retro_lit_target', smiles=smiles)
             if 'retro' in request.POST:
                 if is_valid_smiles(smiles):
-                    return redirect('retro_target', smiles = smiles)
+                    return redirect('retro_target', smiles=smiles)
                 else:
-                    context['err'] = 'Invalid SMILES string: {}'.format(smiles)
+                    # Try to resolve
+                    smiles = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(smiles)).read()
+                    print('Resolved smiles -> {}'.format(smiles))
+                    mol = Chem.MolFromSmiles(smiles)
+                    if not mol: 
+                        context['err'] = 'Invalid SMILES string: {}'.format(smiles)
+                    else:
+                        smiles = Chem.MolToSmiles(mol)
+                        return redirect('retro_target', smiles=smiles)
     else:
         context['form'] = SmilesInputForm()
 
@@ -91,14 +100,17 @@ def retro(request):
         {'name': 'Quinapril', 'smiles': 'CCOC(=O)[C@H](CCc1ccccc1)N[C@@H](C)C(=O)N2Cc3ccccc3C[C@H]2C(O)=O'},
         {'name': 'Atorvastatin', 'smiles': 'CC(C)c1n(CC[C@@H](O)C[C@@H](O)CC(O)=O)c(c2ccc(F)cc2)c(c3ccccc3)c1C(=O)Nc4ccccc4'},
         {'name': 'Bortezomib', 'smiles': 'CC(C)C[C@@H](NC(=O)[C@@H](Cc1ccccc1)NC(=O)c2cnccn2)B(O)O'},
-        {'name': 'Itraconazole', 'smiles': 'CCC(C)N1N=CN(C1=O)c2ccc(cc2)N3CCN(CC3)c4ccc(OC[C@H]5CO[C@@](Cn6cncn6)(O5)c7ccc(Cl)cc7Cl)cc4'}
+        {'name': 'Itraconazole', 'smiles': 'CCC(C)N1N=CN(C1=O)c2ccc(cc2)N3CCN(CC3)c4ccc(OC[C@H]5CO[C@@](Cn6cncn6)(O5)c7ccc(Cl)cc7Cl)cc4'},
+        {'name': '6-Carboxytetramethylrhodamine', 'smiles': 'CN(C)C1=CC2=C(C=C1)C(=C3C=CC(=[N+](C)C)C=C3O2)C4=C(C=CC(=C4)C(=O)[O-])C(=O)O'},
+        {'name': '(S)-Warfarin', 'smiles': 'CC(=O)C[C@@H](C1=CC=CC=C1)C2=C(C3=CC=CC=C3OC2=O)O'},
+        {'name': 'Tranexamic Acid', 'smiles': 'NC[C@@H]1CC[C@H](CC1)C(O)=O'},
     ]
 
     context['footnote'] = RETRO_FOOTNOTE
     return render(request, 'retro.html', context)
 
 @login_required
-def retro_target(request, smiles, max_n = 50):
+def retro_target(request, smiles, max_n=50):
     '''
     Given a target molecule, render page
     '''
@@ -116,15 +128,19 @@ def retro_target(request, smiles, max_n = 50):
 
     # Perform retrosynthesis
     startTime = time.time()
-    result = RetroTransformer.perform_retro(smiles)
-    context['precursors'] = result.return_top(n = 50)
+    from askcos_site.askcos_celery.treebuilder.worker import get_top_precursors
+    # Use apply_async so we can force high priority 
+    res = get_top_precursors.apply_async(args=(smiles,), 
+        kwargs={'mincount':0, 'max_branching':max_n, 'raw_results':True}, 
+        priority=255)
+    context['precursors'] = res.get(120)
     elapsedTime = time.time() - startTime
 
     # Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
     # Also add up total number of examples
     for (i, precursor) in enumerate(context['precursors']):
         context['precursors'][i]['tforms'] = \
-            [dict(RetroTransformer.lookup_id(_id), **{'id':str(_id)}) for _id in precursor['tforms']]
+            [dict(RetroTransformer.lookup_id(ObjectId(_id)), **{'id':str(_id)}) for _id in precursor['tforms']]
         context['precursors'][i]['mols'] = []
         for smiles in precursor['smiles_split']:
             ppg = Pricer.lookup_smiles(smiles, alreadyCanonical = True)
@@ -181,14 +197,16 @@ def retro_interactive(request):
     '''Builds an interactive retrosynthesis page'''
 
     context = {}
-    context['warn'] = 'This module currently uses a shared backend object in Django, so there will be conflicts if more than one person tries to use this page at the same time.'
+    context['warn'] = 'All tree building tasks will compete for the same pool of workers currently; it may take much longer than the expansion time to generate results if the workers are busy.'
 
     context['max_depth_default'] = 4
     context['max_branching_default'] = 20
     context['retro_mincount_default'] = settings.RETRO_TRANSFORMS['mincount']
     context['synth_mincount_default'] = settings.SYNTH_TRANSFORMS['mincount']
+    context['expansion_time_default'] = 60
+    context['max_ppg_default'] = 10
 
-    return render(request, 'retro_interactive.html', context)
+    return render(request, 'retro_interactive_celery.html', context)
 
 @login_required
 def synth_interactive(request, reactants='', reagents='', solvent='toluene', temperature='20', mincount=''):
@@ -197,7 +215,6 @@ def synth_interactive(request, reactants='', reagents='', solvent='toluene', tem
     print(request.POST)
     print(reactants)
     context = {} 
-    context['warn'] = 'This module currently uses a shared backend object in Django, so there will be conflicts if more than one person tries to use this page at the same time.'
     context['footnote'] = PREDICTOR_FOOTNOTE
 
     context['reactants'] = reactants
@@ -329,11 +346,13 @@ def ajax_start_synth(request):
     print('mincount: {}'.format(mincount))
 
     startTime = time.time()
-    predictor.set_context(T = temperature, reagents = reagents, solvent = solvent)
-    print('Set context')
-    predictor.run_in_foreground(reactants = reactants, intended_product = '', quit_if_unplausible = False, mincount = mincount)
-    print('Ran in foreground')
-    outcomes = predictor.return_top(n = 25)
+    from askcos_site.askcos_celery.forwardpredictor.coordinator import get_outcomes
+    res = get_outcomes.delay(reactants, 
+        contexts=[(temperature, reagents, solvent)], 
+        mincount=mincount,
+        top_n=25)
+    outcomes = res.get(300)[0]
+
     print('Got top outcomes, length {}'.format(len(outcomes)))
     data['html_time'] = '{:.3f} seconds elapsed'.format(time.time() - startTime)
 
@@ -342,6 +361,41 @@ def ajax_start_synth(request):
     else:
         data['html'] = 'No outcomes found? That is weird...'
     return JsonResponse(data)
+
+@ajax_error_wrapper
+def ajax_start_retro_celery(request):
+    '''Start builder'''
+    data = {'err': False}
+
+    smiles = request.GET.get('smiles', None)
+    max_depth = int(request.GET.get('max_depth', 4))
+    max_branching = int(request.GET.get('max_branching', 25))
+    retro_mincount = int(request.GET.get('retro_mincount', 0))
+    expansion_time = int(request.GET.get('expansion_time', 60))
+    max_ppg = int(request.GET.get('max_ppg', 10))
+
+    from askcos_site.askcos_celery.treebuilder.coordinator import get_buyable_paths
+    res = get_buyable_paths.delay(smiles, mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth, 
+        max_ppg=max_ppg, max_time=expansion_time, max_trees=25, reporting_freq=5)
+    (tree_status, trees) = res.get(expansion_time * 3)
+    print(tree_status)
+    print(trees)
+
+    (num_chemicals, num_reactions, at_depth) = tree_status
+    data['html_stats'] = 'After expanding, {} total chemicals and {} total reactions'.format(num_chemicals, num_reactions)
+    for (depth, count) in sorted(at_depth.iteritems(), key=lambda x: x[0]):
+        label = 'Could not format label...?'
+        if int(float(depth)) == float(depth):
+            label = 'chemicals'
+        else:
+            label = 'reactions'
+        data['html_stats'] += '<br>   at depth {}, {} {}'.format(depth, count, label)
+
+    if trees:
+        data['html_trees'] = render_to_string('trees_only.html', {'trees': trees})
+    else:
+        data['html_trees'] = 'No trees resulting in buyable chemicals found!'
+    return JsonResponse(data)     
 
 @ajax_error_wrapper
 def ajax_start_retro(request):
@@ -418,80 +472,111 @@ def ajax_evaluate_rxnsmiles(request):
     data = {'err': False}
     smiles = request.GET.get('smiles', None)
     synth_mincount = int(request.GET.get('synth_mincount', 0))
+    necessary_reagent = request.GET.get('necessary_reagent', '')
     if '{}-{}'.format(smiles, synth_mincount) in DONE_SYNTH_PREDICTIONS:
         data = DONE_SYNTH_PREDICTIONS['{}-{}'.format(smiles, synth_mincount)]
         return JsonResponse(data)
     reactants = smiles.split('>>')[0].split('.')
     products = smiles.split('>>')[1].split('.')
-    NN_PREDICTOR.outputString = False
     print('...trying to get predicted context')
-    try:
-        [T1, t1, y1, slvt1, rgt1, cat1] = NN_PREDICTOR.step_condition([reactants, products])
-    except Exception as e:
-        data['err'] = True 
-        data['message'] = '{}'.format(e)
-        print(e)
-        return JsonResponse(data)
-    if slvt1 and slvt1[-1] == '.': 
-        slvt1 = slvt1[:-1]
-    if rgt1 and rgt1[-1] == '.':
-        rgt1 = rgt1[:-1]
-    if cat1 and cat1[-1] == '.':
-        cat1 = cat1[:-1]
-    # Add reagent to reactants for the purpose of forward prediction
-    # this is important for necessary reagents, e.g., chlorine source
-    if rgt1:
-        reactants.append(rgt1)
-    # Merge cat and reagent
-    if rgt1 and cat1: 
-        rgt1 = rgt1 + '.' + cat1 
-    elif cat1:
-        rgt1 = cat1
-    if '.' in slvt1:
-        slvt1 = slvt1.split('.')[0]
-    error = predictor.set_context(T=T1, reagents=rgt1, solvent=slvt1)
-    if error is not None:
-        print('Recommended context failed: {}'.format([T1, t1, y1, slvt1, rgt1, cat1]))
-        print('NN recommended unrecognizable context for {}'.format(rxn_smiles))
-        data['err'] = True 
-        data['message'] = 'NN could not come up with condition recommendation'
-        return JsonResponse(data)
-    
-    # Run predictor
-    try:
-        predictor.run_in_foreground(reactants='.'.join(reactants), intended_product=products[0], quit_if_unplausible=False, mincount=synth_mincount)
-        outcomes = predictor.return_top()
 
-        print('Recommended context: {}'.format([T1, t1, y1, slvt1, rgt1, cat1]))
-        print(outcomes[:min(len(outcomes), 3)])
-        plausible = 0
-        rank = '?'
-        for i, outcome in enumerate(outcomes):
+    if necessary_reagent:
+        num_contexts = 1
+    else:
+        num_contexts = 10
+    from askcos_site.askcos_celery.contextrecommender.worker import get_context_recommendation
+    res = get_context_recommendation.delay([reactants, products], n=num_contexts)
+    contexts = res.get(60)
+    print('Got context(s)')
+    print(contexts)
+
+    # Weird fix for n=1 v. n=many
+    if num_contexts == 1:
+        contexts = [contexts]
+
+    # Clean up
+    def fix_rgt_cat_slvt(rgt1, cat1, slvt1):
+        # Merge cat and reagent for forward predictor
+        if rgt1 and cat1:
+            rgt1 = rgt1 + '.' + cat1
+        elif cat1:
+            rgt1 = cat1
+        # Reduce solvent to single one
+        if '.' in slvt1:
+            slvt1 = slvt1.split('.')[0]
+        return (rgt1, cat1, slvt1)
+    def trim_trailing_period(txt):
+        if txt:
+            if txt[-1] == '.':
+                return txt[:-1]
+        return txt
+
+    contexts_for_predictor = []
+    for (T1, t1, y1, slvt1, rgt1, cat1) in contexts:
+        slvt1 = trim_trailing_period(slvt1)
+        rgt1 = trim_trailing_period(rgt1)
+        cat1 = trim_trailing_period(cat1)
+        (rgt1, cat1, slvt1) = fix_rgt_cat_slvt(rgt1, cat1, slvt1)
+        contexts_for_predictor.append((T1, rgt1, slvt1))
+    print('Cleaned contexts')
+
+    # Run
+    reactant_smiles = smiles.split('>>')[0]
+    if necessary_reagent and contexts_for_predictor[0][1]:
+        reactant_smiles += contexts_for_predictor[0][1] # add rgt
+    from askcos_site.askcos_celery.forwardpredictor.coordinator import get_outcomes
+    res = get_outcomes.delay(reactant_smiles, contexts=contexts_for_predictor, mincount=synth_mincount, top_n=10)
+    all_outcomes = res.get(300)
+    if all([len(outcome) == 0 for outcome in all_outcomes]):
+        data['html'] = 'Could not get outcomes - recommended context(s) unparseable'
+        for i, (T, rgt, slvt) in enumerate(contexts_for_predictor):
+            data['html'] += '<br>{}) T={}, rgt={}, slvt={}'.format(i+1, T, rgt, slvt)
+        data['html_color'] = str('#%02x%02x%02x' % (int(255), int(0), int(0)))
+        return JsonResponse(data)
+    plausible = [0. for i in range(len(all_outcomes))]
+    ranks = ['>10' for i in range(len(all_outcomes))]
+    major_prods = ['none found' for i in range(len(all_outcomes))]
+    major_probs = ['n/a' for i in range(len(all_outcomes))]
+    for i, outcomes in enumerate(all_outcomes):
+        if len(outcomes) != 0:
+            major_prods[i] = outcomes[0]['smiles']
+            major_probs[i] = outcomes[0]['prob']
+        for j, outcome in enumerate(outcomes):
             if outcome['smiles'] == products[0]:
-                plausible = float(outcome['prob'])
-                rank = i + 1
+                plausible[i] = float(outcome['prob'])
+                ranks[i] = j + 1
                 break
-        if not rgt1: rgt1 = 'no '
-        if not cat1: cat1 = 'no '
-        data['html'] = 'Plausibility score: {} (rank {}/{})'.format(plausible, rank, len(outcomes))
-        data['html'] += '<br><br><u>Top conditions</u>'
-        data['html'] += '<br>{} C'.format(T1)
-        data['html'] += '<br>{} solvent'.format(slvt1)
-        data['html'] += '<br>{} reagents'.format(rgt1)
-        data['html'] += '<br>{} catalyst'.format(cat1)
-        data['html'] += '<br>nearest-neighbor got {}% yield'.format(y1)
-        data['html'] += '<br>Predicted major product: {}'.format(outcomes[0]['smiles'])
-        data['html'] += '<br>(calc. used synth_mincount {})'.format(synth_mincount)
+    best_context_i = np.argmax(plausible)
+    plausible = plausible[best_context_i]
+    rank = ranks[best_context_i]
+    best_context = contexts_for_predictor[best_context_i]
+    major_prod = major_prods[best_context_i]
+    major_prob = major_probs[best_context_i]
 
-        B = 150.
-        R = 255. - (plausible > 0.5) * (plausible - 0.5) * (255. - B) * 2.
-        G = 255. - (plausible < 0.5) * (0.5 - plausible) * (255. - B) * 2.
-        data['html_color'] = str('#%02x%02x%02x' % (int(R), int(G), int(B)))
+    # Report
+    print('Recommended context(s): {}'.format(best_context))
+    print('Plausibility: {}'.format(plausible))
+    (T1, rgt1, slvt1) = best_context
 
-    except Exception as e:
-        print(e)
-        data['err'] = True 
-        data['message'] = '{}'.format(e)
+    if not rgt1: rgt1 = 'no '
+    data['html'] = 'Plausibility score: {} (rank {})'.format(plausible, rank)
+    data['html'] += '<br><br><u>Top conditions</u>'
+    data['html'] += '<br>{} C'.format(T1)
+    data['html'] += '<br>{} solvent'.format(slvt1)
+    data['html'] += '<br>{} reagents'.format(rgt1)
+    data['html'] += '<br>nearest-neighbor got {}% yield'.format(y1)
+    if major_prod:
+        data['html'] += '<br>Predicted major product with p = {}'.format(major_prob)
+        data['html'] += '<br>{}'.format(major_prod)
+        if rank != 1:
+            url = reverse('draw_smiles', kwargs={'smiles':major_prod})
+            data['html'] += '<br><img src="' + url + '">'
+    data['html'] += '<br>(calc. used synth_mincount {})'.format(synth_mincount)
+
+    B = 150.
+    R = 255. - (plausible > 0.5) * (plausible - 0.5) * (255. - B) * 2.
+    G = 255. - (plausible < 0.5) * (0.5 - plausible) * (255. - B) * 2.
+    data['html_color'] = str('#%02x%02x%02x' % (int(R), int(G), int(B)))
     
     # Save response
     DONE_SYNTH_PREDICTIONS['{}-{}'.format(smiles, synth_mincount)] = data
@@ -587,11 +672,13 @@ def template_target(request, id):
             })
         else:
             print('Could not find doc with example')
+        # Limit number retrieved
+        if len(references) >= 15:
+            break
 
     from makeit.retro.conditions import average_template_list
     context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
 
-    context['references'] = references[:15]
     return render(request, 'template.html', context)
 
 @login_required

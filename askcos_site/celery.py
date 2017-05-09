@@ -6,7 +6,8 @@ from django.conf import settings
 # Set the Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'askcos_site.settings')
 
-app = Celery('askcos_site', broker='amqp://localhost', backend='django-db',
+# Note: cannot use guest for authenticating with broker unless on localhost
+app = Celery('askcos_site', broker='amqp://worker:askcos@192.168.2.11:5672', backend='django-db',
 	include=[
     'askcos_site.askcos_celery.treebuilder.worker',
     'askcos_site.askcos_celery.treebuilder.coordinator',

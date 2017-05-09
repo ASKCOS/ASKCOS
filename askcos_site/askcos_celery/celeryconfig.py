@@ -7,7 +7,7 @@ ACCEPT_CONTENT = ['json']
 TIMEZONE = 'US/Eastern'
 ENABLE_UTC = True
 
-RESULT_EXPIRES = 600 # only keep results for 10 minutes max
+RESULT_EXPIRES = 300 # only keep results for 5 minutes max
 
 # Custom task queues - necessary to get priority for tree expansion! (RabbitMQ assumed)
 TASK_QUEUES = [

@@ -49,7 +49,7 @@ def configure_worker(options={},**kwargs):
     print('Tree builder worker loaded {} retro templates'.format(RetroTransformer.num_templates))
 
 @shared_task
-def get_top_precursors(smiles, mincount=0, max_branching=20):
+def get_top_precursors(smiles, mincount=0, max_branching=20, raw_results=False):
     '''Get the precursors for a chemical defined by its SMILES
 
     smiles = SMILES of node to expand
@@ -65,6 +65,11 @@ def get_top_precursors(smiles, mincount=0, max_branching=20):
 
     result = RetroTransformer.perform_retro(smiles, mincount=mincount)
     precursors = result.return_top(n=max_branching)
+    if raw_results:
+        for i in range(len(precursors)):
+            # Must convert ObjectID to string to json-serialize
+            precursors[i]['tforms'] = [str(tform) for tform in precursors[i]['tforms']]
+        return precursors
     return (smiles, [({'necessary_reagent': precursor['necessary_reagent'],
               'num_examples': precursor['num_examples'],
                'score': precursor['score']}, 

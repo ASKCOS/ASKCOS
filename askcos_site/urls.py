@@ -36,6 +36,7 @@ urlpatterns += [
     url(ur'^retro_interactive/$', main.views.retro_interactive, name = 'retro_interactive'),
     url(ur'^ajax/smiles_to_image_retro/$', main.views.ajax_smiles_to_image_retro, name = 'ajax_smiles_to_image_retro'),
     url(ur'^ajax/start_retro/$', main.views.ajax_start_retro, name = 'ajax_start_retro'),
+    url(ur'^ajax/start_retro_celery/$', main.views.ajax_start_retro_celery, name = 'ajax_start_retro_celery'),
     url(ur'^ajax/pause_retro/$', main.views.ajax_pause_retro, name = 'ajax_pause_retro'),
     url(ur'^ajax/stop_retro/$', main.views.ajax_stop_retro, name = 'ajax_stop_retro'),
     url(ur'^ajax/update_retro_stats/$', main.views.ajax_update_retro_stats, name = 'ajax_update_retro_stats'),

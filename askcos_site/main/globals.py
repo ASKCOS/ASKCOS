@@ -14,7 +14,7 @@ RetroTransformer = transformer.Transformer(
 	nb_workers = settings.RETRO_TRANSFORMER['nb_workers'],
 )
 mincount_retro = settings.RETRO_TRANSFORMS['mincount']
-RetroTransformer.load(RETRO_DB, mincount = mincount_retro, get_retro = True, get_synth = False)
+RetroTransformer.load(RETRO_DB, mincount=mincount_retro, get_retro=False, get_synth=False, refs=True)
 print('Loaded {} retro templates'.format(RetroTransformer.num_templates))
 RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.format(RetroTransformer.num_templates,
 	mincount_retro, settings.RETRO_TRANSFORMS['database'], settings.RETRO_TRANSFORMS['collection'])
@@ -53,10 +53,11 @@ Pricer = pricer.Pricer()
 Pricer.load(CHEMICAL_DB, BUYABLE_DB)
 print('Loaded known prices')
 
-### Literaturue transformer
-import makeit.retro.transformer_onlyKnown as transformer_onlyKnown
-TransformerOnlyKnown = transformer_onlyKnown.TransformerOnlyKnown()
-TransformerOnlyKnown.load(CHEMICAL_DB, REACTION_DB)
+# ### Literaturue transformer
+# import makeit.retro.transformer_onlyKnown as transformer_onlyKnown
+# TransformerOnlyKnown = transformer_onlyKnown.TransformerOnlyKnown()
+# TransformerOnlyKnown.load(CHEMICAL_DB, REACTION_DB)
+TransformerOnlyKnown = None 
 
 # Builder
 from makeit.webapp.treeBuilder import TreeBuilder 
@@ -66,22 +67,22 @@ builder = TreeBuilder(Pricer = Pricer, RetroTransformer = RetroTransformer)
 from makeit.webapp.forwardPredictor import ForwardPredictor 
 predictor = ForwardPredictor(nb_workers = settings.PREDICTOR['nb_workers'], TRANSFORM_DB = SYNTH_DB, SOLVENT_DB = SOLVENT_DB)
 predictor.load_templates(mincount = mincount_synth)
-predictor.load_model(settings.PREDICTOR['trained_model_path'])
+# predictor.load_model(settings.PREDICTOR['trained_model_path'])
 PREDICTOR_FOOTNOTE = 'Results generated using <= {} forward synthetic templates (mincount >= {}) from {}/{}, scored by a trained machine learning model: '.format(predictor.num_templates,	mincount_synth, settings.SYNTH_TRANSFORMS['database'], settings.SYNTH_TRANSFORMS['collection']) + settings.PREDICTOR['info']
 
 # NN predictor
 from sklearn.externals import joblib
 from askcos_site.functions.nnPredictor import NNConditionPredictor
-# Load all the instance IDs from the test model
-rxd_ids = []
-rxn_ids = []
-with open(settings.CONTEXT_REC['info_path'], 'r') as infile:
-    rxn_ids.append(infile.readlines()[1:])  # a list of str(rxn_ids) with '\n'
-for id in rxn_ids[0]:
-    rxd_ids.append(id.replace('\n', ''))
-print('Read context recommendation info file from {}'.format(settings.CONTEXT_REC['info_path']))
-lshf_nn = joblib.load(settings.CONTEXT_REC['model_path'])
-print('Loaded context recommendation nearest-neighbor model from {}'.format(settings.CONTEXT_REC['model_path']))
-NN_PREDICTOR = NNConditionPredictor(nn_model=lshf_nn, rxn_ids=rxd_ids)
+# # Load all the instance IDs from the test model
+# rxd_ids = []
+# rxn_ids = []
+# with open(settings.CONTEXT_REC['info_path'], 'r') as infile:
+#     rxn_ids.append(infile.readlines()[1:])  # a list of str(rxn_ids) with '\n'
+# for id in rxn_ids[0]:
+#     rxd_ids.append(id.replace('\n', ''))
+# print('Read context recommendation info file from {}'.format(settings.CONTEXT_REC['info_path']))
+# lshf_nn = joblib.load(settings.CONTEXT_REC['model_path'])
+# print('Loaded context recommendation nearest-neighbor model from {}'.format(settings.CONTEXT_REC['model_path']))
+NN_PREDICTOR = NNConditionPredictor(nn_model=None, rxn_ids=None)
 # Keeping track of what reactions have already been done
 DONE_SYNTH_PREDICTIONS = {}

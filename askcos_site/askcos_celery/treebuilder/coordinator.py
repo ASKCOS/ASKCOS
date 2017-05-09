@@ -348,11 +348,9 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
 
         # Break when appropriate
         if time_now >= time_goal:
+            [res.revoke() for res in pending_results]
             break
 
-    # Clear results - cancel any pending expansions
-    [res.revoke(terminate=True) for res in pending_results]
-    # [res.forget() for res in pending_results]
-
     # Return trees
-    return (tree_status(tree_dict), get_trees_iddfs(tree_dict, max_depth, max_trees))
+    res = (tree_status(tree_dict), get_trees_iddfs(tree_dict, max_depth, max_trees))
+    return res

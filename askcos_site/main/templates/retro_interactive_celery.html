@@ -43,96 +43,38 @@ $("#id_smiles").change(function () {
 
 });
 $("#start_retro").click(function () {
-    console.log('starting retro');
-    $.ajax({
-        url: '/ajax/start_retro/',
-        data: {
-            smiles: $("#id_smiles").val(),
-            max_depth: $("#max_depth").val(),
-            max_branching: $("#max_branching").val(),
-            retro_mincount: $("#retro_mincount").val(),
-        },
-        dataType: 'json',
-        success: function (data) {
-            if (data.err) {
-                alert(data.message);
-            } else {
-                $("#status").html(': running...');
+    if ($("#start_retro").prop('disabled')) {
+        alert('Be patient! It is running');
+    } else {
+        console.log('starting retro');
+        $("#start_retro").prop('disabled', true);
+        $("#status").html(': running...');
+        $("#start_retro").html('In progress...');
+        $.ajax({
+            url: '/ajax/start_retro_celery/',
+            data: {
+                smiles: $("#id_smiles").val(),
+                max_depth: $("#max_depth").val(),
+                max_branching: $("#max_branching").val(),
+                retro_mincount: $("#retro_mincount").val(),
+                expansion_time: $("#expansion_time").val(),
+                max_ppg: $("#max_ppg").val(),
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.err) {
+                    alert(data.message);
+                    $("#status").html(': failed?');
+                } else {
+                    $("#statistics").html(data.html_stats);
+                    $("#results").html(data.html_trees);
+                    $("#status").html(': done!');
+                }
                 $("#start_retro").html('Start');
+                $("#start_retro").prop('disabled', false);
             }
-        }
-    });
-});
-$("#pause_retro").click(function () {
-    console.log('pausing retro');
-    $.ajax({
-        url: '/ajax/pause_retro/',
-        data: {
-            smiles: $("#id_smiles").val(),
-        },
-        dataType: 'json',
-        success: function (data) {
-            if (data.err) {
-                alert(data.message);
-            } else {
-                $("#status").html(': paused');
-                $("#start_retro").html('Resume')
-            }
-        }
-    });
-});
-$("#stop_retro").click(function () {
-    console.log('stopping retro');
-    $.ajax({
-        url: '/ajax/stop_retro/',
-        data: {
-            smiles: $("#id_smiles").val(),
-        },
-        dataType: 'json',
-        success: function (data) {
-            if (data.err) {
-                alert(data.message);
-            } else {
-                $("#status").html(': stopped');
-                $("#start_retro").html('Start');
-            }
-        }
-    });
-});
-$("#update_retro_stats").click(function () {
-    console.log('updating retro');
-    $.ajax({
-        url: '/ajax/update_retro_stats/',
-        data: {
-            smiles: $("#id_smiles").val(),
-        },
-        dataType: 'json',
-        success: function (data) {
-            if (data.err) {
-                alert(data.message);
-            } else {
-                $("#statistics").html(data.html_stats);
-            }
-        }
-    });
-});
-$("#update_retro").click(function () {
-    console.log('updating retro');
-    $.ajax({
-        url: '/ajax/update_retro/',
-        data: {
-            smiles: $("#id_smiles").val(),
-        },
-        dataType: 'json',
-        success: function (data) {
-            if (data.err) {
-                alert(data.message);
-            } else {
-                $("#statistics").html(data.html_stats);
-                $("#results").html(data.html_trees);
-            }
-        }
-    });
+        });
+    }
 });
 $('#results').on('click', '.rxn', function(){
     console.log('clicked on a rxn box');
@@ -205,16 +147,20 @@ $(document).ready(function() {
     Min. synth template count: </td><td><input type="number" id="synth_mincount" style="width: 5em" min="{{synth_mincount_default}}" value="{{synth_mincount_default}}">
 </td>
 </tr>
+<tr><th style="vertical-align: bottom; text-align:left"></th>
+<td>
+    Maximum chemical price ($/g): </td><td><input type="number" id="max_ppg" style="width: 5em" max="{{max_ppg_default}}" value="{{max_ppg_default}}">
+</td>
+<td>
+    Expansion time (s): </td><td><input type="number" id="expansion_time" style="width: 5em" min="5" max="600" value="{{expansion_time_default}}">
+</td>
+</tr>
 </tbody>
 
 <!-- Controls -->
 <tr id="controls_wrapper" style="display:none"><th style="vertical-align: bottom; text-align:left">Controls:</th>
 <td colspan="4">
     <button type="button" style="width:120px" id="start_retro">Start</button>
-    <button type="button" style="width:120px" id="pause_retro">Pause</button>
-    <button type="button" style="width:120px" id="stop_retro">Stop</button>
-    <button type="button" style="width:120px" id="update_retro_stats">Show stats</button>
-    <button type="button" style="width:120px" id="update_retro">Show results</button>
 </td>
 </tr>
 
