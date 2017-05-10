@@ -106,9 +106,15 @@ def template_worker(i, workers_done, apply_queue, results_queue, done, F_atom, F
 			
 		except VanillaQueue.Empty:
 			workers_done[i] = True 
-			#print('Worker found empty queue')
+			print('Worker found empty queue for forward prediction')
 			time.sleep(1)
-			pass
+
+		except Exception as e:
+			print('### WORKER {} FAILING ###'.format(i))
+			print(e)
+			sys.stdout.flush()
+			sys.stderr.flush()
+
 
 
 def coordinator(workers_done, coordinator_done, apply_queue, results_queue, done, model, context, products, intended_product, plausible, quit_if_unplausible):
@@ -121,13 +127,16 @@ def coordinator(workers_done, coordinator_done, apply_queue, results_queue, done
 	max_score = -9999999
 	max_product = ''
 
+	# # Make sure workers_done is False so we don't quit early
+	# workers_done = [False for i in range(len(workers_done))]
+
 	while True:
 		# If done, stop
 		if done.value:
 			print('Coordinator saw done signal, stopping')
 			break
 		try:
-			(product_smiles, x) = results_queue.get(timeout = 0.1)
+			(product_smiles, x) = results_queue.get(timeout = 0.5)
 
 			score = model.predict(x + context)[0][0]
 			#print('Score for {}, {}'.format(product_smiles, score))
@@ -151,6 +160,12 @@ def coordinator(workers_done, coordinator_done, apply_queue, results_queue, done
 
 		except VanillaQueue.Empty:
 			pass
+
+		except Exception as e:
+			print('## forwardPredictor coordinator failing ##')
+			print(e)
+			sys.stdout.flush()
+			sys.stderr.flush()
 
 		# Is the intended product not the major product?
 		if intended_found and intended_score + 0.693 < max_score:
@@ -236,6 +251,7 @@ class ForwardPredictor:
 			p = Process(target = template_worker, args = (i, self.workers_done, self.apply_queue, self.results_queue, self.done, self.F_atom, self.F_bond, self.atom_desc_dict))
 			self.workers.append(p)
 			p.start()
+		self.coordinator = None
 
 
 	def load_templates(self, mincount = 25):
@@ -308,17 +324,18 @@ class ForwardPredictor:
 		Stop building
 		'''
 
-		if not self.is_running(): return
+		#if not self.is_running(): return
 		
 		# Signal done
 		if not self.done.value:
 			self.done.value = 1
 			print('Changed `done` signal to True')
 		
-		print('giving workers {} seconds to terminate'.format(timeout))
+		print('giving predictor workers {} seconds to terminate'.format(timeout))
 		# Join up workers
 		time.sleep(timeout)	
 		for p in self.workers + [self.coordinator]:
+			if p is None: continue
 			if p.is_alive():
 				print('Process is still alive?')
 				p.terminate()
@@ -360,8 +377,7 @@ class ForwardPredictor:
 	def run(self, reactants = '', intended_product = '', quit_if_unplausible = False, mincount = 0):
 		
 		# Force clear products
-		del self.products 
-		self.products = self.manager.dict()
+		self.products.clear()
 
 		reactants = Chem.MolFromSmiles(reactants)
 		if not reactants: 
@@ -385,8 +401,10 @@ class ForwardPredictor:
 			self.atom_desc_dict[key] = val
 
 		# Clear queues (just to be safe)
+		print('Flushing apply and results queues')
 		while not self.apply_queue.empty(): self.apply_queue.get()
 		while not self.results_queue.empty(): self.results_queue.get()
+		print('flushed!')
 
 		# Load up queue
 		for template in self.templates:
@@ -399,11 +417,13 @@ class ForwardPredictor:
 		self.done.value = 0
 		self.coordinator_done.value = 0
 		self.plausible.value = 0
+		print('Creating coordinator process for forwardPredictor')
 		self.coordinator = Process(target = coordinator, args = (self.workers_done, self.coordinator_done, self.apply_queue, self.results_queue, self.done, self.model, self.context, self.products, self.intended_product, self.plausible, self.quit_if_unplausible))
+		print('Starting coordinator for forwardPredictor')
 		self.coordinator.start()
 		self.isRunning = True
-
 		print('Added forward templates to queue and started coordinator')
+		sys.stdout.flush()
 
 	def is_running(self):
 		return bool(self.isRunning)
@@ -420,6 +440,7 @@ class ForwardPredictor:
 	def run_in_foreground(self, **kwargs):
 		self.run(**kwargs)
 		while not self.is_coord_done(): pass
+
 
 	def num_prods(self):
 		return self.products.__len__()

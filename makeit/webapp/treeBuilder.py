@@ -85,7 +85,7 @@ def coordinator(current_id, tree_dict, expansion_queues, results_queue, chem_to_
             time.sleep(1)
             continue
         try:
-            (_id, children) = results_queue.get()
+            (_id, children) = results_queue.get(2)
             #print('Got results for node ID {}'.format(_id))
 
             added_to_queue = 0
@@ -162,7 +162,7 @@ def coordinator(current_id, tree_dict, expansion_queues, results_queue, chem_to_
             #print('Added {} children to expansion queue from parent node ID {}'.format(added_to_queue, _id))
 
         except VanillaQueue.Empty:
-            pass
+            print('coordinator does not see any results')
 
 
 class TreeBuilder:
@@ -217,15 +217,14 @@ class TreeBuilder:
         # Dictionary storing the overall tree
         self.tree_dict.clear()
         self.chem_to_id.clear()
-        self.paused.value = 0
-        self.done.value = 0
-        self.current_id.value = 1
+        self.paused = self.manager.Value('i', 0)
+        self.done = self.manager.Value('i', 0)
+        self.current_id = self.manager.Value('i', 2) # 1 is reserved for target
         self.buyable_leaves = self.manager.list() # keep track of buyable leaves for searching later
         self.workers = []
 
         # Initialize the highest-priority queue with the target
         # it's okay that this is really a depth-0 chemical, since it will be the expansion grabbed
-        self.current_id.value = 2
         self.expansion_queues[-1].put((1, smiles))
         self.tree_dict[1] = {
             'smiles': smiles,
@@ -236,13 +235,19 @@ class TreeBuilder:
         }
 
         # Begin processes
+        print('builder spinning off child processes')
         for i in range(self.nb_workers):
-            p = Process(target = expansion_worker, args = (i, self.expansion_queues, self.results_queue, self.paused, self.done, self.RetroTransformer, self.max_branching,mincount))
+            p = Process(target = expansion_worker, args = (i, self.expansion_queues, self.results_queue, self.paused, self.done, self.RetroTransformer, self.max_branching, mincount))
             self.workers.append(p)
             p.start()
 
+        print('deleting old coordinator')
+        del self.coordinator
+        print('allocating new coordinator Process')
         self.coordinator = Process(target = coordinator, args = (self.current_id, self.tree_dict, self.expansion_queues, self.results_queue, self.chem_to_id, self.paused, self.done, self.buyable_leaves, self.Pricer))
+        print('starting new coordinator Process')
         self.coordinator.start()
+        print('started new coordinator successfully')
 
 
     def stop_building(self, timeout = 15):

@@ -1,5 +1,5 @@
 import numpy as np
-import rdkit.Chem.Descriptors as Descriptors
+# import rdkit.Chem.Descriptors as Descriptors
 import rdkit.Chem.rdMolDescriptors as rdMolDescriptors
 import rdkit.Chem.EState as EState
 import rdkit.Chem.rdPartialCharges as rdPartialCharges
@@ -22,18 +22,18 @@ def rxn_level_descriptors(rxn):
 	settings = rdRxns.ReactionFingerprintParams()
 	return np.array(rdRxns.CreateStructuralFingerprintForReaction(rxn, settings))
 
-def mol_level_descriptors(mol):
-	'''
-	Given an RDKit mol, returns a list of molecule-level descriptors 
-	and their names
+# def mol_level_descriptors(mol):
+# 	'''
+# 	Given an RDKit mol, returns a list of molecule-level descriptors 
+# 	and their names
 
-	returns: (labels, attributes)
-	'''
+# 	returns: (labels, attributes)
+# 	'''
 	
-	labels = [label for (label, f) in Descriptors._descList]
-	attributes = [f(mol) for (label, f) in Descriptors._descList]
+# 	labels = [label for (label, f) in Descriptors._descList]
+# 	attributes = [f(mol) for (label, f) in Descriptors._descList]
 	
-	return (labels, attributes)
+# 	return (labels, attributes)
 
 def atom_level_descriptors(mol, include = ['functional'], asOneHot = False, ORIGINAL_VERSION = False):
 	'''

@@ -106,9 +106,14 @@ def template_worker(i, workers_done, apply_queue, results_queue, done, F_atom, F
 			
 		except VanillaQueue.Empty:
 			workers_done[i] = True 
-			#print('Worker found empty queue')
+			print('Worker (predictor MC) found empty queue')
 			time.sleep(1)
-			pass
+
+		except Exception as e:
+			print('### WORKER {} FAILIING ###'.format(i))
+			print(e)
+			sys.stdout.flush()
+			sys.stderr.flush()
 
 
 def coordinator(workers_done, coordinator_done, apply_queue, results_queue, done, model, contexts, products, intended_product, plausible, quit_if_unplausible):
@@ -121,13 +126,16 @@ def coordinator(workers_done, coordinator_done, apply_queue, results_queue, done
 	max_score = [-9999999 for i in range(len(contexts))]
 	max_product = ['' for i in range(len(contexts))]
 
+
+	# workers_done = [False for i in range(len(workers_done))]
+
 	while True:
 		# If done, stop
 		if done.value:
 			print('Coordinator saw done signal, stopping')
 			break
 		try:
-			(product_smiles, x) = results_queue.get(timeout = 0.1)
+			(product_smiles, x) = results_queue.get(timeout = 0.5)
 
 			for i, context in enumerate(contexts):
 				score = model.predict(x + context)[0][0]
@@ -157,6 +165,12 @@ def coordinator(workers_done, coordinator_done, apply_queue, results_queue, done
 
 		except VanillaQueue.Empty:
 			pass
+
+		except Exception as e:
+			print('## forwardPredictor coordinator failing ##')
+			print(e)
+			sys.stdout.flush()
+			sys.stderr.flush()
 
 		# Is the intended product not the major product?
 		definitely_unplausible = [] 
@@ -252,6 +266,7 @@ class ForwardPredictor:
 			p = Process(target = template_worker, args = (i, self.workers_done, self.apply_queue, self.results_queue, self.done, self.F_atom, self.F_bond, self.atom_desc_dict))
 			self.workers.append(p)
 			p.start()
+		self.coordinator = None
 
 
 	def load_templates(self, mincount = 25):
@@ -324,17 +339,18 @@ class ForwardPredictor:
 		Stop building
 		'''
 
-		if not self.is_running(): return
+		#if not self.is_running(): return
 		
 		# Signal done
 		if not self.done.value:
 			self.done.value = 1
 			print('Changed `done` signal to True')
 		
-		print('giving workers {} seconds to terminate'.format(timeout))
+		print('giving predictor MC workers {} seconds to terminate'.format(timeout))
 		# Join up workers
 		time.sleep(timeout)	
 		for p in self.workers + [self.coordinator]:
+			if p is None: continue
 			if p.is_alive():
 				print('Process is still alive?')
 				p.terminate()
@@ -419,8 +435,7 @@ class ForwardPredictor:
 	def run(self, reactants = '', intended_product = '', quit_if_unplausible = False, mincount = 0):
 		
 		# Force clear products
-		del self.products 
-		self.products = self.manager.dict()
+		self.products.clear()
 
 		reactants = Chem.MolFromSmiles(reactants)
 		if not reactants: 
