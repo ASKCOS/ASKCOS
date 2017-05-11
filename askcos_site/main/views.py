@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.conf import settings
 import django.contrib.auth.views
 from forms import SmilesInputForm, DrawingInputForm, is_valid_smiles
+from pymongo.message import bson
 from bson.objectid import ObjectId
 import time
 import numpy as np 
@@ -14,8 +15,6 @@ import rdkit.Chem as Chem
 import urllib2
 
 from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, builder, predictor, PREDICTOR_FOOTNOTE, NN_PREDICTOR, DONE_SYNTH_PREDICTIONS
-from forms import nnSetup, sepInput
-from askcos_site.functions.SPARC import SeparationDesigner
 
 
 def the_time(request):
