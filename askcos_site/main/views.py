@@ -203,7 +203,7 @@ def retro_interactive(request):
     context['retro_mincount_default'] = settings.RETRO_TRANSFORMS['mincount']
     context['synth_mincount_default'] = settings.SYNTH_TRANSFORMS['mincount']
     context['expansion_time_default'] = 60
-    context['max_ppg_default'] = 10
+    context['max_ppg_default'] = 100
 
     return render(request, 'retro_interactive_celery.html', context)
 
