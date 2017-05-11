@@ -37,16 +37,16 @@ SOLVENT_DB = db['solvents']
 # lshf_nn = joblib.load(os.path.join(model_dir, '1650000-1699999_10NN_20000SRR_lshf.pickle'))
 
 
-# Load the full model
-model_dir = '/home/yrwang/askcos/2MRxnModel'
-rxd_ids = []
-rxn_ids = []
-with open(os.path.join(model_dir, 'fpNN-10_2MRxn_info.txt'), 'r') as infile:
-    rxn_ids.append(infile.readlines()[1:])  # a list of str(rxn_ids) with '\n'
-for id in rxn_ids[0]:
-    rxd_ids.append(id.replace('\n', ''))
-# Load the NN model
-lshf_nn = joblib.load(os.path.join(model_dir, 'fpNN-10_2MRxn_lshf.pickle'))
+# # Load the full model
+# model_dir = '/home/yrwang/askcos/2MRxnModel'
+# rxd_ids = []
+# rxn_ids = []
+# with open(os.path.join(model_dir, 'fpNN-10_2MRxn_info.txt'), 'r') as infile:
+#     rxn_ids.append(infile.readlines()[1:])  # a list of str(rxn_ids) with '\n'
+# for id in rxn_ids[0]:
+#     rxd_ids.append(id.replace('\n', ''))
+# # Load the NN model
+# lshf_nn = joblib.load(os.path.join(model_dir, 'fpNN-10_2MRxn_lshf.pickle'))
 
 
 def string_or_range_to_float(text):
@@ -243,7 +243,7 @@ def n_rxn_condition(INSTANCE_DB, n, dists, idx, rxd_ids, dist_limit=0.3):
 class NNConditionPredictor():
     """Reaction condition predictor based on Nearest Neighbor method"""
 
-    def __init__(self, nn_model=lshf_nn, rxn_ids=rxd_ids, INSTANCE_DB=None):
+    def __init__(self, nn_model=None, rxn_ids=None, INSTANCE_DB=None):
         self.nnModel = nn_model
         self.rxn_ids = rxn_ids
         self.num_cond = 1
