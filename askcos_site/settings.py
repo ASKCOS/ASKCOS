@@ -133,16 +133,16 @@ MEDIA_URL = '/media/'
 RETRO_TRANSFORMS = {
     'database': 'reaxys',
     'collection': 'transforms_retro_v4', # 'lowe' or 'chematica'
-    'mincount': 100,
+    'mincount': 50,
 }
 RETRO_TRANSFORMER = { 
-    'parallel': True,
-    'nb_workers': 2,
+    'parallel': False,
+    'nb_workers': 0,
 }
 SYNTH_TRANSFORMS = {
     'database': 'reaxys',
     'collection': 'transforms_forward_v1',
-    'mincount': 50, 
+    'mincount': 25, 
 }
 SYNTH_TRANSFORMER = {
 }
@@ -168,14 +168,14 @@ SOLVENTS = {
 }
 
 PREDICTOR = {
-    'nb_workers': 4,
+    'nb_workers': 0,
     'trained_model_path': '/home/ccoley/Make-It/makeit/predict/output/01_23_2017',
     'info': '01-23-17, model trained on 80k Reaxys examples, validated on 10k, tested on 10k. Nh1_200, Nh2_200, Nh3_200, l2_0, Nc_5000, enh_weight_0d1, context_weight_50, opt_adadelta, batch_5, moreFeatures'
 }
 
 CONTEXT_REC = {
-    'info_path': '/data1/ASKCOS/2MRxnModel/fpNN-10_2MRxn_info.txt',
-    'model_path': '/data1/ASKCOS/2MRxnModel/fpNN-10_2MRxn_lshf.pickle',
+    'info_path': '/data/fatmodels/2MRxnModel/fpNN-10_2MRxn_info.txt',
+    'model_path': '/data/fatmodels/2MRxnModel/fpNN-10_2MRxn_lshf.pickle',
 }
 
 # LOGIN
