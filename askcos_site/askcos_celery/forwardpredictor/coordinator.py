@@ -24,10 +24,6 @@ model = None
 template_counts = None
 F_atom = None
 F_bond = None
-Chem = None
-AllChem = None
-edits_to_vectors = None
-get_candidate_edits = None
 solvent_smiles_to_params = {} 
 solvent_name_to_smiles = {}
 
@@ -65,6 +61,14 @@ def load_model(folder, F_atom, F_bond):
     return model
 
 def context_to_mats(reagents='', solvent='toluene', T='20'):
+
+    global solvent_smiles_to_params
+    global solvent_name_to_smiles
+
+    import rdkit.Chem as Chem 
+    import numpy as np 
+    import rdkit.Chem.AllChem as AllChem
+
     # Temperature is easy
     try:
         T = float(T)
@@ -76,7 +80,7 @@ def context_to_mats(reagents='', solvent='toluene', T='20'):
     try:
         solvent_mol = Chem.MolFromSmiles(solvent)
         doc = solvent_smiles_to_params[Chem.MolToSmiles(solvent_mol)]
-    except Exception: # KeyError or Boost.Python.ArgumentError
+    except Exception as e: # KeyError or Boost.Python.ArgumentError
         try:
             doc = solvent_smiles_to_params[solvent_name_to_smiles[solvent]]
         except KeyError:
@@ -109,10 +113,6 @@ def configure_coordinator(options={},**kwargs):
     global model 
     global F_atom 
     global F_bond
-    global Chem
-    global AllChem 
-    global edits_to_vectors
-    global get_candidate_edits
     global solvent_smiles_to_params
     global solvent_name_to_smiles
 
@@ -184,10 +184,13 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
     global model 
     global F_atom 
     global F_bond
-    global Chem
-    global AllChem 
-    global edits_to_vectors
-    global get_candidate_edits
+    global solvent_smiles_to_params
+    global solvent_name_to_smiles
+
+    from .worker import get_candidate_edits
+    import rdkit.Chem as Chem 
+    import rdkit.Chem.AllChem as AllChem
+    from makeit.embedding.descriptors import edits_to_vectors
 
     # Get atom descriptors
     reactants = Chem.MolFromSmiles(reactants)

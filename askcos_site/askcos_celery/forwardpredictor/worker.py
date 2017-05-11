@@ -13,8 +13,6 @@ lg.setLevel(RDLogger.CRITICAL)
 
 CORRESPONDING_QUEUE = 'fp_worker'
 templates = None
-Chem = None
-summarize_reaction_outcome = None
 
 @celeryd_init.connect
 def configure_worker(options={},**kwargs):
@@ -25,8 +23,6 @@ def configure_worker(options={},**kwargs):
     print('### STARTING UP A FORWARD PREDICTOR WORKER ###')
 
     global templates
-    global Chem
-    global summarize_reaction_outcome
     
     # Get Django settings
     from django.conf import settings
@@ -56,7 +52,9 @@ def get_candidate_edits(reactants_smiles, start_at, end_at):
     end_at = index of templates to end at'''
 
     global templates
-    global Chem 
+    
+    import rdkit.Chem as Chem 
+    from makeit.predict.summarize_reaction_outcome import summarize_reaction_outcome
 
     #print('Forward predictor worker was asked to expand {} ({}->{})'.format(reactants_smiles, start_at, end_at))
     reactants = Chem.MolFromSmiles(reactants_smiles)
