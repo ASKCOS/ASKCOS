@@ -23,7 +23,8 @@ worker_prefetch_multiplier = 1
 
 # Task routes (to make sure workers are task-specific)
 TASK_ROUTES = {
-    'askcos_site.askcos_celery.treebuilder.worker.*': {'queue': 'tb_worker'},
+    'askcos_site.askcos_celery.treebuilder.worker.get_top_precursors': {'queue': 'tb_worker'},
+    'askcos_site.askcos_celery.treebuilder.worker.reserve_worker_pool': {'queue': 'tb_worker_reservable'},
     'askcos_site.askcos_celery.treebuilder.coordinator.*': {'queue': 'tb_coordinator'},
     'askcos_site.askcos_celery.forwardpredictor.worker.*': {'queue': 'fp_worker'},
     'askcos_site.askcos_celery.forwardpredictor.coordinator.*': {'queue': 'fp_coordinator'}, 
