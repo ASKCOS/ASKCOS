@@ -201,7 +201,8 @@ def get_trees_iddfs(tree_dict, max_depth, max_trees=25):
 
 @shared_task(bind=True)
 def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3, 
-        max_ppg=1e8, max_time=60, max_trees=25, reporting_freq=5):
+        max_ppg=1e8, max_time=60, max_trees=25, reporting_freq=5,
+        known_bad_reactions=[], return_d1_if_no_trees=False):
     '''Get a set of buyable trees for a target compound.
 
     mincount = minimum template popularity
@@ -211,6 +212,8 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
     max_ppg = maximum price to consider something buyable
     max_time = time for expansion
     reporting_freq = interval (s) for reporting status
+    known_bad_reactions = list of reactant smiles for reactions which we
+         already know not to work, so we shouldn't propose them
 
     This function updates its state to provide information about the current
     status of the expansion. Search "on_message task progress" for examples'''
@@ -280,6 +283,13 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
 
                     # Assign unique number
                     for (rxn, mols) in children:
+
+                        # Check if we know this to be a bad reaction
+                        # and leave it out of the tree if so
+                        rxn_smiles = '.'.join(sorted(mols)) + '>>' + smiles
+                        if rxn_smiles in known_bad_reactions:
+                            continue
+
                         rxn_id = current_id
                         current_id += 1 # this is only okay because there is ONE coordinator process
 
@@ -305,6 +315,12 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
                                     # (a) was previously at max_depth, and (b) not buyable
                                     if prev_depth == max_depth and not tree_dict[chem_id]['ppg']:
                                         pending_results.append(expand(mol, priority=tree_dict[chem_id]['depth']))
+
+                                    # Weird case: the decrease in depth should
+                                    # propagate to children, so maybe we need to
+                                    # look into the chemical's children and
+                                    # figure out if those should be expanded
+                                    # again? Not sure how to handle this
 
                             except KeyError:
                                 # New chemical?
@@ -357,6 +373,7 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
                     })
                     time_last_report = time_now 
                     print('Treebuilder coordinator: updated state: {} chems and {} rxns'.format(num_chemicals, num_reactions))
+                    print('at_depth dict: {}'.format(at_depth))
                     print('Treebuilder coordinator: {:.1f} seconds left'.format(time_goal - time_now))
 
                 # Break when appropriate
@@ -364,8 +381,25 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
                     break
 
             # Return trees
-            res = (tree_status(tree_dict), get_trees_iddfs(tree_dict, max_depth, max_trees))
-            return res
+            print('Getting tree status')
+            this_tree_status = tree_status(tree_dict)
+            print('Getting trees')
+            these_trees = get_trees_iddfs(tree_dict, max_depth, max_trees)
+            print('Got {} trees'.format(these_trees))
+
+            # Did we fail to find anything?
+            if len(these_trees) == 0 and return_d1_if_no_trees:
+                # Return a list of reaction SMILES to try instead
+                d1_reactions = []
+                for rxn_id in tree_dict[1]['prod_of']:
+                    d1_reactions.append((
+                        [tree_dict[x]['smiles'] for x in tree_dict[rxn_id]['rcts']],
+                        [tree_dict[1]['smiles']],
+                        tree_dict[rxn_id]['necessary_reagent'],
+                    ))
+                return (this_tree_status, these_trees, d1_reactions)
+                    
+            return (this_tree_status, these_trees)
         
         finally:
             print('Purging remaining tasks from {}...'.format(private_worker_queue))
