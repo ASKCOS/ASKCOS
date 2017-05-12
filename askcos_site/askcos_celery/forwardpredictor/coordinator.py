@@ -200,7 +200,8 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
     print('Number of reactant atoms: {}'.format(len(reactants.GetAtoms())))
     # Report current reactant SMILES string
     [a.ClearProp(str('molAtomMapNumber')) for a in reactants.GetAtoms() if a.HasProp(str('molAtomMapNumber'))]
-    print('Reactants w/o map: {}'.format(Chem.MolToSmiles(reactants)))
+    reactants_smiles_no_map = Chem.MolToSmiles(reactants)
+    print('Reactants w/o map: {}'.format(reactants_smiles_no_map))
     # Add new atom map numbers
     [a.SetProp(str('molAtomMapNumber'), str(i+1)) for (i, a) in enumerate(reactants.GetAtoms())]
     # Report new reactant SMILES string
@@ -234,9 +235,11 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
         is_ready = [i for (i, res) in enumerate(pending_results) if res.ready()]
         with allow_join_result(): # required to use .get()
             for i in is_ready:
-                for candidate_edit in pending_results[i].get(timeout=1):
-                    if candidate_edit not in candidate_edits:
-                        candidate_edits.append(candidate_edit)
+                for (candidate_smiles, edits) in pending_results[i].get(timeout=1):
+                    if candidate_smiles in reactants_smiles_no_map.split('.'):
+                        continue
+                    if (candidate_smiles, edits) not in candidate_edits:
+                        candidate_edits.append((candidate_smiles, edits))
                 pending_results[i].forget()
                 
         # Update list
