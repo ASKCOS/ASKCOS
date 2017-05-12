@@ -93,6 +93,11 @@ def reserve_worker_pool(self):
     from askcos_site.celery import app 
     app.control.cancel_consumer(CORRESPONDING_QUEUE, destination=[hostname])
     app.control.cancel_consumer(CORRESPONDING_RESERVABLE_QUEUE, destination=[hostname])
+
+    # *** purge the queue in case old jobs remain
+    import celery.bin.amqp 
+    amqp = celery.bin.amqp.amqp(app = app)
+    amqp.run('queue.purge', private_worker_queue)
     print('Telling myself to only listen to the new {} queue'.format(private_queue))
     app.control.add_consumer(private_queue, destination=[hostname])
     return private_queue
