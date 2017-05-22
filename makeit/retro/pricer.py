@@ -19,6 +19,7 @@ class Pricer:
         self.by_xrn = False
 
         self.prices = defaultdict(float) # default 0 ppg means not buyable
+        self.prices_flat = defaultdict(float) # default 0 ppg means not buyable
         self.prices_by_xrn = defaultdict(float)
 
     def load(self, chemicals_collection, buyables_collection, max_ppg=1e10):
@@ -34,17 +35,23 @@ class Pricer:
         buyable_dict = {}
         # First pull buyables source (smaller)
         for buyable_doc in tqdm(self.buyables_source.find({}, ['ppg', 'smiles', 'smiles_flat'], no_cursor_timeout = True)):
-            if USE_STEREOCHEMISTRY:
-                smiles = buyable_doc['smiles']
-            else:
-                smiles = buyable_doc['smiles_flat']
+            smiles = buyable_doc['smiles']
+            smiles_flat = buyable_doc['smiles_flat']
+
             if buyable_doc['ppg'] > max_ppg:
                 continue
+
             buyable_dict[buyable_doc['_id']] = buyable_doc['ppg']
+            
             if self.prices[smiles]: # already in dict as non-zero, so keep cheaper
                 self.prices[smiles] = min(buyable_doc['ppg'], self.prices[smiles])
             else:
                 self.prices[smiles] = buyable_doc['ppg']
+
+            if self.prices_flat[smiles_flat]: # already in dict as non-zero, so keep cheaper
+                self.prices_flat[smiles_flat] = min(buyable_doc['ppg'], self.prices_flat[smiles_flat])
+            else:
+                self.prices_flat[smiles_flat] = buyable_doc['ppg']
 
         if self.by_xrn:
             # Then pull chemicals source for XRNs (larger)
@@ -52,19 +59,29 @@ class Pricer:
                 if 'buyable_id' not in chemical_doc: continue
                 self.prices_by_xrn[chemical_doc['_id']] = buyable_dict[chemical_doc['buyable_id']]
 
-    def lookup_smiles(self, smiles, alreadyCanonical = False):
+    def lookup_smiles(self, smiles, alreadyCanonical=False, isomericSmiles=False):
         '''
         Looks up a price by SMILES. Tries it as-entered and then 
         re-canonicalizes it in RDKit unl ess the user specifies that
         the string is definitely already canonical.
         '''
+        ppg = self.prices_flat[smiles]
+        if ppg: return ppg
+
         ppg = self.prices[smiles]
+        if ppg: return ppg
+
         if not alreadyCanonical:
-            if not ppg:
-                mol = Chem.MolFromSmiles(smiles)
-                if not mol: return ppg
-                smiles = Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY)
-                ppg = self.prices[smiles]
+            mol = Chem.MolFromSmiles(smiles)
+            if not mol: return 0.
+            smiles = Chem.MolToSmiles(mol, isomericSmiles=isomericSmiles)
+        
+        ppg = self.prices_flat[smiles]
+        if ppg: return ppg
+
+        ppg = self.prices[smiles]
+        if ppg: return ppg
+
         return ppg
 
     def lookup_xrn(self, xrn):
