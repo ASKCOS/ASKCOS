@@ -16,7 +16,7 @@
 $("#reactants").change(function () {
 	console.log( $(this).val() );
 	$.ajax({
-		url: '/ajax/smiles_to_image_synth/',
+		url: '/ajax/smiles_to_image/',
 		data: {
 			smiles: $(this).val(),
 		},
@@ -39,7 +39,7 @@ $("#reactants").change(function () {
 $("#reagents").change(function () {
 	console.log( $(this).val() );
 	$.ajax({
-		url: '/ajax/smiles_to_image_synth/',
+		url: '/ajax/smiles_to_image/',
 		data: {
 			smiles: $(this).val(),
 		},

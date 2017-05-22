@@ -10,27 +10,13 @@ from pymongo.message import bson
 from bson.objectid import ObjectId
 import time
 import numpy as np 
+import json
 
 import rdkit.Chem as Chem 
 import urllib2
 
 from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, builder, predictor, PREDICTOR_FOOTNOTE, NN_PREDICTOR, DONE_SYNTH_PREDICTIONS
 
-
-def the_time(request):
-    context = {
-        'the_time': time.time(),
-    }
-
-    return render(request, 'get_time.html', context)
-
-def get_the_time(request):
-    prevTime = request.GET.get('prevTime', None)
-    print('Prev time: {}'.format(prevTime))
-    data = {
-        'newTime': time.time()
-    }
-    return JsonResponse(data)
 
 def index(request):
     '''
@@ -67,18 +53,7 @@ def retro(request):
             smiles = context['form'].cleaned_data['smiles']
             if 'retro_lit' in request.POST: return redirect('retro_lit_target', smiles=smiles)
             if 'retro' in request.POST:
-                if is_valid_smiles(smiles):
-                    return redirect('retro_target', smiles=smiles)
-                else:
-                    # Try to resolve
-                    smiles = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(smiles)).read()
-                    print('Resolved smiles -> {}'.format(smiles))
-                    mol = Chem.MolFromSmiles(smiles)
-                    if not mol: 
-                        context['err'] = 'Invalid SMILES string: {}'.format(smiles)
-                    else:
-                        smiles = Chem.MolToSmiles(mol)
-                        return redirect('retro_target', smiles=smiles)
+                return redirect('retro_target', smiles=smiles)
     else:
         context['form'] = SmilesInputForm()
 
@@ -116,6 +91,10 @@ def retro_target(request, smiles, max_n=50):
 
     # Render form with target
     context = {}
+    smiles = resolve_smiles(smiles)
+    if smiles is None:
+        context['err'] = 'Could not parse!'
+        return render(request, 'retro.html', context)
     context['form'] = SmilesInputForm({'smiles': smiles})
 
     # Look up target
@@ -141,8 +120,10 @@ def retro_target(request, smiles, max_n=50):
         context['precursors'][i]['tforms'] = \
             [dict(RetroTransformer.lookup_id(ObjectId(_id)), **{'id':str(_id)}) for _id in precursor['tforms']]
         context['precursors'][i]['mols'] = []
+        # Overwrite num examples
+        context['precursors'][i]['num_examples'] = sum(tform['count'] for tform in precursor['tforms'])
         for smiles in precursor['smiles_split']:
-            ppg = Pricer.lookup_smiles(smiles, alreadyCanonical = True)
+            ppg = Pricer.lookup_smiles(smiles, alreadyCanonical=True)
             context['precursors'][i]['mols'].append({
                 'smiles': smiles,
                 'ppg': '${}/g'.format(ppg) if ppg else 'cannot buy'
@@ -196,7 +177,7 @@ def retro_interactive(request):
     '''Builds an interactive retrosynthesis page'''
 
     context = {}
-    context['warn'] = 'All tree building tasks will compete for the same pool of workers currently; it may take much longer than the expansion time to generate results if the workers are busy.'
+    context['warn'] = 'The worker pool is not set up for autoscaling; there is a chance that all of the tree building coordinators and workers will be occupied when you try to run a target.'
 
     context['max_depth_default'] = 4
     context['max_branching_default'] = 20
@@ -205,7 +186,7 @@ def retro_interactive(request):
     context['expansion_time_default'] = 60
     context['max_ppg_default'] = 100
 
-    return render(request, 'retro_interactive_celery.html', context)
+    return render(request, 'retro_interactive.html', context)
 
 @login_required
 def synth_interactive(request, reactants='', reagents='', solvent='toluene', temperature='20', mincount=''):
@@ -240,28 +221,33 @@ def ajax_error_wrapper(ajax_func):
             return JsonResponse({'err':True, 'message': str(e)})
     return ajax_func_call
 
+def resolve_smiles(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    if not mol:
+        # Try to resolve using NIH
+        new_smiles = []
+        for smiles in smiles.split(' and '):
+            try:
+                smiles = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(smiles)).read()
+            except urllib2.HTTPError:
+                return None
+            mol = Chem.MolFromSmiles(smiles)
+            if not mol: return None
+            new_smiles.append(Chem.MolToSmiles(mol, isomericSmiles=True))
+        return '.'.join(new_smiles)
+    return Chem.MolToSmiles(mol, isomericSmiles=True)
+
 @ajax_error_wrapper
-def ajax_smiles_to_image_retro(request):
+def ajax_smiles_to_image(request):
     '''Takes an Ajax call with a smiles string
     and returns the HTML for embedding an image'''
 
     smiles = request.GET.get('smiles', None)
     print('SMILES from Ajax: {}'.format(smiles))
-
-    # Make sure we are not still building a previous tree...
-    builder.stop_building(timeout = 3) # just to be sure
-
-    mol = Chem.MolFromSmiles(smiles)
-    if not mol:
-        # Try to resolve using NIH
-        try:
-            smiles = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(smiles)).read()
-            print('Resolved smiles -> {}'.format(smiles))
-            mol = Chem.MolFromSmiles(smiles)
-            if not mol: return JsonResponse({'err': True})
-            smiles = Chem.MolToSmiles(mol)
-        except:
-            return JsonResponse({'err': True})
+    smiles = resolve_smiles(smiles)
+    if smiles is None:
+        return JsonResponse({'err': True})
+    print('Resolved smiles -> {}'.format(smiles))
 
     url = reverse('draw_smiles', kwargs={'smiles':smiles})
     data = {
@@ -272,42 +258,23 @@ def ajax_smiles_to_image_retro(request):
     return JsonResponse(data)
 
 @ajax_error_wrapper
-def ajax_smiles_to_image_synth(request):
-    '''Takes an Ajax call with a smiles string
+def ajax_rxn_to_image(request):
+    '''Takes an Ajax call with a rxn smiles string
     and returns the HTML for embedding an image'''
-    data = {'err': False}
 
-    smiles = request.GET.get('smiles', None)
-    print('SMILES from Ajax: {}'.format(smiles))
+    reactants = request.GET.get('reactants', '')
+    product = request.GET.get('product', '')
 
-    if not smiles:
-        data['html'] = 'no reagents'
-        data['smiles'] = smiles
-        return JsonResponse(data)
-
-    mol = Chem.MolFromSmiles(smiles)
-    if not mol:
-        # Try to resolve using NIH
-        try:
-            smiles = smiles.replace('.', ' and ')
-            smiles_list = [x.strip() for x in smiles.split(' and ')]
-            for i, smi in enumerate(smiles_list):
-                print(smi)
-                smi = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(urllib2.quote(smi))).read()
-                print('Resolved smiles -> {}'.format(smi))
-                mol = Chem.MolFromSmiles(smi)
-                if not mol: return JsonResponse({'err': True})
-                smiles_list[i] = smi
-            smiles = '.'.join(smiles_list)
-        except:
-            return JsonResponse({'err': True})
-
-    print('Resolved smiles: {}'.format(smiles))
-
-    url = reverse('draw_smiles', kwargs={'smiles':smiles})
+    reactants = resolve_smiles(reactants)
+    product = resolve_smiles(product)
+    smiles = reactants + '>>' + product
+    print('RXN SMILES from Ajax: {}'.format(smiles))
+    url = reverse('draw_reaction', kwargs={'smiles':smiles})
     data = {
         'html': '<img src="' + url + '">',
         'smiles': smiles,
+        'reactants': reactants,
+        'product': product,
     }
     return JsonResponse(data)
 
@@ -375,7 +342,7 @@ def ajax_start_retro_celery(request):
 
     from askcos_site.askcos_celery.treebuilder.coordinator import get_buyable_paths
     res = get_buyable_paths.delay(smiles, mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth, 
-        max_ppg=max_ppg, max_time=expansion_time, max_trees=25, reporting_freq=5)
+        max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5)
     (tree_status, trees) = res.get(expansion_time * 3)
     print(tree_status)
     print(trees)
@@ -396,80 +363,16 @@ def ajax_start_retro_celery(request):
         data['html_trees'] = 'No trees resulting in buyable chemicals found!'
     return JsonResponse(data)     
 
-@ajax_error_wrapper
-def ajax_start_retro(request):
-    '''Start builder'''
-    smiles = request.GET.get('smiles', None)
-    max_depth = int(request.GET.get('max_depth', 4))
-    max_branching = int(request.GET.get('max_branching', 25))
-    retro_mincount = int(request.GET.get('retro_mincount', 0))
-    data = {'err': False}
-    if builder.is_running() and builder.is_target(smiles):
-        builder.unpause()
-    else:
-        builder.stop_building(timeout = 3) # just to be sure
-        builder.start_building(smiles, max_depth=max_depth, max_branching=max_branching, mincount=retro_mincount)
-    return JsonResponse(data)
-
-@ajax_error_wrapper
-def ajax_pause_retro(request):
-    '''Pause builder'''
-    smiles = request.GET.get('smiles', None)
-    data = {'err': False}
-    if builder.is_target(smiles):
-        builder.pause()
-    else:
-        data['err'] = True
-        data['message'] = 'Cannot pause if we have not started running'
-    return JsonResponse(data)
-
-@ajax_error_wrapper
-def ajax_stop_retro(request):
-    '''Stop builder'''
-    data = {'err': False}
-    if builder.is_running():
-        builder.stop_building(timeout = 3)
-    else:
-        data['err'] = True
-        data['message'] = 'Cannot stop if we arent running!'
-    return JsonResponse(data)
-
-@ajax_error_wrapper
-def ajax_update_retro_stats(request):
-    '''Update the statistics only'''
-    smiles = request.GET.get('smiles', None)
-    data = {'err': False}
-    if builder.is_target(smiles):
-        data['html_stats'] = builder.info_string()
-    else:
-        data['err'] = True
-        data['message'] = 'Cannot update stats if we have not started running!'
-    return JsonResponse(data)
-
-@ajax_error_wrapper
-def ajax_update_retro(request):
-    '''Update displayed results'''
-    data = {'err': False}
-    smiles = request.GET.get('smiles', None)
-    if builder.is_target(smiles):
-        data['html_stats'] = builder.info_string()
-        print(builder.info_string())
-        trees = builder.get_trees_iddfs()
-        print('Got trees')
-        if trees:
-            data['html_trees'] = render_to_string('trees_only.html', {'trees': trees})
-        else:
-            data['html_trees'] = 'No trees resulting in buyable chemicals found!'
-    else:
-        data['err'] = True
-        data['message'] = 'Cannot show results if we have not started running'
-    return JsonResponse(data)
+@login_required
+def evaluate_rxnsmiles(request):
+    return render(request, 'evaluate.html', {})
 
 @ajax_error_wrapper
 def ajax_evaluate_rxnsmiles(request):
     '''Evaluate rxn_smiles'''
     data = {'err': False}
     smiles = request.GET.get('smiles', None)
+    verbose = json.loads(request.GET.get('verbose', 'false'))
     synth_mincount = int(request.GET.get('synth_mincount', 0))
     necessary_reagent = request.GET.get('necessary_reagent', '')
     if '{}-{}'.format(smiles, synth_mincount) in DONE_SYNTH_PREDICTIONS:
@@ -521,17 +424,27 @@ def ajax_evaluate_rxnsmiles(request):
 
     # Run
     reactant_smiles = smiles.split('>>')[0]
+    print('Running forward evaluator on {}'.format(reactant_smiles))
     if necessary_reagent and contexts_for_predictor[0][1]:
         reactant_smiles += contexts_for_predictor[0][1] # add rgt
     from askcos_site.askcos_celery.forwardpredictor.coordinator import get_outcomes
     res = get_outcomes.delay(reactant_smiles, contexts=contexts_for_predictor, mincount=synth_mincount, top_n=10)
     all_outcomes = res.get(300)
     if all([len(outcome) == 0 for outcome in all_outcomes]):
-        data['html'] = 'Could not get outcomes - recommended context(s) unparseable'
-        for i, (T, rgt, slvt) in enumerate(contexts_for_predictor):
-            data['html'] += '<br>{}) T={}, rgt={}, slvt={}'.format(i+1, T, rgt, slvt)
-        data['html_color'] = str('#%02x%02x%02x' % (int(255), int(0), int(0)))
-        return JsonResponse(data)
+        if not verbose:
+            data['html'] = 'Could not get outcomes - recommended context(s) unparseable'
+            for i, (T, rgt, slvt) in enumerate(contexts_for_predictor):
+                data['html'] += '<br>{}) T={}, rgt={}, slvt={}'.format(i+1, T, rgt, slvt)
+            data['html_color'] = str('#%02x%02x%02x' % (int(255), int(0), int(0)))
+            return JsonResponse(data)
+        else:
+            # TODO: expand
+            data['html'] = '<h3>Could not get outcomes - recommended context(s) unparseable</h3>\n<ol>\n'
+            for i, (T, rgt, slvt) in enumerate(contexts_for_predictor):
+                data['html'] += '<li>Temp: {} C<br>Reagents: {}<br>Solvent: {}</li>\n'.format(T, rgt, slvt)
+            data['html'] += '</ol>'
+            data['html_color'] = str('#%02x%02x%02x' % (int(255), int(0), int(0)))
+            return JsonResponse(data)
     plausible = [0. for i in range(len(all_outcomes))]
     ranks = ['>10' for i in range(len(all_outcomes))]
     major_prods = ['none found' for i in range(len(all_outcomes))]
@@ -557,20 +470,35 @@ def ajax_evaluate_rxnsmiles(request):
     print('Plausibility: {}'.format(plausible))
     (T1, rgt1, slvt1) = best_context
 
-    if not rgt1: rgt1 = 'no '
-    data['html'] = 'Plausibility score: {} (rank {})'.format(plausible, rank)
-    data['html'] += '<br><br><u>Top conditions</u>'
-    data['html'] += '<br>{} C'.format(T1)
-    data['html'] += '<br>{} solvent'.format(slvt1)
-    data['html'] += '<br>{} reagents'.format(rgt1)
-    data['html'] += '<br>nearest-neighbor got {}% yield'.format(y1)
-    if major_prod:
-        data['html'] += '<br>Predicted major product with p = {}'.format(major_prob)
-        data['html'] += '<br>{}'.format(major_prod)
+    if not verbose:
+        if not rgt1: rgt1 = 'no '
+        data['html'] = 'Plausibility score: {} (rank {})'.format(plausible, rank)
+        data['html'] += '<br><br><u>Top conditions</u>'
+        data['html'] += '<br>{} C'.format(T1)
+        data['html'] += '<br>{} solvent'.format(slvt1)
+        data['html'] += '<br>{} reagents'.format(rgt1)
+        data['html'] += '<br>nearest-neighbor got {}% yield'.format(y1)
         if rank != 1:
-            url = reverse('draw_smiles', kwargs={'smiles':major_prod})
-            data['html'] += '<br><img src="' + url + '">'
-    data['html'] += '<br>(calc. used synth_mincount {})'.format(synth_mincount)
+            data['html'] += '<br>Predicted major product with p = {}'.format(major_prob)
+            data['html'] += '<br>{}'.format(major_prod)
+            if major_prod != 'none found':
+                url = reverse('draw_smiles', kwargs={'smiles':major_prod})
+                data['html'] += '<br><img src="' + url + '">'
+        data['html'] += '<br>(calc. used synth_mincount {})'.format(synth_mincount)
+    else:
+        if not rgt1: rgt1 = 'none'
+        data['html'] = '<h3>Plausibility score: {} (rank {})</h3>'.format(plausible, rank)
+        data['html'] += '\n<br><u>Proposed conditions ({} tried)</u>\n'.format(len(contexts_for_predictor))
+        data['html'] += '<br>Temp: {} C<br>Reagents: {}<br>Solvent: {}\n'.format(T1, rgt1, slvt1)
+        if rank != 1:
+            data['html'] += '<br><br><u>Predicted major product (<i>p = {}</i>)</u>'.format(major_prob)
+            data['html'] += '\n<br>{}'.format(major_prod)
+            if major_prod != 'none found':
+                url = reverse('draw_smiles', kwargs={'smiles':major_prod})
+                data['html'] += '<br><img src="' + url + '">'
+        elif rank == 1:
+            data['html'] += '\n<br><i>Nearest neighbor got {}% yield</i>'.format(y1)
+
 
     B = 150.
     R = 255. - (plausible > 0.5) * (plausible - 0.5) * (255. - B) * 2.
@@ -672,9 +600,9 @@ def template_target(request, id):
         else:
             print('Could not find doc with example')
         # Limit number retrieved
-        if len(references) >= 15:
+        if len(references) >= 100:
             break
-
+    context['references'] = references
     from makeit.retro.conditions import average_template_list
     context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
 
@@ -706,12 +634,32 @@ def rxid_target(request, rxid):
 @login_required
 def price_smiles(request, smiles):
     response = HttpResponse(content_type = 'text/plain')
-    ppg = Pricer.lookup_smiles(smiles, alreadyCanonical = True)
+    ppg = Pricer.lookup_smiles(smiles, alreadyCanonical=True)
     if ppg:
         response.write('${}/g'.format(ppg))
     else:
         response.write('cannot buy')
     return response
+
+@ajax_error_wrapper
+def ajax_price_smiles(request):
+    print('Got price request')
+    data = {'err': False}
+    smiles = request.GET.get('smiles', None)
+    isomericSmiles = json.loads(request.GET.get('isomericSmiles', 'false'))
+    print('isomericSmiles: {}'.format(isomericSmiles))
+    data['ppg'] = Pricer.lookup_smiles(smiles, alreadyCanonical=False, isomericSmiles=isomericSmiles)
+    print('Result: {}'.format(data['ppg']))
+    data['buyable'] = data['ppg'] != 0.
+    if data['ppg'] == 0.:
+        data['html'] = 'This chemical is <b>not</b> in our database currently'
+    else:
+        data['html'] = 'This chemical is purchaseable for an estimated <b>$%i/g</b>' % data['ppg']
+    return JsonResponse(data)
+
+@login_required 
+def pricing(request):
+    return render(request, 'pricing.html', {})
 
 @login_required
 def price_xrn(request, xrn):
@@ -823,10 +771,12 @@ def draw(request):
             text = context['form'].cleaned_data['text']
             try:
                 if 'mol' in request.POST:
+                    #text = resolve_smiles(text)
                     context['image_url'] = reverse('draw_smiles', kwargs={'smiles':text})
                     context['label_title'] = 'Molecule SMILES'
                     context['label'] = text
                 elif 'rxn' in request.POST:
+                    #text = '>>'.join([resolve_smiles(frag) for frag in text.split('>>')])
                     context['image_url'] = reverse('draw_reaction', kwargs={'smiles':text})
                     context['label_title'] = 'Reaction SMILES'
                     context['label'] = text

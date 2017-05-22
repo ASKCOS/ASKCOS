@@ -29,7 +29,7 @@ SECRET_KEY = 'px$*ir)-wd=x6^!r++t53ik^2)z7!9cvw+m#@!-$ut@xjyjtg*'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['askcos.mit.edu']
 
 TEMPLATE_LOADERS = ['django.template.loaders.filesystem.Loader',
  'django.template.loaders.app_directories.Loader']
@@ -132,7 +132,7 @@ MEDIA_URL = '/media/'
 # Miscellanious
 RETRO_TRANSFORMS = {
     'database': 'reaxys',
-    'collection': 'transforms_retro_v4', # 'lowe' or 'chematica'
+    'collection': 'transforms_retro_v5', # 'lowe' or 'chematica'
     'mincount': 50,
 }
 RETRO_TRANSFORMER = { 

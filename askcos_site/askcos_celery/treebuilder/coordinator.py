@@ -101,7 +101,8 @@ def get_trees_iddfs(tree_dict, max_depth, max_trees=25):
     from itertools import product
 
     def IDDFS():
-        for depth in range(max_depth):
+        for depth in range(max_depth+1):
+            print('Getting trees (IDDFS starting d={})'.format(depth))
             for path in DLS_chem(1, depth, headNode=True):
                 yield chem_dict(1, tree_dict[1]['smiles'], tree_dict[1]['ppg'], children=path)
 
@@ -301,7 +302,7 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
                         for mol in mols:
 
                             try:
-                                chem_id = chem_to_id[mol]
+                                chem_id = chem_to_id[mol] # if this does not fail, known
 
                                 # Just need to record that this is a precursor of that rxn
                                 tree_dict[chem_id]['rct_of'].append(rxn_id)
@@ -401,7 +402,7 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
                     
             return (this_tree_status, these_trees)
         
-        finally:
+        finally: # should catch KeyboardInterrupt and Terminated
             print('Purging remaining tasks from {}...'.format(private_worker_queue))
             if pending_results != []:
                 ## OPTION 1 - REVOKE TASKS, WHICH GETS SENT TO ALL WORKERS REGARDLESS OF TYPE

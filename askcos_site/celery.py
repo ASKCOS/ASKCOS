@@ -27,7 +27,7 @@ app = Celery('askcos_site', broker='amqp://worker:askcos@{}:5672'.format(SERVERH
 # - namespace='CELERY' means all celery-related configuration keys
 #   should have a `CELERY_` prefix.
 app.config_from_object('django.conf:settings',)# namespace='CELERY')
-
+app.conf.task_queue_max_priority = 20 # necessary for new tb_worker queues to be priority
 
 if __name__ == '__main__':
     app.start()
