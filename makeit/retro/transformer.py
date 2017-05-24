@@ -31,7 +31,8 @@ class Transformer:
         # from pympler.tracker import SummaryTracker
         # self.tracker = SummaryTracker()
 
-    def load(self, collection, mincount=4, get_retro=True, get_synth=True, lowe=False, refs=False):
+    def load(self, collection, mincount=4, get_retro=True, get_synth=True, 
+        lowe=False, refs=False, efgs=False):
         '''
         Loads the object from a MongoDB collection containing transform
         template records.
@@ -52,6 +53,8 @@ class Transformer:
         to_retrieve = ['_id', 'reaction_smarts', 'necessary_reagent', 'count']
         if refs:
             to_retrieve.append('references')
+        if efgs:
+            to_retrieve.append('efgs')
         for document in collection.find(filter_dict, to_retrieve):
             # Skip if no reaction SMARTS
             if 'reaction_smarts' not in document: continue
@@ -70,6 +73,7 @@ class Transformer:
                 '_id':                  document['_id'] if '_id' in document else -1,
                 'product_smiles':       document['product_smiles'] if 'product_smiles' in document else [], 
                 'necessary_reagent':    document['necessary_reagent'] if 'necessary_reagent' in document else '',       
+                'efgs':                 document['efgs'] if 'efgs' in document else None
             }
 
             # Frequency/popularity score
@@ -358,15 +362,24 @@ class RetroPrecursor:
 
     def score(self):
         '''
-        Calculate the score of this step
+        Calculate the score of this step as the worst of all precursors,
+        plus some penalty for a large necessary_reagent
         '''
-        mols = [Chem.MolFromSmiles(x) for x in self.smiles_list]
-        total_atoms = [x.GetNumHeavyAtoms() for x in mols]
-        ring_bonds = [sum([b.IsInRing() - b.GetIsAromatic() for b in x.GetBonds()]) for x in mols]
-        chiral_centers = [len(Chem.FindMolChiralCenters(x)) for x in mols]
-        self.retroscore = - 2.00 * np.sum(np.power(total_atoms, 1.5)) \
-                                - 1.00 * np.sum(np.power(ring_bonds, 1.5)) \
-                                - 0.00 * np.sum(np.power(chiral_centers, 2.0))
+        necessary_reagent_atoms = self.necessary_reagent.count('[') / 2.
+        scores = []
+        for smiles in self.smiles_list:
+            x = Chem.MolFromSmiles(smiles)
+            total_atoms = x.GetNumHeavyAtoms()
+            ring_bonds = sum([b.IsInRing() - b.GetIsAromatic() for b in x.GetBonds()])
+            chiral_centers = len(Chem.FindMolChiralCenters(x))
+
+            scores.append(
+                - 2.00 * np.power(total_atoms, 1.5) \
+                - 1.00 * np.power(ring_bonds, 1.5) \
+                - 0.00 * np.power(chiral_centers, 2.0)
+            )
+
+        self.retroscore = np.min(scores) - 4.00 * np.power(necessary_reagent_atoms, 2.0)
 
 def apply_one_retrotemplate(mol, smiles, template):
     '''Takes a mol object and applies a single template, returning
