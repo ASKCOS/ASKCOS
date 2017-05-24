@@ -187,6 +187,21 @@ def expand_atoms_to_use(mol, atoms_to_use, groups=[], symbol_replacements=[]):
     # Look for all atoms in the current list of atoms to use
     for atom in mol.GetAtoms():
         if atom.GetIdx() not in atoms_to_use: continue
+        # Ensure membership of changed atom is checked against group
+        for group in groups:
+            if int(atom.GetIdx()) in group[0]:
+                if v: 
+                    print('adding group due to match')
+                    try:
+                        print('Match from molAtomMapNum {}'.format(
+                            atom.GetProp('molAtomMapNumber'),
+                        ))
+                    except KeyError:
+                        pass
+                for idx in group[1]:
+                    if idx not in atoms_to_use:
+                        new_atoms_to_use.append(idx)
+                        symbol_replacements.append((idx, convert_atom_to_wildcard(mol.GetAtomWithIdx(idx))))
         # Look for all nearest neighbors of the currently-included atoms
         for neighbor in atom.GetNeighbors():
             # Evaluate nearest neighbor atom to determine what should be included
@@ -201,15 +216,18 @@ def expand_atoms_to_use_atom(mol, atoms_to_use, atom_idx, groups=[], symbol_repl
     in the reaction, this function extends the list of atoms_to_use by considering 
     a candidate atom extension, atom_idx'''
 
-    # Skip current candidate atom if it is already included
-    if atom_idx in atoms_to_use:
-        return atoms_to_use, symbol_replacements
-
     # See if this atom belongs to any groups
     found_in_group = False
     for group in groups: # first index is atom IDs for match, second is what to include
         if int(atom_idx) in group[0]: # int correction
-            if v: print('adding group due to match at {}'.format(atom_idx))
+            if v: 
+                print('adding group due to match')
+                try:
+                    print('Match from molAtomMapNum {}'.format(
+                        mol.GetAtomWithIdx(atom_idx).GetProp('molAtomMapNumber'),
+                    ))
+                except KeyError:
+                    pass
             # Add the whole list, redundancies don't matter 
             # *but* still call convert_atom_to_wildcard!
             for idx in group[1]:
@@ -222,6 +240,10 @@ def expand_atoms_to_use_atom(mol, atoms_to_use, atom_idx, groups=[], symbol_repl
         
     # How do we add an atom that wasn't in an identified important functional group?
     # Develop special SMARTS symbol
+
+    # Skip current candidate atom if it is already included
+    if atom_idx in atoms_to_use:
+        return atoms_to_use, symbol_replacements
 
     # Include this atom
     atoms_to_use.append(atom_idx)
@@ -299,9 +321,9 @@ def get_strict_smarts_for_atom(atom):
       
     # Explicit degree
     if ':' in symbol:
-        symbol = symbol.replace(':', ';X{}:'.format(atom.GetDegree()))
+        symbol = symbol.replace(':', ';D{}:'.format(atom.GetDegree()))
     else:
-        symbol = symbol.replace(']', ';X{}]'.format(atom.GetDegree()))
+        symbol = symbol.replace(']', ';D{}]'.format(atom.GetDegree()))
 
     # Explicit formal charge
     if '+' not in symbol and '-' not in symbol:
@@ -434,7 +456,7 @@ def get_special_groups(mol):
         (range(3), '[OH0,SH0]=C[O,Cl,I,Br,F]',), # carboxylic acid / halogen
         (range(3), '[OH0,SH0]=CN',), # amide/sulfamide
         (range(4), 'S(O)(O)[Cl]',), # sulfonyl chloride
-        (range(3), '[B$([#6])](O)O',), # boronic acid/ester attached to a carbon
+        (range(3), 'B(O)O',), # boronic acid/ester
         (range(2), 'N#C',), # nitrile
         (range(3), '[N;H0;$(N-[#6]);D2]-,=[N;D2]-,=[N;D1]',), # azide
         (range(8), 'O=C1N([Br,I,F,Cl])C(=O)CC1',), # NBS brominating agent
@@ -529,7 +551,7 @@ def canonicalize_transform(transform):
     transform_reordered = '>>'.join([canonicalize_template(x) for x in transform.split('>>')])
     return reassign_atom_mapping(transform_reordered)
 
-def process_an_example_doc(example_doc):
+def process_an_example_doc(example_doc, test=False):
     '''Function for a worker to process one doc'''
     total_partialmapped = 0
     total_attempted = 0
@@ -682,23 +704,24 @@ def process_an_example_doc(example_doc):
 
         # Insert - if it doesn't exist, Mongo will create the document
         # $inc, $addToSet, and $setOnInsert are necessary!
-        TRANSFORM_DB.update_one(
-            {'reaction_smarts': retro_canonical},
-            {
-                '$inc': {
-                    'count': len(rxd_id_list),
+        if not test:
+            TRANSFORM_DB.update_one(
+                {'reaction_smarts': retro_canonical},
+                {
+                    '$inc': {
+                        'count': len(rxd_id_list),
+                    },
+                    '$addToSet': {
+                        'references': { '$each': rxd_id_list }
+                    },
+                    '$setOnInsert': {
+                        'reaction_smarts': retro_canonical,
+                        'necessary_reagent': extra_reactant_fragment,
+                        'rxn_example': reaction_smiles,
+                    }
                 },
-                '$addToSet': {
-                    'references': { '$each': rxd_id_list }
-                },
-                '$setOnInsert': {
-                    'reaction_smarts': retro_canonical,
-                    'necessary_reagent': extra_reactant_fragment,
-                    'rxn_example': reaction_smiles,
-                }
-            },
-            True # upsert
-        )
+                True # upsert
+            )
         if v: print('Added record for template {}'.format(retro_canonical))
 
         total_attempted += 1
@@ -757,10 +780,10 @@ def main(N = 15, skip = 0, skip_id = 0):
     
     generator = data_generator()
     from multiprocessing import Pool 
-    pool = Pool(40)
+    pool = Pool(20)
     while True:
         print('Queueing up 1000 more examples from generator')
-        res = pool.map(process_an_example_doc, itertools.islice(generator, 1000))
+        res = pool.map(process_an_example_doc, itertools.islice(generator, 10000))
         if res:
             pass
         else:
@@ -814,5 +837,10 @@ if __name__ == '__main__':
         print('Cleared {} entries from collection'.format(result.deleted_count))
     TRANSFORM_DB.create_index([('reaction_smarts', 'hashed')])
     print('Added hashed index on reaction_smarts')
+
+    # example_doc = REACTION_DB.find_one({'_id': 68309})
+    # example_doc = REACTION_DB.find_one({'_id': 9004813})
+    # process_an_example_doc(example_doc, test=True)
+    # quit(1)
 
     main(N = args.num, skip = args.skip, skip_id = args.skip_id)
