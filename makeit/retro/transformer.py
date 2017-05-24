@@ -397,8 +397,6 @@ def apply_one_retrotemplate(mol, smiles, template):
         print(template['reaction_smarts'])
         return []
     for j, outcome in enumerate(outcomes):
-        if template['intra_only'] and len(outcome) > 1:
-            continue
         try:
             for x in outcome:
                 x.UpdatePropertyCache()
@@ -409,6 +407,8 @@ def apply_one_retrotemplate(mol, smiles, template):
         smiles_list = []
         for x in outcome: 
             smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = USE_STEREOCHEMISTRY).split('.'))
+        if template['intra_only'] and len(smiles_list) > 1:
+            continue
         precursor = RetroPrecursor(
             smiles_list = sorted(smiles_list),
             template_id = template['_id'],
