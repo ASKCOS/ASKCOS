@@ -50,7 +50,7 @@ class Transformer:
             filter_dict = {}
 
         # Look for all templates in collection
-        to_retrieve = ['_id', 'reaction_smarts', 'necessary_reagent', 'count']
+        to_retrieve = ['_id', 'reaction_smarts', 'necessary_reagent', 'count', 'intra_only']
         if refs:
             to_retrieve.append('references')
         if efgs:
@@ -73,7 +73,8 @@ class Transformer:
                 '_id':                  document['_id'] if '_id' in document else -1,
                 'product_smiles':       document['product_smiles'] if 'product_smiles' in document else [], 
                 'necessary_reagent':    document['necessary_reagent'] if 'necessary_reagent' in document else '',       
-                'efgs':                 document['efgs'] if 'efgs' in document else None
+                'efgs':                 document['efgs'] if 'efgs' in document else None,
+                'intra_only':           document['intra_only'] if 'intra_only' in document else False,
             }
 
             # Frequency/popularity score
@@ -406,6 +407,8 @@ def apply_one_retrotemplate(mol, smiles, template):
         smiles_list = []
         for x in outcome: 
             smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = USE_STEREOCHEMISTRY).split('.'))
+        if template['intra_only'] and len(smiles_list) > 1:
+            continue
         precursor = RetroPrecursor(
             smiles_list = sorted(smiles_list),
             template_id = template['_id'],
