@@ -59,7 +59,7 @@ class Pricer:
                 if 'buyable_id' not in chemical_doc: continue
                 self.prices_by_xrn[chemical_doc['_id']] = buyable_dict[chemical_doc['buyable_id']]
 
-    def lookup_smiles(self, smiles, alreadyCanonical=False, isomericSmiles=False):
+    def lookup_smiles(self, smiles, alreadyCanonical=False, isomericSmiles=True):
         '''
         Looks up a price by SMILES. Tries it as-entered and then 
         re-canonicalizes it in RDKit unl ess the user specifies that
