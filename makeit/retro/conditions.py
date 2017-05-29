@@ -49,7 +49,7 @@ def average_template_list(INSTANCE_DB, CHEMICAL_DB, id_list):
 			if T: temps.append(T)
 		if doc['RXD_TIM'] != -1: 
 			t = string_or_range_to_float(doc['RXD_TIM'])
-			if t: times.append(t * 60.0) # hours to minutes
+			if t: times.append(t)
 		if doc['RXD_NYD'] != -1: yields.append(float(doc['RXD_NYD']))
 	conditions = []
 
