@@ -612,8 +612,8 @@ def get_fragments_for_changed_atoms(mols, changed_atom_tags, radius=0,
             for atom in mol.GetAtoms():
                 atom.SetIsotope(0)
         
-            if not tetra_consistent:
-                raise ValueError('Could not find consistent tetrahedral mapping, {} centers'.format(len(tetra_map_nums)))
+        if not tetra_consistent:
+            raise ValueError('Could not find consistent tetrahedral mapping, {} centers'.format(len(tetra_map_nums)))
 
         fragments += '(' + this_fragment + ').'
         num_mols_changed += 1
@@ -1014,7 +1014,8 @@ def main(N = 15, skip = 0, skip_id = 0):
                 {'_id': {'$gt': skip_id}, 
                  'RX_SKW': 'mapped reaction',
                  'RXN_SMILES': {'$exists': True}},
-                ['_id', 'RX_SKW', 'RXN_SMILES', 'RX_MAXPUB', 'RX_NVAR']).sort('_id', 1)[skip:]):
+                ['_id', 'RX_SKW', 'RXN_SMILES', 'RX_MAXPUB', 'RX_NVAR'],
+                no_cursor_timeout=True).sort('_id', 1)[skip:]):
                 data_generator.ctr += 1
 
                 if data_generator.ctr % 1000 == 0:
@@ -1044,7 +1045,7 @@ def main(N = 15, skip = 0, skip_id = 0):
     
     generator = data_generator()
     from multiprocessing import Pool 
-    pool = Pool(20)
+    pool = Pool(10)
     while True:
         print('Queueing up 1000 more examples from generator')
         res = pool.map(process_an_example_doc, itertools.islice(generator, 1000))
