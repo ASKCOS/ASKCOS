@@ -28,6 +28,10 @@
 <p><i>Note: this reaction would require a reagent to contribute {{ template.necessary_reagent }}</i></p>
 {% endif %}
 
+{% if template.intra_only %}
+<p><i>Note: this template should be used for intramolecular reactions <b>only</b></i></p>
+{% endif %}
+
 {% if suggested_conditions %}
 <h4>
 	Most popular conditions:
@@ -40,7 +44,7 @@
 {% endif %}
 
 {% for reference in references %}
-	<h5>{{ reference.label }}</h5><br>
+	<h5>Reaxys reaction ID {{ reference._id }} ({{ reference.nvar }} examples from {{ reference.numref }} references as recent as {{ reference.maxpub }})</h5><br>
 <!-- 		<font class="smiles">
 			{{ reference.reaction_smiles }}</a>
 		</font><br> -->

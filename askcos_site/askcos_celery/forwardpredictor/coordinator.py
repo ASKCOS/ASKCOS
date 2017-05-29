@@ -200,12 +200,12 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
     print('Number of reactant atoms: {}'.format(len(reactants.GetAtoms())))
     # Report current reactant SMILES string
     [a.ClearProp(str('molAtomMapNumber')) for a in reactants.GetAtoms() if a.HasProp(str('molAtomMapNumber'))]
-    reactants_smiles_no_map = Chem.MolToSmiles(reactants)
+    reactants_smiles_no_map = Chem.MolToSmiles(reactants, isomericSmiles=True)
     print('Reactants w/o map: {}'.format(reactants_smiles_no_map))
     # Add new atom map numbers
     [a.SetProp(str('molAtomMapNumber'), str(i+1)) for (i, a) in enumerate(reactants.GetAtoms())]
     # Report new reactant SMILES string
-    print('Reactants w/ map: {}'.format(Chem.MolToSmiles(reactants)))
+    print('Reactants w/ map: {}'.format(Chem.MolToSmiles(reactants, isomericSmiles=True)))
     reactants_smiles = Chem.MolToSmiles(reactants)
 
     # Pre-calc descriptors for this set of reactants

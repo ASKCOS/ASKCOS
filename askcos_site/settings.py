@@ -131,9 +131,9 @@ MEDIA_URL = '/media/'
 
 # Miscellanious
 RETRO_TRANSFORMS = {
-    'database': 'reaxys',
-    'collection': 'transforms_retro_v5', # 'lowe' or 'chematica'
-    'mincount': 50,
+    'database': 'reaxys_v2',
+    'collection': 'transforms_retro_v6',
+    'mincount': 25,
 }
 RETRO_TRANSFORMER = { 
     'parallel': False,
@@ -147,19 +147,19 @@ SYNTH_TRANSFORMS = {
 SYNTH_TRANSFORMER = {
 }
 INSTANCES = {
-    'database': 'reaxys',
+    'database': 'reaxys_v2',
     'collection': 'instances',
 }
 REACTIONS = {
-    'database': 'reaxys',
+    'database': 'reaxys_v2',
     'collection': 'reactions',
 }
 CHEMICALS = {
-    'database': 'reaxys',
+    'database': 'reaxys_v2',
     'collection': 'chemicals',
 }
 BUYABLES = {
-    'database': 'reaxys',
+    'database': 'reaxys_v2',
     'collection': 'buyables',
 }
 SOLVENTS = {

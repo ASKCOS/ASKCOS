@@ -84,7 +84,7 @@ def retro(request):
     return render(request, 'retro.html', context)
 
 @login_required
-def retro_target(request, smiles, max_n=50):
+def retro_target(request, smiles, max_n=200):
     '''
     Given a target molecule, render page
     '''
@@ -583,20 +583,27 @@ def template_target(request, id):
     context['template'] = transform
     reference_ids = transform['references']
 
-    references = []; docs = []
+    references = []; done_refs = set()
     context['total_references'] = len(reference_ids)
     for i, ref_id in enumerate(reference_ids):
+        rx_id = int(ref_id.split('-')[0])
+        if rx_id in done_refs:
+            continue
         doc = None
         try:
-            doc = REACTION_DB.find_one({'_id': int(ref_id.split('-')[0])})
+            doc = REACTION_DB.find_one({'_id': rx_id})
         except Exception as e:
             print(e)
-        if doc:
-            docs.append(doc)
+        if doc is not None:
             references.append({
+                '_id': rx_id,
                 'label': ref_id,
                 'reaction_smiles': doc['RXN_SMILES'],
+                'maxpub': doc['RX_MAXPUB'] if 'RX_MAXPUB' in doc else '????',
+                'nvar': doc['RX_NVAR'] if 'RX_NVAR' in doc else '?',
+                'numref': doc['RX_NUMREF'] if 'RX_NUMREF' in doc else '?',
             })
+            done_refs.add(rx_id)
         else:
             print('Could not find doc with example')
         # Limit number retrieved
