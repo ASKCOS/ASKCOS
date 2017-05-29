@@ -1,2 +1,2 @@
 # Should we use stereochemistry?
-USE_STEREOCHEMISTRY = False
+USE_STEREOCHEMISTRY = True
