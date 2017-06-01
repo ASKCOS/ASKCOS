@@ -657,7 +657,7 @@ def get_special_groups(mol):
         (range(8), 'O=C1N([Br,I,F,Cl])C(=O)CC1',), # NBS brominating agent
         (range(11), 'Cc1ccc(S(=O)(=O)O)cc1'), # Tosyl
         ((7,), 'CC(C)(C)OC(=O)[N]'), # N(boc)
-        (range(2), 'C=C',), # alkene
+        (range(2), '[C,N]=[C,N]',), # alkene/imine
         ((2,), 'C=C-[*]',), # adj to alkene
         ((2,), 'O=C-[*]',), # adj to carbonyl
         ((3,), 'O=C([CH3])-[*]'), # adj to methyl ketone

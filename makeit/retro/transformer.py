@@ -19,6 +19,7 @@ class Transformer:
         self.has_retro = False
         self.parallel = parallel 
         self.nb_workers = nb_workers
+        self.id_to_index = {}
 
         # Make sure that nb_workers is okay if we're using a parallel implementation
         if self.parallel and self.nb_workers == None:
@@ -137,6 +138,7 @@ class Transformer:
         most popular templates first
         '''
         self.templates[:] = [x for x in sorted(self.templates, key = lambda z: z['count'], reverse = True)]
+        self.id_to_index = {template['_id']: i for i, template in enumerate(self.templates)}
 
     def top_templates(self, mincount=0):
         '''Generator to return only top templates. 
@@ -250,9 +252,8 @@ class Transformer:
         '''
         Find the reaction smarts for this template_id
         '''
-        for template in self.templates:
-            if template['_id'] == template_id:
-                return template
+        if template_id in self.id_to_index:
+            return self.templates[self.id_to_index[template_id]]
 
 class ForwardResult:
     '''

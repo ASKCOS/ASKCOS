@@ -9,4 +9,4 @@ def score_smiles(smiles):
                       for b in x.GetBonds()])
     chiral_centers = len(Chem.FindMolChiralCenters(x))
 
-    return - 2.00 * np.power(total_atoms, 1.5) - 1.00 * np.power(ring_bonds, 1.5) - 30.00 * np.power(chiral_centers, 2.0)
+    return - 2.00 * np.power(total_atoms, 1.5) - 1.00 * np.power(ring_bonds, 1.5) - 2.00 * np.power(chiral_centers, 2.0)

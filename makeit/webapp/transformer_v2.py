@@ -3,6 +3,8 @@ import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import numpy as np
 from stereofix.stereofix import run_reactants_preinit
+from stereofix.chirality import mark_chiral_closures
+from makeit.webapp.score import score_smiles
 
 '''
 transformer_v2 is meant to be used with the Stereofix module. While there
@@ -27,9 +29,10 @@ class Transformer:
         self.templates = []
         self.has_synth = False
         self.has_retro = False
+        self.id_to_index = {}
 
-    def load(self, collection, mincount=4, get_retro=True, get_synth=True,
-             refs=False, efgs=False):
+    def load(self, collection, mincount=25, get_retro=True, get_synth=True,
+             refs=False, efgs=False, mincount_chiral=None):
         '''
         Loads the object from a MongoDB collection containing transform
         template records.
@@ -42,9 +45,11 @@ class Transformer:
             self.has_retro = True
         if get_synth:
             self.has_synth = True
+        if mincount_chiral is None:
+            mincount_chiral = mincount
 
         if mincount and 'count' in collection.find_one():
-            filter_dict = {'count': {'$gte': mincount}}
+            filter_dict = {'count': {'$gte': min(mincount_chiral, mincount)}}
         else:
             filter_dict = {}
 
@@ -61,6 +66,18 @@ class Transformer:
                 continue
             reaction_smarts = str(document['reaction_smarts'])
             if not reaction_smarts:
+                continue
+
+            # Check count, depends on chirality
+            chiral = False
+            for c in reaction_smarts:
+                if c in ('@', '/', '\\'):
+                    chiral = True 
+                    break
+
+            if chiral and document['count'] < mincount_chiral:
+                continue
+            if not chiral and document['count'] < mincount:
                 continue
 
             # Define dictionary
@@ -100,8 +117,11 @@ class Transformer:
                     [Chem.AssignStereochemistry(rct) for rct in rxn.GetReactants()]
                     if rxn.Validate()[1] == 0:
                         template['rxn'] = rxn
+                        # For stereofix, need to mark chiral closures
+                        mark_chiral_closures(rxn)
                     else:
                         template['rxn'] = None
+
                 except Exception as e:
                     print('Couldnt load retro: {}: {}'.format(
                         reaction_smarts_retro, e))
@@ -148,6 +168,7 @@ class Transformer:
         '''
         self.templates = sorted(self.templates, key=lambda z: z[
                                 'count'], reverse=True)
+        self.id_to_index = {template['_id']: i for i, template in enumerate(self.templates)}
 
     def top_templates(self, mincount=0):
         '''Generator to return only top templates. 
@@ -171,10 +192,13 @@ class Transformer:
         # Initialize results object
         result = RetroResult(smiles)
 
+        print('Performing retro on {}'.format(Chem.MolToSmiles(mol, True)))
+
         # Try each in turn
+        add_precursor = result.add_precursor
         for template in self.top_templates(mincount=mincount):
             for precursor in apply_one_retrotemplate(mol, smiles, template):
-                result.add_precursor(precursor)
+                add_precursor(precursor)
 
         return result
 
@@ -256,10 +280,8 @@ class Transformer:
         '''
         Find the reaction smarts for this template_id
         '''
-        for template in self.templates:
-            if template['_id'] == template_id:
-                return template
-
+        if template_id in self.id_to_index:
+            return self.templates[self.id_to_index[template_id]]
 
 class ForwardResult:
     '''
@@ -371,7 +393,7 @@ class RetroPrecursor:
         self.retroscore = 0
         self.num_examples = num_examples
         self.smiles_list = smiles_list
-        self.template_ids = set([template_id])
+        self.template_ids = frozenset([template_id])
         self.necessary_reagent = necessary_reagent
 
     def score(self):
@@ -380,43 +402,60 @@ class RetroPrecursor:
         plus some penalty for a large necessary_reagent
         '''
         necessary_reagent_atoms = self.necessary_reagent.count('[') / 2.
-        from makeit.webapp.score import score_smiles
         scores = [score_smiles(smiles) for smiles in self.smiles_list]
 
         self.retroscore = np.min(scores) - 4.00 * \
             np.power(necessary_reagent_atoms, 2.0)
 
 
-def apply_one_retrotemplate(mol, smiles, template):
+def apply_one_retrotemplate(mol, smiles, template, return_as_tup=False):
     '''Takes a mol object and applies a single template, returning
     a list of precursors'''
     precursors = []
 
+    # Need to re-generate mol every time, since run_reactants_preinit
+    # leaves on isotope labels and removes stereochemistry
     if template['product_smiles']:
         react_mol = Chem.MolFromSmiles(
             smiles + '.' + '.'.join(template['product_smiles']))
     else:
-        react_mol = mol
-    outcomes = run_reactants_preinit(template['rxn'], [react_mol],
+        react_mol = Chem.MolFromSmiles(smiles)
+
+    try:
+        outcomes = run_reactants_preinit(template['rxn'], [react_mol],
               needsExplicitHs=template['explicit_H'],
               needsEnvironments=False,
               needsStereoTunneling=True,
               protectedAtoms={})
+    except KeyError as e:
+        print('Error for template {}'.format(template['reaction_smarts']))
+        print(e)
+        return []
+    except ValueError as e: # more uncommon, but still possible
+        print('Error for template {}'.format(template['reaction_smarts']))
+        print(e)
+        return []
+
     if outcomes is None:
         return []
     
     for j, outcome in enumerate(outcomes):
-        smiles_list = outcome.split('.')
-
+        smiles_list = sorted(outcome.split('.'))
         if template['intra_only'] and len(smiles_list) > 1:
             continue
-        precursor = RetroPrecursor(
-            smiles_list=sorted(smiles_list),
-            template_id=template['_id'],
-            num_examples=template['count'],
-            necessary_reagent=template['necessary_reagent']
-        )
-        if '.'.join(precursor.smiles_list) == smiles:
+        if '.'.join(smiles_list) == smiles:
             continue  # no transformation
+
+        if return_as_tup:
+            precursor = (smiles_list, str(template['_id']), 
+                template['count'], template['necessary_reagent'])
+        else:
+            precursor = RetroPrecursor(
+                smiles_list=smiles_list,
+                template_id=template['_id'],
+                num_examples=template['count'],
+                necessary_reagent=template['necessary_reagent']
+            )
+        
         precursors.append(precursor)
     return precursors
