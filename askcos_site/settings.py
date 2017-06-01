@@ -135,6 +135,12 @@ RETRO_TRANSFORMS = {
     'collection': 'transforms_retro_v6',
     'mincount': 25,
 }
+RETRO_TRANSFORMS_CHIRAL = {
+    'database': 'reaxys_v2',
+    'collection': 'transforms_retro_v7',
+    'mincount': 25,
+    'mincount_chiral': 10
+}
 RETRO_TRANSFORMER = { 
     'parallel': False,
     'nb_workers': 0,

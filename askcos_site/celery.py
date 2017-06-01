@@ -19,6 +19,8 @@ app = Celery('askcos_site', broker='amqp://worker:askcos@{}:5672'.format(SERVERH
         'askcos_site.askcos_celery.forwardpredictor.worker',
         'askcos_site.askcos_celery.forwardpredictor.coordinator',
         'askcos_site.askcos_celery.contextrecommender.worker',
+        'askcos_site.askcos_celery.chiralretro.coordinator',
+        'askcos_site.askcos_celery.chiralretro.worker',
     ]
 )
 

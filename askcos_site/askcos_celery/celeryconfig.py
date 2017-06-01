@@ -29,6 +29,8 @@ TASK_ROUTES = {
     'askcos_site.askcos_celery.forwardpredictor.worker.*': {'queue': 'fp_worker'},
     'askcos_site.askcos_celery.forwardpredictor.coordinator.*': {'queue': 'fp_coordinator'}, 
     'askcos_site.askcos_celery.contextrecommender.worker.*': {'queue': 'context_worker'},   
+    'askcos_site.askcos_celery.chiralretro.coordinator.*': {'queue': 'cr_coordinator'},
+    'askcos_site.askcos_celery.chiralretro.worker.*': {'queue': 'cr_worker'},
 }
 CELERY_ROUTES = TASK_ROUTES
 
