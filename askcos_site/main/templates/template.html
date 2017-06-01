@@ -44,11 +44,11 @@
 {% endif %}
 
 {% for reference in references %}
-	<h5>Reaxys reaction ID {{ reference._id }} ({{ reference.nvar }} examples from {{ reference.numref }} references as recent as {{ reference.maxpub }})</h5><br>
+	<h5>Reaxys reaction ID {{ reference.id }} ({{ reference.nvar }} example{% if reference.nvar != 1 %}s{% endif %} from {{ reference.numref }} reference{% if reference.numref != 1 %}s{% endif %} as recent as {{ reference.maxpub }})</h5><br>
 <!-- 		<font class="smiles">
 			{{ reference.reaction_smiles }}</a>
 		</font><br> -->
-		<img src="{% url 'draw_reaction' reference.reaction_smiles %}" width=60%><br>
+		<img src="{% url 'draw_reaction' reference.reaction_smiles %}" width=60% alt="{{ reference.reaction_smiles }}"><br>
 	<br><br>
 {% endfor %}
 

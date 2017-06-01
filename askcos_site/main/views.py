@@ -15,8 +15,21 @@ import json
 import rdkit.Chem as Chem 
 import urllib2
 
-from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, builder, predictor, PREDICTOR_FOOTNOTE, NN_PREDICTOR, DONE_SYNTH_PREDICTIONS
+from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, \
+    SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, \
+    BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, builder, predictor, \
+    PREDICTOR_FOOTNOTE, NN_PREDICTOR, DONE_SYNTH_PREDICTIONS, RETRO_CHIRAL_FOOTNOTE
 
+
+def log_this_request(method):
+    def f(*args, **kwargs):
+        try:
+            print('User %s requested view %s with args %r and kwargs %r' % \
+                args[0].user.get_username(), method.__name__, args, kwargs)
+        except Exception as e:
+            print(e)
+        return method(*args, **kwargs)
+    return f
 
 def index(request):
     '''
@@ -53,7 +66,9 @@ def retro(request):
             smiles = context['form'].cleaned_data['smiles']
             if 'retro_lit' in request.POST: return redirect('retro_lit_target', smiles=smiles)
             if 'retro' in request.POST:
-                return redirect('retro_target', smiles=smiles)
+                return retro_target(request, smiles, chiral=False)
+            if 'retro_chiral' in request.POST:
+                return retro_target(request, smiles, chiral=True)
     else:
         context['form'] = SmilesInputForm()
 
@@ -84,7 +99,7 @@ def retro(request):
     return render(request, 'retro.html', context)
 
 @login_required
-def retro_target(request, smiles, max_n=200):
+def retro_target(request, smiles, chiral=False, max_n=200):
     '''
     Given a target molecule, render page
     '''
@@ -92,10 +107,10 @@ def retro_target(request, smiles, max_n=200):
     # Render form with target
     context = {}
     smiles = resolve_smiles(smiles)
+    context['form'] = SmilesInputForm({'smiles': smiles})
     if smiles is None:
         context['err'] = 'Could not parse!'
         return render(request, 'retro.html', context)
-    context['form'] = SmilesInputForm({'smiles': smiles})
 
     # Look up target
     smiles_img = reverse('draw_smiles', kwargs={'smiles':smiles})
@@ -106,13 +121,20 @@ def retro_target(request, smiles, max_n=200):
 
     # Perform retrosynthesis
     startTime = time.time()
-    from askcos_site.askcos_celery.treebuilder.worker import get_top_precursors
-    # Use apply_async so we can force high priority 
-    res = get_top_precursors.apply_async(args=(smiles,), 
-        kwargs={'mincount':0, 'max_branching':max_n, 'raw_results':True}, 
-        priority=255)
-    context['precursors'] = res.get(120)
-    elapsedTime = time.time() - startTime
+    if chiral:
+        from askcos_site.askcos_celery.chiralretro.coordinator import get_top_chiral_precursors
+        res = get_top_chiral_precursors.delay(smiles, mincount=0, max_branching=max_n, raw_results=True)
+        context['precursors'] = res.get(300) # allow up to 5 minutes...can be pretty slow
+        context['footnote'] = RETRO_CHIRAL_FOOTNOTE
+    else:
+        from askcos_site.askcos_celery.treebuilder.worker import get_top_precursors
+        # Use apply_async so we can force high priority 
+        res = get_top_precursors.apply_async(args=(smiles,), 
+            kwargs={'mincount':0, 'max_branching':max_n, 'raw_results':True}, 
+            priority=255)
+        context['precursors'] = res.get(120)
+        context['footnote'] = RETRO_FOOTNOTE
+    context['time'] = '%0.3f' % (time.time() - startTime)
 
     # Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
     # Also add up total number of examples
@@ -129,7 +151,6 @@ def retro_target(request, smiles, max_n=200):
                 'ppg': '${}/g'.format(ppg) if ppg else 'cannot buy'
             })
 
-    context['footnote'] = RETRO_FOOTNOTE + ', generated results in %0.3f seconds' % elapsedTime
     return render(request, 'retro.html', context)
 
 @login_required
@@ -596,10 +617,10 @@ def template_target(request, id):
             print(e)
         if doc is not None:
             references.append({
-                '_id': rx_id,
+                'id': rx_id,
                 'label': ref_id,
                 'reaction_smiles': doc['RXN_SMILES'],
-                'maxpub': doc['RX_MAXPUB'] if 'RX_MAXPUB' in doc else '????',
+                'maxpub': int(doc['RX_MAXPUB'][0]) if 'RX_MAXPUB' in doc else '????',
                 'nvar': doc['RX_NVAR'] if 'RX_NVAR' in doc else '?',
                 'numref': doc['RX_NUMREF'] if 'RX_NUMREF' in doc else '?',
             })
@@ -609,7 +630,7 @@ def template_target(request, id):
         # Limit number retrieved
         if len(references) >= 100:
             break
-    context['references'] = references
+    context['references'] = sorted(references, key=lambda x: x['maxpub'], reverse=True)
     from makeit.retro.conditions import average_template_list
     context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
 
