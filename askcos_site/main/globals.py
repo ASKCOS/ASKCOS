@@ -19,6 +19,25 @@ print('Loaded {} retro templates'.format(RetroTransformer.num_templates))
 RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.format(RetroTransformer.num_templates,
 	mincount_retro, settings.RETRO_TRANSFORMS['database'], settings.RETRO_TRANSFORMS['collection'])
 
+### Chiral Retro Transformer
+database = db_client[settings.RETRO_TRANSFORMS_CHIRAL['database']]
+RETRO_DB = database[settings.RETRO_TRANSFORMS_CHIRAL['collection']]
+import makeit.webapp.transformer_v2 as transformer_v2
+RetroTransformerChiral = transformer_v2.Transformer()
+mincount_retro = settings.RETRO_TRANSFORMS_CHIRAL['mincount']
+mincount_retro_chiral = settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral']
+RetroTransformerChiral.load(RETRO_DB, mincount=mincount_retro, get_retro=False, 
+    get_synth=False, refs=True, mincount_chiral=mincount_retro_chiral)
+print('Loaded {} retro templates'.format(RetroTransformerChiral.num_templates))
+RETRO_CHIRAL_FOOTNOTE = 'Using {} chiral retrosynthesis templates (mincount {} if achiral, mincount {} if chiral) from {}/{}'.format(RetroTransformerChiral.num_templates,
+    mincount_retro, mincount_retro_chiral, settings.RETRO_TRANSFORMS_CHIRAL['database'], 
+    settings.RETRO_TRANSFORMS_CHIRAL['collection'])
+RetroTransformer.templates += RetroTransformerChiral.templates[:]
+del RetroTransformerChiral
+print('Merged two retrotransformers into one, since this is just for template look-up')
+print('{} total templates available'.format(len(RetroTransformer.templates)))
+RetroTransformer.reorder() # rebuilds id->template dictionary
+
 ### Forward transformer 
 database = db_client[settings.SYNTH_TRANSFORMS['database']]
 SYNTH_DB = database[settings.SYNTH_TRANSFORMS['collection']]
