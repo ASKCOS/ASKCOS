@@ -43,6 +43,7 @@ def configure_worker(options={},**kwargs):
     lg.setLevel(RDLogger.CRITICAL)
 
     # Import retro transformer class and load
+    #import makeit.webapp.transformer_v2 as transformer
     import makeit.retro.transformer as transformer 
     RetroTransformer = transformer.Transformer(parallel=False, nb_workers=1)
     mincount_retro = settings.RETRO_TRANSFORMS['mincount']
