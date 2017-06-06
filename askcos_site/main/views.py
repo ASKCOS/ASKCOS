@@ -15,6 +15,9 @@ import json
 import rdkit.Chem as Chem 
 import urllib2
 
+from askcos_site.askcos_celery.chiralretro.coordinator import get_top_chiral_precursors
+from askcos_site.askcos_celery.treebuilder.worker import get_top_precursors
+
 from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, \
     SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, \
     BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, builder, predictor, \
@@ -122,12 +125,10 @@ def retro_target(request, smiles, chiral=False, max_n=200):
     # Perform retrosynthesis
     startTime = time.time()
     if chiral:
-        from askcos_site.askcos_celery.chiralretro.coordinator import get_top_chiral_precursors
         res = get_top_chiral_precursors.delay(smiles, mincount=0, max_branching=max_n, raw_results=True)
         context['precursors'] = res.get(300) # allow up to 5 minutes...can be pretty slow
         context['footnote'] = RETRO_CHIRAL_FOOTNOTE
     else:
-        from askcos_site.askcos_celery.treebuilder.worker import get_top_precursors
         # Use apply_async so we can force high priority 
         res = get_top_precursors.apply_async(args=(smiles,), 
             kwargs={'mincount':0, 'max_branching':max_n, 'raw_results':True}, 
