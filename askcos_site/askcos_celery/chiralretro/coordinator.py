@@ -36,7 +36,7 @@ def configure_worker(options={},**kwargs):
 
 @shared_task
 def get_top_chiral_precursors(smiles, mincount=0, max_branching=20, 
-        raw_results=False, chunksize=500):
+        raw_results=False, chunksize=2000):
     '''Get the precursors for a chemical defined by its SMILES. This
     function is meant for CHIRAL retro steps. Since these are very slow, 
     the tempaltes get parallelized over a number of workers.

@@ -14,6 +14,7 @@ lg.setLevel(RDLogger.CRITICAL)
 CORRESPONDING_QUEUE = 'cr_worker'
 RetroTransformer = None
 apply_one_retrotemplate = None
+rdchiralReactants = None
 
 @celeryd_init.connect
 def configure_worker(options={},**kwargs):
@@ -26,9 +27,14 @@ def configure_worker(options={},**kwargs):
     global RetroTransformer
     from .common import get_retro_transformer
     RetroTransformer = get_retro_transformer()
+    print('Got RetroTransformer')
 
     global apply_one_retrotemplate
-    from makeit.webapp.transformer_v2 import apply_one_retrotemplate
+    from makeit.webapp.transformer_v3 import apply_one_retrotemplate
+    print('Imported transformer_v3')
+    
+    global rdchiralReactants
+    from rdchiral.main import rdchiralReactants
     print('Finished initializing chiral retro worker')
 
 @shared_task
@@ -41,10 +47,13 @@ def get_chiral_precursor_batch(smiles, start_at, end_at):
     end_at = index of templates to end at'''
 
     global RetroTransformer
+    global rdchiralReactants
+
+    rct = rdchiralReactants(smiles)
 
     # Each template returns a list, sometimes an empty list
     precursors = itertools.chain.from_iterable(
-        map(lambda x: apply_one_retrotemplate(None, smiles, x, return_as_tup=True), 
+        map(lambda x: apply_one_retrotemplate(rct, smiles, x, return_as_tup=True), 
         RetroTransformer.templates[start_at:end_at])
     )
     # Don't return empty lists where templates did not apply

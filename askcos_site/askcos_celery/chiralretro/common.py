@@ -19,7 +19,7 @@ def get_retro_transformer():
 
     # Import retro transformer class and load
     # v2 uses Stereofix, which is necessary for chiral transformations
-    import makeit.webapp.transformer_v2 as transformer
+    import makeit.webapp.transformer_v3 as transformer
     RetroTransformer = transformer.Transformer()
     mincount_retro = settings.RETRO_TRANSFORMS_CHIRAL['mincount']
     mincount_retro_chiral = settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral']
