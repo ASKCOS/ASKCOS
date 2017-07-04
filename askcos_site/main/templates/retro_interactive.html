@@ -59,6 +59,7 @@ $("#start_retro").click(function () {
                 retro_mincount: $("#retro_mincount").val(),
                 expansion_time: $("#expansion_time").val(),
                 max_ppg: $("#max_ppg").val(),
+                chiral: $("#chiral").is(":checked"),
             },
             dataType: 'json',
             success: function (data) {
@@ -119,7 +120,6 @@ $(document).ready(function() {
 
 
 {% block page_body %}
-<i>Note: this module uses the stereochemistry-naive retrosynthetic templates, so the stereochemistry of predicted precursors is not reliable</i><br><br>
 <table>
 
 <tr><th>Target compound:</th><td colspan="4"><input id="id_smiles" maxlength="500" size="40" type="text"/></td></tr>
@@ -141,10 +141,10 @@ $(document).ready(function() {
 </tr>
 <tr><th style="vertical-align: bottom; text-align:left"></th>
 <td>
-    Min. retro template count: </td><td><input type="number" id="retro_mincount" style="width: 5em" min="{{retro_mincount_default}}" value="{{retro_mincount_default}}">
+    Min. retro template count: </td><td><input type="number" id="retro_mincount" style="width: 5em" min="0" value="{{retro_mincount_default}}">
 </td>
 <td>
-    Min. synth template count: </td><td><input type="number" id="synth_mincount" style="width: 5em" min="{{synth_mincount_default}}" value="{{synth_mincount_default}}">
+    Min. synth template count: </td><td><input type="number" id="synth_mincount" style="width: 5em" min="0" value="{{synth_mincount_default}}">
 </td>
 </tr>
 <tr><th style="vertical-align: bottom; text-align:left"></th>
@@ -159,9 +159,13 @@ $(document).ready(function() {
 
 <!-- Controls -->
 <tr id="controls_wrapper" style="display:none"><th style="vertical-align: bottom; text-align:left">Controls:</th>
-<td colspan="4">
+<td colspan="1">
     <button type="button" style="width:120px" id="start_retro">Start</button>
 </td>
+<td colspan="3">
+    <input type="checkbox" id="chiral"> Pay close attention to chirality<br>
+</td>
+
 </tr>
 
 </table>

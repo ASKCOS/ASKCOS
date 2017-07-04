@@ -13,6 +13,7 @@ CELERY_TASK_RESULT_EXPIRES = 300 # 5 min
 # Custom task queues - necessary to get priority for tree expansion! (RabbitMQ assumed)
 TASK_QUEUES = [
     Queue('tb_worker', Exchange('tb_worker'), routing_key='tb_worker', queue_arguments={'x-max-priority': 20}),
+    Queue('cr_worker', Exchange('cr_worker'), routing_key='cr_worker', queue_arguments={'x-max-priority': 20}),
 ]
 CELERY_QUEUES = TASK_QUEUES
 

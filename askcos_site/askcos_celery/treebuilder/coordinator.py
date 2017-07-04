@@ -53,9 +53,13 @@ def configure_coordinator(options={},**kwargs):
     Pricer.load(CHEMICAL_DB, BUYABLE_DB)
     print('Loaded known prices')
 
-    # Import worker function
+    # Import worker functions
     from .worker import get_top_precursors, reserve_worker_pool, unreserve_worker_pool
     print('Imported get_top_precursors function from worker')
+
+    import askcos_site.askcos_celery.chiralretro.worker as crworker
+
+    print('Finished initializing treebuilder coordinator')
 
 def chem_dict(_id, smiles, ppg, children=[]):
     '''Chemical object as expected by website'''
@@ -203,7 +207,7 @@ def get_trees_iddfs(tree_dict, max_depth, max_trees=25):
 @shared_task(bind=True)
 def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3, 
         max_ppg=1e8, max_time=60, max_trees=25, reporting_freq=5,
-        known_bad_reactions=[], return_d1_if_no_trees=False):
+        known_bad_reactions=[], return_d1_if_no_trees=False, chiral=False):
     '''Get a set of buyable trees for a target compound.
 
     mincount = minimum template popularity
@@ -226,6 +230,7 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
 
     global Pricer
     from .worker import get_top_precursors, reserve_worker_pool, unreserve_worker_pool
+    import askcos_site.askcos_celery.chiralretro.worker as crworker
 
     tree_dict = {}
     chem_to_id = {smiles: 1}
@@ -238,7 +243,10 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
         from celery.exceptions import TimeoutError
         try:
             print('Searching for private worker pool to reserve')
-            private_worker_queue = reserve_worker_pool.delay().get(timeout=5)
+            if chiral:
+                private_worker_queue = crworker.reserve_worker_pool.delay().get(timeout=5)
+            else:
+                private_worker_queue = reserve_worker_pool.delay().get(timeout=5)
             print('Found one! Will use private queue {}'.format(private_worker_queue))
         except TimeoutError:
             raise TimeoutError('Treebuidler coordinator could not find an open pool of workers to reserve!')
@@ -247,6 +255,13 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
             def expand(smiles, priority=0):
                 # Cannot use 'delay' wrapper if we want to use priority arg, so use apply_async
                 # Note that we use our private_worker_queue which has been previously reserved
+                if chiral:
+                    return crworker.get_top_precursors.apply_async(
+                        args=(smiles,), 
+                        kwargs={'mincount':mincount, 'max_branching':max_branching}, 
+                        priority=int(priority),
+                        queue=private_worker_queue,
+                    )
                 return get_top_precursors.apply_async(
                     args=(smiles,), 
                     kwargs={'mincount':mincount, 'max_branching':max_branching}, 
@@ -315,7 +330,9 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
                                     # Do we need to expand now? This is only if
                                     # (a) was previously at max_depth, and (b) not buyable
                                     if prev_depth == max_depth and not tree_dict[chem_id]['ppg']:
-                                        pending_results.append(expand(mol, priority=tree_dict[chem_id]['depth']))
+                                        # Also, ignore molecules that are way too small
+                                        if len(mol) > 4:
+                                            pending_results.append(expand(mol, priority=tree_dict[chem_id]['depth']))
 
                                     # Weird case: the decrease in depth should
                                     # propagate to children, so maybe we need to
@@ -414,7 +431,11 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
                 amqp.run('queue.purge', private_worker_queue)
 
             print('Trying to release private worker pool...')
-            released = unreserve_worker_pool.apply_async(queue=private_worker_queue, retry=True).get()
+            if chiral:
+                released = crworker.unreserve_worker_pool.apply_async(queue=private_worker_queue, retry=True).get()
+            else:
+                released = unreserve_worker_pool.apply_async(queue=private_worker_queue, retry=True).get()
+            
             if released: 
                 print('Released private worker pool!')
             else:

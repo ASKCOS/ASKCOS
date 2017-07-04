@@ -102,7 +102,7 @@ def retro(request):
     return render(request, 'retro.html', context)
 
 @login_required
-def retro_target(request, smiles, chiral=False, max_n=200):
+def retro_target(request, smiles, chiral=True, max_n=200):
     '''
     Given a target molecule, render page
     '''
@@ -361,13 +361,14 @@ def ajax_start_retro_celery(request):
     retro_mincount = int(request.GET.get('retro_mincount', 0))
     expansion_time = int(request.GET.get('expansion_time', 60))
     max_ppg = int(request.GET.get('max_ppg', 10))
+    chiral = json.loads(request.GET.get('chiral', 'false'))
 
     from askcos_site.askcos_celery.treebuilder.coordinator import get_buyable_paths
     res = get_buyable_paths.delay(smiles, mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth, 
-        max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5)
+        max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5, chiral=chiral)
     (tree_status, trees) = res.get(expansion_time * 3)
     print(tree_status)
-    print(trees)
+    # print(trees)
 
     (num_chemicals, num_reactions, at_depth) = tree_status
     data['html_stats'] = 'After expanding, {} total chemicals and {} total reactions'.format(num_chemicals, num_reactions)
