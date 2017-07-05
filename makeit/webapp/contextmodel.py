@@ -1,9 +1,8 @@
 import os
-import time
 import cPickle as pickle
 import numpy as np
 import random
-from collections import Counter, defaultdict
+# from sklearn.neighbors import NearestNeighbors as NN
 from sklearn.externals import joblib
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -208,6 +207,10 @@ class NNConditionPredictor():
     """Reaction condition predictor based on Nearest Neighbor method"""
 
     def __init__(self, singleSlvt=True, with_smiles=True):
+        """
+        :param singleSlvt:
+        :param with_smiles:
+        """
         self.nnModel = None
         self.rxn_ids = []
         self.num_cond = 1
@@ -219,7 +222,7 @@ class NNConditionPredictor():
         self.max_context = 2
 
     def load_db_model(self, db_client, model_dir):
-        """Loads the nearest neighbor model and related MongoDB collections"""
+        """Loads the db client and the nearest neighbor model"""
 
         # client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
         # db = client['reaxys']
@@ -253,10 +256,10 @@ class NNConditionPredictor():
         try:
             rxn_fp = create_rxn_Morgan2FP(rxn, fpsize=256, useFeatures=True)
             dists, ids = self.nnModel.kneighbors(rxn_fp)  # (1L, 10L)
-            # print info of neighbors
-            print('No.\tRxn ID\tDist')
-            for i, dist in enumerate(dists[0]):
-                print('{}\t{}\t{}'.format(i, self.rxn_ids[ids[0][i]], dist))
+            # # print info of neighbors
+            # print('No.\tRxn ID\tDist')
+            # for i, dist in enumerate(dists[0]):
+            #     print('{}\t{}\t{}'.format(i, self.rxn_ids[ids[0][i]], dist))
             return n_rxn_condition(n, db=self.db, max_total_context=self.max_total_context, dists=dists[0], idx=ids[0],
                                    rxn_ids=self.rxn_ids, max_int=self.max_int, max_context=self.max_context,
                                    singleSlvt=self.singleSlvt, with_smiles=self.with_smiles, dist_limit=self.dist_limit)
@@ -283,7 +286,8 @@ class NNConditionPredictor():
                                           idx=ids[i], rxn_ids=self.rxn_ids, max_int=self.max_int,
                                           max_context=self.max_context, singleSlvt=self.singleSlvt,
                                           with_smiles=self.with_smiles, dist_limit=self.dist_limit)
+                contexts.append(context)
             except Exception as e:
                 print('Step {} with an exception: {}'.format(i, e))
-            contexts.append(context)
+            
         return contexts
