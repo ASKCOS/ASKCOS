@@ -100,7 +100,7 @@ def reaction_condition(db, r_id, max_int, max_context, singleSlvt=True, with_smi
         context_info = ''
         # Temp
         T = string_or_range_to_float(inst_doc['RXD_T'])
-        if not T or T == -1:  # skip if T was unparseable or not recorded
+        if T is None or T == -1:  # skip if T was unparseable or not recorded
             continue
 
         # Solvent(s)
@@ -120,6 +120,8 @@ def reaction_condition(db, r_id, max_int, max_context, singleSlvt=True, with_smi
             context_info += str(slvt['IDE_CN']) + '(' + str(slvt['SMILES']) + ')' + ','
             if singleSlvt:
                 break
+        if not solvent:
+            continue
 
         # Reagents
         reagent = ''
