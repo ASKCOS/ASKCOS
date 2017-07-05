@@ -103,7 +103,7 @@ print('Imported joblib and NNConditionPredictor')
 # print('Read context recommendation info file from {}'.format(settings.CONTEXT_REC['info_path']))
 # lshf_nn = joblib.load(settings.CONTEXT_REC['model_path'])
 # print('Loaded context recommendation nearest-neighbor model from {}'.format(settings.CONTEXT_REC['model_path']))
-NN_PREDICTOR = NNConditionPredictor(nn_model=None, rxn_ids=None)
-print('Initialized NN_PREDICTOR - unnecessary')
+# NN_PREDICTOR = NNConditionPredictor(nn_model=None, rxn_ids=None)
+# print('Initialized NN_PREDICTOR - unnecessary')
 # Keeping track of what reactions have already been done
 DONE_SYNTH_PREDICTIONS = {}

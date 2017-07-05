@@ -21,7 +21,7 @@ from askcos_site.askcos_celery.treebuilder.worker import get_top_precursors
 from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, \
     SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, \
     BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, builder, predictor, \
-    PREDICTOR_FOOTNOTE, NN_PREDICTOR, DONE_SYNTH_PREDICTIONS, RETRO_CHIRAL_FOOTNOTE
+    PREDICTOR_FOOTNOTE, DONE_SYNTH_PREDICTIONS, RETRO_CHIRAL_FOOTNOTE
 
 
 def log_this_request(method):
@@ -398,6 +398,8 @@ def ajax_evaluate_rxnsmiles(request):
     verbose = json.loads(request.GET.get('verbose', 'false'))
     synth_mincount = int(request.GET.get('synth_mincount', 0))
     necessary_reagent = request.GET.get('necessary_reagent', '')
+    if necessary_reagent == 'false':
+        necessary_reagent = ''
     if '{}-{}'.format(smiles, synth_mincount) in DONE_SYNTH_PREDICTIONS:
         data = DONE_SYNTH_PREDICTIONS['{}-{}'.format(smiles, synth_mincount)]
         return JsonResponse(data)
@@ -410,14 +412,12 @@ def ajax_evaluate_rxnsmiles(request):
     else:
         num_contexts = 10
     from askcos_site.askcos_celery.contextrecommender.worker import get_context_recommendation
-    res = get_context_recommendation.delay([reactants, products], n=num_contexts)
+    res = get_context_recommendation.delay(smiles, n=num_contexts)
     contexts = res.get(60)
     print('Got context(s)')
     print(contexts)
-
-    # Weird fix for n=1 v. n=many
-    if num_contexts == 1:
-        contexts = [contexts]
+    if contexts is None:
+        raise ValueError('Context recommender was unable to get valid context(?)')
 
     # Clean up
     def fix_rgt_cat_slvt(rgt1, cat1, slvt1):
@@ -437,7 +437,7 @@ def ajax_evaluate_rxnsmiles(request):
         return txt
 
     contexts_for_predictor = []
-    for (T1, t1, y1, slvt1, rgt1, cat1) in contexts:
+    for (T1, slvt1, rgt1, cat1, t1, y1) in contexts:
         slvt1 = trim_trailing_period(slvt1)
         rgt1 = trim_trailing_period(rgt1)
         cat1 = trim_trailing_period(cat1)

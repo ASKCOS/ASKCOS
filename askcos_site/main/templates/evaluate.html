@@ -48,6 +48,7 @@ $("#get_plausibility").click(function () {
 		url: '/ajax/evaluate_rxnsmiles/',
 		data: {
 			smiles: $("#rxn_smiles").val(),
+			necessary_reagent: $("#necessary_reagent").is(":checked"),
 			verbose: true,
 		},
 		dataType: 'json',
@@ -89,8 +90,11 @@ $(document).ready(function() {
 <tr id="rxn_smiles_wrapper" style="display:none"><td colspan="2" id="rxn_smiles"></td></tr>
 
 <tr id="controls_wrapper" style="display:none">
-<td colspan="2" style="width:100%">
+<td>
 	<button type="button" style="width:100%" id="get_plausibility">Evaluate</button>
+</td>
+<td>
+    <input type="checkbox" id="necessary_reagent"> Reagent(s) should contribute heavy atoms<br>
 </td>
 </tr>
 
