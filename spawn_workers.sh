@@ -1,5 +1,6 @@
 source activate askcos
 export CELERY_LOG_LEVEL="WARN"
+rm celery_logs/*.log
 
 # Purge reservable queues to avoid weird conflicts
 celery amqp queue.purge tb_worker_reservable
@@ -20,9 +21,7 @@ celery -A askcos_site worker -c 2 -Q cr_coordinator -n "chiralretro_coordinator@
 
 # Some bonus worker pools for the treebuilder(s) to reserve
 celery -A askcos_site worker -c 6 -Q tb_worker,tb_worker_reservable -n "treebuilder_worker_pool1@$(hostname)" --max-tasks-per-child 10000 --loglevel=$CELERY_LOG_LEVEL --logfile=celery_logs/%p.log &
-celery -A askcos_site worker -c 6 -Q tb_worker,tb_worker_reservable -n "treebuilder_worker_pool2@$(hostname)" --max-tasks-per-child 10000 --loglevel=$CELERY_LOG_LEVEL --logfile=celery_logs/%p.log &
 celery -A askcos_site worker -c 6 -Q cr_worker,cr_worker_reservable -n "chiralretro_worker_pool1@$(hostname)" --max-tasks-per-child 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
 celery -A askcos_site worker -c 6 -Q cr_worker,cr_worker_reservable -n "chiralretro_worker_pool2@$(hostname)" --max-tasks-per-child 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
-
 
 source deactivate

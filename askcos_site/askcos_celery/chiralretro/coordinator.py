@@ -18,6 +18,7 @@ import rdkit.Chem as Chem
 
 CORRESPONDING_QUEUE = 'cr_coordinator'
 template_counts = None
+RetroTransformer = None
 
 @celeryd_init.connect
 def configure_worker(options={},**kwargs):
@@ -28,6 +29,7 @@ def configure_worker(options={},**kwargs):
     print('### STARTING UP A CHIRAL RETRO COORDINATOR ###')
 
     global template_counts
+    global RetroTransformer
     from .common import get_retro_transformer
     RetroTransformer = get_retro_transformer()
     template_counts = [template['count'] for template in RetroTransformer.templates]
@@ -49,6 +51,8 @@ def get_top_chiral_precursors(smiles, mincount=0, max_branching=20,
     print('Chiral retro coordinator was asked to expand {} (mincount {}, branching {})'.format(
         smiles, mincount, max_branching
     ))
+
+    global RetroTransformer
 
     global template_counts
     from .worker import get_chiral_precursor_batch
@@ -75,7 +79,7 @@ def get_top_chiral_precursors(smiles, mincount=0, max_branching=20,
     print('Added {} chunks'.format(len(pending_results)))
 
     # Initialize result
-    from makeit.webapp.transformer_v2 import RetroResult, RetroPrecursor
+    from makeit.webapp.transformer_v3 import RetroResult, RetroPrecursor
     result = RetroResult(smiles)
     add_precursor = result.add_precursor
 
@@ -91,7 +95,7 @@ def get_top_chiral_precursors(smiles, mincount=0, max_branching=20,
                         template_id=precursor[1],
                         num_examples=precursor[2],
                         necessary_reagent=precursor[3]
-                    ))
+                    ), Pricer=RetroTransformer.Pricer)
                 pending_results[i].forget()
         # Update list
         pending_results = [res for (i, res) in enumerate(pending_results) if i not in is_ready]

@@ -50,6 +50,17 @@ def configure_worker(options={},**kwargs):
     RetroTransformer.load(RETRO_DB, mincount=mincount_retro, get_retro=True, get_synth=False)
     print('Tree builder worker loaded {} retro templates'.format(RetroTransformer.num_templates))
 
+    # Also - get the Pricer and load it into the RetroTransformer object.
+    db = db_client[settings.BUYABLES['database']]
+    BUYABLE_DB = db[settings.BUYABLES['collection']]
+    db = db_client[settings.CHEMICALS['database']]
+    CHEMICAL_DB = db[settings.CHEMICALS['collection']]
+    print('Loading prices...')
+    import makeit.retro.pricer as pricer
+    RetroTransformer.Pricer = pricer.Pricer()
+    RetroTransformer.Pricer.load(CHEMICAL_DB, BUYABLE_DB)
+    print('Loaded known prices')
+
 @shared_task
 def get_top_precursors(smiles, mincount=0, max_branching=20, raw_results=False):
     '''Get the precursors for a chemical defined by its SMILES

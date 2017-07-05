@@ -1,6 +1,6 @@
 def get_retro_transformer():
     '''
-    Loads the retro transformer that uses Stereofix
+    Loads the retro transformer
     '''
     print('Loading chiral retro transofmer')
 
@@ -18,7 +18,7 @@ def get_retro_transformer():
     lg.setLevel(RDLogger.CRITICAL)
 
     # Import retro transformer class and load
-    # v2 uses Stereofix, which is necessary for chiral transformations
+    # v3 uses rdchiral, for chiral transformations
     import makeit.webapp.transformer_v3 as transformer
     RetroTransformer = transformer.Transformer()
     mincount_retro = settings.RETRO_TRANSFORMS_CHIRAL['mincount']
@@ -26,4 +26,16 @@ def get_retro_transformer():
     RetroTransformer.load(RETRO_DB, mincount=mincount_retro, get_retro=True, 
         get_synth=False, mincount_chiral=mincount_retro_chiral)
     print('Chiral retro transformer loaded {} retro templates'.format(RetroTransformer.num_templates))
+
+    # Also - get the Pricer and load it into the RetroTransformer object.
+    db = db_client[settings.BUYABLES['database']]
+    BUYABLE_DB = db[settings.BUYABLES['collection']]
+    db = db_client[settings.CHEMICALS['database']]
+    CHEMICAL_DB = db[settings.CHEMICALS['collection']]
+    print('Loading prices...')
+    import makeit.retro.pricer as pricer
+    RetroTransformer.Pricer = pricer.Pricer()
+    RetroTransformer.Pricer.load(CHEMICAL_DB, BUYABLE_DB)
+    print('Loaded known prices')
+
     return RetroTransformer

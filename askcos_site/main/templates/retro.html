@@ -20,9 +20,9 @@
 {{ form.as_table }}
 	<th>{% csrf_token %}</th>
 	<td>
-		<input type="submit" value="Search (achiral)" name="retro">
+		<!-- <input type="submit" value="Search (achiral)" name="retro"> -->
 		<!-- <input type="submit" value="Search (literature)" name="retro_lit"> -->
-		<input type="submit" value="Search (chiral, default)" name="retro_chiral">
+		<input type="submit" value="Search" name="retro_chiral">
 	</td>
 </table>
 </form>
@@ -47,7 +47,6 @@
 	<br>
 	<br>
 	<i>Please note that precursor sets are scored and sorted by a <b>very</b> crude heuristic function that tries to break the target into similarly-sized reactants with fewer rings and - on this page - have not been evaluated for plausibility in the forward direction.</i><br><br>
-	<i>Also note that although chirality may be depicted in the images below, it is <b>not</b> considered when applying templates unless you explicitly use the slower, chiral templates.</i><br><br>
 	<i>Results generated in {{ time }} seconds</i>
 	<br>
 	<br>
