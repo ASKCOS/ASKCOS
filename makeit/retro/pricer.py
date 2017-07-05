@@ -34,7 +34,8 @@ class Pricer:
 
         buyable_dict = {}
         # First pull buyables source (smaller)
-        for buyable_doc in tqdm(self.buyables_source.find({}, ['ppg', 'smiles', 'smiles_flat'], no_cursor_timeout = True)):
+        for buyable_doc in self.buyables_source.find({}, ['ppg', 'smiles', 'smiles_flat'], 
+            no_cursor_timeout = True):
             smiles = buyable_doc['smiles']
             smiles_flat = buyable_doc['smiles_flat']
 
@@ -76,11 +77,11 @@ class Pricer:
             if not mol: return 0.
             smiles = Chem.MolToSmiles(mol, isomericSmiles=isomericSmiles)
         
-        ppg = self.prices_flat[smiles]
-        if ppg: return ppg
+            ppg = self.prices_flat[smiles]
+            if ppg: return ppg
 
-        ppg = self.prices[smiles]
-        if ppg: return ppg
+            ppg = self.prices[smiles]
+            if ppg: return ppg
 
         return ppg
 

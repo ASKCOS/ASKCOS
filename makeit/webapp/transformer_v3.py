@@ -7,7 +7,7 @@ from makeit.webapp.score import score_smiles
 
 '''
 transformer_v2 is meant to be used with the chiral module. While there
-are only some cases that are problematic, it is recommended to use Stereofix
+are only some cases that are problematic, it is recommended to use this
 for all reactions in case non-reacting stereocenters get flipped by changes
 in canonical bond order.
 
@@ -33,6 +33,7 @@ class Transformer:
         self.has_synth = False
         self.has_retro = False
         self.id_to_index = {}
+        self.Pricer = None
 
     def load(self, collection, mincount=25, get_retro=True, get_synth=True,
              refs=False, efgs=False, mincount_chiral=None,
@@ -172,7 +173,7 @@ class Transformer:
         add_precursor = result.add_precursor
         for template in self.top_templates(mincount=mincount):
             for precursor in apply_one_retrotemplate(rct, smiles, template):
-                add_precursor(precursor)
+                add_precursor(precursor, Pricer=self.Pricer)
 
         return result
 
@@ -319,7 +320,7 @@ class RetroResult:
         self.target_smiles = target_smiles
         self.precursors = []
 
-    def add_precursor(self, precursor):
+    def add_precursor(self, precursor, Pricer=None):
         '''
         Adds a precursor to the retrosynthesis result if it is a new
         and unique product
@@ -332,7 +333,7 @@ class RetroResult:
                 old_precursor.num_examples += precursor.num_examples
                 return
         # New! Need to score and add to list
-        precursor.score()
+        precursor.score(Pricer=Pricer)
         self.precursors.append(precursor)
 
     def return_top(self, n=50):
@@ -370,15 +371,15 @@ class RetroPrecursor:
         self.template_ids = frozenset([template_id])
         self.necessary_reagent = necessary_reagent
 
-    def score(self):
+    def score(self, Pricer=None):
         '''
         Calculate the score of this step as the worst of all precursors,
         plus some penalty for a large necessary_reagent
         '''
         necessary_reagent_atoms = self.necessary_reagent.count('[') / 2.
-        scores = [score_smiles(smiles) for smiles in self.smiles_list]
+        scores = [score_smiles(smiles, Pricer=Pricer) for smiles in self.smiles_list]
 
-        self.retroscore = np.min(scores) - 4.00 * \
+        self.retroscore = np.sum(scores) - 4.00 * \
             np.power(necessary_reagent_atoms, 2.0)
 
 
@@ -396,12 +397,16 @@ def apply_one_retrotemplate(rct, smiles, template, return_as_tup=False):
         if template['intra_only'] and '.' in outcome: # disallowed intermol rxn
             continue
         
+        smiles_list = outcome.split('.')
+        if smiles in smiles_list:
+            continue
+            
         if return_as_tup:
-            precursor = (outcome.split('.'), str(template['_id']), 
+            precursor = (smiles_list, str(template['_id']), 
                 template['count'], template['necessary_reagent'])
         else:
             precursor = RetroPrecursor(
-                smiles_list=outcome.split('.'),
+                smiles_list=smiles_list,
                 template_id=template['_id'],
                 num_examples=template['count'],
                 necessary_reagent=template['necessary_reagent']

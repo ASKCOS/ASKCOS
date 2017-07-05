@@ -2,7 +2,11 @@ import numpy as np
 import rdkit.Chem as Chem
 
 
-def score_smiles(smiles):
+def score_smiles(smiles, Pricer=None):
+    if Pricer is not None:
+        ppg = Pricer.lookup_smiles(smiles, alreadyCanonical=True)
+        if ppg:
+            return - ppg / 5.0 # basically "free"
     x = Chem.MolFromSmiles(smiles)
     total_atoms = x.GetNumHeavyAtoms()
     ring_bonds = sum([b.IsInRing() - b.GetIsAromatic()
