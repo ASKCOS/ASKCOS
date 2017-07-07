@@ -29,7 +29,7 @@ SECRET_KEY = 'px$*ir)-wd=x6^!r++t53ik^2)z7!9cvw+m#@!-$ut@xjyjtg*'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['askcos.mit.edu']
 
 TEMPLATE_LOADERS = ['django.template.loaders.filesystem.Loader',
  'django.template.loaders.app_directories.Loader']
@@ -90,7 +90,8 @@ WSGI_APPLICATION = 'askcos_site.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        #'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'NAME': os.path.join('/data', 'www-data', 'db.sqlite3'),
     }
 }
 # AUTHENTICATION_BACKENDS = (
@@ -131,35 +132,41 @@ MEDIA_URL = '/media/'
 
 # Miscellanious
 RETRO_TRANSFORMS = {
-    'database': 'reaxys',
-    'collection': 'transforms_retro_v4', # 'lowe' or 'chematica'
-    'mincount': 100,
+    'database': 'reaxys_v2',
+    'collection': 'transforms_retro_v6',
+    'mincount': 25,
+}
+RETRO_TRANSFORMS_CHIRAL = {
+    'database': 'reaxys_v2',
+    'collection': 'transforms_retro_v7',
+    'mincount': 25,
+    'mincount_chiral': 10
 }
 RETRO_TRANSFORMER = { 
-    'parallel': True,
-    'nb_workers': 2,
+    'parallel': False,
+    'nb_workers': 0,
 }
 SYNTH_TRANSFORMS = {
     'database': 'reaxys',
     'collection': 'transforms_forward_v1',
-    'mincount': 50, 
+    'mincount': 25, 
 }
 SYNTH_TRANSFORMER = {
 }
 INSTANCES = {
-    'database': 'reaxys',
+    'database': 'reaxys_v2',
     'collection': 'instances',
 }
 REACTIONS = {
-    'database': 'reaxys',
+    'database': 'reaxys_v2',
     'collection': 'reactions',
 }
 CHEMICALS = {
-    'database': 'reaxys',
+    'database': 'reaxys_v2',
     'collection': 'chemicals',
 }
 BUYABLES = {
-    'database': 'reaxys',
+    'database': 'reaxys_v2',
     'collection': 'buyables',
 }
 SOLVENTS = {
@@ -168,14 +175,16 @@ SOLVENTS = {
 }
 
 PREDICTOR = {
-    'nb_workers': 4,
+    'nb_workers': 0,
     'trained_model_path': '/home/ccoley/Make-It/makeit/predict/output/01_23_2017',
     'info': '01-23-17, model trained on 80k Reaxys examples, validated on 10k, tested on 10k. Nh1_200, Nh2_200, Nh3_200, l2_0, Nc_5000, enh_weight_0d1, context_weight_50, opt_adadelta, batch_5, moreFeatures'
 }
 
 CONTEXT_REC = {
-    'info_path': '/data1/ASKCOS/2MRxnModel/fpNN-10_2MRxn_info.txt',
-    'model_path': '/data1/ASKCOS/2MRxnModel/fpNN-10_2MRxn_lshf.pickle',
+    'info_path': '/data/fatmodels/2MRxnModel/fpNN-10_2MRxn_info.txt',
+    'model_path': '/data/fatmodels/2MRxnModel/fpNN-10_2MRxn_lshf.pickle',
+    'model_dir': '/data/fatmodels/FullReaxysModel',
+    'database': 'reaxys',
 }
 
 # LOGIN

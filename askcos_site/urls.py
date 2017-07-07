@@ -34,18 +34,17 @@ urlpatterns += [
 
     # Interactive retrosynthesis
     url(ur'^retro_interactive/$', main.views.retro_interactive, name = 'retro_interactive'),
-    url(ur'^ajax/smiles_to_image_retro/$', main.views.ajax_smiles_to_image_retro, name = 'ajax_smiles_to_image_retro'),
-    url(ur'^ajax/start_retro/$', main.views.ajax_start_retro, name = 'ajax_start_retro'),
-    url(ur'^ajax/pause_retro/$', main.views.ajax_pause_retro, name = 'ajax_pause_retro'),
-    url(ur'^ajax/stop_retro/$', main.views.ajax_stop_retro, name = 'ajax_stop_retro'),
-    url(ur'^ajax/update_retro_stats/$', main.views.ajax_update_retro_stats, name = 'ajax_update_retro_stats'),
-    url(ur'^ajax/update_retro/$', main.views.ajax_update_retro, name = 'ajax_update_retro'),
+    url(ur'^ajax/smiles_to_image/$', main.views.ajax_smiles_to_image, name = 'ajax_smiles_to_image'),
+    url(ur'^ajax/rxn_to_image/$', main.views.ajax_rxn_to_image, name = 'ajax_rxn_to_image'),
+    url(ur'^ajax/start_retro_celery/$', main.views.ajax_start_retro_celery, name = 'ajax_start_retro_celery'),
+    
+    # Evaluation
+    url(ur'^evaluate/$', main.views.evaluate_rxnsmiles, name = 'evaluate_rxnsmiles'),
     url(ur'^ajax/evaluate_rxnsmiles/$', main.views.ajax_evaluate_rxnsmiles, name = 'ajax_evaluate_rxnsmiles'),
 
     # Interactive forward prediction
     url(ur'^synth_interactive/$', main.views.synth_interactive, name = 'synth_interactive'),
     url(ur'^synth_interactive/reactants=(?P<reactants>.+)$', main.views.synth_interactive, name = 'synth_interactive_target'),
-    url(ur'^ajax/smiles_to_image_synth/$', main.views.ajax_smiles_to_image_synth, name = 'ajax_smiles_to_image_synth'),
     url(ur'^ajax/start_synth/$', main.views.ajax_start_synth, name = 'ajax_start_synth'),
 
     # Forward synthesis
@@ -59,6 +58,8 @@ urlpatterns += [
     url(r'^reaxys/rxid=(?P<rxid>.+)$', main.views.rxid_target, name = 'rxid_target'),
 
     # Pricing
+    url(ur'^price/$', main.views.pricing, name = 'pricing'),
+    url(ur'^ajax/price_smiles/$', main.views.ajax_price_smiles, name = 'ajax_price_smiles'),
     url(ur'^price/smiles/(?P<smiles>.+)$', main.views.price_smiles, name = 'price_smiles'),
     url(ur'^price/xrn/(?P<xrn>.+)$', main.views.price_xrn, name = 'price_xrn'),
 
@@ -74,10 +75,6 @@ urlpatterns += [
     # Showing a path (testing)
     url(ur'^draw/synthesis_tree/$', main.views.draw_synthesis_tree, name = 'draw_synthesis_tree'),
     url(ur'^draw/synthesis_tree/id=(?P<id>.+)$', main.views.draw_synthesis_tree, name = 'draw_synthesis_tree_click'),
-
-    # Using Ajax calls (testing)
-    url(ur'^test/the_time/$', main.views.the_time, name = 'the_time'),
-    url(ur'^ajax/get_the_time/$', main.views.get_the_time, name = 'get_the_time'),
 
     # Separation
     url(r'^separation/input/$', main.views.sep_input, name='sep_input'),

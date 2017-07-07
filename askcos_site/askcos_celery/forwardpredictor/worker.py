@@ -7,11 +7,12 @@ from __future__ import absolute_import, unicode_literals, print_function
 from celery import shared_task
 from celery.signals import celeryd_init
 import time
-from makeit.predict.summarize_reaction_outcome import summarize_reaction_outcome
+from rdkit import RDLogger
+lg = RDLogger.logger()
+lg.setLevel(RDLogger.CRITICAL)
 
 CORRESPONDING_QUEUE = 'fp_worker'
 templates = None
-Chem = None
 
 @celeryd_init.connect
 def configure_worker(options={},**kwargs):
@@ -22,7 +23,6 @@ def configure_worker(options={},**kwargs):
     print('### STARTING UP A FORWARD PREDICTOR WORKER ###')
 
     global templates
-    global Chem
     
     # Get Django settings
     from django.conf import settings
@@ -34,6 +34,7 @@ def configure_worker(options={},**kwargs):
 
     # Rdkit
     import rdkit.Chem as Chem 
+    from makeit.predict.summarize_reaction_outcome import summarize_reaction_outcome
 
     # Load templates
     from .common import load_templates
@@ -51,7 +52,9 @@ def get_candidate_edits(reactants_smiles, start_at, end_at):
     end_at = index of templates to end at'''
 
     global templates
-    global Chem 
+    
+    import rdkit.Chem as Chem 
+    from makeit.predict.summarize_reaction_outcome import summarize_reaction_outcome
 
     #print('Forward predictor worker was asked to expand {} ({}->{})'.format(reactants_smiles, start_at, end_at))
     reactants = Chem.MolFromSmiles(reactants_smiles)
@@ -90,7 +93,8 @@ def get_candidate_edits(reactants_smiles, start_at, end_at):
                     # Add to ongoing list
                     candidate_list.append((candidate_smiles, edits))
                 except Exception as e: # other RDKit error?
-                    print(e)
+                    #print(e) # fail quietly
+                    continue
         except IndexError: # out of range w/ templates
             break 
         except Exception as e: # other RDKit error?

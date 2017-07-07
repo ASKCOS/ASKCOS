@@ -1,2 +1,3 @@
-
+askcos_site/static/admin/*
+*celery_logs*
 *.pyc

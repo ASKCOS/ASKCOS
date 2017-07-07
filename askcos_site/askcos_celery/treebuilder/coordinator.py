@@ -14,10 +14,14 @@ from celery import shared_task
 from celery.signals import celeryd_init
 from celery.result import allow_join_result 
 # NOTE: allow_join_result is only because the treebuilder worker is separate
+from celery.exceptions import Terminated
 import time
 
+from rdkit import RDLogger
+lg = RDLogger.logger()
+lg.setLevel(RDLogger.CRITICAL)
+
 CORRESPONDING_QUEUE = 'tb_coordinator'
-get_top_precursors = None
 Pricer = None
 
 
@@ -49,9 +53,13 @@ def configure_coordinator(options={},**kwargs):
     Pricer.load(CHEMICAL_DB, BUYABLE_DB)
     print('Loaded known prices')
 
-    # Import worker function
-    from .worker import get_top_precursors
+    # Import worker functions
+    from .worker import get_top_precursors, reserve_worker_pool, unreserve_worker_pool
     print('Imported get_top_precursors function from worker')
+
+    import askcos_site.askcos_celery.chiralretro.worker as crworker
+
+    print('Finished initializing treebuilder coordinator')
 
 def chem_dict(_id, smiles, ppg, children=[]):
     '''Chemical object as expected by website'''
@@ -97,7 +105,8 @@ def get_trees_iddfs(tree_dict, max_depth, max_trees=25):
     from itertools import product
 
     def IDDFS():
-        for depth in range(max_depth):
+        for depth in range(max_depth+1):
+            print('Getting trees (IDDFS starting d={})'.format(depth))
             for path in DLS_chem(1, depth, headNode=True):
                 yield chem_dict(1, tree_dict[1]['smiles'], tree_dict[1]['ppg'], children=path)
 
@@ -197,7 +206,8 @@ def get_trees_iddfs(tree_dict, max_depth, max_trees=25):
 
 @shared_task(bind=True)
 def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3, 
-        max_ppg=1e8, max_time=60, max_trees=25, reporting_freq=5):
+        max_ppg=1e8, max_time=60, max_trees=25, reporting_freq=5,
+        known_bad_reactions=[], return_d1_if_no_trees=False, chiral=False):
     '''Get a set of buyable trees for a target compound.
 
     mincount = minimum template popularity
@@ -207,138 +217,226 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
     max_ppg = maximum price to consider something buyable
     max_time = time for expansion
     reporting_freq = interval (s) for reporting status
+    known_bad_reactions = list of reactant smiles for reactions which we
+         already know not to work, so we shouldn't propose them
 
     This function updates its state to provide information about the current
     status of the expansion. Search "on_message task progress" for examples'''
 
     print('Treebuilder coordinator was asked to expand {}'.format(smiles))
+    print('Treebuilder coordinator: mincount {}, max_depth {}, max_branching {}, max_ppg {}, max_time {}, max_trees {}'.format(
+        mincount, max_depth, max_branching, max_ppg, max_time, max_trees
+    ))
 
     global Pricer
-    global get_top_precursors
+    from .worker import get_top_precursors, reserve_worker_pool, unreserve_worker_pool
+    import askcos_site.askcos_celery.chiralretro.worker as crworker
 
     tree_dict = {}
     chem_to_id = {smiles: 1}
     buyable_leaves = set()
-    
-    def expand(smiles):
-        return get_top_precursors.delay(smiles, mincount=mincount, 
-            max_branching=max_branching)
+    pending_results = []
 
-    # Initialize
-    tree_dict[1] = {
-        'smiles': smiles,
-        'prod_of': [],
-        'rct_of': [],
-        'depth': 0,
-        'ppg': Pricer.lookup_smiles(smiles),
-    }
-    current_id = 2
+    with allow_join_result(): # required to use .get() from tb_workers
 
-    time_start = time.time()
-    time_goal = time_start + max_time
-    time_last_report = 0.
+        # Reserve a pool of celery workers
+        from celery.exceptions import TimeoutError
+        try:
+            print('Searching for private worker pool to reserve')
+            if chiral:
+                private_worker_queue = crworker.reserve_worker_pool.delay().get(timeout=5)
+            else:
+                private_worker_queue = reserve_worker_pool.delay().get(timeout=5)
+            print('Found one! Will use private queue {}'.format(private_worker_queue))
+        except TimeoutError:
+            raise TimeoutError('Treebuidler coordinator could not find an open pool of workers to reserve!')
+        # Wrap everything else in a try/finally block to make sure we unreserve this pool at the end!
+        try:
+            def expand(smiles, priority=0):
+                # Cannot use 'delay' wrapper if we want to use priority arg, so use apply_async
+                # Note that we use our private_worker_queue which has been previously reserved
+                if chiral:
+                    return crworker.get_top_precursors.apply_async(
+                        args=(smiles,), 
+                        kwargs={'mincount':mincount, 'max_branching':max_branching}, 
+                        priority=int(priority),
+                        queue=private_worker_queue,
+                    )
+                return get_top_precursors.apply_async(
+                    args=(smiles,), 
+                    kwargs={'mincount':mincount, 'max_branching':max_branching}, 
+                    priority=int(priority),
+                    queue=private_worker_queue,
+                )
 
-    # Add first expansion
-    pending_results = [expand(smiles)]
+            # Initialize
+            tree_dict[1] = {
+                'smiles': smiles,
+                'prod_of': [],
+                'rct_of': [],
+                'depth': 0,
+                'ppg': Pricer.lookup_smiles(smiles),
+            }
+            current_id = 2
 
-    while len(pending_results) > 0:
-        time_now = time.time()
+            time_start = time.time()
+            time_goal = time_start + max_time
+            time_last_report = 0.
 
-        # Look for done results
-        is_ready = [i for (i, res) in enumerate(pending_results) if res.ready()]
-        with allow_join_result(): # required to use .get()
-            for i in is_ready:
-                (smiles, children) = pending_results[i].get(timeout=1)
-                pending_results[i].forget()
-                _id = chem_to_id[smiles]
+            # Add first expansion
+            pending_results = [expand(smiles, priority=99)]
 
-                # Assign unique number
-                for (rxn, mols) in children:
-                    rxn_id = current_id
-                    current_id += 1 # this is only okay because there is ONE coordinator process
+            while len(pending_results) > 0:
+                time_now = time.time()
 
-                    # For the parent molecule, record child reactions
-                    tree_dict[_id]['prod_of'].append(rxn_id)
+                # Look for done results
+                is_ready = [i for (i, res) in enumerate(pending_results) if res.ready()]
                 
-                    # For the reaction, keep track of children IDs
-                    chem_ids = []
-                    for mol in mols:
+                for i in is_ready:
+                    (smiles, children) = pending_results[i].get(timeout=1)
+                    pending_results[i].forget()
+                    _id = chem_to_id[smiles]
 
-                        try:
-                            chem_id = chem_to_id[mol]
+                    # Assign unique number
+                    for (rxn, mols) in children:
 
-                            # Just need to record that this is a precursor of that rxn
-                            tree_dict[chem_id]['rct_of'].append(rxn_id)
+                        # Check if we know this to be a bad reaction
+                        # and leave it out of the tree if so
+                        rxn_smiles = '.'.join(sorted(mols)) + '>>' + smiles
+                        if rxn_smiles in known_bad_reactions:
+                            continue
 
-                            # Are we less deep than when this was discovered?
-                            prev_depth = tree_dict[chem_id]['depth']
-                            if tree_dict[_id]['depth'] + 1 < prev_depth:
-                                tree_dict[chem_id]['depth'] = tree_dict[_id]['depth'] + 1
+                        rxn_id = current_id
+                        current_id += 1 # this is only okay because there is ONE coordinator process
 
-                                # Do we need to expand now? This is only if
-                                # (a) was previously at max_depth, and (b) not buyable
-                                if prev_depth == max_depth and not tree_dict[chem_id]['ppg']:
-                                    pending_results.append(expand(mol))
+                        # For the parent molecule, record child reactions
+                        tree_dict[_id]['prod_of'].append(rxn_id)
+                    
+                        # For the reaction, keep track of children IDs
+                        chem_ids = []
+                        for mol in mols:
 
-                        except KeyError:
-                            # New chemical?
-                            chem_id = current_id
-                            current_id += 1
-                            chem_to_id[mol] = chem_id
+                            try:
+                                chem_id = chem_to_id[mol] # if this does not fail, known
 
-                            # Check if buyable
-                            ppg = Pricer.lookup_smiles(mol, alreadyCanonical=True)
-                            if ppg > max_ppg:
-                                ppg = 0.
+                                # Just need to record that this is a precursor of that rxn
+                                tree_dict[chem_id]['rct_of'].append(rxn_id)
 
-                            # Add to tree
-                            tree_dict[chem_id] = {
-                                'smiles': mol,
-                                'prod_of': [],
-                                'rct_of': [rxn_id],
-                                'depth': tree_dict[_id]['depth'] + 1,
-                                'ppg': ppg
-                            }
-                            
-                            # Check buyability / expandability
-                            if ppg:
-                                buyable_leaves.add(chem_id)
-                            elif tree_dict[chem_id]['depth'] < max_depth:
-                                # Add to queue to get expanded
-                                pending_results.append(expand(mol))
+                                # Are we less deep than when this was discovered?
+                                prev_depth = tree_dict[chem_id]['depth']
+                                if tree_dict[_id]['depth'] + 1 < prev_depth:
+                                    tree_dict[chem_id]['depth'] = tree_dict[_id]['depth'] + 1
 
-                        # Keep track of chem_ids
-                        chem_ids.append(chem_id)
+                                    # Do we need to expand now? This is only if
+                                    # (a) was previously at max_depth, and (b) not buyable
+                                    if prev_depth == max_depth and not tree_dict[chem_id]['ppg']:
+                                        # Also, ignore molecules that are way too small
+                                        if len(mol) > 4:
+                                            pending_results.append(expand(mol, priority=tree_dict[chem_id]['depth']))
 
-                    # Record by overwriting the whole dict value
-                    rxn['rcts'] = chem_ids
-                    rxn['prod'] = _id
-                    rxn['depth'] = tree_dict[_id]['depth'] + 0.5
-                    tree_dict[rxn_id] = rxn
+                                    # Weird case: the decrease in depth should
+                                    # propagate to children, so maybe we need to
+                                    # look into the chemical's children and
+                                    # figure out if those should be expanded
+                                    # again? Not sure how to handle this
 
+                            except KeyError:
+                                # New chemical?
+                                chem_id = current_id
+                                current_id += 1
+                                chem_to_id[mol] = chem_id
+
+                                # Check if buyable
+                                ppg = Pricer.lookup_smiles(mol, alreadyCanonical=True)
+                                if ppg > max_ppg:
+                                    ppg = 0.
+
+                                # Add to tree
+                                tree_dict[chem_id] = {
+                                    'smiles': mol,
+                                    'prod_of': [],
+                                    'rct_of': [rxn_id],
+                                    'depth': tree_dict[_id]['depth'] + 1,
+                                    'ppg': ppg
+                                }
+                                
+                                # Check buyability / expandability
+                                if ppg:
+                                    buyable_leaves.add(chem_id)
+                                elif tree_dict[chem_id]['depth'] < max_depth:
+                                    # Add to queue to get expanded
+                                    pending_results.append(expand(mol, priority=tree_dict[chem_id]['depth']))
+
+                            # Keep track of chem_ids
+                            chem_ids.append(chem_id)
+
+                        # Record by overwriting the whole dict value
+                        rxn['rcts'] = chem_ids
+                        rxn['prod'] = _id
+                        rxn['depth'] = tree_dict[_id]['depth'] + 0.5
+                        tree_dict[rxn_id] = rxn
+
+                
+                # Update list
+                pending_results = [res for (i, res) in enumerate(pending_results) if i not in is_ready]
+
+                # Update status
+                if time_now - time_last_report >= reporting_freq:
+                    (num_chemicals, num_reactions, at_depth) = tree_status(tree_dict)
+                    self.update_state(state='EXPANDING', meta={
+                        'time_remaining': time_goal - time_now,
+                        'num_chemicals': num_chemicals,
+                        'num_reactions': num_reactions,
+                        'depth_dict': at_depth,
+                    })
+                    time_last_report = time_now 
+                    print('Treebuilder coordinator: updated state: {} chems and {} rxns'.format(num_chemicals, num_reactions))
+                    print('at_depth dict: {}'.format(at_depth))
+                    print('Treebuilder coordinator: {:.1f} seconds left'.format(time_goal - time_now))
+
+                # Break when appropriate
+                if time_now >= time_goal:
+                    break
+
+            # Return trees
+            print('Getting tree status')
+            this_tree_status = tree_status(tree_dict)
+            print('Getting trees')
+            these_trees = get_trees_iddfs(tree_dict, max_depth, max_trees)
+            print('Got {} trees'.format(these_trees))
+
+            # Did we fail to find anything?
+            if len(these_trees) == 0 and return_d1_if_no_trees:
+                # Return a list of reaction SMILES to try instead
+                d1_reactions = []
+                for rxn_id in tree_dict[1]['prod_of']:
+                    d1_reactions.append((
+                        [tree_dict[x]['smiles'] for x in tree_dict[rxn_id]['rcts']],
+                        [tree_dict[1]['smiles']],
+                        tree_dict[rxn_id]['necessary_reagent'],
+                    ))
+                return (this_tree_status, these_trees, d1_reactions)
+                    
+            return (this_tree_status, these_trees)
         
-        # Update list
-        pending_results = [res for (i, res) in enumerate(pending_results) if i not in is_ready]
+        finally: # should catch KeyboardInterrupt and Terminated
+            print('Purging remaining tasks from {}...'.format(private_worker_queue))
+            if pending_results != []:
+                ## OPTION 1 - REVOKE TASKS, WHICH GETS SENT TO ALL WORKERS REGARDLESS OF TYPE
+                #[res.revoke() for res in pending_results]
+                # OPTION 2 - DIRECTLY PURGE THE QUEUE (NOTE: HARDCODED FOR AMQP)
+                import celery.bin.amqp 
+                from askcos_site.celery import app 
+                amqp = celery.bin.amqp.amqp(app = app)
+                amqp.run('queue.purge', private_worker_queue)
 
-        # Update status
-        if time_now - time_last_report >= reporting_freq:
-            (num_chemicals, num_reactions, at_depth) = tree_status(tree_dict)
-            self.update_state(state='EXPANDING', meta={
-                'time_remaining': time_goal - time_now,
-                'num_chemicals': num_chemicals,
-                'num_reactions': num_reactions,
-                'depth_dict': at_depth,
-            })
-            time_last_report = time_now 
-            print('Updated state: {} chems and {} rxns'.format(num_chemicals, num_reactions))
-            print('{:.1f} seconds left'.format(time_goal - time_now))
-
-        # Break when appropriate
-        if time_now >= time_goal:
-            break
-
-    # Clear results
-    [res.forget() for res in pending_results]
-
-    # Return trees
-    return (tree_status(tree_dict), get_trees_iddfs(tree_dict, max_depth, max_trees))
+            print('Trying to release private worker pool...')
+            if chiral:
+                released = crworker.unreserve_worker_pool.apply_async(queue=private_worker_queue, retry=True).get()
+            else:
+                released = unreserve_worker_pool.apply_async(queue=private_worker_queue, retry=True).get()
+            
+            if released: 
+                print('Released private worker pool!')
+            else:
+                print('...a pool of workers was lost')

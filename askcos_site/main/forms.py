@@ -9,11 +9,11 @@ def is_valid_smiles(smiles):
 
 class SmilesInputForm(forms.Form):
     smiles = forms.CharField(label = 'Enter SMILES string',
-        max_length = 200)
+        max_length = 400)
 
 class DrawingInputForm(forms.Form):
     text = forms.CharField(label = 'Enter text to draw',
-        max_length = 800)
+        max_length = 1600)
     # style = forms.MultipleChoiceField(
     # 	required = True,
     # 	widget = forms.RadioSelect,
