@@ -6,63 +6,97 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>{% block title %}ASKCOS{% endblock %}</title>
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <!-- Our CSS (overrides) -->
     <link href="{% static 'default.css' %}" rel="stylesheet" type="text/css"/>
     <script src="{% static 'default.js' %}"></script>
+    
 </head>
 
 <body>
+
+
 
 <div id="document">
     <div id="sidebar">
         <div id="logo">
         {% block sidebar_logo %}<a href="{% url 'main.views.index' %}">ASKCOS</a>{% endblock %}
         </div>
+
+        <ul class="nav nav-tabs nav-stacked navbar-fixed-left">
         
         {% block sidebar_items %}{% endblock %}
 
-        <p>
-        <a href="{% url 'main.views.retro_interactive' %}">
-        <div class="biglink">Retrosynthesis Planner</div></a>
-        <div class="linkdesc">Generate and view possible synthesis plans, with manual step-wise evaluation</div>
-        </p>
+        <li {% if '/retro_interactive/' in request.path %}class="active"{% endif %}>
+            <a href="{% url 'main.views.retro_interactive' %}">
+            <div class="biglink">Tree builder</div>
+            <div class="linkdesc" style="display:none">
+                Generate and view possible synthesis plans, with manual step-wise evaluation
+            </div></a>
+        </li>
 
-        <p>
-        <a href="{% url 'main.views.retro' %}">
-        <div class="biglink">One-step Retrosynthesis</div></a>
-        <div class="linkdesc">Examine one-step precursors for a target molecule, purely based on retro templates</div>
-        </p>
+        <li {% if '/retro/' in request.path %}class="active"{% endif %}>
+            <a href="{% url 'main.views.retro' %}">
+            <div class="biglink">One-step Retro</div>
+            <div class="linkdesc" style="display:none">
+                Examine one-step precursors for a target molecule, purely based on retro templates
+            </div></a>
+        </li>
 
-        <p>
-        <a href="{% url 'main.views.synth_interactive' %}">
-        <div class="biglink">Forward Prediction</div></a>
-        <div class="linkdesc">Predict the outcome of a chemical reaction by specifying the reactants and context</div>
-        </p>
+        <li {% if '/synth_interactive/' in request.path %}class="active"{% endif %}>
+            <a href="{% url 'main.views.synth_interactive' %}">
+            <div class="biglink">Forward Prediction</div>
+            <div class="linkdesc" style="display:none">
+                Predict the outcome of a chemical reaction by specifying the reactants and context
+            </div></a>
+        </li>
 
-        <p>
-        <a href="{% url 'main.views.evaluate_rxnsmiles' %}">
-        <div class="biglink">Reaction Evaluation</div></a>
-        <div class="linkdesc">Predict if a reaction will succeed by specifying the reactants and intended product</div>
-        </p>
+        <li {% if '/evaluate/' in request.path %}class="active"{% endif %}>
+            <a href="{% url 'main.views.evaluate_rxnsmiles' %}">
+            <div class="biglink">Reaction Evaluation</div>
+            <div class="linkdesc" style="display:none">
+                Predict if a reaction will succeed by specifying the reactants and intended product
+            </div></a>
+        </li>
 
 
-        <p>
-        <a href="{% url 'main.views.pricing' %}">
-        <div class="biglink">Buyable Look-up</div></a>
-        <div class="linkdesc">Check to see if a chemical is in the buyables database</div>   
-        </p>
+        <li {% if '/price/' in request.path %}class="active"{% endif %}>
+            <a href="{% url 'main.views.pricing' %}">
+            <div class="biglink">Buyable Look-up</div>
+            <div class="linkdesc" style="display:none">
+                Check to see if a chemical is in the buyables database
+            </div></a>
+        </li>
 
-        <p>
-        <a href="{% url 'main.views.draw' %}">
-        <div class="biglink">Drawing</div></a>
-        <div class="linkdesc">Draw molecules, reactions, or templates from SMILES/SMARTS strings</div>   
-        </p>
+        <li {% if '/draw/' in request.path %}class="active"{% endif %}>
+            <a href="{% url 'main.views.draw' %}">
+            <div class="biglink">Drawing</div>
+            <div class="linkdesc" style="display:none">
+                Draw molecules, reactions, or templates from SMILES/SMARTS strings
+            </div></a>
+        </li>
+
+        </ul>
 
     </div>
 
     <div id="mainbar">
         <div id="header">
             {% if user.is_authenticated %}
-            {{ user.username }} | <a href="{% url 'logout' %}">Logout</a>
+            <div class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                    {{ user.username }}
+                    <span class="caret"></span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-right">
+                    <li><a href="{% url 'user_saved_results' %}">Saved results</a></li>
+                    <li><a href="registration/password/change/">Change password</a></li>
+                    <li><a href="{% url 'logout' %}">Logout</a></li>
+                </ul>
+            </div>
             {% else %}
             <a href="{% url 'login' %}?next={{ request.path }}">Log in</a>
             {% endif %}
@@ -98,12 +132,27 @@
         
     </div>
 </div>
-<script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
-<script>
+<script type="text/javascript">
 $(document).ajaxStart(function() {
     $(document.body).css({'cursor' : 'wait'});
 }).ajaxStop(function() {
     $(document.body).css({'cursor' : 'default'});
+});
+$(document).ready(function () {
+  $('[data-toggle="tooltip"]').tooltip();
+});
+$(".nav li").on("click", function() {
+    $(".nav li").removeClass("active");
+    $(this).addClass("active");
+});
+$(document).ready(function() {    
+  $('.nav li').hover(function() {
+    $('.linkdesc', this).stop(true, true).slideDown('fast');
+    $(this).addClass('open');
+          }, function() {
+    $('.linkdesc', this).stop(true, true).slideUp('fast');
+    $(this).removeClass('open');
+  });
 });
 </script>
 {% block javascript %}{% endblock %}

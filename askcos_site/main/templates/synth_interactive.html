@@ -107,26 +107,26 @@ $(document).ready(function() {
 
 {% block page_body %}
 
-<table>
+<table class="table table-borderless table-nonfluid">
 
-<tr><th style="vertical-align: text-top; text-align:left">Reactants: </th><td><input id="reactants" maxlength="500" size="40" type="text"/></td></tr>
+<tr><th style="vertical-align: text-top;">Reactants: </th><td><input id="reactants" maxlength="500" size="40" type="text"/></td></tr>
 
 <!-- Placeholder for rendering image after a SMILES string is entered -->
-<tr id="reactant_mol_wrapper" style="display:none"><th style="vertical-align: text-top; text-align:left">Parsed reactants:</th><td id="reactants_image"></td></tr>
+<tr id="reactant_mol_wrapper" style="display:none"><th style="vertical-align: text-top">Parsed reactants:</th><td id="reactants_image"></td></tr>
 
 <tr><th>{% csrf_token %}</th></tr>
 
 <tr><th style="vertical-align: text-top; text-align:left">Reagents: </th><td><input id="reagents" maxlength="500" size="40" type="text"/></td></tr>
 
 <!-- Placeholder for rendering image after a SMILES string is entered -->
-<tr id="reagent_mol_wrapper" style="display:none"><th style="vertical-align: text-top; text-align:left">Parsed reagents:</th><td id="reagents_image"></td></tr>
+<tr id="reagent_mol_wrapper" style="display:none"><th style="vertical-align: text-top;"">Parsed reagents:</th><td id="reagents_image"></td></tr>
 
-<tr><th style="vertical-align: text-top; text-align:left">Solvent: </th><td><select id="solvent">{% for solvent in solvent_choices %}<option value="{{ solvent.smiles }}" {% if solvent.name == solventselected %}selected{% endif %}>{{ solvent.name }}</option>{% endfor %}</select></td></tr>
+<tr><th>Solvent: </th><td><select id="solvent">{% for solvent in solvent_choices %}<option value="{{ solvent.smiles }}" {% if solvent.name == solventselected %}selected{% endif %}>{{ solvent.name }}</option>{% endfor %}</select></td></tr>
 
 
-<tr><th style="vertical-align: text-top; text-align:left">Temperature (Celsius): </th><td><input id="temperature" maxlength="6" size="6" type="text" value="{{ temperature }}"/></td></tr>
+<tr><th>Temperature (Celsius): </th><td><input id="temperature" maxlength="6" size="6" type="text" value="{{ temperature }}"/></td></tr>
 
-<tr><th style="vertical-align: text-top; text-align:left">Minimum template count: </th><td><input id="mincount" maxlength="6" size="6" type="text" value="{{ mincount }}"/></td></tr>
+<tr><th>Minimum template count: <a href="#" data-toggle="tooltip" title="What is the minimum template popularity you would like to use during the forward enumeration when evaluating suggested reactions? The default value of {{ mincount }} shows the value used during intiialization, so you cannot specify a value lower than this."><span class="glyphicon glyphicon-info-sign"></span></a></th><td><input id="mincount" maxlength="6" size="6" type="text" value="{{ mincount }}"/></td></tr>
 
 <!-- Controls -->
 <tr id="controls_wrapper" style="display:none">

@@ -21,6 +21,7 @@ urlpatterns += [
     url(r'^admin/', include(admin.site.urls)),
 
     # User pages
+    url('^registration/', include('registration.urls')),
     url(r'^login$', main.views.login, name = 'login'),
     url(r'^logout$', main.views.logout, name = 'logout'),
 
@@ -48,8 +49,8 @@ urlpatterns += [
     url(ur'^ajax/start_synth/$', main.views.ajax_start_synth, name = 'ajax_start_synth'),
 
     # Forward synthesis
-    url(r'^synth/$', main.views.synth, name = 'synth_home'),
-    url(ur'^synth/target=(?P<smiles>.+)$', main.views.synth_target, name = 'synth_target'),
+    # url(r'^synth/$', main.views.synth, name = 'synth_home'),
+    # url(ur'^synth/target=(?P<smiles>.+)$', main.views.synth_target, name = 'synth_target'),
 
     # Template examination (by str(ObjectID))
     url(r'^template/target=(?P<id>.+)$', main.views.template_target, name = 'template_target'),
@@ -83,4 +84,7 @@ urlpatterns += [
     # Nearest Neighbor Setup
     url(r'^nnRecommendation/setup/$', main.views.nn_predictor_setup, name='setup'),
 
+    # Saved data
+    url(r'^saved/$', main.views.user_saved_results, name='user_saved_results'),
+    url(r'^saved/id=(?P<_id>.+)$', main.views.user_saved_results_id, name='user_saved_results_id'),
 ]

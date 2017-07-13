@@ -1,4 +1,12 @@
 from django.db import models
+from django.contrib.auth.models import User
+
+class SavedResults(models.Model):
+    user = models.ForeignKey(User)
+    description = models.CharField(max_length=200)
+    created = models.DateTimeField('saved on')
+    fpath = models.CharField(max_length=500)
+
 
 class SeparationInput(models.Model):
     tgt_smiles = models.CharField("Enter SMILES string of the target molecule", max_length=200)

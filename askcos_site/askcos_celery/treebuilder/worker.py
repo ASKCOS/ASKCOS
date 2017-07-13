@@ -81,14 +81,18 @@ def get_top_precursors(smiles, mincount=0, max_branching=20, raw_results=False):
         precursors = []
     else:
         precursors = result.return_top(n=max_branching)
+    
+    # Must convert ObjectID to string to json-serialize
+    for i in range(len(precursors)):
+        precursors[i]['tforms'] = [str(tform) for tform in precursors[i]['tforms']]
+
     if raw_results:
-        for i in range(len(precursors)):
-            # Must convert ObjectID to string to json-serialize
-            precursors[i]['tforms'] = [str(tform) for tform in precursors[i]['tforms']]
         return precursors
+        
     return (smiles, [({'necessary_reagent': precursor['necessary_reagent'],
               'num_examples': precursor['num_examples'],
-               'score': precursor['score']}, 
+               'score': precursor['score'],
+               'tforms': precursor['tforms']}, 
                precursor['smiles_split']) for precursor in precursors])
 
 @shared_task(bind=True)

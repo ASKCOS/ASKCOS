@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Saved results{% endblock %}
+{% block page_title %}Your saved results{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'main.views.user_saved_results' %}">Saved</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block page_body %}
+
+{% if saved_results %}
+<table>
+<tr>
+	<th width="15%">User</th>
+	<th width="15%">Created</th>
+	<th width="55%">Description</th>
+	<th width="15%">File</th>
+</th>
+{% for saved_result in saved_results %}
+<tr>
+	<td>{{ saved_result.user }}</td>
+	<td>{{ saved_result.created }}</td>
+	<td>{{ saved_result.description }}</td>
+	<td><a href="{{ saved_result.fpath }}">Click me!</a></td>
+</th>
+{% endfor %}
+</table>
+{% else %}
+Looks like there's nothing here!
+{% endif %}
+
+{% endblock %}

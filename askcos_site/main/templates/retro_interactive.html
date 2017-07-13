@@ -120,39 +120,50 @@ $(document).ready(function() {
 
 
 {% block page_body %}
-<table>
+<table class="table table-borderless table-nonfluid">
 
 <tr><th>Target compound:</th><td colspan="4"><input id="id_smiles" maxlength="500" size="40" type="text"/></td></tr>
 
 <tr><th>{% csrf_token %}</th></tr>
 
 <!-- Placeholder for rendering image after a SMILES string is entered -->
-<tr id="target_mol_wrapper" style="display:none"><th style="vertical-align: text-top; text-align:left">Parsed structure:</th><td id="target_mol" colspan="4"></td></tr>
+<tr id="target_mol_wrapper" style="display:none"><th style="vertical-align: text-top">Parsed structure:</th><td id="target_mol" colspan="4"></td></tr>
 
 <!-- Settings -->
 <tbody id="settings_wrapper" style="display:none">
-<tr><th style="vertical-align: bottom; text-align:left">Settings:</th>
+<tr><th>Settings:</th>
+
 <td>
-    Max. depth (1-9): </td><td><input type="number" id="max_depth" min="1" max="9" style="width: 5em" value="{{max_depth_default}}">
+    Max. depth (1-9): <a href="#" data-toggle="tooltip" title="What is the maximum number of sequential reaction steps you would like to see in the results? This setting tells the tree builder when to stop expanding chemical nodes and 'give up' on unsuccessful branches. Because the tree builder roughly follows a depth-first search, a max depth that is too high may mean that the search is not able to explore many alternatives for the first retrosynthetic disconnection. We recommend that you set this number to equal 1 + the length of the shortest route you expect to find."><span class="glyphicon glyphicon-info-sign"></span></a>
 </td>
 <td>
-    Max. branching factor: </td><td><input type="number" id="max_branching" min="1" max="200" style="width: 5em"value="{{max_branching_default}}">
+    <input type="number" id="max_depth" min="1" max="9" style="width: 5em" value="{{max_depth_default}}">
+</td>
+
+<td>
+    Max. branching factor: <a href="#" data-toggle="tooltip" title="What is the maximum branching ratio to use during expansion? The tree is built up using a heuristic-driven depth first search with truncated branching. That means that after a chemical node is expanded into possible precursors, we only keep the most promising ones to continue expanding. The scoring function used for this truncation favors (a) buyability, first and foremost, and (b) smaller chemicals with fewer ring atoms and chiral centers. We recommend choosing a value between 20 and 50. Please note that the use of an approximate depth-first search means that it is unlikely that all branches will be explored, especially if the branching ratio and depth are both large."><span class="glyphicon glyphicon-info-sign"></span></a>
+</td>
+    <td><input type="number" id="max_branching" min="1" max="200" style="width: 5em"value="{{max_branching_default}}">
 </td>
 </tr>
-<tr><th style="vertical-align: bottom; text-align:left"></th>
+<tr><th></th>
 <td>
-    Min. retro template count: </td><td><input type="number" id="retro_mincount" style="width: 5em" min="0" value="0">
+    Min. retro template count: <a href="#" data-toggle="tooltip" title="What is the minimum template popularity you would like to use during the retrosynthetic expansion? We highly recommend leaving this at 0 unless you have a strong reason to only examine the most common chemistries. In that case, you could increase it to 50, 100, or 250. Note that the default value of 0 is not truly a minimum of 0 - rather, it uses all of the templates that have been pre-initialized by the expansion workers. The exact information about the templates used is displayed as a footnote."><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td><input type="number" id="retro_mincount" style="width: 5em" min="0" value="0">
 </td>
 <td>
-    Min. synth template count: </td><td><input type="number" id="synth_mincount" style="width: 5em" min="0" value="{{synth_mincount_default}}">
+    Min. synth template count: <a href="#" data-toggle="tooltip" title="What is the minimum template popularity you would like to use during the forward enumeration when evaluating suggested reactions? This setting does not affect the tree builder directly, but will affect any subsequent evaluations that you request (i.e., by clicking on the reaction nodes in the trees)."><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td><input type="number" id="synth_mincount" style="width: 5em" min="0" value="{{synth_mincount_default}}">
 </td>
 </tr>
-<tr><th style="vertical-align: bottom; text-align:left"></th>
+<tr><th></th>
 <td>
-    Maximum chemical price ($/g): </td><td><input type="number" id="max_ppg" style="width: 5em" max="{{max_ppg_default}}" value="{{max_ppg_default}}">
+    Maximum chemical price ($/g): <a href="#" data-toggle="tooltip" title="What is the maximum price per gram you are willing to pay for starting materials? We recommend that you keep this high for your initial search (e.g., $100/g). If you see a route that terminates in an expensive starting material and you would like to expand further, you can make that compound the target and decrease the maximum allowed price."><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td><input type="number" id="max_ppg" style="width: 5em" max="{{max_ppg_default}}" value="{{max_ppg_default}}">
 </td>
 <td>
-    Expansion time (s): </td><td><input type="number" id="expansion_time" style="width: 5em" min="5" max="600" value="{{expansion_time_default}}">
+    Expansion time (s): <a href="#" data-toggle="tooltip" title="How long would you like to let the expansion run for? Right now, the tree builder runs in the background and you will not see any results until it terminates based on this expansion time. The expansion time is highly dependent on the depth and branching ratio of your search. For shorter syntheses (~3 steps and ~25 branching), 60 seconds might be sufficient. For longer or broader syntheses, you may want to try up to 300 seconds. The maximum we allow is 600 seconds."><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td><input type="number" id="expansion_time" style="width: 5em" min="5" max="600" value="{{expansion_time_default}}">
 </td>
 </tr>
 </tbody>
@@ -163,7 +174,7 @@ $(document).ready(function() {
     <button type="button" style="width:120px" id="start_retro">Start</button>
 </td>
 <td colspan="3">
-    <input type="checkbox" id="chiral" checked> Pay close attention to chirality<br>
+    <input type="checkbox" id="chiral" checked> Pay close attention to chirality <a href="#" data-toggle="tooltip" title="Would you like to spend a little extra computational effort to have reliable stereochemistry handling? We recommend that you keep this checked. It prevents the mis-application of chiral templates to achiral targets or achiral tempaltes to chiral targets."><span class="glyphicon glyphicon-info-sign"></span></a><br>
 </td>
 
 </tr>

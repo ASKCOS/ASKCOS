@@ -13,7 +13,7 @@
 
 {% block page_body %}
 
-<p>Begin by entering in the SMILES string of the target molecule.</p>
+<p>Begin by entering in the SMILES string or name of the target molecule, or choose from one of the proposal targets below.</p>
 
 <form method="post" id="smiles_form" action="{% url 'retro_home' %}">
 <table>
@@ -28,7 +28,6 @@
 </form>
 
 {% if suggestions %}
-	<h4>Suggestions from the proposal:</h4>
 	<table>
 	{% for suggestion in suggestions %}
 		<tr>
@@ -43,7 +42,7 @@
 
 {% if target %}
 	<h4>Target molecule: <font class="smiles">{{ target.smiles }}</font></h4>
-	<img src="{{ target.img }}">
+	<img src="{{ target.img }}" alt="{{ target.smiles }}">
 	<br>
 	<br>
 	<i>Please note that precursor sets are scored and sorted by a <b>very</b> crude heuristic function that tries to break the target into similarly-sized reactants with fewer rings and - on this page - have not been evaluated for plausibility in the forward direction.</i><br><br>
@@ -73,14 +72,14 @@
 				{% if not forloop.last %} + {% endif %}{% endfor %}
 				<a href="{% url 'synth_interactive_target' precursor.smiles %}">&rarr; ?</a>
 				<br>
-				<a><img src="{% url 'draw_smiles' precursor.smiles %}" onclick="toggle_visibility('expand{{ precursor.rank }}');"></a>
+				<a><img src="{% url 'draw_smiles' precursor.smiles %}" alt="{{ precursor.smiles }}" onclick="toggle_visibility('expand{{ precursor.rank }}');"></a>
 				
 				<div id='expand{{ precursor.rank }}' style='display:none'>	
 					{% if precursor.tforms %}
 					<font class="smiles"><b>Based on retrosynthetic transform template(s):</b></font><br>
 					{% for tform in precursor.tforms %}
 						<font class="smiles">
-							<a href="{% url 'draw_template_page' tform.reaction_smarts %}">{{ tform.reaction_smarts }}</a>{% if tform.count %} (<a href="{% url 'template_target' tform.id %}">{{ tform.count }} examples</a>){% endif %}
+							<a href="{% url 'template_target' tform.id %}">Template {{ tform.id }} ({{ tform.count }} examples)</a>
 						</font>{% if not forloop.last %}<br>{% endif %}
 					{% endfor %}
 					{% endif %}

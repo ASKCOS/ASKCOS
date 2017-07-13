@@ -20,7 +20,7 @@ from askcos_site.askcos_celery.treebuilder.worker import get_top_precursors
 
 from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, \
     SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, \
-    BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, builder, predictor, \
+    BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, \
     PREDICTOR_FOOTNOTE, DONE_SYNTH_PREDICTIONS, RETRO_CHIRAL_FOOTNOTE
 
 
@@ -34,6 +34,7 @@ def log_this_request(method):
         return method(*args, **kwargs)
     return f
 
+@login_required
 def index(request):
     '''
     Homepage
@@ -52,6 +53,19 @@ def logout(request):
     User logout
     '''
     return django.contrib.auth.views.logout(request, template_name = 'logout.html')
+
+from models import SavedResults
+@login_required
+def user_saved_results(request, err=None):
+    saved_results = SavedResults.objects.filter(user=request.user)
+    return render(request, 'saved_results.html', {'saved_results':saved_results, 'err': err})
+
+@login_required
+def user_saved_results_id(request, _id=-1):
+    saved_result = SavedResults.objects.filter(user=request.user, id=_id)
+    if not saved_result:
+        return user_saved_results(request, err='Could not find that ID')
+    return render(request, 'saved_results_id.html', {'saved_results':[saved_result]})
 
 @login_required
 def retro(request):
@@ -236,11 +250,20 @@ def synth_interactive(request, reactants='', reagents='', solvent='toluene', tem
     return render(request, 'synth_interactive.html', context)
 
 def ajax_error_wrapper(ajax_func):
-    def ajax_func_call(*args, **kwargs):
-        try:
-            return ajax_func(*args, **kwargs)
-        except Exception as e:
-            return JsonResponse({'err':True, 'message': str(e)})
+    if not settings.DEBUG:
+        def ajax_func_call(*args, **kwargs):
+            try:
+                return ajax_func(*args, **kwargs)
+            except Exception as e:
+                return JsonResponse({'err':True, 'message': str(e)})
+    else:
+        def ajax_func_call(*args, **kwargs):
+            try:
+                return ajax_func(*args, **kwargs)
+            except Exception as e:
+                print(e)
+                raise(e)
+
     return ajax_func_call
 
 def resolve_smiles(smiles):

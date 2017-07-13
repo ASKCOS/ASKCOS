@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Image{% endblock %}
+{% block title %}Template details{% endblock %}
 {% block page_title %}Template source(s){% endblock %}
 
 {% block extrahead %}{% endblock %}
@@ -22,7 +22,7 @@
 </p>
 {% endif %}
 
-<img src="{% url 'draw_template' template.reaction_smarts %}" >
+<img src="{% url 'draw_template' template.reaction_smarts %}" alt="{{ template.reaction_smarts }}">
 
 {% if template.necessary_reagent %}
 <p><i>Note: this reaction would require a reagent to contribute {{ template.necessary_reagent }}</i></p>
@@ -30,6 +30,10 @@
 
 {% if template.intra_only %}
 <p><i>Note: this template should be used for intramolecular reactions <b>only</b></i></p>
+{% endif %}
+
+{% if template.chiral %}
+<p><i>Note: this template looks like it might contain chiral specifications - tetrahedral chirality is not depicted in the template drawing currently</i></p>
 {% endif %}
 
 {% if suggested_conditions %}

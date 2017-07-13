@@ -51,6 +51,7 @@ TEMPLATES = [
                 'django.template.context_processors.media',
                 'django.template.context_processors.static',
                 'django.template.context_processors.tz',
+                'django.template.context_processors.request',
                 'django.contrib.messages.context_processors.messages',
             ],
         },
@@ -68,6 +69,8 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'askcos_site.main',
     'django_celery_results',
+    'registration',
+    'registration.contrib.notification',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -83,7 +86,18 @@ ROOT_URLCONF = 'askcos_site.urls'
 
 WSGI_APPLICATION = 'askcos_site.wsgi.application'
 
-
+# Registration
+REGISTRATION_SUPPLEMENT_CLASS = None
+ACCOUNT_ACTIVATION_DAYS = 7
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'localhost'
+EMAIL_PORT = 25
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
+EMAIL_USE_TLS = False
+DEFAULT_FROM_EMAIL = 'ccoley@mit.edu'
+REGISTRATION_NOTIFICATION = True
+REGISTRATION_NOTIFICATION_RECIPIENTS = ['ccoley@mit.edu']
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
 
@@ -185,6 +199,11 @@ CONTEXT_REC = {
     'model_path': '/data/fatmodels/2MRxnModel/fpNN-10_2MRxn_lshf.pickle',
     'model_dir': '/data/fatmodels/FullReaxysModel',
     'database': 'reaxys',
+}
+
+LOCAL_STORAGE = {
+    'root': '/data/www-data',
+    'dir': '/data/www-data/local_db_dumps',
 }
 
 # LOGIN

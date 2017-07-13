@@ -12,19 +12,19 @@ body, #document {
 
 #main {
     background-color: #FFFFFF;
-    border: 1px solid #993333;
+    border: 1px solid #0000A0;
     border-right: 0px;
 }
 
 h1, h2, h3 {
       color: #333333;
 }
-a, #logo {
+/*a, #logo {
     color: #993333;
-}
+}*/
 
 #navbar {
-    border-bottom: 1px solid #993333;
+    border-bottom: 1px solid #0000A0;
 }
 
 /* Hyperlinks */
@@ -38,8 +38,31 @@ a:hover {
 }
 
 .biglink {
-    font-size: 150%;
+    font-size: 100%;
     text-align: center;
+}
+
+.nav-tabs > li > a {
+    margin-right: 0px;
+    border-radius: 0px 0px 0 0;
+    border-color: transparent;
+}
+
+.tooltip-inner {
+    min-width: 50px;
+    max-width: 400px; 
+}
+
+.table-borderless > tbody > tr > td,
+.table-borderless > tbody > tr > th,
+.table-borderless > tfoot > tr > td,
+.table-borderless > tfoot > tr > th,
+.table-borderless > thead > tr > td,
+.table-borderless > thead > tr > th {
+    border: none !important;
+}
+.table-nonfluid {
+   width: auto !important;
 }
 
 /* Headings */
@@ -69,8 +92,8 @@ h3 {
 
 #sidebar {
     float: left;
-    width: 180px;
-    padding: 4px;
+    width: 200px;
+    padding: 0px;
 }
 
 #logo {
@@ -80,7 +103,7 @@ h3 {
 }
 
 #mainbar {
-    margin: 0px 0px 0px 190px;
+    margin: 0px 0px 0px 200px;
     padding: 0px;
 }
 
@@ -109,6 +132,9 @@ html, body, #document, #mainbar {
 #header, #footer {
     text-align: right;
 }
+/*#header > .dropdown:hover > ul.dropdown-menu {
+    display: block;    
+}*/
 
 #footer {
     text-align: center;
@@ -132,6 +158,7 @@ html, body, #document, #mainbar {
     text-align: left;
     vertical-align: top;
     font-style: italic;
+    padding:5px;
 }
 
 #sidebar img {
