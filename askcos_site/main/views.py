@@ -497,59 +497,59 @@ def ajax_evaluate_rxnsmiles(request):
     DONE_SYNTH_PREDICTIONS['{}-{}'.format(smiles, synth_mincount)] = data
     return JsonResponse(data)
 
-@login_required
-def synth(request):
-    '''
-    Forward synthesis homepage
-    '''
-    context = {}
+# @login_required
+# def synth(request):
+#     '''
+#     Forward synthesis homepage
+#     '''
+#     context = {}
 
-    if request.method == 'POST':
-        context['form'] = SmilesInputForm(request.POST)
-        if not context['form'].is_valid():
-            context['err'] = 'Could not parse!'
-        else:
-            # Identify target
-            smiles = context['form'].cleaned_data['smiles']
-            if is_valid_smiles(smiles):
-                return redirect('synth_target', smiles = smiles)
-            else:
-                context['err'] = 'Invalid SMILES string: {}'.format(smiles)
-    else:
-        context['form'] = SmilesInputForm()
+#     if request.method == 'POST':
+#         context['form'] = SmilesInputForm(request.POST)
+#         if not context['form'].is_valid():
+#             context['err'] = 'Could not parse!'
+#         else:
+#             # Identify target
+#             smiles = context['form'].cleaned_data['smiles']
+#             if is_valid_smiles(smiles):
+#                 return redirect('synth_target', smiles = smiles)
+#             else:
+#                 context['err'] = 'Invalid SMILES string: {}'.format(smiles)
+#     else:
+#         context['form'] = SmilesInputForm()
 
-    context['footnote'] = SYNTH_FOOTNOTE
-    return render(request, 'synth.html', context)
+#     context['footnote'] = SYNTH_FOOTNOTE
+#     return render(request, 'synth.html', context)
 
-@login_required
-def synth_target(request, smiles, max_n = 50):
-    '''
-    Given a set of reactants as a single SMILES string, find products
-    '''
+# @login_required
+# def synth_target(request, smiles, max_n = 50):
+#     '''
+#     Given a set of reactants as a single SMILES string, find products
+#     '''
 
-    # Render form with target
-    context = {}
-    context['form'] = SmilesInputForm({'smiles': smiles})
+#     # Render form with target
+#     context = {}
+#     context['form'] = SmilesInputForm({'smiles': smiles})
 
-    # Look up target
-    smiles_img = reverse('draw_smiles', kwargs={'smiles':smiles})
-    context['target'] = {
-        'smiles': smiles,
-        'img': smiles_img,
-    }
+#     # Look up target
+#     smiles_img = reverse('draw_smiles', kwargs={'smiles':smiles})
+#     context['target'] = {
+#         'smiles': smiles,
+#         'img': smiles_img,
+#     }
 
-    # Perform forward synthesis
-    result = SynthTransformer.perform_forward(smiles)
-    context['products'] = result.return_top(n = 50)
-    #print(context['products'])
-    # Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
-    # (add "id" field to be string version of ObjectId "_id")
-    for (i, product) in enumerate(context['products']):
-        context['products'][i]['tforms'] = \
-            [dict(SynthTransformer.lookup_id(_id), **{'id':str(_id)}) for _id in product['tforms']]
+#     # Perform forward synthesis
+#     result = SynthTransformer.perform_forward(smiles)
+#     context['products'] = result.return_top(n = 50)
+#     #print(context['products'])
+#     # Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
+#     # (add "id" field to be string version of ObjectId "_id")
+#     for (i, product) in enumerate(context['products']):
+#         context['products'][i]['tforms'] = \
+#             [dict(SynthTransformer.lookup_id(_id), **{'id':str(_id)}) for _id in product['tforms']]
 
-    context['footnote'] = SYNTH_FOOTNOTE
-    return render(request, 'synth.html', context)
+#     context['footnote'] = SYNTH_FOOTNOTE
+#     return render(request, 'synth.html', context)
 
 @login_required
 def template_target(request, id):
