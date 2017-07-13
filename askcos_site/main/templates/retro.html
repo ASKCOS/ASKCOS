@@ -41,7 +41,7 @@
 {% endif %}
 
 {% if target %}
-	<h4>Target molecule: <font class="smiles">{{ target.smiles }}</font></h4>
+	<h5>Target molecule: <font class="smiles">{{ target.smiles }}</font></h5>
 	<img src="{{ target.img }}" alt="{{ target.smiles }}">
 	<br>
 	<br>
@@ -50,13 +50,16 @@
 	<br>
 	<br>
 
-	<table class="table_precursors">
+	<table class="table" id="results">
+		<thead>
 		<tr>
-			<th>Rank</th>
-			<th><font class="smiles">Precursor(s)</font></th>
-			<th>Score</th>
-			<th># Ex.</th>
+			<td>Rank</td>
+			<td><font class="smiles">Precursor(s)</font></td>
+			<td>Score</td>
+			<td># Ex.</td>
 		</tr>
+		</thead>
+		<tbody>
 		{% for precursor in precursors %}
 		<tr>
 			<td>{{ precursor.rank }}</td>
@@ -93,6 +96,7 @@
 			<td>{{ precursor.num_examples }}</td>
 		</tr>
 		{% endfor %}
+		</tbody>
 	</table>
 {% endif %}
 
@@ -102,6 +106,3 @@
 {% endif %}
 
 {% endblock %}
-
-<p onclick="toggle_visibility('testhidden');"><a>Click me!</a></p>
-<div id='testhidden' style='display:none'>hidden</div>
