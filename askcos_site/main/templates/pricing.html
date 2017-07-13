@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Chemical Pricer{% endblock %}
+{% block page_title %}Chemical Pricer<span id="status"></span>{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'main.views.pricing' %}">Pricer</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block javascript %}
+<script>
+$("#smiles").change(function () {
+	console.log( $(this).val() );
+	$("#results").hide();
+	$.ajax({
+		url: '/ajax/smiles_to_image/',
+		data: {
+			smiles: $(this).val(),
+		},
+		dataType: 'json',
+		success: function (data) {
+			if (data.err) {
+				$("#smiles_mol_wrapper").show();
+				$("#smiles_image").html('error! could not parse');
+				$("#controls_wrapper").hide();
+			} else {
+				$("#smiles_image").html(data.html);
+				$("#smiles").val(data.smiles)
+				$("#smiles_mol_wrapper").show();
+				$("#controls_wrapper").show();
+			}
+		},
+	});
+
+});
+$("#get_price").click(function () {
+	console.log('getting price');
+	$.ajax({
+		url: '/ajax/price_smiles/',
+		data: {
+			smiles: $("#smiles").val(),
+			isomericSmiles: $("#isomericSmiles").is(":checked"),
+		},
+		dataType: 'json',
+		success: function (data) {
+			if (data.err) {
+				alert(data.message);
+			} else {
+				$("#results").html(data.html);
+				$("#results").show();
+			}
+		}
+	});
+});
+// On load, if entries defined, switch it out
+$(document).ready(function() {
+	if ("{{smiles}}" != "") {
+		$("#smiles").val("{{smiles}}");
+		$("#smiles").trigger("change");
+	}
+});
+</script>
+{% endblock %}
+
+
+{% block page_body %}
+
+<i>The chemicals and prices stored in our database are taken from Reaxys and are originally from eMolecules and LabNetwork. All compounds with an average price per gram listed at $100 or lower were included. Please note that prices in the database are unfortunately rounded to the nearest integer. That is, the cheapest compounds are still listed as $1/g.
+</i><br><br>
+<table>
+
+<tr><th style="vertical-align: text-top; text-align:left">Input chemical: </th><td><input id="smiles" maxlength="500" size="40" type="text"/></td></tr>
+
+<!-- Placeholder for rendering image after a SMILES string is entered -->
+<tr id="smiles_mol_wrapper" style="display:none"><th style="vertical-align: text-top; text-align:left">Parsed reactants:</th><td id="smiles_image"></td></tr>
+
+<tr><th>{% csrf_token %}</th></tr>
+
+
+<!-- Controls -->
+<tr id="controls_wrapper" style="display:none">
+<td colspan="2" style="width:100%">
+	<input type="checkbox" id="isomericSmiles">Require exact stereochemsitry<br>
+	<button type="button" style="width:100%" id="get_price">Look up</button>
+</td>
+</tr>
+</table>
+
+<!-- Results -->
+<br>
+<div id="results"></div>
+
+{% if footnote %}
+<br>
+<div style="font-size:smaller"><i>{{ footnote }}</i></div>
+{% endif %}
+
+{% endblock %}

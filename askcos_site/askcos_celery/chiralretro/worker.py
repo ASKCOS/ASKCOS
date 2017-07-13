@@ -1,23 +1,23 @@
 '''
-The role of a treebuilder worker is to take a target compound
-and apply all retrosynthetic templates to it. The top results
-are returned based on the defined mincount and max_branching. The
-heuristic chemical scoring function, defined in the transformer
-class, is used for prioritization. Each worker pre-loads a
-transformer and grabs templates from the database.
+The role of a forward predictor worker is to apply a subset of 
+templates and generate candidate edits
 '''
 
 from __future__ import absolute_import, unicode_literals, print_function
 from celery import shared_task
 from celery.signals import celeryd_init
+import itertools
 from rdkit import RDLogger
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
 
-CORRESPONDING_QUEUE = 'tb_worker'
-CORRESPONDING_RESERVABLE_QUEUE = 'tb_worker_reservable'
+CORRESPONDING_QUEUE = 'cr_worker'
+CORRESPONDING_RESERVABLE_QUEUE = 'cr_worker_reservable'
+
 
 RetroTransformer = None
+apply_one_retrotemplate = None
+rdchiralReactants = None
 
 @celeryd_init.connect
 def configure_worker(options={},**kwargs):
@@ -25,41 +25,43 @@ def configure_worker(options={},**kwargs):
         return 
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
         return
-    print('### STARTING UP A TREE BUILDER WORKER ###')
+    print('### STARTING UP A CHIRAL RETRO WORKER ###')
 
     global RetroTransformer
-    
-    # Get Django settings
-    from django.conf import settings
+    from .common import get_retro_transformer
+    RetroTransformer = get_retro_transformer()
+    print('Got RetroTransformer')
 
-    # Database
-    from database import db_client
-    db = db_client[settings.INSTANCES['database']]
-    RETRO_DB = db[settings.RETRO_TRANSFORMS['collection']]
+    global apply_one_retrotemplate
+    from makeit.webapp.transformer_v3 import apply_one_retrotemplate
+    print('Imported transformer_v3')
 
-    # Setting logging low
-    from rdkit import RDLogger
-    lg = RDLogger.logger()
-    lg.setLevel(RDLogger.CRITICAL)
+    global rdchiralReactants
+    from rdchiral.main import rdchiralReactants
+    print('Finished initializing chiral retro worker')
 
-    # Import retro transformer class and load
-    #import makeit.webapp.transformer_v2 as transformer
-    import makeit.retro.transformer as transformer 
-    RetroTransformer = transformer.Transformer(parallel=False, nb_workers=1)
-    mincount_retro = settings.RETRO_TRANSFORMS['mincount']
-    RetroTransformer.load(RETRO_DB, mincount=mincount_retro, get_retro=True, get_synth=False)
-    print('Tree builder worker loaded {} retro templates'.format(RetroTransformer.num_templates))
+@shared_task
+def get_chiral_precursor_batch(smiles, start_at, end_at):
+    '''Apply chiral retro templates to a target smiles string. We
+    use chunks (start_at, end_at) to have fewer queue messages
 
-    # Also - get the Pricer and load it into the RetroTransformer object.
-    db = db_client[settings.BUYABLES['database']]
-    BUYABLE_DB = db[settings.BUYABLES['collection']]
-    db = db_client[settings.CHEMICALS['database']]
-    CHEMICAL_DB = db[settings.CHEMICALS['collection']]
-    print('Loading prices...')
-    import makeit.retro.pricer as pricer
-    RetroTransformer.Pricer = pricer.Pricer()
-    RetroTransformer.Pricer.load(CHEMICAL_DB, BUYABLE_DB)
-    print('Loaded known prices')
+    smiles = SMILES of target
+    start_at = index of templates to start at
+    end_at = index of templates to end at'''
+
+    global RetroTransformer
+    global rdchiralReactants
+
+    rct = rdchiralReactants(smiles)
+
+    # Each template returns a list, sometimes an empty list
+    precursors = itertools.chain.from_iterable(
+        map(lambda x: apply_one_retrotemplate(rct, smiles, x, return_as_tup=True), 
+        RetroTransformer.templates[start_at:end_at])
+    )
+    # Don't return empty lists where templates did not apply
+    return [precursor for precursor in precursors if precursor]
+
 
 @shared_task
 def get_top_precursors(smiles, mincount=0, max_branching=20, raw_results=False):
@@ -70,7 +72,7 @@ def get_top_precursors(smiles, mincount=0, max_branching=20, raw_results=False):
     max_branching = maximum number of precursor sets to return, prioritized
         using heuristic chemical scoring function'''
 
-    print('Treebuilder worker was asked to expand {} (mincount {}, branching {})'.format(
+    print('Chiral retro worker was asked to expand {} (mincount {}, branching {})'.format(
         smiles, mincount, max_branching
     ))
 

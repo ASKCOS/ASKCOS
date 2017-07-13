@@ -36,23 +36,33 @@ def configure_worker(options={}, **kwargs):
     lg.setLevel(RDLogger.CRITICAL)
 
     # Import nearest-neighbor class
-    from sklearn.externals import joblib
-    from askcos_site.functions.nnPredictor import NNConditionPredictor
+    # from sklearn.externals import joblib
+    # from askcos_site.functions.nnPredictor import NNConditionPredictor
+    try:
+        print('Importing NNConditionPredictor')
+        import makeit.webapp.contextmodel as contextmodel
+        print('Initializing object')
+        NN_PREDICTOR = contextmodel.NNConditionPredictor()
+        print('Created NNPredictor object, going to load now...')
+        NN_PREDICTOR.load_db_model(db_client[settings.CONTEXT_REC['database']], 
+            settings.CONTEXT_REC['model_dir'])
+        print('Loaded context recommendation model')
+    except Exception as e:
+        print(e)
+    # # Load all the instance IDs from the test model
+    # rxd_ids = []
+    # rxn_ids = []
+    # with open(settings.CONTEXT_REC['info_path'], 'r') as infile:
+    #     rxn_ids.append(infile.readlines()[1:])  # a list of str(rxn_ids) with '\n'
+    # for id in rxn_ids[0]:
+    #     rxd_ids.append(id.replace('\n', ''))
+    # print('Read context recommendation info file from {}'.format(settings.CONTEXT_REC['info_path']))
+    # lshf_nn = joblib.load(settings.CONTEXT_REC['model_path'])
+    # print('Loaded context recommendation nearest-neighbor model from {}'.format(settings.CONTEXT_REC['model_path']))
+    # NN_PREDICTOR = NNConditionPredictor(nn_model=lshf_nn, rxn_ids=rxd_ids, INSTANCE_DB=INSTANCE_DB)
+    # NN_PREDICTOR.outputString = False
 
-    # Load all the instance IDs from the test model
-    rxd_ids = []
-    rxn_ids = []
-    with open(settings.CONTEXT_REC['info_path'], 'r') as infile:
-        rxn_ids.append(infile.readlines()[1:])  # a list of str(rxn_ids) with '\n'
-    for id in rxn_ids[0]:
-        rxd_ids.append(id.replace('\n', ''))
-    print('Read context recommendation info file from {}'.format(settings.CONTEXT_REC['info_path']))
-    lshf_nn = joblib.load(settings.CONTEXT_REC['model_path'])
-    print('Loaded context recommendation nearest-neighbor model from {}'.format(settings.CONTEXT_REC['model_path']))
-    NN_PREDICTOR = NNConditionPredictor(nn_model=lshf_nn, rxn_ids=rxd_ids, INSTANCE_DB=INSTANCE_DB)
-    NN_PREDICTOR.outputString = False
-
-    print('Context recommendation worker saved NN_PREDICTOR')
+    print('Context recommendation worker finished loading NN_PREDICTOR')
 
 
 @shared_task
@@ -64,10 +74,7 @@ def get_context_recommendation(rxn, n=1):
 
     global NN_PREDICTOR
 
-    print('Context recommender worker got a request for rxn {}>>{} and n {}'.format(
-        '.'.join(rxn[0]), '.'.join(rxn[1]), n
-    ))
+    print('Context recommender worker got a request for rxn {} and n {}'.format(
+        rxn, n))
 
-    if n == 1:
-        return NN_PREDICTOR.step_condition(rxn)
-    return NN_PREDICTOR.step_n_conditions(rxn=rxn, n=n)
+    return NN_PREDICTOR.step_n_conditions(n, rxn)

@@ -15,7 +15,7 @@
 <div id="document">
     <div id="sidebar">
         <div id="logo">
-        {% block sidebar_logo %}<a href="{% url 'main.views.index' %}"><img src="media/logo.png" alt="ASKCOS"/></a>{% endblock %}
+        {% block sidebar_logo %}<a href="{% url 'main.views.index' %}">ASKCOS</a>{% endblock %}
         </div>
         
         {% block sidebar_items %}{% endblock %}
@@ -23,33 +23,38 @@
         <p>
         <a href="{% url 'main.views.retro_interactive' %}">
         <div class="biglink">Retrosynthesis Planner</div></a>
-        <div class="linkdesc">Generate and view possible synthesis plans</div>
+        <div class="linkdesc">Generate and view possible synthesis plans, with manual step-wise evaluation</div>
         </p>
 
         <p>
         <a href="{% url 'main.views.retro' %}">
         <div class="biglink">One-step Retrosynthesis</div></a>
-        <div class="linkdesc">Build a synthesis plan one disconnect at a time</div>
+        <div class="linkdesc">Examine one-step precursors for a target molecule, purely based on retro templates</div>
         </p>
 
         <p>
         <a href="{% url 'main.views.synth_interactive' %}">
         <div class="biglink">Forward Prediction</div></a>
-        <div class="linkdesc">Evaluate a proposed synthetic step</div>
+        <div class="linkdesc">Predict the outcome of a chemical reaction by specifying the reactants and context</div>
         </p>
 
-        <!-- BEGIN UNINTELLIGENT FORWARD ENUMERATION
         <p>
-        <a href="{% url 'main.views.synth' %}">
-        <div class="biglink">One-step Forward Enumeration</div></a>
-        <div class="linkdesc">Check possible reactions for a forward step</div>
-        </p>    
-        END UNINTELLIGENT ENUMERATION -->
+        <a href="{% url 'main.views.evaluate_rxnsmiles' %}">
+        <div class="biglink">Reaction Evaluation</div></a>
+        <div class="linkdesc">Predict if a reaction will succeed by specifying the reactants and intended product</div>
+        </p>
+
+
+        <p>
+        <a href="{% url 'main.views.pricing' %}">
+        <div class="biglink">Buyable Look-up</div></a>
+        <div class="linkdesc">Check to see if a chemical is in the buyables database</div>   
+        </p>
 
         <p>
         <a href="{% url 'main.views.draw' %}">
         <div class="biglink">Drawing</div></a>
-        <div class="linkdesc">Draw molecules, reactions, or templates</div>   
+        <div class="linkdesc">Draw molecules, reactions, or templates from SMILES/SMARTS strings</div>   
         </p>
 
     </div>
@@ -86,7 +91,7 @@
 
         <div id="footer">
             {% block footer %}
-            Copyright &copy; 2016,
+            Copyright &copy; 2017,
             Created using <a href="http://www.djangoproject.com/">Django</a>.
             {% endblock %}
         </div>

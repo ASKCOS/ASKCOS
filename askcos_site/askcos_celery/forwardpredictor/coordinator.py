@@ -14,6 +14,9 @@ from celery.result import allow_join_result
 import numpy as np 
 import time
 import os
+from rdkit import RDLogger
+lg = RDLogger.logger()
+lg.setLevel(RDLogger.CRITICAL)
 
 CORRESPONDING_QUEUE = 'fp_coordinator'
 SOLVENT_DB = None
@@ -21,10 +24,6 @@ model = None
 template_counts = None
 F_atom = None
 F_bond = None
-Chem = None
-AllChem = None
-edits_to_vectors = None
-get_candidate_edits = None
 solvent_smiles_to_params = {} 
 solvent_name_to_smiles = {}
 
@@ -62,6 +61,14 @@ def load_model(folder, F_atom, F_bond):
     return model
 
 def context_to_mats(reagents='', solvent='toluene', T='20'):
+
+    global solvent_smiles_to_params
+    global solvent_name_to_smiles
+
+    import rdkit.Chem as Chem 
+    import numpy as np 
+    import rdkit.Chem.AllChem as AllChem
+
     # Temperature is easy
     try:
         T = float(T)
@@ -73,7 +80,7 @@ def context_to_mats(reagents='', solvent='toluene', T='20'):
     try:
         solvent_mol = Chem.MolFromSmiles(solvent)
         doc = solvent_smiles_to_params[Chem.MolToSmiles(solvent_mol)]
-    except Exception: # KeyError or Boost.Python.ArgumentError
+    except Exception as e: # KeyError or Boost.Python.ArgumentError
         try:
             doc = solvent_smiles_to_params[solvent_name_to_smiles[solvent]]
         except KeyError:
@@ -106,10 +113,6 @@ def configure_coordinator(options={},**kwargs):
     global model 
     global F_atom 
     global F_bond
-    global Chem
-    global AllChem 
-    global edits_to_vectors
-    global get_candidate_edits
     global solvent_smiles_to_params
     global solvent_name_to_smiles
 
@@ -181,24 +184,28 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
     global model 
     global F_atom 
     global F_bond
-    global Chem
-    global AllChem 
-    global edits_to_vectors
-    global get_candidate_edits
+    global solvent_smiles_to_params
+    global solvent_name_to_smiles
+
+    from .worker import get_candidate_edits
+    import rdkit.Chem as Chem 
+    import rdkit.Chem.AllChem as AllChem
+    from makeit.embedding.descriptors import edits_to_vectors
 
     # Get atom descriptors
     reactants = Chem.MolFromSmiles(reactants)
     if not reactants: 
         print('Could not parse reactants {}'.format(reactants))
-        raise ValueError('Could not parse reactants')
+        return [[] for i in range(len(contexts))]
     print('Number of reactant atoms: {}'.format(len(reactants.GetAtoms())))
     # Report current reactant SMILES string
     [a.ClearProp(str('molAtomMapNumber')) for a in reactants.GetAtoms() if a.HasProp(str('molAtomMapNumber'))]
-    print('Reactants w/o map: {}'.format(Chem.MolToSmiles(reactants)))
+    reactants_smiles_no_map = Chem.MolToSmiles(reactants, isomericSmiles=True)
+    print('Reactants w/o map: {}'.format(reactants_smiles_no_map))
     # Add new atom map numbers
     [a.SetProp(str('molAtomMapNumber'), str(i+1)) for (i, a) in enumerate(reactants.GetAtoms())]
     # Report new reactant SMILES string
-    print('Reactants w/ map: {}'.format(Chem.MolToSmiles(reactants)))
+    print('Reactants w/ map: {}'.format(Chem.MolToSmiles(reactants, isomericSmiles=True)))
     reactants_smiles = Chem.MolToSmiles(reactants)
 
     # Pre-calc descriptors for this set of reactants
@@ -228,9 +235,11 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
         is_ready = [i for (i, res) in enumerate(pending_results) if res.ready()]
         with allow_join_result(): # required to use .get()
             for i in is_ready:
-                for candidate_edit in pending_results[i].get(timeout=1):
-                    if candidate_edit not in candidate_edits:
-                        candidate_edits.append(candidate_edit)
+                for (candidate_smiles, edits) in pending_results[i].get(timeout=1):
+                    if candidate_smiles in reactants_smiles_no_map.split('.'):
+                        continue
+                    if (candidate_smiles, edits) not in candidate_edits:
+                        candidate_edits.append((candidate_smiles, edits))
                 pending_results[i].forget()
                 
         # Update list
@@ -239,7 +248,8 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
     # Convert to tensors
     Nc = len(candidate_edits)
     if Nc == 0:
-        raise ValueError('No candidate products found at all...?')
+        print('No candidate products found at all...?')
+        return [[] for i in range(len(contexts))]
     Ne1 = 1
     Ne2 = 1
     Ne3 = 1

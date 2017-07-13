@@ -20,8 +20,9 @@
 {{ form.as_table }}
 	<th>{% csrf_token %}</th>
 	<td>
-		<input type="submit" value="Search (templates)" name="retro">
-		<input type="submit" value="Search (literature)" name="retro_lit">
+		<!-- <input type="submit" value="Search (achiral)" name="retro"> -->
+		<!-- <input type="submit" value="Search (literature)" name="retro_lit"> -->
+		<input type="submit" value="Search" name="retro_chiral">
 	</td>
 </table>
 </form>
@@ -43,6 +44,12 @@
 {% if target %}
 	<h4>Target molecule: <font class="smiles">{{ target.smiles }}</font></h4>
 	<img src="{{ target.img }}">
+	<br>
+	<br>
+	<i>Please note that precursor sets are scored and sorted by a <b>very</b> crude heuristic function that tries to break the target into similarly-sized reactants with fewer rings and - on this page - have not been evaluated for plausibility in the forward direction.</i><br><br>
+	<i>Results generated in {{ time }} seconds</i>
+	<br>
+	<br>
 
 	<table class="table_precursors">
 		<tr>
