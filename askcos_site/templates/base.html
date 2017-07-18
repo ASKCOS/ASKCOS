@@ -17,7 +17,7 @@
 </head>
 
 <body>
-
+{% csrf_token %}
 
 
 <div id="document">
@@ -92,7 +92,8 @@
                     <span class="caret"></span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-right">
-                    <li><a href="{% url 'user_saved_results' %}">Saved results</a></li>
+                    <li><a href="#" id="savepage">Save this page</a></li>
+                    <li><a href="{% url 'user_saved_results' %}">See saved results</a></li>
                     <li><a href="registration/password/change/">Change password</a></li>
                     <li><a href="{% url 'logout' %}">Logout</a></li>
                 </ul>
@@ -133,6 +134,29 @@
     </div>
 </div>
 <script type="text/javascript">
+$.ajaxSetup({ 
+     beforeSend: function(xhr, settings) {
+         function getCookie(name) {
+             var cookieValue = null;
+             if (document.cookie && document.cookie != '') {
+                 var cookies = document.cookie.split(';');
+                 for (var i = 0; i < cookies.length; i++) {
+                     var cookie = jQuery.trim(cookies[i]);
+                     // Does this cookie string begin with the name we want?
+                     if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                         break;
+                     }
+                 }
+             }
+             return cookieValue;
+         }
+         if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
+             // Only send the token to relative URLs i.e. locally.
+             xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+         }
+     } 
+});
 $(document).ajaxStart(function() {
     $(document.body).css({'cursor' : 'wait'});
 }).ajaxStop(function() {
@@ -153,6 +177,56 @@ $(document).ready(function() {
     $('.linkdesc', this).stop(true, true).slideUp('fast');
     $(this).removeClass('open');
   });
+});
+// This JSFiddle is part of a tutorial written by Zach Alam (zachalam.com)
+// You can view the complete tutorial and more background information
+// by visiting the following URL:
+// https://zachalam.com/using-ajax-and-jquery-to-load-images-asynchronously/
+// verify the DOM is completely loaded.
+$(document).ready(function() {
+// check for images in view when page loads.
+load_images_in_view();
+// check for images in view when page scrolls.
+$(window).scroll(load_images_in_view); 
+function load_images_in_view() {
+    // a scroll was detected - check all images in DOM
+    $("img").each(function() {
+        // calculate the halfway to the bottom of the object.
+        var object_bottom = $(this).offset().top + ($(this).outerHeight()/2);
+        // calculate the bottom of the window.
+        var window_bottom = $(window).scrollTop() + $(window).height();
+
+        if(window_bottom > object_bottom)
+        {      
+                // check to see if a flag was set,
+                // so we don't constantly reload this image
+                if($(this).data("image-loaded") != true)
+                {
+                    // obtain the image to replace
+                    var image_source = $(this).data("async-load");
+      
+                   // set image loaded complete flag, and change image src.
+                    $(this).data("image-loaded",true);
+                    $(this).attr("src",image_source);
+                }      
+        }
+    
+    }); // end $("img").each()  
+}}); // end $(document).ready();
+$("#savepage").click(function () {
+    console.log('saving this page...');
+    $.ajax({
+        type: 'POST',
+        url: '/ajax/user_save_page/',
+        data: {
+            html: $("#contents").html(),
+            csrfmiddlewaretoken: '{{ csrf_token }}',
+        },
+        dataType: 'json',
+        success: function () {
+            alert('Saved!');
+        }
+    });
 });
 </script>
 {% block javascript %}{% endblock %}

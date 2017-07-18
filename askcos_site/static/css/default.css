@@ -64,6 +64,9 @@ a:hover {
 .table-nonfluid {
    width: auto !important;
 }
+.table_templates > tbody > tr:nth-child(2n+1) > td {
+    border-top: 3px solid #bbb;
+}
 
 /* Headings */
 
@@ -322,6 +325,9 @@ font.smiles {
 .table_outcomes tr {
     border-bottom: 1px;
     border-color: solid #ccc;
+}
+.table_templates tr:nth-child(even) {
+    border-top: 3px;
 }
 
 
