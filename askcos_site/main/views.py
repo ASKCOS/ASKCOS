@@ -278,10 +278,11 @@ def synth_interactive(request, reactants='', reagents='', solvent='toluene',
         context['temperature'] = temperature
     else:
         # Get suggested conditions
+        smiles = '%s>>%s' % (reactants, product)
         from askcos_site.askcos_celery.contextrecommender.worker import get_context_recommendation
-        res = get_context_recommendation.delay(smiles, n=1)
+        res = get_context_recommendation.delay(smiles, n=10)
         contexts = res.get(60)
-        if contexts is None:
+        if contexts is None or len(contexts) == 0:
             raise ValueError('Context recommender was unable to get valid context(?)')
         (T1, slvt1, rgt1, cat1, t1, y1) = contexts[0]
         slvt1 = trim_trailing_period(slvt1)
