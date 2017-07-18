@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Saved results{% endblock %}
+{% block page_title %}Restored from {{ saved_result.created }}{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'main.views.user_saved_results' %}">Saved</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block page_body %}
+{% autoescape off %}{{ html }}{% endautoescape %}
+{% endblock %}
+

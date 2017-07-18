@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}Template details{% endblock %}
-{% block page_title %}Template source(s){% endblock %}
+{% block page_title %}Template details{% endblock %}
 
 {% block extrahead %}{% endblock %}
 
@@ -13,9 +13,9 @@
 {% block page_body %}
 
 {% if template %}
-<h4>
+<h5>
 	Template: <font class="smiles">{{ template.reaction_smarts }}</font><br>
-</h4> 
+</h5> 
 {% if total_references %}
 <p>
 	{{ total_references }} total references
@@ -36,7 +36,7 @@
 <p><i>Note: this template looks like it might contain chiral specifications - tetrahedral chirality is not depicted in the template drawing currently</i></p>
 {% endif %}
 
-{% if suggested_conditions %}
+<!-- {% if suggested_conditions %}
 <h4>
 	Most popular conditions:
 </h4>
@@ -45,17 +45,49 @@
 	<tr><td>{{ condition }}</td></tr>
 	{% endfor %} 
 </table>
-{% endif %}
+{% endif %} -->
 
-{% for reference in references %}
-	<h5>Reaxys reaction ID {{ reference.id }} ({{ reference.nvar }} example{% if reference.nvar != 1 %}s{% endif %} from {{ reference.numref }} reference{% if reference.numref != 1 %}s{% endif %} as recent as {{ reference.maxpub }})</h5><br>
-<!-- 		<font class="smiles">
-			{{ reference.reaction_smiles }}</a>
-		</font><br> -->
-		<img src="{% url 'draw_reaction' reference.reaction_smiles %}" width=60% alt="{{ reference.reaction_smiles }}"><br>
-	<br><br>
+<br><br>
+<table class="table table-sm table-bordered table_templates" style="font-size:small">
+<thead>
+<tr>
+	<th rowspan=2 style="vertical-align:middle">Rxn ID</th>
+	<th rowspan=2 style="vertical-align:middle">Instance</th>
+	<th colspan=7 style="text-align:center">Reaction</th>
+	<th rowspan=2 style="vertical-align:middle">Entry Date</th>
+</tr>
+<tr>
+	<th width="10%">Yield [%]</th>
+	<th width="15%">Reagent(s)</th>
+	<th width="15%">Catalyst(s)</th>
+	<th width="15%">Solvent(s)</th>
+	<th width="10%">Temp. [C]</th>
+	<th width="10%">Time [h]</th>
+	<th width="25%">Other</th>
+</tr>
+</thead>
+<tbody>
+{% for ref in references %}
+<tr>
+	<td rowspan=2 style="vertical-align:middle">{{ ref.rx_id }}</td>
+	<td rowspan=2 style="vertical-align:middle">{{ ref.rxd_num }} of {{ ref.nvar }}</td>
+	<td colspan=7><img src="" data-async-load="{% url 'draw_reaction' ref.smiles %}" alt="{{ ref.smiles }}" width="100%"></td>
+	<td rowspan=2 style="vertical-align:middle">{{ ref.ded }}</td>
+</tr>
+<tr>
+	<td width="10%">{{ ref.y }}</td>
+	<td width="15%">{{ ref.reagents }}</td>
+	<td width="15%">{{ ref.catalysts }}</td>
+	<td width="15%">{{ ref.solvents }}</td>
+	<td width="10%">{{ ref.T }}</td>
+	<td width="10%">{{ ref.t }}</td>
+	<td width="25%">{{ ref.cond }}</td>
+</tr>
 {% endfor %}
+</tbody>
+</table>
 
 {% endif %}
 
 {% endblock %}
+

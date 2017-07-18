@@ -4,7 +4,7 @@
 
 <div id="{{ target.id }}" class="chem">
 <a class="tooltip" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
-<img src="{% url 'draw_smiles' target.smiles %}" alt="{{ target.smiles }}" width="75%">
+<img src="" data-async-load="{% url 'draw_smiles' target.smiles %}" alt="{{ target.smiles }}" width="75%">
 <div>
 	<center>
 		<font class="smiles">{{ target.smiles }}</font>

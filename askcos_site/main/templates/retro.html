@@ -16,8 +16,16 @@
 <p>Begin by entering in the SMILES string or name of the target molecule, or choose from one of the proposal targets below.</p>
 
 <form method="post" id="smiles_form" action="{% url 'retro_home' %}">
-<table>
-{{ form.as_table }}
+<table class="table table-borderless table-nonfluid">
+{% for field in form %}
+    <tr>
+        <td colspan="2">{{ field.errors }}</td>
+    </tr>
+    <tr>
+        <td class="fieldKey">{{ field.label_tag }}</td>
+        <td class="fieldValue">{{ field }}</td>
+    </tr>
+{% endfor %}
 	<th>{% csrf_token %}</th>
 	<td>
 		<!-- <input type="submit" value="Search (achiral)" name="retro"> -->
@@ -41,7 +49,7 @@
 {% endif %}
 
 {% if target %}
-	<h4>Target molecule: <font class="smiles">{{ target.smiles }}</font></h4>
+	<h5>Target molecule: <font class="smiles">{{ target.smiles }}</font></h5>
 	<img src="{{ target.img }}" alt="{{ target.smiles }}">
 	<br>
 	<br>
@@ -50,13 +58,16 @@
 	<br>
 	<br>
 
-	<table class="table_precursors">
-		<tr>
-			<th>Rank</th>
-			<th><font class="smiles">Precursor(s)</font></th>
-			<th>Score</th>
-			<th># Ex.</th>
-		</tr>
+	<table class="table table_precursors">
+		<thead>
+			<tr>
+				<th>Rank</th>
+				<th><font class="smiles">Precursor(s)</font></th>
+				<th>Score</th>
+				<th># Ex.</th>
+			</tr>
+		</thead>
+		<tbody>
 		{% for precursor in precursors %}
 		<tr>
 			<td>{{ precursor.rank }}</td>
@@ -72,7 +83,7 @@
 				{% if not forloop.last %} + {% endif %}{% endfor %}
 				<a href="{% url 'synth_interactive_target' precursor.smiles %}">&rarr; ?</a>
 				<br>
-				<a><img src="{% url 'draw_smiles' precursor.smiles %}" alt="{{ precursor.smiles }}" onclick="toggle_visibility('expand{{ precursor.rank }}');"></a>
+				<a><img src="" data-async-load="{% url 'draw_smiles' precursor.smiles %}" alt="{{ precursor.smiles }}" onclick="toggle_visibility('expand{{ precursor.rank }}');"></a>
 				
 				<div id='expand{{ precursor.rank }}' style='display:none'>	
 					{% if precursor.tforms %}
@@ -93,6 +104,7 @@
 			<td>{{ precursor.num_examples }}</td>
 		</tr>
 		{% endfor %}
+		</tbody>
 	</table>
 {% endif %}
 

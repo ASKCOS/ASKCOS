@@ -14,19 +14,21 @@
 {% block page_body %}
 
 {% if saved_results %}
-<table>
+<table class="table">
 <tr>
 	<th width="15%">User</th>
 	<th width="15%">Created</th>
 	<th width="55%">Description</th>
 	<th width="15%">File</th>
+    <th width="15%">Delete</th>
 </th>
 {% for saved_result in saved_results %}
 <tr>
 	<td>{{ saved_result.user }}</td>
 	<td>{{ saved_result.created }}</td>
 	<td>{{ saved_result.description }}</td>
-	<td><a href="{{ saved_result.fpath }}">Click me!</a></td>
+	<td><a href="{% url 'main.views.user_saved_results_id' saved_result.id %}">Load</a></td>
+    <td><a href="{% url 'main.views.user_saved_results_del' saved_result.id %}" onclick="return confirm('Are you sure you want to delete this saved result?');">X</a></td>
 </th>
 {% endfor %}
 </table>
@@ -35,3 +37,4 @@ Looks like there's nothing here!
 {% endif %}
 
 {% endblock %}
+

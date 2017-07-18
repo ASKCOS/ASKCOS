@@ -19,11 +19,13 @@
 <form method="post" action="{% url 'main.views.login' %}">
 {% csrf_token %}
 
-<table>
+<table class="table table-borderless table-nonfluid">
 {% for field in form %}
+    {% if field.errors %}
     <tr>
         <td colspan="2">{{ field.errors }}</td>
     </tr>
+    {% endif %}
     <tr>
         <td class="fieldKey">{{ field.label_tag }}</td>
         <td class="fieldValue">{{ field }}</td>

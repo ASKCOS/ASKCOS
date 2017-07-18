@@ -10,7 +10,7 @@
 	<td>{{ outcome.rank }}</td>
 	<td>
 		<center>
-			<img src="{% url 'draw_smiles' outcome.smiles %}"><br>
+			<img src="" data-async-load="{% url 'draw_smiles' outcome.smiles %}" alt="{{ outcome.smiles }}"><br>
 			<font class="smiles">{{ outcome.smiles }}</font>
 		</center>
 	</td>
