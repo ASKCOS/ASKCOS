@@ -72,7 +72,7 @@ def chem_dict(_id, smiles, ppg, children=[]):
     }
 
 def rxn_dict(_id, info, necessary_reagent='', num_examples=0, 
-        children=[], smiles=''):
+        children=[], smiles='', tforms=[]):
     '''Reaction object as expected by website'''
     return {
         'id': _id,
@@ -82,6 +82,7 @@ def rxn_dict(_id, info, necessary_reagent='', num_examples=0,
         'num_examples': num_examples,
         'children': children,
         'smiles': smiles,
+        'tforms': tforms,
     }
 
 def tree_status(tree_dict):
@@ -131,8 +132,9 @@ def get_trees_iddfs(tree_dict, max_depth, max_trees=25):
                     for path in DLS_rxn(rxn_id, depth):
                         yield [rxn_dict(rxn_id, rxn_info_string, tree_dict[rxn_id]['necessary_reagent'], 
                              tree_dict[rxn_id]['num_examples'], 
-                             children = path,
-                             smiles = '.'.join(sorted([tree_dict[x]['smiles'] for x in tree_dict[rxn_id]['rcts']])) + '>>' + tree_dict[chem_id]['smiles'])]
+                             children=path,
+                             smiles='.'.join(sorted([tree_dict[x]['smiles'] for x in tree_dict[rxn_id]['rcts']])) + '>>' + tree_dict[chem_id]['smiles'],
+                             tforms=tree_dict[rxn_id]['tforms'])]
 
     def DLS_rxn(rxn_id, depth):
         '''Return children paths starting from a specific rxn_id'''
