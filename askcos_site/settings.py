@@ -204,6 +204,7 @@ CONTEXT_REC = {
 LOCAL_STORAGE = {
     'root': '/data/www-data',
     'dir': '/data/www-data/local_db_dumps',
+    'user_saves': '/data/www-data/user_saves',
 }
 
 # LOGIN

@@ -45,6 +45,7 @@ urlpatterns += [
 
     # Interactive forward prediction
     url(ur'^synth_interactive/$', main.views.synth_interactive, name = 'synth_interactive'),
+    url(ur'^synth_interactive/reactants=(?P<reactants>.+)&product=(?P<product>.+)$', main.views.synth_interactive, name = 'synth_interactive_target2'),
     url(ur'^synth_interactive/reactants=(?P<reactants>.+)$', main.views.synth_interactive, name = 'synth_interactive_target'),
     url(ur'^ajax/start_synth/$', main.views.ajax_start_synth, name = 'ajax_start_synth'),
 
@@ -87,4 +88,6 @@ urlpatterns += [
     # Saved data
     url(r'^saved/$', main.views.user_saved_results, name='user_saved_results'),
     url(r'^saved/id=(?P<_id>.+)$', main.views.user_saved_results_id, name='user_saved_results_id'),
+    url(ur'^ajax/user_save_page/$', main.views.ajax_user_save_page, name = 'ajax_user_save_page'),
+    url(ur'^saved/delete/id=(?P<_id>.+)$', main.views.user_saved_results_del, name = 'user_saved_results_del'),
 ]

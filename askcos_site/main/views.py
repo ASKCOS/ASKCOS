@@ -8,9 +8,11 @@ import django.contrib.auth.views
 from forms import SmilesInputForm, DrawingInputForm, is_valid_smiles
 from pymongo.message import bson
 from bson.objectid import ObjectId
+from datetime import datetime
 import time
 import numpy as np 
 import json
+import os
 
 import rdkit.Chem as Chem 
 import urllib2
@@ -63,9 +65,38 @@ def user_saved_results(request, err=None):
 @login_required
 def user_saved_results_id(request, _id=-1):
     saved_result = SavedResults.objects.filter(user=request.user, id=_id)
-    if not saved_result:
+    if saved_result.count() == 0:
         return user_saved_results(request, err='Could not find that ID')
-    return render(request, 'saved_results_id.html', {'saved_results':[saved_result]})
+    with open(saved_result[0].fpath, 'r') as fid:
+        html = fid.read()
+    return render(request, 'saved_results_id.html', 
+        {'saved_result':saved_result[0], 'html':html})
+
+@login_required
+def user_saved_results_del(request, _id=-1):
+    SavedResults.objects.filter(user=request.user, id=_id).delete()
+    return user_saved_results(request, err=None)
+
+@login_required
+def ajax_user_save_page(request):
+    html = request.GET.get('html', None)
+    if html is None:
+        data = {'err': 'Could not get HTML to save'}
+        return JsonResponse(data)
+    print('Got request to save a page')
+    now = datetime.now()
+    unique_str = '%i.txt' % hash((now, request.user))
+    fpath = os.path.join(settings.LOCAL_STORAGE['user_saves'], unique_str)
+    _id = SavedResults.objects.create(user=request.user, 
+        description='',
+        created=datetime.now(),
+        fpath=fpath)
+    print('Created saved object {}'.format(_id))
+    with open(fpath, 'w') as fid:
+        fid.write(html)
+    print('Wrote to {}'.format(fpath))
+
+    return JsonResponse({'err': False})
 
 @login_required
 def retro(request):
@@ -112,7 +143,7 @@ def retro(request):
         {'name': 'Tranexamic Acid', 'smiles': 'NC[C@@H]1CC[C@H](CC1)C(O)=O'},
     ]
 
-    context['footnote'] = RETRO_FOOTNOTE
+    context['footnote'] = RETRO_CHIRAL_FOOTNOTE
     return render(request, 'retro.html', context)
 
 @login_required
@@ -225,20 +256,12 @@ def retro_interactive(request):
     return render(request, 'retro_interactive.html', context)
 
 @login_required
-def synth_interactive(request, reactants='', reagents='', solvent='toluene', temperature='20', mincount=''):
+def synth_interactive(request, reactants='', reagents='', solvent='toluene', 
+        temperature='20', mincount='', product=None):
     '''Builds an interactive forward synthesis page'''
 
-    print(request.POST)
-    print(reactants)
     context = {} 
     context['footnote'] = PREDICTOR_FOOTNOTE
-
-    context['reactants'] = reactants
-    context['reagents'] = reagents
-    context['solventselected'] = solvent
-    context['temperature'] = temperature
-    context['mincount'] = mincount if mincount != '' else settings.SYNTH_TRANSFORMS['mincount']
-
     solvent_choices = []
     for doc in SOLVENT_DB.find({'_id': {'$ne': 'default'}}):
         solvent_choices.append({
@@ -246,7 +269,32 @@ def synth_interactive(request, reactants='', reagents='', solvent='toluene', tem
             'name': doc['name'],
         })
     context['solvent_choices'] = sorted(solvent_choices, key = lambda x: x['name'])
+    context['reactants'] = reactants
 
+    if product is None:    
+        context['reagents'] = reagents
+        context['solventselected'] = solvent
+        context['temperature'] = temperature
+    else:
+        # Get suggested conditions
+        from askcos_site.askcos_celery.contextrecommender.worker import get_context_recommendation
+        res = get_context_recommendation.delay(smiles, n=1)
+        contexts = res.get(60)
+        if contexts is None:
+            raise ValueError('Context recommender was unable to get valid context(?)')
+        (T1, slvt1, rgt1, cat1, t1, y1) = contexts[0]
+        slvt1 = trim_trailing_period(slvt1)
+        rgt1 = trim_trailing_period(rgt1)
+        cat1 = trim_trailing_period(cat1)
+        (rgt1, cat1, slvt1) = fix_rgt_cat_slvt(rgt1, cat1, slvt1)
+        for slvt in solvent_choices:
+            if slvt['smiles'] == slvt1:
+                context['solventselected'] = slvt['name']
+                break
+        context['reagents'] = rgt1
+        context['temperature'] = T1 
+
+    context['mincount'] = mincount if mincount != '' else settings.SYNTH_TRANSFORMS['mincount']
     return render(request, 'synth_interactive.html', context)
 
 def ajax_error_wrapper(ajax_func):
@@ -413,6 +461,23 @@ def ajax_start_retro_celery(request):
 def evaluate_rxnsmiles(request):
     return render(request, 'evaluate.html', {})
 
+# Clean up
+def fix_rgt_cat_slvt(rgt1, cat1, slvt1):
+    # Merge cat and reagent for forward predictor
+    if rgt1 and cat1:
+        rgt1 = rgt1 + '.' + cat1
+    elif cat1:
+        rgt1 = cat1
+    # Reduce solvent to single one
+    if '.' in slvt1:
+        slvt1 = slvt1.split('.')[0]
+    return (rgt1, cat1, slvt1)
+def trim_trailing_period(txt):
+    if txt:
+        if txt[-1] == '.':
+            return txt[:-1]
+    return txt
+
 @ajax_error_wrapper
 def ajax_evaluate_rxnsmiles(request):
     '''Evaluate rxn_smiles'''
@@ -441,23 +506,6 @@ def ajax_evaluate_rxnsmiles(request):
     print(contexts)
     if contexts is None:
         raise ValueError('Context recommender was unable to get valid context(?)')
-
-    # Clean up
-    def fix_rgt_cat_slvt(rgt1, cat1, slvt1):
-        # Merge cat and reagent for forward predictor
-        if rgt1 and cat1:
-            rgt1 = rgt1 + '.' + cat1
-        elif cat1:
-            rgt1 = cat1
-        # Reduce solvent to single one
-        if '.' in slvt1:
-            slvt1 = slvt1.split('.')[0]
-        return (rgt1, cat1, slvt1)
-    def trim_trailing_period(txt):
-        if txt:
-            if txt[-1] == '.':
-                return txt[:-1]
-        return txt
 
     contexts_for_predictor = []
     for (T1, slvt1, rgt1, cat1, t1, y1) in contexts:
@@ -609,6 +657,15 @@ def ajax_evaluate_rxnsmiles(request):
 #     context['footnote'] = SYNTH_FOOTNOTE
 #     return render(request, 'synth.html', context)
 
+def fancyjoin(lst, nonemessage='(none)'):
+    if not lst:
+        return nonemessage
+    if len(lst) == 1:
+        return lst[0]
+    if len(lst) == 2:
+        return '%s and %s' % (lst[0], lst[1])
+    return ', '.join(lst[:-1]) + ', and %s' % lst[-1]
+
 @login_required
 def template_target(request, id):
     '''
@@ -629,33 +686,47 @@ def template_target(request, id):
     context['template'] = transform
     reference_ids = transform['references']
 
-    references = []; done_refs = set()
+    references = []
+    rx_docs = {}; xrn_to_smiles = {}
     context['total_references'] = len(reference_ids)
-    for i, ref_id in enumerate(reference_ids):
-        rx_id = int(ref_id.split('-')[0])
-        if rx_id in done_refs:
-            continue
-        doc = None
-        try:
-            doc = REACTION_DB.find_one({'_id': rx_id})
-        except Exception as e:
-            print(e)
-        if doc is not None:
-            references.append({
-                'id': rx_id,
-                'label': ref_id,
-                'reaction_smiles': doc['RXN_SMILES'],
-                'maxpub': int(doc['RX_MAXPUB'][0]) if 'RX_MAXPUB' in doc else '????',
-                'nvar': doc['RX_NVAR'] if 'RX_NVAR' in doc else '?',
-                'numref': doc['RX_NUMREF'] if 'RX_NUMREF' in doc else '?',
-            })
-            done_refs.add(rx_id)
-        else:
-            print('Could not find doc with example')
-        # Limit number retrieved
-        if len(references) >= 100:
-            break
-    context['references'] = sorted(references, key=lambda x: x['maxpub'], reverse=True)
+    for rxd_doc in INSTANCE_DB.find({'_id': {'$in': reference_ids}}):
+        rx_id = int(rxd_doc['_id'].split('-')[0])
+        rx_doc = REACTION_DB.find_one({'_id': rx_id})
+        if rx_doc is None: rx_doc = {}
+        ref = {
+            'rx_id': rx_id,
+            'rxd_num': rxd_doc['_id'].split('-')[1],
+            'label': rxd_doc['_id'],
+            'T': rxd_doc['RXD_T'] if rxd_doc['RXD_T'] != -1 else 'unk',
+            'y': float(rxd_doc['RXD_NYD']) if rxd_doc['RXD_NYD'] != -1 else 'unk',
+            't': rxd_doc['RXD_TIM'] if rxd_doc['RXD_TIM'] != -1 else 'unk',
+            'smiles': rx_doc.get('RXN_SMILES', 'no smiles found'),
+            'nvar': rx_doc.get('RX_NVAR', '?'),
+            'cond': fancyjoin(rxd_doc['RXD_COND'], nonemessage=''),
+            'ded': rxd_doc['RXD_DED'][0],
+        }
+
+        def rxn_lst_to_name_lst(xrn_lst):
+            lst = []
+            for xrn in xrn_lst:
+                if xrn not in xrn_to_smiles: 
+                    chem_doc = CHEMICAL_DB.find_one({'_id': xrn})
+                    if 'IDE_CN' not in chem_doc:
+                        if 'SMILES' not in chem_doc:
+                            xrn_to_smiles[xrn] = 'Chem-%i' % xrn
+                        else:
+                            xrn_to_smiles[xrn] = chem_doc['SMILES']
+                    else:
+                        xrn_to_smiles[xrn] = chem_doc['IDE_CN']
+                lst.append(xrn_to_smiles[xrn])
+            return lst
+
+        ref['reagents'] = fancyjoin(rxn_lst_to_name_lst(rxd_doc['RXD_RGTXRN']))
+        ref['solvents'] = fancyjoin(rxn_lst_to_name_lst(rxd_doc['RXD_SOLXRN']))
+        ref['catalysts'] = fancyjoin(rxn_lst_to_name_lst(rxd_doc['RXD_CATXRN']))
+        references.append(ref)
+        
+    context['references'] = sorted(references, key=lambda x: x['y'] if x['y'] != 'unk' else -1, reverse=True)
     from makeit.retro.conditions import average_template_list
     context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
 
