@@ -16,7 +16,7 @@
 <p>Begin by entering in the SMILES string or name of the target molecule, or choose from one of the proposal targets below.</p>
 
 <form method="post" id="smiles_form" action="{% url 'retro_home' %}">
-<table>
+<table class="table table-borderless table-nonfluid">
 {{ form.as_table }}
 	<th>{% csrf_token %}</th>
 	<td>

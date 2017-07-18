@@ -250,19 +250,12 @@ def synth_interactive(request, reactants='', reagents='', solvent='toluene', tem
     return render(request, 'synth_interactive.html', context)
 
 def ajax_error_wrapper(ajax_func):
-    if not settings.DEBUG:
-        def ajax_func_call(*args, **kwargs):
-            try:
-                return ajax_func(*args, **kwargs)
-            except Exception as e:
-                return JsonResponse({'err':True, 'message': str(e)})
-    else:
-        def ajax_func_call(*args, **kwargs):
-            try:
-                return ajax_func(*args, **kwargs)
-            except Exception as e:
-                print(e)
-                raise(e)
+    def ajax_func_call(*args, **kwargs):
+        try:
+            return ajax_func(*args, **kwargs)
+        except Exception as e:
+            print(e)
+            return JsonResponse({'err':True, 'message': str(e)})
 
     return ajax_func_call
 
