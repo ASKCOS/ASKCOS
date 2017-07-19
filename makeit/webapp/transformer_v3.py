@@ -400,7 +400,7 @@ def apply_one_retrotemplate(rct, smiles, template, return_as_tup=False):
         if template['intra_only'] and '.' in outcome: 
             continue # disallowed intermol rxn
 
-        if template['dimer_only'] and '.' in outcome and len(set(outcome.split('.'))) != 1:
+        if template['dimer_only'] and (len(set(outcome.split('.'))) != 1 or len(outcome.split('.')) != 2):
             continue # not a dimer
         
         smiles_list = outcome.split('.')
