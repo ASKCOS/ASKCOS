@@ -60,7 +60,7 @@ class Transformer:
 
         # Look for all templates in collection
         to_retrieve = ['_id', 'reaction_smarts',
-                       'necessary_reagent', 'count', 'intra_only']
+                       'necessary_reagent', 'count', 'intra_only', 'dimer_only']
         if refs:
             to_retrieve.append('references')
         if efgs:
@@ -97,7 +97,9 @@ class Transformer:
                 'necessary_reagent':    document['necessary_reagent'] if 'necessary_reagent' in document else '',
                 'efgs':                 document['efgs'] if 'efgs' in document else None,
                 'intra_only':           document['intra_only'] if 'intra_only' in document else False,
+                'dimer_only':           document['dimer_only'] if 'dimer_only' in document else False,
                 'count':                document['count'] if 'count' in document else 1,
+                'chiral':               chiral,
             }
 
 
@@ -139,6 +141,7 @@ class Transformer:
         field 'count' in descending order. This means we will apply the
         most popular templates first
         '''
+        self.num_templates = len(self.templates)
         self.templates = sorted(self.templates, key=lambda z: z[
                                 'count'], reverse=True)
         self.id_to_index = {template['_id']: i for i, template in enumerate(self.templates)}
@@ -394,8 +397,11 @@ def apply_one_retrotemplate(rct, smiles, template, return_as_tup=False):
         if outcome == smiles: # no reaction
             continue
         
-        if template['intra_only'] and '.' in outcome: # disallowed intermol rxn
-            continue
+        if template['intra_only'] and '.' in outcome: 
+            continue # disallowed intermol rxn
+
+        if template['dimer_only'] and '.' in outcome and len(set(outcome.split('.'))) != 1:
+            continue # not a dimer
         
         smiles_list = outcome.split('.')
         if smiles in smiles_list:

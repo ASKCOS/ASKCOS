@@ -137,6 +137,7 @@ class Transformer:
         field 'count' in descending order. This means we will apply the
         most popular templates first
         '''
+        self.num_templates = len(self.templates)
         self.templates[:] = [x for x in sorted(self.templates, key = lambda z: z['count'], reverse = True)]
         self.id_to_index = {template['_id']: i for i, template in enumerate(self.templates)}
 
