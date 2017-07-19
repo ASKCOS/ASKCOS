@@ -117,24 +117,27 @@ def get_trees_iddfs(tree_dict, max_depth, max_trees=25):
         headNode indicates whether this is the first (head) node, in which case
         we should expand it even if it is itself buyable'''
 
-        if depth == 0:
-            # Not allowing deeper - is this buyable?
-            if tree_dict[chem_id]['ppg']:
-                yield []  # viable node, calling function doesn't need children
+        if not headNode and tree_dict[chem_id]['smiles'] == tree_dict[1]['smiles']:
+            pass # do not let trees terminate in the head node itself
         else:
-            # Do we need to go deeper?
-            if tree_dict[chem_id]['ppg'] and not headNode:
-                yield [] # Nope, this is a viable node
+            if depth == 0:
+                # Not allowing deeper - is this buyable?
+                if tree_dict[chem_id]['ppg']:
+                    yield []  # viable node, calling function doesn't need children
             else:
-                # Try going deeper via DLS_rxn function
-                for rxn_id in tree_dict[chem_id]['prod_of']:
-                    rxn_info_string = ''
-                    for path in DLS_rxn(rxn_id, depth):
-                        yield [rxn_dict(rxn_id, rxn_info_string, tree_dict[rxn_id]['necessary_reagent'], 
-                             tree_dict[rxn_id]['num_examples'], 
-                             children=path,
-                             smiles='.'.join(sorted([tree_dict[x]['smiles'] for x in tree_dict[rxn_id]['rcts']])) + '>>' + tree_dict[chem_id]['smiles'],
-                             tforms=tree_dict[rxn_id]['tforms'])]
+                # Do we need to go deeper?
+                if tree_dict[chem_id]['ppg'] and not headNode:
+                    yield [] # Nope, this is a viable node
+                else:
+                    # Try going deeper via DLS_rxn function
+                    for rxn_id in tree_dict[chem_id]['prod_of']:
+                        rxn_info_string = ''
+                        for path in DLS_rxn(rxn_id, depth):
+                            yield [rxn_dict(rxn_id, rxn_info_string, tree_dict[rxn_id]['necessary_reagent'], 
+                                 tree_dict[rxn_id]['num_examples'], 
+                                 children=path,
+                                 smiles='.'.join(sorted([tree_dict[x]['smiles'] for x in tree_dict[rxn_id]['rcts']])) + '>>' + tree_dict[chem_id]['smiles'],
+                                 tforms=tree_dict[rxn_id]['tforms'])]
 
     def DLS_rxn(rxn_id, depth):
         '''Return children paths starting from a specific rxn_id'''
