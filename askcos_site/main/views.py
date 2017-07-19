@@ -311,6 +311,11 @@ def synth_interactive(request, reactants='', reagents='', solvent='toluene',
     context['mincount'] = mincount if mincount != '' else settings.SYNTH_TRANSFORMS['mincount']
     return render(request, 'synth_interactive.html', context)
 
+@login_required
+def synth_interactive_smiles(request, smiles):
+    '''Synth interactive initialized w/ reaction smiles'''
+    return synth_interactive(request, reactants=smiles.split('>')[0], product=smiles.split('>')[-1])
+
 def ajax_error_wrapper(ajax_func):
     def ajax_func_call(*args, **kwargs):
         try:
@@ -717,7 +722,7 @@ def template_target(request, id):
             'smiles': rx_doc.get('RXN_SMILES', 'no smiles found'),
             'nvar': rx_doc.get('RX_NVAR', '?'),
             'cond': fancyjoin(rxd_doc['RXD_COND'], nonemessage=''),
-            'ded': rxd_doc['RXD_DED'][0],
+            'ded': rxd_doc.get('RXD_DED', [''])[0],
         }
 
         def rxn_lst_to_name_lst(xrn_lst):
@@ -725,11 +730,13 @@ def template_target(request, id):
             for xrn in xrn_lst:
                 if xrn not in xrn_to_smiles: 
                     chem_doc = CHEMICAL_DB.find_one({'_id': xrn})
-                    if 'IDE_CN' not in chem_doc:
+                    if chem_doc is None:
+                        xrn_to_smiles[xrn] = 'Chem-%i' % xrn
+                    elif 'IDE_CN' not in chem_doc:
                         if 'SMILES' not in chem_doc:
                             xrn_to_smiles[xrn] = 'Chem-%i' % xrn
                         else:
-                            xrn_to_smiles[xrn] = chem_doc['SMILES']
+                            xrn_to_smiles[xrn] = chem_doc['SMILES']                      
                     else:
                         xrn_to_smiles[xrn] = chem_doc['IDE_CN']
                 lst.append(xrn_to_smiles[xrn])

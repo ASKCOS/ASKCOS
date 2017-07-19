@@ -97,7 +97,7 @@ $('#results').on('click', '.rxn', function(){
             if (data.err) {
                 alert(data.message);
             } else {
-                $(".treetooltip" + targetid).css('background-color', data.html_color);
+                $(".rxnbox" + targetid).css('background-color', data.html_color);
                 $(".eval" + targetid).html(data.html);
             }
         }
