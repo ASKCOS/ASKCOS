@@ -698,11 +698,14 @@ def template_target(request, id):
         for coll in TEMPLATE_BACKUPS:
             transform = coll.find_one({'_id': ObjectId(id)})
             if transform: 
+                context['warn'] = 'This template is out of date (from %s)' % coll._Collection__full_name
                 break
-        context['err'] = 'Transform not found, even after looking in backup DBs'
-        return render(request, 'template.html', context)
+        if not transform:
+            context['err'] = 'Transform not found, even after looking in backup DBs %s' % ', '.join([coll._Collection__full_name for coll in TEMPLATE_BACKUPS])
+            return render(request, 'template.html', context)
     
     context['template'] = transform
+    context['template']['id'] = id
     reference_ids = transform['references']
 
     references = []
