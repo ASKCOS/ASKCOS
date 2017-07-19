@@ -13,7 +13,7 @@
     <!-- Our CSS (overrides) -->
     <link href="{% static 'default.css' %}" rel="stylesheet" type="text/css"/>
     <script src="{% static 'default.js' %}"></script>
-    
+    <script src="{% static 'date.js' %}"></script>
 </head>
 
 <body>
@@ -215,16 +215,25 @@ function load_images_in_view() {
 }}); // end $(document).ready();
 $("#savepage").click(function () {
     console.log('saving this page...');
+    var desc = prompt("Please enter a description for this page", "no description");
+    var now = Date.now();
+    var datetime = now.toString('MMMM dd, yyyy, hh:mm:ss tt');
     $.ajax({
         type: 'POST',
         url: '/ajax/user_save_page/',
         data: {
             html: $("#contents").html(),
             csrfmiddlewaretoken: '{{ csrf_token }}',
+            desc: desc,
+            datetime: datetime,
         },
         dataType: 'json',
-        success: function () {
-            alert('Saved!');
+        success: function (data) {
+            if (data.err) {
+                alert(data.err);
+            } else {
+                alert('Saved "' + desc + '" at ' + datetime);
+            }
         }
     });
 });

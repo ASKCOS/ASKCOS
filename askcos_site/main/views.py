@@ -68,18 +68,23 @@ def user_saved_results_id(request, _id=-1):
     if saved_result.count() == 0:
         return user_saved_results(request, err='Could not find that ID')
     with open(saved_result[0].fpath, 'r') as fid:
-        html = fid.read()
+        html = fid.read().decode('utf8')
     return render(request, 'saved_results_id.html', 
-        {'saved_result':saved_result[0], 'html':html})
+        {'saved_result':saved_result[0], 'html':html, 'dt': saved_result[0].dt})
 
 @login_required
 def user_saved_results_del(request, _id=-1):
-    SavedResults.objects.filter(user=request.user, id=_id).delete()
+    obj = SavedResults.objects.filter(user=request.user, id=_id)
+    if len(obj) == 1:
+        os.remove(obj[0].fpath)
+        obj[0].delete()
     return user_saved_results(request, err=None)
 
 @login_required
 def ajax_user_save_page(request):
     html = request.POST.get('html', None)
+    desc = request.POST.get('desc', 'no description')
+    dt   = request.POST.get('datetime', datetime.utcnow().strftime('%B %d, %Y %H:%M:%S %p UTC'))
     if html is None:
         print('Got None html')
         data = {'err': 'Could not get HTML to save'}
@@ -88,14 +93,20 @@ def ajax_user_save_page(request):
     now = datetime.now()
     unique_str = '%i.txt' % hash((now, request.user))
     fpath = os.path.join(settings.LOCAL_STORAGE['user_saves'], unique_str)
-    _id = SavedResults.objects.create(user=request.user, 
-        description='',
-        created=datetime.now(),
-        fpath=fpath)
-    print('Created saved object {}'.format(_id))
-    with open(fpath, 'w') as fid:
-        fid.write(html)
-    print('Wrote to {}'.format(fpath))
+    try:
+        with open(fpath, 'w') as fid:
+            fid.write(html.encode('utf8'))
+        print('Wrote to {}'.format(fpath))
+        obj = SavedResults.objects.create(user=request.user, 
+            description=desc,
+            dt=dt,
+            created=now,
+            fpath=fpath)
+        print('Created saved object {}'.format(obj.id))
+    except Exception as e:
+        print(e)
+        print('Could not write to file {}?'.format(fpath))
+        return JsonResponse({'err': 'Could not write to file {}?'.format(fpath)})
 
     return JsonResponse({'err': False})
 
