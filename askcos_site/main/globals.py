@@ -123,6 +123,17 @@ BUYABLE_DB = db[settings.BUYABLES['collection']]
 db = db_client[settings.SOLVENTS['database']]
 SOLVENT_DB = db[settings.SOLVENTS['collection']]
 
+
+db = db_client[settings.REACTIONS_OLD['database']]
+REACTION_DB_OLD = db[settings.REACTIONS_OLD['collection']]
+
+db = db_client[settings.INSTANCES_OLD['database']]
+INSTANCE_DB_OLD = db[settings.INSTANCES_OLD['collection']]
+
+db = db_client[settings.CHEMICALS_OLD['database']]
+CHEMICAL_DB_OLD = db[settings.CHEMICALS_OLD['collection']]
+
+
 ### Prices
 print('Loading prices...')
 import makeit.retro.pricer as pricer
@@ -161,3 +172,7 @@ PREDICTOR_FOOTNOTE = 'Results generated using <= {} forward synthetic templates 
 
 # Keeping track of what reactions have already been done
 DONE_SYNTH_PREDICTIONS = {}
+
+TEMPLATE_BACKUPS = []
+for (dbname, collname) in settings.TEMPLATE_BACKUPS:
+    TEMPLATE_BACKUPS.append(db_client[dbname][collname])

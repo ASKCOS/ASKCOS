@@ -23,7 +23,8 @@ from askcos_site.askcos_celery.treebuilder.worker import get_top_precursors
 from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, \
     SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, \
     BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, \
-    PREDICTOR_FOOTNOTE, DONE_SYNTH_PREDICTIONS, RETRO_CHIRAL_FOOTNOTE
+    PREDICTOR_FOOTNOTE, DONE_SYNTH_PREDICTIONS, RETRO_CHIRAL_FOOTNOTE, \
+    TEMPLATE_BACKUPS, REACTION_DB_OLD, INSTANCE_DB_OLD, CHEMICAL_DB_OLD
 
 
 def log_this_request(method):
@@ -684,11 +685,18 @@ def template_target(request, id):
     context = {}
 
     transform = RetroTransformer.lookup_id(ObjectId(id))
-    if not transform: transform = SynthTransformer.lookup_id(ObjectId(id))
+    if not transform: 
+        transform = SynthTransformer.lookup_id(ObjectId(id))
 
+    # Look through backups...
     if not transform:
-        context['err'] = 'Transform not found'
+        for coll in TEMPLATE_BACKUPS:
+            transform = coll.find_one({'_id': ObjectId(id)})
+            if transform: 
+                break
+        context['err'] = 'Transform not found, even after looking in backup DBs'
         return render(request, 'template.html', context)
+    
     context['template'] = transform
     reference_ids = transform['references']
 
@@ -733,8 +741,8 @@ def template_target(request, id):
         references.append(ref)
         
     context['references'] = sorted(references, key=lambda x: x['y'] if x['y'] != 'unk' else -1, reverse=True)[:500]
-    from makeit.retro.conditions import average_template_list
-    context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
+    #from makeit.retro.conditions import average_template_list
+    #context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
 
     return render(request, 'template.html', context)
 

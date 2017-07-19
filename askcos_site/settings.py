@@ -179,6 +179,20 @@ CHEMICALS = {
     'database': 'reaxys_v2',
     'collection': 'chemicals',
 }
+
+INSTANCES_OLD = {
+    'database': 'reaxys',
+    'collection': 'instances',
+}
+REACTIONS_OLD = {
+    'database': 'reaxys',
+    'collection': 'reactions',
+}
+CHEMICALS_OLD = {
+    'database': 'reaxys',
+    'collection': 'chemicals',
+}
+
 BUYABLES = {
     'database': 'reaxys_v2',
     'collection': 'buyables',
@@ -206,6 +220,14 @@ LOCAL_STORAGE = {
     'dir': '/data/www-data/local_db_dumps',
     'user_saves': '/data/www-data/user_saves',
 }
+
+# For searching "old" templates
+TEMPLATE_BACKUPS = [
+    ('reaxys', 'transforms_retro_v6'),
+    ('reaxys', 'transforms_retro_v5'),
+    ('reaxys', 'transforms_retro_v4'),
+    ('reaxys', 'transforms_retro_v3'),
+]
 
 # LOGIN
 LOGIN_URL = '/login'
