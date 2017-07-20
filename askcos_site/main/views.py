@@ -815,8 +815,8 @@ def draw_smiles(request, smiles):
     Returns a png response for a target smiles
     '''
     from makeit.retro.draw import MolsSmilesToImage
-    response = HttpResponse(content_type = 'img/png')
-    MolsSmilesToImage(str(smiles)).save(response, 'png')
+    response = HttpResponse(content_type = 'image/jpeg')
+    MolsSmilesToImage(str(smiles)).save(response, 'jpeg', quality=70)
     return response
 
 @login_required
@@ -843,8 +843,8 @@ def draw_template(request, template):
     Returns a png response for a reaction SMARTS template
     '''
     from makeit.retro.draw import TransformStringToImage
-    response = HttpResponse(content_type = 'img/png')
-    TransformStringToImage(str(template)).save(response, 'png')
+    response = HttpResponse(content_type = 'image/jpeg')
+    TransformStringToImage(str(template)).save(response, 'jpeg', quality=70)
     return response
 
 @login_required
@@ -871,8 +871,8 @@ def draw_reaction(request, smiles):
     Returns a png response for a SMILES reaction string
     '''
     from makeit.retro.draw import ReactionStringToImage
-    response = HttpResponse(content_type = 'img/png')
-    ReactionStringToImage(str(smiles)).save(response, 'png')
+    response = HttpResponse(content_type = 'image/jpeg')
+    ReactionStringToImage(str(smiles)).save(response, 'jpeg', quality=70)
     return response
 
 @login_required
