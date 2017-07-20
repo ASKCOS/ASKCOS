@@ -534,7 +534,7 @@ def ajax_evaluate_rxnsmiles(request):
     if necessary_reagent and contexts_for_predictor[0][1]:
         reactant_smiles += contexts_for_predictor[0][1] # add rgt
     from askcos_site.askcos_celery.forwardpredictor.coordinator import get_outcomes
-    res = get_outcomes.delay(reactant_smiles, contexts=contexts_for_predictor, mincount=synth_mincount, top_n=10)
+    res = get_outcomes.delay(reactant_smiles, contexts=contexts_for_predictor, mincount=synth_mincount, top_n=25)
     all_outcomes = res.get(300)
     if all([len(outcome) == 0 for outcome in all_outcomes]):
         if not verbose:
@@ -552,7 +552,7 @@ def ajax_evaluate_rxnsmiles(request):
             data['html_color'] = str('#%02x%02x%02x' % (int(255), int(0), int(0)))
             return JsonResponse(data)
     plausible = [0. for i in range(len(all_outcomes))]
-    ranks = ['>10' for i in range(len(all_outcomes))]
+    ranks = ['>25' for i in range(len(all_outcomes))]
     major_prods = ['none found' for i in range(len(all_outcomes))]
     major_probs = ['n/a' for i in range(len(all_outcomes))]
     for i, outcomes in enumerate(all_outcomes):

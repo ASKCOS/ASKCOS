@@ -38,25 +38,29 @@ $("#reactants").change(function () {
 });
 $("#reagents").change(function () {
 	console.log( $(this).val() );
-	$.ajax({
-		url: '/ajax/smiles_to_image/',
-		data: {
-			smiles: $(this).val(),
-		},
-		dataType: 'json',
-		success: function (data) {
-			if (data.err) {
-				$("#reagents_image").html('error! could not parse');
-				$("#reagent_mol_wrapper").show();
-				$("#controls_wrapper").hide();
-			} else {
-				$("#reagents").val(data.smiles)
-				$("#reagents_image").html(data.html);
-				$("#reagent_mol_wrapper").show();
-				$("#controls_wrapper").show();
-			}
-		},
-	});
+	if ($(this).val()) {
+		$.ajax({
+			url: '/ajax/smiles_to_image/',
+			data: {
+				smiles: $(this).val(),
+			},
+			dataType: 'json',
+			success: function (data) {
+				if (data.err) {
+					$("#reagents_image").html('error! could not parse');
+					$("#reagent_mol_wrapper").show();
+					$("#controls_wrapper").hide();
+				} else {
+					$("#reagents").val(data.smiles)
+					$("#reagents_image").html(data.html);
+					$("#reagent_mol_wrapper").show();
+					$("#controls_wrapper").show();
+				}
+			},
+		});
+	} else {
+		$("#reagent_mol_wrapper").hide();
+	};
 
 });
 $("#start_synth").click(function () {
