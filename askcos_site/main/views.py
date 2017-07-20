@@ -253,7 +253,7 @@ def retro_lit_target(request, smiles, max_n = 50):
     return render(request, 'retro.html', context)
 
 @login_required
-def retro_interactive(request):
+def retro_interactive(request, target=None):
     '''Builds an interactive retrosynthesis page'''
 
     context = {}
@@ -265,6 +265,9 @@ def retro_interactive(request):
     context['synth_mincount_default'] = settings.SYNTH_TRANSFORMS['mincount']
     context['expansion_time_default'] = 60
     context['max_ppg_default'] = 100
+
+    if target is not None:
+        context['target_mol'] = target
 
     return render(request, 'retro_interactive.html', context)
 

@@ -39,7 +39,10 @@
 	<table>
 	{% for suggestion in suggestions %}
 		<tr>
-			<td><a href="{% url 'retro_target' suggestion.smiles %}">{{ suggestion.name }}</a></td>
+			<td>
+				<a href="{% url 'retro_target' suggestion.smiles %}">{{ suggestion.name }}</a><br>
+				<a href="{% url 'retro_interactive_target' suggestion.smiles %}"><i>tree builder</i></a>
+			</td>
 			<td><img src="{% url 'draw_smiles' suggestion.smiles %}"></td>
 		</tr>
 	{% endfor %}

@@ -35,6 +35,7 @@ urlpatterns += [
 
     # Interactive retrosynthesis
     url(ur'^retro_interactive/$', main.views.retro_interactive, name = 'retro_interactive'),
+    url(ur'^retro_interactive/target=(?P<target>.+)$', main.views.retro_interactive, name = 'retro_interactive_target'),
     url(ur'^ajax/smiles_to_image/$', main.views.ajax_smiles_to_image, name = 'ajax_smiles_to_image'),
     url(ur'^ajax/rxn_to_image/$', main.views.ajax_rxn_to_image, name = 'ajax_rxn_to_image'),
     url(ur'^ajax/start_retro_celery/$', main.views.ajax_start_retro_celery, name = 'ajax_start_retro_celery'),
