@@ -17,6 +17,7 @@ import os
 from rdkit import RDLogger
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
+from collections import defaultdict
 
 CORRESPONDING_QUEUE = 'fp_coordinator'
 SOLVENT_DB = None
@@ -168,7 +169,7 @@ def softmax(x):
     return e_x / e_x.sum()
 
 @shared_task
-def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
+def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=500):
     '''Evaluate the plausibility of a proposed forward reaction
 
     reactants = SMILES of reactants
@@ -301,16 +302,22 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=250):
         scores = model.predict(x + xc)[0]
         probs = softmax(scores)
 
+        this_outcome = defaultdict(float)
+        this_scores  = defaultdict(lambda: -999)
+        for (smi, sco, pro) in zip(smiles, scores, probs):
+            this_outcome[smi] += pro 
+            this_scores[smi] = max(this_scores[smi], sco)
+
         # Sort
-        this_outcome = sorted(zip(smiles, scores, probs), key=lambda x: x[1], reverse=True)
+        this_outcome = sorted(this_outcome.iteritems(), key=lambda x: x[1], reverse=True)
         outcomes = []
-        for i, outcome in enumerate(this_outcome):
+        for i, (smi, pro) in enumerate(this_outcome):
             if i == top_n: break
             outcomes.append({
                 'rank': i + 1,
-                'smiles': outcome[0],
-                'score': '{:.2f}'.format(outcome[1]),
-                'prob': '{:.2e}'.format(outcome[2]),
+                'smiles': smi,
+                'score': '{:.2f}'.format(this_scores[smi]),
+                'prob': '{:.4f}%'.format(pro*100.),
             })
         all_outcomes.append(outcomes)
 

@@ -311,6 +311,11 @@ def synth_interactive(request, reactants='', reagents='', solvent='toluene',
     context['mincount'] = mincount if mincount != '' else settings.SYNTH_TRANSFORMS['mincount']
     return render(request, 'synth_interactive.html', context)
 
+@login_required
+def synth_interactive_smiles(request, smiles):
+    '''Synth interactive initialized w/ reaction smiles'''
+    return synth_interactive(request, reactants=smiles.split('>')[0], product=smiles.split('>')[-1])
+
 def ajax_error_wrapper(ajax_func):
     def ajax_func_call(*args, **kwargs):
         try:
@@ -529,7 +534,7 @@ def ajax_evaluate_rxnsmiles(request):
     if necessary_reagent and contexts_for_predictor[0][1]:
         reactant_smiles += contexts_for_predictor[0][1] # add rgt
     from askcos_site.askcos_celery.forwardpredictor.coordinator import get_outcomes
-    res = get_outcomes.delay(reactant_smiles, contexts=contexts_for_predictor, mincount=synth_mincount, top_n=10)
+    res = get_outcomes.delay(reactant_smiles, contexts=contexts_for_predictor, mincount=synth_mincount, top_n=25)
     all_outcomes = res.get(300)
     if all([len(outcome) == 0 for outcome in all_outcomes]):
         if not verbose:
@@ -547,7 +552,7 @@ def ajax_evaluate_rxnsmiles(request):
             data['html_color'] = str('#%02x%02x%02x' % (int(255), int(0), int(0)))
             return JsonResponse(data)
     plausible = [0. for i in range(len(all_outcomes))]
-    ranks = ['>10' for i in range(len(all_outcomes))]
+    ranks = ['>25' for i in range(len(all_outcomes))]
     major_prods = ['none found' for i in range(len(all_outcomes))]
     major_probs = ['n/a' for i in range(len(all_outcomes))]
     for i, outcomes in enumerate(all_outcomes):
@@ -693,11 +698,14 @@ def template_target(request, id):
         for coll in TEMPLATE_BACKUPS:
             transform = coll.find_one({'_id': ObjectId(id)})
             if transform: 
+                context['warn'] = 'This template is out of date (from %s)' % coll._Collection__full_name
                 break
-        context['err'] = 'Transform not found, even after looking in backup DBs'
-        return render(request, 'template.html', context)
+        if not transform:
+            context['err'] = 'Transform not found, even after looking in backup DBs %s' % ', '.join([coll._Collection__full_name for coll in TEMPLATE_BACKUPS])
+            return render(request, 'template.html', context)
     
     context['template'] = transform
+    context['template']['id'] = id
     reference_ids = transform['references']
 
     references = []
@@ -717,7 +725,7 @@ def template_target(request, id):
             'smiles': rx_doc.get('RXN_SMILES', 'no smiles found'),
             'nvar': rx_doc.get('RX_NVAR', '?'),
             'cond': fancyjoin(rxd_doc['RXD_COND'], nonemessage=''),
-            'ded': rxd_doc['RXD_DED'][0],
+            'ded': rxd_doc.get('RXD_DED', [''])[0],
         }
 
         def rxn_lst_to_name_lst(xrn_lst):
@@ -725,11 +733,13 @@ def template_target(request, id):
             for xrn in xrn_lst:
                 if xrn not in xrn_to_smiles: 
                     chem_doc = CHEMICAL_DB.find_one({'_id': xrn})
-                    if 'IDE_CN' not in chem_doc:
+                    if chem_doc is None:
+                        xrn_to_smiles[xrn] = 'Chem-%i' % xrn
+                    elif 'IDE_CN' not in chem_doc:
                         if 'SMILES' not in chem_doc:
                             xrn_to_smiles[xrn] = 'Chem-%i' % xrn
                         else:
-                            xrn_to_smiles[xrn] = chem_doc['SMILES']
+                            xrn_to_smiles[xrn] = chem_doc['SMILES']                      
                     else:
                         xrn_to_smiles[xrn] = chem_doc['IDE_CN']
                 lst.append(xrn_to_smiles[xrn])

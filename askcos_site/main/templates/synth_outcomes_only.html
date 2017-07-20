@@ -1,9 +1,9 @@
-<table class="table_outcomes">
+<table class="table table-nonfluid table_outcomes">
 <tr>
 	<th>Rank</th>
-	<th>Product (by edit)</th>
+	<th><center>Product</center></th>
 	<th style="text-align: right">Probability</th>
-	<th style="text-align: right">Score</th>
+	<th style="text-align: right">Max. Score <a href="#" data-toggle="tooltip" title="When distinct edit combinations lead to the same product outcome, their probabilities (calculated by examining scores of all candidates) are summed. The scores cannot be summed, and so the numbers shown in this column are the highest scores assigned to the outcome by distinct edits, regardless of degeneracy."><span class="glyphicon glyphicon-info-sign"></span></a></th>
 </tr>
 {% for outcome in outcomes %}
 <tr>
