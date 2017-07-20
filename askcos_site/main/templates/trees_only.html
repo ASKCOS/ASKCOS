@@ -1,8 +1,10 @@
 {% for tree in trees %}
-{% if trees|length > 1 %}
-<h3>Option {{ forloop.counter }}</h3>
-{% endif %}
-<div class="tree">
+<h3 style="display:inline">Option {{ forloop.counter }}</h3>
+<a data-toggle="collapse" href="#tree{{ forloop.counter}}">
+    <span class="if-collapsed">show</span>
+    <span class="if-not-collapsed">hide</span>
+</a>
+<div class="tree in" id="tree{{ forloop.counter }}">
 	<ul>
 		<li>
 			{% include 'tree_child.html' with target=tree %}

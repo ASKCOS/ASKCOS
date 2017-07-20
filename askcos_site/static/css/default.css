@@ -447,7 +447,7 @@ a.treetooltip strong {line-height:30px;}
 a.treetooltip:hover {text-decoration:none;} 
 a.treetooltip div {
     z-index:10;display:none; padding:14px 20px;
-    margin-top:-30px; margin-left:28px;
+    margin-top:-30px; margin-left:0px;
     #width:200px; 
     line-height:16px;
 }
@@ -480,4 +480,10 @@ input::-webkit-inner-spin-button {
     color:blue;
     text-decoration:underline;
     cursor:pointer;
+}
+[data-toggle="collapse"].collapsed .if-not-collapsed {
+    display:none;
+}
+[data-toggle="collapse"]:not(.collapsed) .if-collapsed {
+    display:none;
 }

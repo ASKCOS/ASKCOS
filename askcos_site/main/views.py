@@ -605,7 +605,7 @@ def ajax_evaluate_rxnsmiles(request):
         elif rank == 1:
             data['html'] += '\n<br><i>Nearest neighbor got {}% yield</i>'.format(y1)
 
-
+    plausible = plausible / 100.
     B = 150.
     R = 255. - (plausible > 0.5) * (plausible - 0.5) * (255. - B) * 2.
     G = 255. - (plausible < 0.5) * (0.5 - plausible) * (255. - B) * 2.

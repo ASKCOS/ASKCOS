@@ -317,7 +317,7 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=500):
                 'rank': i + 1,
                 'smiles': smi,
                 'score': '{:.2f}'.format(this_scores[smi]),
-                'prob': '{:.4f}%'.format(pro*100.),
+                'prob': '{:.4f}'.format(pro*100.),
             })
         all_outcomes.append(outcomes)
 

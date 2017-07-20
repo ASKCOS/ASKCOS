@@ -22,6 +22,7 @@
 {% if target.num_examples %}{{ target.num_examples }} examples{% endif %}
 <div style="width:300px">
     <center>
+        <span class="hiderxn" targetid="{{ target.id }}"><span class="pseudolink" style="float:right; font-size:smaller">hide all</span></span><br>
         <span class="rxn rxn{{ target.id }} eval{{ target.id }}" smiles="{{ target.smiles }}" necessaryreagent="{{ target.necessary_reagent }}" targetid="{{ target.id }}"><span class="pseudolink">Click to evaluate (v0.1)!</span></span><br>
         {% if target.info %}{{ target.info }}<br>{% endif %}
         {% if target.necessary_reagent %}Needs source of {{ target.necessary_reagent }}<br>{% endif %}

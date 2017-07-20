@@ -103,6 +103,12 @@ $('#results').on('click', '.rxn', function(){
         }
     });
 });
+$('#results').on('click', '.hiderxn', function () {
+    console.log('trying to hide a rxn');
+    targetid = $(this).attr("targetid");
+    console.log(targetid);
+    $(".rxnbox" + targetid).closest('.tree').collapse("hide");
+});
 // On load, if entries defined, switch it out
 $(document).ready(function() {
     if ("{{target_mol}}" != "") {
