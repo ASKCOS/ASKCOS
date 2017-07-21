@@ -111,6 +111,58 @@ def ajax_user_save_page(request):
 
     return JsonResponse({'err': False})
 
+from models import BlacklistedReactions
+@login_required
+def user_blacklisted_reactions(request, err=None):
+    blacklisted_reactions = BlacklistedReactions.objects.filter(user=request.user)
+    return render(request, 'blacklisted_reactions.html', {'blacklisted_reactions':blacklisted_reactions, 'err': err})
+
+@login_required
+def user_blacklisted_reactions_del(request, _id=-1):
+    obj = BlacklistedReactions.objects.filter(user=request.user, id=_id)
+    if len(obj) == 1:
+        obj[0].delete()
+    return user_blacklisted_reactions(request, err=None)
+
+@login_required
+def ajax_user_blacklist_reaction(request):
+    smiles = request.POST.get('smiles', None)
+    desc = request.POST.get('desc', 'no description')
+    dt   = request.POST.get('datetime', datetime.utcnow().strftime('%B %d, %Y %H:%M:%S %p UTC'))
+    if smiles is None:
+        print('Got None smiles')
+        data = {'err': 'Could not get reaction SMILES to save'}
+        return JsonResponse(data)
+    print('Got request to block a reaction')
+    obj = BlacklistedReactions.objects.create(user=request.user, 
+        description=desc,
+        dt=dt,
+        created=datetime.now(),
+        smiles=smiles,
+        active=True)
+    print('Created blacklisted reaction object {}'.format(obj.id))
+    return JsonResponse({'err': False})
+
+@login_required 
+def ajax_user_activate_reaction(request):
+    _id = request.GET.get('id', -1)
+    obj = BlacklistedReactions.objects.filter(user=request.user, id=_id)
+    if len(obj) == 1:
+        obj[0].active = True 
+        obj[0].save()
+        return JsonResponse({'err': False})
+    return JsonResponse({'err': 'Could not activate?'})
+
+@login_required 
+def ajax_user_deactivate_reaction(request):
+    _id = request.GET.get('id', -1)
+    obj = BlacklistedReactions.objects.filter(user=request.user, id=_id)
+    if len(obj) == 1:
+        obj[0].active = False 
+        obj[0].save()
+        return JsonResponse({'err': False})
+    return JsonResponse({'err': 'Could not deactivate?'})
+
 @login_required
 def retro(request):
     '''
@@ -152,6 +204,7 @@ def retro(request):
         {'name': 'Bortezomib', 'smiles': 'CC(C)C[C@@H](NC(=O)[C@@H](Cc1ccccc1)NC(=O)c2cnccn2)B(O)O'},
         {'name': 'Itraconazole', 'smiles': 'CCC(C)N1N=CN(C1=O)c2ccc(cc2)N3CCN(CC3)c4ccc(OC[C@H]5CO[C@@](Cn6cncn6)(O5)c7ccc(Cl)cc7Cl)cc4'},
         {'name': '6-Carboxytetramethylrhodamine', 'smiles': 'CN(C)C1=CC2=C(C=C1)C(=C3C=CC(=[N+](C)C)C=C3O2)C4=C(C=CC(=C4)C(=O)[O-])C(=O)O'},
+        {'name': '6-Carboxytetramethylrhodamine isomer', 'smiles': 'CN(C)c1ccc2c(c1)Oc1cc(N(C)C)ccc1C21OC(=O)c2ccc(C(=O)O)c1c2'},
         {'name': '(S)-Warfarin', 'smiles': 'CC(=O)C[C@@H](C1=CC=CC=C1)C2=C(C3=CC=CC=C3OC2=O)O'},
         {'name': 'Tranexamic Acid', 'smiles': 'NC[C@@H]1CC[C@H](CC1)C(O)=O'},
     ]
@@ -424,7 +477,7 @@ def ajax_start_synth(request):
     res = get_outcomes.delay(reactants, 
         contexts=[(temperature, reagents, solvent)], 
         mincount=mincount,
-        top_n=25)
+        top_n=100)
     outcomes = res.get(300)[0]
 
     print('Got top outcomes, length {}'.format(len(outcomes)))
@@ -449,11 +502,15 @@ def ajax_start_retro_celery(request):
     max_ppg = int(request.GET.get('max_ppg', 10))
     chiral = json.loads(request.GET.get('chiral', 'false'))
 
+    blacklisted_reactions = set([x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)])
+
     from askcos_site.askcos_celery.treebuilder.coordinator import get_buyable_paths
     res = get_buyable_paths.delay(smiles, mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth, 
-        max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5, chiral=chiral)
+        max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5, chiral=chiral,
+        known_bad_reactions=blacklisted_reactions)
     (tree_status, trees) = res.get(expansion_time * 3)
-    print(tree_status)
+    print('Tree building {} for user {} ({} forbidden reactions)'.format(
+        smiles, request.user, len(blacklisted_reactions)))
     # print(trees)
 
     (num_chemicals, num_reactions, at_depth) = tree_status

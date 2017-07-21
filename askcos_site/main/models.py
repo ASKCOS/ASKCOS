@@ -8,6 +8,14 @@ class SavedResults(models.Model):
     dt = models.CharField(max_length=200)
     fpath = models.CharField(max_length=500)
 
+class BlacklistedReactions(models.Model):
+    user = models.ForeignKey(User)
+    description = models.CharField(max_length=1000)
+    created = models.DateTimeField('created on')
+    dt = models.CharField(max_length=200)
+    smiles = models.CharField(max_length=5000)
+    active = models.BooleanField()
+
 
 class SeparationInput(models.Model):
     tgt_smiles = models.CharField("Enter SMILES string of the target molecule", max_length=200)
