@@ -42,20 +42,20 @@ def index(request):
     '''
     Homepage
     '''
-    print('Somebody loaded the index page!')
+    print('{} loaded the index page!'.format(request.user))
     return render(request, 'index.html')
 
 def login(request):
     '''
     User login
     '''
-    return django.contrib.auth.views.login(request, template_name = 'login.html')
+    return django.contrib.auth.views.login(request, template_name='login.html')
 
 def logout(request):
     '''
     User logout
     '''
-    return django.contrib.auth.views.logout(request, template_name = 'logout.html')
+    return django.contrib.auth.views.logout(request, template_name='logout.html')
 
 from models import SavedResults
 @login_required
@@ -502,7 +502,7 @@ def ajax_start_retro_celery(request):
     max_ppg = int(request.GET.get('max_ppg', 10))
     chiral = json.loads(request.GET.get('chiral', 'false'))
 
-    blacklisted_reactions = set([x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)])
+    blacklisted_reactions = list(set([x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))
 
     from askcos_site.askcos_celery.treebuilder.coordinator import get_buyable_paths
     res = get_buyable_paths.delay(smiles, mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth, 
