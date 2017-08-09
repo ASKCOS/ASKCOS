@@ -38,12 +38,12 @@ def log_this_request(method):
     return f
 
 @login_required
-def index(request):
+def index(request, err=None):
     '''
     Homepage
     '''
     print('{} loaded the index page!'.format(request.user))
-    return render(request, 'index.html')
+    return render(request, 'index.html', {'err': err})
 
 def login(request):
     '''
@@ -465,19 +465,21 @@ def ajax_start_synth(request):
     temperature = request.GET.get('temperature', None)
     reagents = request.GET.get('reagents', None)
     mincount = int(request.GET.get('mincount', None))
+    maxreturn = int(request.GET.get('maxreturn', 100))
     print('Conditions for forward synthesis:')
     print('reactants: {}'.format(reactants))
     print('solvent: {}'.format(solvent))
     print('temp: {}'.format(temperature))
     print('reagents: {}'.format(reagents))
     print('mincount: {}'.format(mincount))
+    print('max return: {}'.format(maxreturn))
 
     startTime = time.time()
     from askcos_site.askcos_celery.forwardpredictor.coordinator import get_outcomes
     res = get_outcomes.delay(reactants, 
         contexts=[(temperature, reagents, solvent)], 
         mincount=mincount,
-        top_n=100)
+        top_n=maxreturn)
     outcomes = res.get(300)[0]
 
     print('Got top outcomes, length {}'.format(len(outcomes)))
@@ -487,7 +489,32 @@ def ajax_start_synth(request):
         data['html'] = render_to_string('synth_outcomes_only.html', {'outcomes': outcomes})
     else:
         data['html'] = 'No outcomes found? That is weird...'
+    
+    # Save in session in case used wants to print
+    request.session['last_synth_interactive'] = {'reactants': reactants, 
+        'temperature': temperature, 'reagents': reagents, 'solvent': solvent,
+        'mincount': mincount, 'outcomes': outcomes}
+
     return JsonResponse(data)
+
+@login_required
+def export_synth_results(request):
+    if 'last_synth_interactive' not in request.session:
+        return index(request, err='Could not find synth results to save?')
+    
+    synth_data = request.session['last_synth_interactive']
+    txt = '%s\r\n' % SYNTH_FOOTNOTE
+    txt += 'Reactants: %s\r\n' % synth_data['reactants']
+    txt += 'Reagents: %s\r\n' % synth_data['reagents']
+    txt += 'Temperature: %s\r\n' % synth_data['temperature']
+    txt += 'Solvent: %s\r\n' % synth_data['solvent']
+    txt += '\r\n'
+    txt += '%s\t%s\t%s\t%s\r\n' % ('Rank', 'SMILES', 'Probability', 'Score')
+    for outcome in synth_data['outcomes']:
+        txt += '%s\t%s\t%s\t%s\r\n' % (outcome['rank'], outcome['smiles'], outcome['prob'], outcome['score'])
+    response = HttpResponse(txt, content_type='text/csv')
+    response['Content-Disposition'] = 'attachment;filename=export.csv'
+    return response
 
 @ajax_error_wrapper
 def ajax_start_retro_celery(request):
@@ -525,6 +552,7 @@ def ajax_start_retro_celery(request):
 
     if trees:
         data['html_trees'] = render_to_string('trees_only.html', {'trees': trees})
+        print(trees[-1])
     else:
         data['html_trees'] = 'No trees resulting in buyable chemicals found!'
     return JsonResponse(data)     

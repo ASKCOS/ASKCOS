@@ -50,7 +50,8 @@ urlpatterns += [
     url(ur'^synth_interactive/reactants=(?P<reactants>.+)$', main.views.synth_interactive, name='synth_interactive_target'),
     url(ur'^synth_interactive/smiles=(?P<smiles>.+)$', main.views.synth_interactive_smiles, name='synth_interactive_target_smiles'),
     url(ur'^ajax/start_synth/$', main.views.ajax_start_synth, name='ajax_start_synth'),
-
+    url(ur'^synth_interactive/download$', main.views.export_synth_results, name='export_synth_results'),
+    
     # Forward synthesis
     # url(r'^synth/$', main.views.synth, name='synth_home'),
     # url(ur'^synth/target=(?P<smiles>.+)$', main.views.synth_target, name='synth_target'),

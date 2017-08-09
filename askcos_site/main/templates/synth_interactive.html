@@ -132,6 +132,8 @@ $(document).ready(function() {
 
 <tr><th>Minimum template count: <a href="#" data-toggle="tooltip" title="What is the minimum template popularity you would like to use during the forward enumeration when evaluating suggested reactions? The default value of {{ mincount }} shows the value used during intiialization, so you cannot specify a value lower than this."><span class="glyphicon glyphicon-info-sign"></span></a></th><td><input id="mincount" maxlength="6" size="6" type="text" value="{{ mincount }}"/></td></tr>
 
+<tr><th>Maximum num. products: <a href="#" data-toggle="tooltip" title="Up to how many candidate outcomes should be returned? The only downside to returning a large number is the time it takes to render the images; it does not increase the computational time."><span class="glyphicon glyphicon-info-sign"></span></a></th><td><input id="maxreturn" maxlength="6" size="6" type="text" value="100"/></td></tr>
+
 <!-- Controls -->
 <tr id="controls_wrapper" style="display:none">
 <td colspan="2" style="width:100%">

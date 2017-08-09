@@ -152,7 +152,7 @@ RETRO_TRANSFORMS = {
 }
 RETRO_TRANSFORMS_CHIRAL = {
     'database': 'reaxys_v2',
-    'collection': 'transforms_retro_v7',
+    'collection': 'transforms_retro_v8',
     'mincount': 25,
     'mincount_chiral': 10
 }
@@ -223,6 +223,7 @@ LOCAL_STORAGE = {
 
 # For searching "old" templates
 TEMPLATE_BACKUPS = [
+    ('reaxys_v2', 'transforms_retro_v7'),
     ('reaxys', 'transforms_retro_v6'),
     ('reaxys', 'transforms_retro_v5'),
     ('reaxys', 'transforms_retro_v4'),
