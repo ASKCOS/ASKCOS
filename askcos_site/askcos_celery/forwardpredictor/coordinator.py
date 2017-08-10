@@ -218,13 +218,14 @@ def get_outcomes(reactants, contexts, mincount=0, top_n=10, chunksize=500):
         if count < mincount:
             end_at = i
             break
+    print('Range to apply is template index {} through {}'.format(0, end_at))
 
     # Chunk and add to queue
     pending_results = []
     for start_at in range(0, end_at, chunksize):
         pending_results.append(
             get_candidate_edits.delay(reactants_smiles=reactants_smiles, start_at=start_at, 
-                end_at=start_at + chunksize)
+                end_at=min(end_at, start_at+chunksize))
         )
     print('Added {} chunks'.format(len(pending_results)))
 
