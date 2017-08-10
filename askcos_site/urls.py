@@ -39,6 +39,7 @@ urlpatterns += [
     url(ur'^ajax/smiles_to_image/$', main.views.ajax_smiles_to_image, name='ajax_smiles_to_image'),
     url(ur'^ajax/rxn_to_image/$', main.views.ajax_rxn_to_image, name='ajax_rxn_to_image'),
     url(ur'^ajax/start_retro_celery/$', main.views.ajax_start_retro_celery, name='ajax_start_retro_celery'),
+    url(ur'^retro_interactive/export/(?P<_id>.+)$', main.views.export_retro_results, name='export_retro_results'),
     
     # Evaluation
     url(ur'^evaluate/$', main.views.evaluate_rxnsmiles, name='evaluate_rxnsmiles'),
@@ -51,7 +52,7 @@ urlpatterns += [
     url(ur'^synth_interactive/smiles=(?P<smiles>.+)$', main.views.synth_interactive_smiles, name='synth_interactive_target_smiles'),
     url(ur'^ajax/start_synth/$', main.views.ajax_start_synth, name='ajax_start_synth'),
     url(ur'^synth_interactive/download$', main.views.export_synth_results, name='export_synth_results'),
-    
+
     # Forward synthesis
     # url(r'^synth/$', main.views.synth, name='synth_home'),
     # url(ur'^synth/target=(?P<smiles>.+)$', main.views.synth_target, name='synth_target'),

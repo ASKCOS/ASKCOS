@@ -19,6 +19,7 @@ import urllib2
 
 from askcos_site.askcos_celery.chiralretro.coordinator import get_top_chiral_precursors
 from askcos_site.askcos_celery.treebuilder.worker import get_top_precursors
+from askcos_site.askcos_celery.contextrecommender.worker import get_context_recommendation
 
 from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, \
     SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, \
@@ -26,6 +27,7 @@ from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, \
     PREDICTOR_FOOTNOTE, DONE_SYNTH_PREDICTIONS, RETRO_CHIRAL_FOOTNOTE, \
     TEMPLATE_BACKUPS, REACTION_DB_OLD, INSTANCE_DB_OLD, CHEMICAL_DB_OLD
 
+can_control_robot = lambda request: request.user.get_username() in ['ccoley']
 
 def log_this_request(method):
     def f(*args, **kwargs):
@@ -486,7 +488,9 @@ def ajax_start_synth(request):
     data['html_time'] = '{:.3f} seconds elapsed'.format(time.time() - startTime)
 
     if outcomes:
-        data['html'] = render_to_string('synth_outcomes_only.html', {'outcomes': outcomes})
+
+        data['html'] = render_to_string('synth_outcomes_only.html', 
+            {'outcomes': outcomes})
     else:
         data['html'] = 'No outcomes found? That is weird...'
     
@@ -551,11 +555,163 @@ def ajax_start_retro_celery(request):
         data['html_stats'] += '<br>   at depth {}, {} {}'.format(depth, count, label)
 
     if trees:
-        data['html_trees'] = render_to_string('trees_only.html', {'trees': trees})
-        print(trees[-1])
+        data['html_trees'] = render_to_string('trees_only.html', 
+            {'trees': trees, 'can_control_robot': can_control_robot(request)})
     else:
         data['html_trees'] = 'No trees resulting in buyable chemicals found!'
+    
+    # Save to session in case user wants to export
+    request.session['last_retro_interactive'] = trees
+    print('Saved {} trees to {} session'.format(len(trees), request.user.get_username()))
+
     return JsonResponse(data)     
+
+def get_name(smiles):
+    try:
+        names = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/names'.format(smiles)).read()
+        return names.split('\n')[0]
+    except urllib2.HTTPError:
+        return smiles
+
+@login_required
+def export_retro_results(request, _id=1):
+    if 'last_retro_interactive' not in request.session:
+        return index(request, err='Could not find retro results to save?')
+    if not can_control_robot(request):
+        return index(request, err='You do not have permission to be here!')
+    
+    try:
+        _id = int(_id)
+    except Exception:
+        return index(request, err='Passed _id was non-integer...?')
+
+    if _id > len(request.session['last_retro_interactive']):
+        return index(request, err='Requested index out of range?')
+
+    tree = request.session['last_retro_interactive'][_id - 1]
+
+    class mutable:
+        bays = []; 
+        reagents = []
+        bay_id = 1; 
+        reagent_id = 1 # start at 1 and work up, then change at the end
+
+    def recursive_get_bays(chem):
+        # Is this the product of a reaction? Then start defining the reactor
+        if chem['children']:
+            this_bay = {'type': 'reactor', 'id': mutable.bay_id}
+            mutable.bay_id += 1
+            
+            # Outlet is this chemical (smiles)
+            this_bay['outlet_smiles'] = chem['smiles']
+            this_bay['outlet'] = get_name(chem['smiles'])
+            # Only child is a reaction
+            rxn = chem['children'][0]
+            # Make sure this is not a convergent synthesis
+            if sum([len(child['children']) > 0 for child in rxn['children']]) > 1:
+                return index(request, err='Cannot perform convergent syntheses yet...')
+
+            # Save reaction SMILES for the reactor
+            this_bay['reaction_smiles'] = rxn['smiles']
+            this_bay['necessary_reagent'] = rxn['necessary_reagent']
+            
+            # Get context recommendations (just one for now, no forward evaluator)
+            res = get_context_recommendation.delay(rxn['smiles'], n=10)
+            contexts = res.get(60)
+            if not contexts:
+                # use default conditions
+                (T1, slvt1, rgt1, cat1) = 20., 'C1COCC1', '', ''
+                slvt1_name = 'THF (unk. solvent)'
+                this_bay['context_failed'] = True
+            else:
+                (T1, slvt1, rgt1, cat1, t1, y1) = contexts[0]
+                slvt1_name = get_name(slvt1)
+                this_bay['context_failed'] = False
+            this_bay['temperature'] = T1
+            this_bay['reaction_solvent_smiles'] = slvt1
+            this_bay['reaction_solvent_name'] = slvt1_name
+
+            # Define inlets
+            this_bay['inlets'] = []
+
+            # Define inlets - reagents/catalysts
+            for rgt in rgt1.split('.') + cat1.split('.'):
+                if not rgt:
+                    continue
+                reagent = {
+                    'id': mutable.reagent_id,
+                    'smiles': rgt,
+                    'name': '%s in %s' % (get_name(rgt), slvt1_name),
+                    'type': 'reagent',
+                }
+                mutable.reagent_id += 1
+                mutable.reagents.append(reagent)
+                this_bay['inlets'].append(reagent)
+
+            # Define inlets - new reactants/feeds
+            for child in rxn['children']:
+                if not child['children']:
+                    reagent = {
+                        'id': mutable.reagent_id,
+                        'smiles': child['smiles'],
+                        'name': '%s in %s' % (get_name(child['smiles']), slvt1_name),
+                        'type': 'reactant',
+                        'ppg': child['ppg'],
+                    }
+                    mutable.reagent_id += 1
+                    mutable.reagents.append(reagent)
+                    this_bay['inlets'].append(reagent)
+
+            # Save this bay
+            mutable.bays.append(this_bay)
+
+            # Now add the next bays as needed
+            for child in rxn['children']:
+                if child['children']:
+                    recursive_get_bays(child)
+
+    # Actually perform this on the current head node
+    recursive_get_bays(tree)
+    bays = mutable.bays 
+    reagents = mutable.reagents
+
+    # Renumber bays
+    num_bays = len(bays)
+    for bay in bays:
+        bay['id'] = num_bays - bay['id'] + 1
+    # Renumber reagents
+    num_reagents = len(reagents)
+    for reagent in reagents:
+        reagent['id'] = num_reagents - reagent['id'] + 1
+
+    # Report (for debugging mostly)
+    print('{} bays'.format(len(bays)))
+    for bay in sorted(bays, key=lambda x:int(x['id'])):
+        print('\nBay ID {:2d}'.format(bay['id']))
+        print('    {:20s}{:20s}'.format('type', bay['type']))
+        print('    {:20s}{:20s}'.format('solvent', bay['reaction_solvent_name']))
+        print('    {:20s}{:20s}'.format('temperature', str(bay['temperature'])))
+        inlets = ', '.join([str(rgt['id']) for rgt in bay['inlets']])
+        if bay['id'] != 1:
+            inlets += ', and bay {} outlet'.format(bay['id'] - 1)
+        print('    {:20s}{:20s}'.format('inlets', inlets))
+        print('    {:20s}{:20s}'.format('outlet', bay['outlet']))
+    print('\n{} reagents'.format(len(reagents)))
+    for reagent in sorted(reagents, key=lambda x:int(x['id'])):
+        print('ID {:2d}: {}'.format(reagent['id'], reagent['name']))
+
+    bays = json.dumps(bays)
+    print('Post-json dump: {}'.format(bays))
+
+    return post_data_to_external_page(request, 'http://google.com', 
+        {'bays': bays})
+
+@login_required
+def post_data_to_external_page(request, url, data={}):
+    '''
+    Returns a dummy page that immediately posts to an external site
+    '''
+    return render(request, 'redirect.html', {'data': data, 'url': url})
 
 @login_required
 def evaluate_rxnsmiles(request):
@@ -599,7 +755,6 @@ def ajax_evaluate_rxnsmiles(request):
         num_contexts = 1
     else:
         num_contexts = 10
-    from askcos_site.askcos_celery.contextrecommender.worker import get_context_recommendation
     res = get_context_recommendation.delay(smiles, n=num_contexts)
     contexts = res.get(60)
     print('Got context(s)')
