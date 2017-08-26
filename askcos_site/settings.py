@@ -27,7 +27,7 @@ from askcos_celery.celeryconfig import *
 SECRET_KEY = 'px$*ir)-wd=x6^!r++t53ik^2)z7!9cvw+m#@!-$ut@xjyjtg*'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['askcos.mit.edu']
 
@@ -163,7 +163,7 @@ RETRO_TRANSFORMER = {
 SYNTH_TRANSFORMS = {
     'database': 'reaxys',
     'collection': 'transforms_forward_v1',
-    'mincount': 25, 
+    'mincount': 5, 
 }
 SYNTH_TRANSFORMER = {
 }

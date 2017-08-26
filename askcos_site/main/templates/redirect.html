@@ -1,0 +1,17 @@
+<html>
+<head>
+<title>Redirecting...</title>
+<script type="text/javascript">
+function load() {
+    window.document.autoredirector.submit();
+    return;
+}
+</script>
+</head> 
+
+<body onload="load()">
+<form name="autoredirector" method="post" action="{{ url }}">
+{% for k, v in data.items %}
+    <input type="hidden" name="{{ k }}" value="{{ v }}">
+{% endfor %}
+</form>

@@ -30,19 +30,19 @@
         
         {% block sidebar_items %}{% endblock %}
 
-        <li {% if '/retro_interactive/' in request.path %}class="active"{% endif %}>
-            <a href="{% url 'main.views.retro_interactive' %}">
-            <div class="biglink">Tree builder</div>
-            <div class="linkdesc" style="display:none">
-                Generate and view possible synthesis plans, with manual step-wise evaluation
-            </div></a>
-        </li>
-
         <li {% if '/retro/' in request.path %}class="active"{% endif %}>
             <a href="{% url 'main.views.retro' %}">
             <div class="biglink">One-step Retro</div>
             <div class="linkdesc" style="display:none">
                 Examine one-step precursors for a target molecule, purely based on retro templates
+            </div></a>
+        </li>
+
+        <li {% if '/retro_interactive/' in request.path %}class="active"{% endif %}>
+            <a href="{% url 'main.views.retro_interactive' %}">
+            <div class="biglink">Tree builder</div>
+            <div class="linkdesc" style="display:none">
+                Generate and view possible synthesis plans, with manual step-wise evaluation
             </div></a>
         </li>
 
