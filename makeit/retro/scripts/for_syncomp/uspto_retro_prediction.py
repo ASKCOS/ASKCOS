@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     # Also - get the Pricer and load it into the RetroTransformer object.
     db = db_client['reaxys_v2']
-    BUYABLE_DB = db['buyables_v2']
+    BUYABLE_DB = db['buyables']
     print('Loading prices...')
     import makeit.retro.pricer as pricer
     RetroTransformer.Pricer = pricer.Pricer()
