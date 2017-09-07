@@ -700,11 +700,28 @@ def export_retro_results(request, _id=1):
     for reagent in sorted(reagents, key=lambda x:int(x['id'])):
         print('ID {:2d}: {}'.format(reagent['id'], reagent['name']))
 
+    
+
+    # Reformat for Suzanne
+    bay_dict = {}
+    for bay in bays:
+        key = 'bay{}'.format(bay['id'])
+        bay_dict[key] = {
+            'transformation': bay['reaction_smiles'],
+            'temp': bay['temperature'],
+        }
+        for i in range(len(bay['inlets'])):
+            bay_dict[key]['reagent{}'.format(i+1)] = bay['inlets'][i]['name']
+    
     bays = json.dumps(bays)
     print('Post-json dump: {}'.format(bays))
 
-    return post_data_to_external_page(request, 'http://google.com', 
-        {'bays': bays})
+    bay_dict = json.dumps(bay_dict)
+    print('Bay-dict for Suzanne: {}'.format(bay_dict))
+
+
+    return post_data_to_external_page(request, 'http://Apex-env.qr9fgjkxpf.us-east-2.elasticbeanstalk.com/move_robot/', 
+        {'bay_dict': bay_dict, 'bays': bays})
 
 @login_required
 def post_data_to_external_page(request, url, data={}):

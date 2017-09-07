@@ -40,7 +40,7 @@ def configure_worker(options={}, **kwargs):
     # from askcos_site.functions.nnPredictor import NNConditionPredictor
     try:
         print('Importing NNConditionPredictor')
-        import makeit.webapp.contextmodel as contextmodel
+        import makeit.webapp.contextmodel_v2 as contextmodel
         print('Initializing object')
         NN_PREDICTOR = contextmodel.NNConditionPredictor()
         print('Created NNPredictor object, going to load now...')

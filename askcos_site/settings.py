@@ -209,8 +209,6 @@ PREDICTOR = {
 }
 
 CONTEXT_REC = {
-    'info_path': '/data/fatmodels/2MRxnModel/fpNN-10_2MRxn_info.txt',
-    'model_path': '/data/fatmodels/2MRxnModel/fpNN-10_2MRxn_lshf.pickle',
     'model_dir': '/data/fatmodels/FullReaxysModel',
     'database': 'reaxys',
 }
