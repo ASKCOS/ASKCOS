@@ -26,6 +26,7 @@ v5 chiral - handles stereochemistry (to some extent at least...)
 
 v6 chiral - adds some more special groups
 v7 chiral - also adds some groups
+v8 - uses _id of reactions as precedents for USPTO
 '''
 
 from __future__ import print_function
@@ -46,7 +47,7 @@ from tqdm import tqdm
 
 # DATABASE
 from pymongo import MongoClient    # mongodb plugin
-client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
+client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017, connect=False)
 db = client['uspto']
 TRANSFORM_DB = db['transforms_retro_v2_allunmapped']
 REACTION_DB = db['reactions']
@@ -757,11 +758,10 @@ def canonicalize_transform(transform):
     transform_reordered = '>>'.join([canonicalize_template(x) for x in transform.split('>>')])
     return reassign_atom_mapping(transform_reordered)
 
-def process_an_example_line(line, test=False):
+def process_an_example_line(doc, test=False):
     '''Function for a worker to process one doc'''
     
-    reaction_smiles = line.split('\t')[0]
-    patent_num = line.split('\t')[1]
+    reaction_smiles = doc['reaction_smiles']
 
     try:
         # Unpack
@@ -856,7 +856,7 @@ def process_an_example_line(line, test=False):
                     'count': 1,
                 },
                 '$addToSet': {
-                    'references': patent_num,
+                    'references': doc['_id'],
                 },
                 '$setOnInsert': {
                     'reaction_smarts': retro_canonical,
@@ -878,32 +878,21 @@ def main(N=15, skip=0):
         data_generator.ctr = -1
         try: # to allow breaking
             # Look for entries
-            for fpath in ['/data/USPTO/2001_Sep2016_USPTOapplications_smiles.rsmi',
-                      '/data/USPTO/1976_Sep2016_USPTOgrants_smiles.rsmi']:
-                
-                print('PROCESSING {}'.format(fpath))
-                
-                with open(fpath, 'r') as fid:
-                    firstline = True
+            for doc in REACTION_DB.find({}, ['_id', 'reaction_smiles']):
+            
+                data_generator.ctr += 1
+                if data_generator.ctr < skip:
+                    continue
 
-                    for line in fid:
-                        if firstline:
-                            firstline = False 
-                            continue
-                    
-                        data_generator.ctr += 1
-                        if data_generator.ctr < skip:
-                            continue
+                if data_generator.ctr % 1000 == 0:
+                    print('count: {}'.format(data_generator.ctr))
 
-                        if data_generator.ctr % 1000 == 0:
-                            print('count: {}'.format(data_generator.ctr))
+                # Are we done?
+                if data_generator.ctr >= N:
+                    data_generator.ctr -= 1
+                    break
 
-                        # Are we done?
-                        if data_generator.ctr >= N:
-                            data_generator.ctr -= 1
-                            break
-
-                        yield line
+                yield doc
 
         except KeyboardInterrupt:
             print('Stopped early!')  
@@ -911,7 +900,7 @@ def main(N=15, skip=0):
     
     generator = data_generator()
     from joblib import Parallel, delayed
-    res = Parallel(n_jobs=12, verbose=5, pre_dispatch=500)(delayed(process_an_example_line)(data) for data in generator)
+    res = Parallel(n_jobs=8, verbose=5, pre_dispatch=500)(delayed(process_an_example_line)(data) for data in generator)
     
 
     total_examples = data_generator.ctr + 1
