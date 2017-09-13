@@ -9,7 +9,7 @@
 {% block sidebar_items %}{% endblock %}
 
 {% block page_body %}
-<p>Welcome to the ASKCOS website! Here, we have hosted a number of computational tools to assist in synthetic planning. These are listed in the sidebar to the left.</p>
+<p>Welcome to the ASKCOS website! Here, we have hosted a number of computational tools to assist in synthetic planning. These are listed in the sidebar to the left. Please keep in mind that this service is currently hosted locally at MIT and - as such - is not built to handle an abundance of users. Your requests may take significantly longer than expected if there are several other users on the site also performing computationally-expensive requests.</p>
 
 <p><b>One-step Retro</b> allows you to look at suggested disconnections based solely on retrosynthetic templates. Candidate precursors are returned sorted by a heuristic scoring function that (1) <i>heavily</i> favors buyable chemicals, (2) favors smaller compounds with fewer rings and fewer chiral centers. For each suggestion, you can click on the reactant SMILES to perform another search using that new compound as a target. You can also click on the forward arrow (&rarr; ?) to open the Forward Prediction page. Clicking on the images of the suggested reactants will show the list of retrosynthetic transforms upon which the suggestion is based. You can click through to look at the details of the transform, including a list of the precedent reactions that led to that template.</p>
 
@@ -24,4 +24,7 @@
 <p><b>Drawing</b> is a utility to draw SMILES strings describing chemicals, reactions, or SMARTS strings describing templates. Note that you can also copy a SMILES string and "Paste special" in Chemdraw as well, although this does not work very well for templates.</p>
 
 <p>If you have any questions or if any of the links/images appear broken, please email <a href="mailto:ccoleymit.edu">ccoley@mit.edu</a>.</p>
+
+<p style='font-size: 6pt'>THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
 {% endblock %}
