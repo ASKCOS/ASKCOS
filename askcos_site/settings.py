@@ -27,9 +27,9 @@ from askcos_celery.celeryconfig import *
 SECRET_KEY = 'px$*ir)-wd=x6^!r++t53ik^2)z7!9cvw+m#@!-$ut@xjyjtg*'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-# ALLOWED_HOSTS = ['askcos.mit.edu']
+ALLOWED_HOSTS = ['askcos.mit.edu']
 
 TEMPLATE_LOADERS = ['django.template.loaders.filesystem.Loader',
  'django.template.loaders.app_directories.Loader']

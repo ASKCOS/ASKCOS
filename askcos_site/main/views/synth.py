@@ -91,7 +91,7 @@ def ajax_start_synth(request):
     solvent = request.GET.get('solvent', None)
     temperature = request.GET.get('temperature', None)
     reagents = request.GET.get('reagents', None)
-    mincount = int(request.GET.get('mincount', None))
+    mincount = int(request.GET.get('mincount', 25))
     maxreturn = int(request.GET.get('maxreturn', 100))
     print('Conditions for forward synthesis:')
     print('reactants: {}'.format(reactants))

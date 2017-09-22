@@ -80,12 +80,13 @@ def get_top_precursors(smiles, mincount=0, max_branching=20, raw_results=False):
 
     result = RetroTransformer.perform_retro(smiles, mincount=mincount)
     if result is None:
-        precursors = []
-    else:
-        precursors = result.return_top(n=max_branching)
-
+        return []
+    print('..got results')
+    
+    precursors = result.return_top(n=max_branching)
     for i in range(len(precursors)):
         precursors[i]['tforms'] = [str(tform) for tform in precursors[i]['tforms']]
+    print('Returning...')
 
     if raw_results:
         return precursors

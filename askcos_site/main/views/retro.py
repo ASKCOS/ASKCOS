@@ -18,10 +18,11 @@ from ...askcos_celery.treebuilder.worker import get_top_precursors
 from ..globals import RetroTransformer, RETRO_FOOTNOTE, \
     RETRO_CHIRAL_FOOTNOTE
 
-from ..utils import ajax_error_wrapper
+from ..utils import ajax_error_wrapper, resolve_smiles
 from .price import price_smiles_func
 from .users import can_control_robot
 from ..forms import SmilesInputForm
+from ..models import BlacklistedReactions
 
 @login_required
 def retro(request):

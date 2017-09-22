@@ -236,6 +236,7 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
     global Pricer
     from .worker import get_top_precursors, reserve_worker_pool, unreserve_worker_pool
     import askcos_site.askcos_celery.chiralretro.worker as crworker
+    import askcos_site.askcos_celery.chiralretro.coordinator as crcoordinator
 
     tree_dict = {}
     chem_to_id = {smiles: 1}
@@ -257,10 +258,15 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
             raise TimeoutError('Treebuidler coordinator could not find an open pool of workers to reserve!')
         # Wrap everything else in a try/finally block to make sure we unreserve this pool at the end!
         try:
-            def expand(smiles, priority=0):
+            def expand(smiles, priority=0, first=False):
                 # Cannot use 'delay' wrapper if we want to use priority arg, so use apply_async
                 # Note that we use our private_worker_queue which has been previously reserved
                 if chiral:
+                    if first:
+                        return crcoordinator.get_top_chiral_precursors.apply_async(
+                            args=(smiles,), 
+                            kwargs={'mincount':mincount, 'max_branching':max_branching}, 
+                        )
                     return crworker.get_top_precursors.apply_async(
                         args=(smiles,), 
                         kwargs={'mincount':mincount, 'max_branching':max_branching}, 
@@ -289,7 +295,7 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
             time_last_report = 0.
 
             # Add first expansion
-            pending_results = [expand(smiles, priority=99)]
+            pending_results = [expand(smiles, priority=99, first=True)]
 
             while len(pending_results) > 0:
                 time_now = time.time()

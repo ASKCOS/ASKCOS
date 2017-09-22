@@ -27,8 +27,8 @@
 	<td>{{ saved_result.user }}</td>
 	<td>{{ saved_result.created }}</td>
 	<td>{{ saved_result.description }}</td>
-	<td><a href="{% url 'main.views.user_saved_results_id' saved_result.id %}">Load</a></td>
-    <td><a href="{% url 'main.views.user_saved_results_del' saved_result.id %}" onclick="return confirm('Are you sure you want to delete this saved result?');">X</a></td>
+	<td><a href="{% url 'user_saved_results_id' saved_result.id %}">Load</a></td>
+    <td><a href="{% url 'user_saved_results_del' saved_result.id %}" onclick="return confirm('Are you sure you want to delete this saved result?');">X</a></td>
 </th>
 {% endfor %}
 </table>

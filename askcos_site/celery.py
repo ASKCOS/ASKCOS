@@ -12,7 +12,7 @@ SERVERHOST = '18.172.0.124' # rmg.mit.edu
 SERVERHOST = '18.63.4.47' # askcos.mit.edu
 SERVERHOST = 'localhost'
 app = Celery('askcos_site', broker='amqp://worker:askcos@{}:5672'.format(SERVERHOST), 
-    backend='rpc://',
+    backend='redis://',
 	include=[
         'askcos_site.askcos_celery.treebuilder.worker',
         'askcos_site.askcos_celery.treebuilder.coordinator',
