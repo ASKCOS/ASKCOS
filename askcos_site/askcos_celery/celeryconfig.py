@@ -7,8 +7,9 @@ ACCEPT_CONTENT = ['json']
 TIMEZONE = 'US/Eastern'
 ENABLE_UTC = True
 
-RESULT_EXPIRES = 300 # only keep results for 5 minutes max
-CELERY_TASK_RESULT_EXPIRES = 300 # 5 min
+RESULT_EXPIRES = 1800 # only keep results for 30 minutes max
+CELERY_TASK_RESULT_EXPIRES = 1800 # 30 min
+CELERY_RESULT_PERSEISTENT = False 
 
 # Custom task queues - necessary to get priority for tree expansion! (RabbitMQ assumed)
 TASK_QUEUES = [

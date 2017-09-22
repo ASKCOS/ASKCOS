@@ -26,12 +26,11 @@ urlpatterns += [
     url(r'^logout$', main.views.logout, name='logout'),
 
     # Homepage
-    url(r'^$', main.views.index),
+    url(r'^$', main.views.index, name='index'),
 
     # Retrosynthesis
     url(r'^retro/$', main.views.retro, name='retro_home'),
     url(ur'^retro/target=(?P<smiles>.+)$', main.views.retro_target, name='retro_target'),
-    url(ur'^retro/lit&target=(?P<smiles>.+)$', main.views.retro_lit_target, name='retro_lit_target'),
 
     # Interactive retrosynthesis
     url(ur'^retro_interactive/$', main.views.retro_interactive, name='retro_interactive'),
@@ -53,10 +52,6 @@ urlpatterns += [
     url(ur'^ajax/start_synth/$', main.views.ajax_start_synth, name='ajax_start_synth'),
     url(ur'^synth_interactive/download$', main.views.export_synth_results, name='export_synth_results'),
 
-    # Forward synthesis
-    # url(r'^synth/$', main.views.synth, name='synth_home'),
-    # url(ur'^synth/target=(?P<smiles>.+)$', main.views.synth_target, name='synth_target'),
-
     # Template examination (by str(ObjectID))
     url(r'^template/target=(?P<id>.+)$', main.views.template_target, name='template_target'),
 
@@ -72,22 +67,15 @@ urlpatterns += [
     # Drawing
     url(ur'^draw/$', main.views.draw, name='draw'),
     url(ur'^draw/smiles/(?P<smiles>.+)$', main.views.draw_smiles, name='draw_smiles'),
-    url(ur'^draw/smiles_page/(?P<smiles>.+)$', main.views.draw_smiles_page, name='draw_smiles_page'),
     url(ur'^draw/template/(?P<template>.+)$', main.views.draw_template, name='draw_template'),
-    url(ur'^draw/template_page/(?P<template>.+)$', main.views.draw_template_page, name='draw_template_page'),
     url(ur'^draw/reaction/(?P<smiles>.+)$', main.views.draw_reaction, name='draw_reaction'),
-    url(ur'^draw/reaction_page/(?P<smiles>.+)$', main.views.draw_reaction_page, name='draw_reaction_page'),
-
-    # Showing a path (testing)
-    url(ur'^draw/synthesis_tree/$', main.views.draw_synthesis_tree, name='draw_synthesis_tree'),
-    url(ur'^draw/synthesis_tree/id=(?P<id>.+)$', main.views.draw_synthesis_tree, name='draw_synthesis_tree_click'),
 
     # Separation
-    url(r'^separation/input/$', main.views.sep_input, name='sep_input'),
+    # url(r'^separation/input/$', main.views.sep_input, name='sep_input'),
     url(r'^separation/draw/(?P<fig>.+)$', main.views.draw_fig, name='draw_fig'),
 
     # Nearest Neighbor Setup
-    url(r'^nnRecommendation/setup/$', main.views.nn_predictor_setup, name='setup'),
+    # url(r'^nnRecommendation/setup/$', main.views.nn_predictor_setup, name='setup'),
 
     # Saved data
     url(r'^saved/$', main.views.user_saved_results, name='user_saved_results'),

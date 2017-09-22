@@ -13,9 +13,9 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 PROJECT_PATH = os.path.dirname(__file__)
 
-# Celery 
-import djcelery
-djcelery.setup_loader()
+# # Celery 
+# import djcelery
+# djcelery.setup_loader()
 
 # Get settings from separate celeryconfig.py
 from askcos_celery.celeryconfig import *
@@ -27,9 +27,9 @@ from askcos_celery.celeryconfig import *
 SECRET_KEY = 'px$*ir)-wd=x6^!r++t53ik^2)z7!9cvw+m#@!-$ut@xjyjtg*'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['askcos.mit.edu']
+# ALLOWED_HOSTS = ['askcos.mit.edu']
 
 TEMPLATE_LOADERS = ['django.template.loaders.filesystem.Loader',
  'django.template.loaders.app_directories.Loader']
@@ -68,7 +68,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'askcos_site.main',
-    'django_celery_results',
+    # 'django_celery_results',
     'registration',
     'registration.contrib.notification',
 )
