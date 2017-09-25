@@ -61,15 +61,35 @@ def template_target(request, id):
             'ded': rxd_doc.get('RXD_DED', [''])[0],
         }
 
-        ref['reagents'] = fancyjoin(xrn_lst_to_name_lst(rxd_doc['RXD_RGTXRN']))
-        ref['solvents'] = fancyjoin(xrn_lst_to_name_lst(rxd_doc['RXD_SOLXRN']))
-        ref['catalysts'] = fancyjoin(xrn_lst_to_name_lst(rxd_doc['RXD_CATXRN']))
+        def rxn_lst_to_name_lst(xrn_lst):
+            lst = []
+            for xrn in xrn_lst:
+                if xrn not in xrn_to_smiles: 
+                    chem_doc = CHEMICAL_DB.find_one({'_id': xrn})
+                    if chem_doc is None:
+                        xrn_to_smiles[xrn] = 'Chem-%i' % xrn
+                    elif 'IDE_CN' not in chem_doc:
+                        if 'SMILES' not in chem_doc:
+                            xrn_to_smiles[xrn] = 'Chem-%i' % xrn
+                        else:
+                            xrn_to_smiles[xrn] = chem_doc['SMILES']                      
+                    else:
+                        xrn_to_smiles[xrn] = chem_doc['IDE_CN']
+                lst.append(xrn_to_smiles[xrn])
+            return lst
+
+        ref['reagents'] = fancyjoin(rxn_lst_to_name_lst(rxd_doc['RXD_RGTXRN']))
+        ref['solvents'] = fancyjoin(rxn_lst_to_name_lst(rxd_doc['RXD_SOLXRN']))
+        ref['catalysts'] = fancyjoin(rxn_lst_to_name_lst(rxd_doc['RXD_CATXRN']))
         references.append(ref)
         
     context['references'] = sorted(references, key=lambda x: x['y'] if x['y'] != 'unk' else -1, reverse=True)[:500]
+    #from makeit.retro.conditions import average_template_list
+    #context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
 
     return render(request, 'template.html', context)
 
+    
 @login_required
 def rxid_target(request, rxid):
     '''

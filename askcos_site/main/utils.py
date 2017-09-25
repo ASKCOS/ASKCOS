@@ -24,6 +24,7 @@ def fancyjoin(lst, nonemessage='(none)'):
 
 def xrn_lst_to_name_lst(xrn_lst):
     lst = []
+    xrn_to_smiles = {}
     for xrn in xrn_lst:
         if xrn not in xrn_to_smiles: 
             chem_doc = CHEMICAL_DB.find_one({'_id': xrn})
