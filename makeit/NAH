@@ -1,0 +1,107 @@
+{u'SMILES': u'CC#N', u'IDE_CN': u'acetonitrile', u'_id': 741857, u'IDE_XRN': 741857}
+CC#N
+{u'SMILES': u'C[Si](C)(C)Cl', u'IDE_CN': u'chloro-trimethyl-silane', u'_id': 1209232, u'IDE_XRN': 1209232}
+C[Si](C)(C)Cl
+{u'SMILES': u'I.[NaH]', u'IDE_CN': u'sodium iodide', u'_id': 8127930, u'IDE_XRN': 8127930}
+I.[NaH]
+CC#N.C[Si](C)(C)Cl.I.[NaH]
+[741857] [1209232, 8127930] []
+{u'SMILES': u'O', u'IDE_CN': u'water', u'_id': 3587155, u'IDE_XRN': 3587155}
+O
+{u'SMILES': u'O.[HH].[NaH]', u'IDE_CN': u'sodium hydroxide', u'_id': 8128150, u'IDE_XRN': 8128150}
+O.[HH].[NaH]
+{u'SMILES': u'O=S([O-])[O-].[Na+]', u'IDE_CN': u'sodium sulfite', u'_id': 8156740, u'IDE_XRN': 8156740}
+O=S([O-])[O-].[Na+]
+O.O.[HH].[NaH].O=S([O-])[O-].[Na+]
+[3587155] [8128150, 8156740] []
+{u'SMILES': u'O=[V]([O-])([O-])[O-].[Bi+3]', u'IDE_CN': u'bismuth vanadate', u'_id': 23356618, u'IDE_XRN': 23356618}
+O=[V]([O-])([O-])[O-].[Bi+3]
+{u'SMILES': u'O', u'IDE_CN': u'water', u'_id': 3587155, u'IDE_XRN': 3587155}
+O
+{u'SMILES': u'O.[HH].[NaH]', u'IDE_CN': u'sodium hydroxide', u'_id': 8128150, u'IDE_XRN': 8128150}
+O.[HH].[NaH]
+O=[V]([O-])([O-])[O-].[Bi+3].O.O.[HH].[NaH]
+[] [23356618, 3587155, 8128150] []
+{u'SMILES': u'O.O.O.[La].[NaH].[Ta]', u'IDE_CN': u'<RXD.RGT>\n<sup>(99)</sup>Na<sub>0986</sub>\n<sup>(00)</sup>La<sub>0014</sub>Ta<sup>(000)</sup>O<sub>314</sub>\n</RXD.RGT>', u'_id': 29437691, u'IDE_XRN': 29437691}
+O.O.O.[La].[NaH].[Ta]
+{u'SMILES': u'O', u'IDE_CN': u'water', u'_id': 3587155, u'IDE_XRN': 3587155}
+O
+{u'SMILES': u'O.[HH].[NaH]', u'IDE_CN': u'sodium hydroxide', u'_id': 8128150, u'IDE_XRN': 8128150}
+O.[HH].[NaH]
+O.O.O.[La].[NaH].[Ta].O.O.[HH].[NaH]
+[] [29437691, 3587155, 8128150] []
+{u'SMILES': u'ClCCl', u'IDE_CN': u'dichloromethane', u'_id': 1730800, u'IDE_XRN': 1730800}
+ClCCl
+{u'SMILES': u'O=C([O-])O.[Na+]', u'IDE_CN': u'sodium hydrogencarbonate', u'_id': 4153970, u'IDE_XRN': 4153970}
+O=C([O-])O.[Na+]
+{u'SMILES': u'Br.[NaH]', u'IDE_CN': u'sodium bromide', u'_id': 8127932, u'IDE_XRN': 8127932}
+Br.[NaH]
+ClCCl.O=C([O-])O.[Na+].Br.[NaH]
+[1730800] [4153970, 8127932] []
+{u'SMILES': u'CO', u'IDE_CN': u'methanol', u'_id': 1098229, u'IDE_XRN': 1098229}
+CO
+{u'SMILES': u'O', u'IDE_CN': u'water', u'_id': 3587155, u'IDE_XRN': 3587155}
+O
+{u'SMILES': u'[N-]=[N+]=[N-].[Na+]', u'IDE_CN': u'sodium azide', u'_id': 1209320, u'IDE_XRN': 1209320}
+[N-]=[N+]=[N-].[Na+]
+{u'SMILES': u'OCl(=O)(=O)=O.[Li+]', u'IDE_CN': u'lithium perchlorate', u'_id': 3596973, u'IDE_XRN': 3596973}
+OCl(=O)(=O)=O.[Li+]
+{u'SMILES': u'I.[NaH]', u'IDE_CN': u'sodium iodide', u'_id': 8127930, u'IDE_XRN': 8127930}
+I.[NaH]
+CO.O.[N-]=[N+]=[N-].[Na+].OCl(=O)(=O)=O.[Li+].I.[NaH]
+[1098229, 3587155] [1209320, 3596973, 8127930] []
+{u'SMILES': u'ClC(Cl)Cl', u'IDE_CN': u'chloroform', u'_id': 1731042, u'IDE_XRN': 1731042}
+ClC(Cl)Cl
+{u'SMILES': u'O', u'IDE_CN': u'water', u'_id': 3587155, u'IDE_XRN': 3587155}
+O
+{u'SMILES': u'Br', u'IDE_CN': u'hydrogen bromide', u'_id': 3587158, u'IDE_XRN': 3587158}
+Br
+{u'SMILES': u'Br.[NaH]', u'IDE_CN': u'sodium bromide', u'_id': 8127932, u'IDE_XRN': 8127932}
+Br.[NaH]
+ClC(Cl)Cl.O.Br.Br.[NaH]
+[1731042, 3587155] [3587158, 8127932] []
+{u'SMILES': u'CC#N', u'IDE_CN': u'acetonitrile', u'_id': 741857, u'IDE_XRN': 741857}
+CC#N
+{u'SMILES': u'[O]N=O', u'IDE_CN': u'nitrogen(IV) oxide', u'_id': 4362013, u'IDE_XRN': 4362013}
+[O]N=O
+{u'SMILES': u'I.[NaH]', u'IDE_CN': u'sodium iodide', u'_id': 8127930, u'IDE_XRN': 8127930}
+I.[NaH]
+CC#N.[O]N=O.I.[NaH]
+[741857] [4362013, 8127930] []
+{u'SMILES': u'O', u'IDE_CN': u'water', u'_id': 3587155, u'IDE_XRN': 3587155}
+O
+{u'SMILES': u'CC(=O)[O-].[Pd+2]', u'IDE_CN': u'palladium diacetate', u'_id': 3602276, u'IDE_XRN': 3602276}
+CC(=O)[O-].[Pd+2]
+{u'SMILES': u'Cl.[NaH]', u'IDE_CN': u'sodium chloride', u'_id': 8127935, u'IDE_XRN': 8127935}
+Cl.[NaH]
+{u'SMILES': u'O.[HH].[NaH]', u'IDE_CN': u'sodium hydroxide', u'_id': 8128150, u'IDE_XRN': 8128150}
+O.[HH].[NaH]
+{u'SMILES': u'', u'IDE_CN': u'starch', u'_id': 8190768, u'IDE_XRN': 8190768}
+
+O.CC(=O)[O-].[Pd+2].Cl.[NaH].O.[HH].[NaH]
+[3587155] [3602276, 8127935, 8128150, 8190768] []
+{u'SMILES': u'CCO', u'IDE_CN': u'ethanol', u'_id': 1718733, u'IDE_XRN': 1718733}
+CCO
+{u'SMILES': u'O', u'IDE_CN': u'water', u'_id': 3587155, u'IDE_XRN': 3587155}
+O
+{u'SMILES': u'CCCC[N+]1=CN([C@@H]2O[C@H](COC(C)=O)[C@@H](OC(C)=O)[C@H](OC(C)=O)[C@H]2OC(C)=O)C=C1.[Br-]', u'IDE_CN': u'1-(2,3,4,6-tetra-O-acetyl-?-D-glucopyranosyl)-3-butylimidazolium bromide', u'_id': 27728272, u'IDE_XRN': 27728272}
+CCCC[N+]1=CN([C@@H]2O[C@H](COC(C)=O)[C@@H](OC(C)=O)[C@H](OC(C)=O)[C@H]2OC(C)=O)C=C1.[Br-]
+{u'SMILES': u'CC(=O)[O-].[Pd+2]', u'IDE_CN': u'palladium diacetate', u'_id': 3602276, u'IDE_XRN': 3602276}
+CC(=O)[O-].[Pd+2]
+{u'SMILES': u'O.[HH].[NaH]', u'IDE_CN': u'sodium hydroxide', u'_id': 8128150, u'IDE_XRN': 8128150}
+O.[HH].[NaH]
+CCO.O.CCCC[N+]1=CN([C@@H]2O[C@H](COC(C)=O)[C@@H](OC(C)=O)[C@H](OC(C)=O)[C@H]2OC(C)=O)C=C1.[Br-].CC(=O)[O-].[Pd+2].O.[HH].[NaH]
+[1718733, 3587155] [27728272, 3602276, 8128150] []
+{u'SMILES': u'O', u'IDE_CN': u'water', u'_id': 3587155, u'IDE_XRN': 3587155}
+O
+{u'SMILES': u'', u'IDE_CN': u'<RXD.RGT>Pd-TiO<sub>2</sub>\n</RXD.RGT>', u'_id': 20680492, u'IDE_XRN': 20680492}
+
+{u'SMILES': u'O.[HH].[NaH]', u'IDE_CN': u'sodium hydroxide', u'_id': 8128150, u'IDE_XRN': 8128150}
+O.[HH].[NaH]
+O.O.[HH].[NaH]
+[3587155] [20680492, 8128150] []
+0
+{u'SMILES': u'[Na+].[OH-]', u'IDE_CN': u'sodium hydroxide', u'_id': 11342940, u'IDE_XRN': 11342940}
+0
+24
+5
