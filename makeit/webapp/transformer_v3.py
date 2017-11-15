@@ -119,16 +119,16 @@ class Transformer:
             if get_synth:
                 raise ValueError('Synth cannot use new transformer yet!')
                
-            # Need to have either a retro or forward reaction be valid
-            if get_retro and get_synth:
-                if not template['rxn'] and not template['rxn_f']:
-                    continue
-            elif get_retro:
-                if not template['rxn']:
-                    continue
-            elif get_synth:
-                if not template['rxn_f']:
-                    continue
+            # # Need to have either a retro or forward reaction be valid
+            # if get_retro and get_synth:
+            #     if not template['rxn'] and not template['rxn_f']:
+            #         continue
+            # elif get_retro:
+            #     if not template['rxn']:
+            #         continue
+            # elif get_synth:
+            #     if not template['rxn_f']:
+            #         continue
 
             # Add to list
             self.templates.append(template)
@@ -391,6 +391,9 @@ def apply_one_retrotemplate(rct, smiles, template, return_as_tup=False):
     a list of precursors'''
     precursors = []
 
+    if template['rxn'] is None:
+        return []
+        
     outcomes = rdchiralRun(template['rxn'], rct)
     
     for j, outcome in enumerate(outcomes):
