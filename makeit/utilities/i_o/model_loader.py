@@ -2,73 +2,80 @@ import os
 import global_config as gc
 from pymongo import MongoClient
 from logging import MyLogger
-import models.transformer as transformer
-from models.pricer import Pricer
-from models.forwardPredictor import ForwardPredictor
-from models.contextmodel import NNConditionPredictor as ConditionPredictor
-from models.scorer import Scorer
+from utilities.buyable.pricer import Pricer
+from synthetic.context.nn_context_recommender import NNContextRecommender
+from synthetic.forward_evaluation.scorer import Scorer
+from synthetic.forward_enumeration.forward_transformer import ForwardTransformer
+from retro_synthetic.retro_transformer import RetroTransformer
+from retro_synthetic.heuristic_prioritizer import HeuristicPrioritizer
 from multiprocessing import Process
-#from application.MyQueue import Queue
 from multiprocessing import JoinableQueue as Queue
 from functools import partial
 import threading
 import sys
 model_loader_loc = 'model_loader'
 
-"""
-def load_all(retro_mincount,synth_mincount):
-    #parallel does not work with MongoClient objects
-    output = Queue()
-    
-    #load databases first: fast, and databases are required to load the models.
-    databases = load_Databases()
-    
-    #set up parallel processes for loading models
-    retro_process = Process(target = load_Retro_Transformer, args = (databases['Retro_Database'], output), kwargs = {'mincount_retro' : retro_mincount})
-    synth_process = Process(target = load_Forward_Transformer, args = (databases['Synth_Database'], output), kwargs = {'mincount_synth' : synth_mincount})
-    pricer_process = Process(target = load_Pricer, args = (databases['Chemical_Database'], databases['Buyable_Database'], output))
-    #pred_process = Process(target = load_Forward_Predictor, args = (databases['Synth_Database'], databases['Solvent_Database'], output), kwargs = {'mincount_synth' : synth_mincount})
-    #processes = {retro_process, synth_process, pricer_process, pred_process}
-    processes = {retro_process, synth_process,pricer_process}
-    #Run all processes
-    for p in processes:
-        p.start()
-    # Exit the completed processes
-     
-    for p in processes:
-        p.join()
 
-    models = [output.get() for p in processes]
-    
-    print(models)
+def load_all(retro_mincount = 100, synth_mincount = 100, max_contexts = 10):
+        MyLogger.print_and_log('Loading models...', model_loader_loc)
+        databases = load_Databases()
+        pricer = load_Pricer(databases['Chemical_Database'], databases['Buyable_Database'])
+        
+        prioritizer = None
+        retroTransformer = None
+        synthTransfomrer = None
+        scorer = None
+        contextRecommender = None
+        
+        if(gc.prioritizaton == gc.heuristic):
+            prioritizer = HeuristicPrioritizer()
+        else:
+            MyLogger.print_and_log('Invalid prioritization method specified. Exiting...', model_loader_loc, level = 3)
+        
+        if(gc.retro_enumeration == gc.template):
+            retroTransformer = load_Retro_Transformer(databases['Retro_Database'],prioritizer,  mincount_retro = retro_mincount)
+        else:
+            MyLogger.print_and_log('Invalid retro enumeration method specified. Exiting...', model_loader_loc, level = 3)
+        
+        if(gc.forward_enumeration == gc.template):
+            synthTransformer = load_Forward_Transformer(databases['Synth_Database'], mincount_synth = synth_mincount)
+        else:
+            MyLogger.print_and_log('Invalid forward enumeration method specified. Exiting...', model_loader_loc, level = 3)
+        
+        if(gc.forward_scoring == gc.network):
+            scorer = load_Scorer()
+        else:
+            MyLogger.print_and_log('Invalid scoring method specified. Exiting...', model_loader_loc, level = 3)
+            
+        if(gc.context_module == gc.nearest_neighbor):
+            contextRecommender = load_Context_Recommender(max_total_contexts = max_contexts)
+        else:
+            MyLogger.print_and_log('Invalid context recommendation method specified. Exiting...', model_loader_loc, level = 3)
+        
+        models ={
+            'retro_transformer':retroTransformer,
+            'prioritizer': prioritizer,
+            'synthetic_transformer':synthTransformer,
+            'pricer':pricer,
+            'context_recommender':contextRecommender,
+            'scorer':scorer
+            }
+        
+        MyLogger.print_and_log('All models loaded.', model_loader_loc)
+        
+        return models
 
-"""
    
-def load_Retro_Transformer(RETRO_DB, mincount_retro = 250, nb_workers = 1):
+def load_Retro_Transformer(RETRO_DB, prioritizer, mincount_retro = 250):
     '''    
     Load the model and databases required for the retro transformer. Returns the retro transformer, ready to run.
     '''
     MyLogger.print_and_log('Loading retrosynthetic template database...',model_loader_loc)
-    retroTransformer = transformer.Transformer(
-        parallel = False if nb_workers == 1 else True, 
-        nb_workers = nb_workers,
-        )
-    retroTransformer.load(RETRO_DB, mincount = mincount_retro, get_retro = True, get_synth = False)
+    retroTransformer = RetroTransformer(prioritizer = prioritizer, TEMPLATE_DB = RETRO_DB, mincount = mincount_retro)
+    retroTransformer.load()
     MyLogger.print_and_log('Retrosynthetic transformer loaded.',model_loader_loc)
-    #output.put(retroTransformer)
     return retroTransformer
     
-def load_Forward_Transformer(SYNTH_DB, mincount_synth = 100):
-    '''
-    Load the model and databases required for the forward transformer. Returns forward transformer, ready to run.
-    '''
-    MyLogger.print_and_log('Loading synthetic template database...',model_loader_loc)
-    synth_Transformer = transformer.Transformer()
-    synth_Transformer.load(SYNTH_DB, mincount_synth, get_retro = False, get_synth = True)
-    MyLogger.print_and_log('Synthetic transformer loaded.', model_loader_loc)
-    #output.put(synth_Transformer)
-    return synth_Transformer
-        
 def load_Databases():
     '''
     Load the different databases that will be used: Reactions, Instances, Chemicals, Buyables, Solvents, Retro templates and Synthetic templates
@@ -116,19 +123,17 @@ def load_Pricer(chemical_database, buyable_database):
     pricerModel = Pricer()
     pricerModel.load(chemical_database, buyable_database)
     MyLogger.print_and_log('Pricer Loaded.',model_loader_loc)
-    #output.put(pricerModel) 
     return pricerModel
 
-def load_Forward_Predictor(SYNTH_DB, mincount_synth = 100):
+def load_Forward_Transformer(SYNTH_DB, mincount_synth = 100):
     '''
     Load the forward prediction neural network
     '''
     MyLogger.print_and_log('Loading forward prediction model...',model_loader_loc)
-    predictor = ForwardPredictor(TRANSFORM_DB = SYNTH_DB, mincount = mincount_synth)
-    predictor.load_templates()
-    MyLogger.print_and_log('Forward predictor loaded.',model_loader_loc)
-    #output.put(predictor)
-    return predictor
+    transformer = ForwardTransformer(TEMPLATE_DB = SYNTH_DB, mincount = mincount_synth)
+    transformer.load()
+    MyLogger.print_and_log('Forward transformer loaded.',model_loader_loc)
+    return transformer
 
 def load_Scorer():
     '''
@@ -136,20 +141,18 @@ def load_Scorer():
     '''
     MyLogger.print_and_log('Loading reaction scoring neural network...',model_loader_loc)
     scorer = Scorer()
-    scorer.load_model(gc.PREDICTOR['trained_model_path'])
+    scorer.load(folder = gc.PREDICTOR['trained_model_path'])
     
     MyLogger.print_and_log('Reaction scoring neural network loaded.',model_loader_loc)
-    
     return scorer
     
-def load_Context_Recommender(REACTION_DB, INSTANCE_DB, CHEMICAL_DB, SOLVENT_DB, max_total_contexts):
+def load_Context_Recommender(max_total_contexts):
     '''
     Load the context recommendation model
     '''
     
     MyLogger.print_and_log('Loading context recommendation model...', model_loader_loc)
-    recommender = ConditionPredictor(max_total_contexts = max_total_contexts)
-    recommender.load_db_model(gc.CONTEXT_REC['model_path'], gc.CONTEXT_REC['info_path'], REACTION_DB, INSTANCE_DB, CHEMICAL_DB, SOLVENT_DB)
+    recommender = NNContextRecommender(max_total_contexts = max_total_contexts)
+    recommender.load(model_path = gc.CONTEXT_REC['model_path'], info_path = gc.CONTEXT_REC['info_path'])
     MyLogger.print_and_log('Context recommender loaded.', model_loader_loc)
-    #output.put(recommender)
     return recommender

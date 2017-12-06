@@ -18,7 +18,10 @@ def setup_parser():
     max_ppg = 10
     min_trees_success = 5
     output_dir = 'output'
+    chiral = False
     nproc = 1
+    celery = False
+    
     
     #Set all arguments
     parser.add_argument('--TARGET', type = str, 
@@ -49,8 +52,12 @@ def setup_parser():
                         help = 'Minimum number of trees to evaluate before quitting. Default value is {}.'.format(min_trees_success))
     parser.add_argument('--output', type = str, default = output_dir,
                         help = 'Specify the directory to which all output should be written. Default directory is {}'.format(output_dir))
+    parser.add_argument('--chiral', type = boolean, default = chiral,
+                        help = 'Specify whether a chiral transformer should be used or not. Default is {}'.format(chiral))
     parser.add_argument('--nproc', type = int, default = nproc,
                         help = 'Specify the number of processors on which the case should be parallelized. Default is single-core (1).')
+    parser.add_argument('--celery', type = boolean, default = celery,
+                        help = 'Specify whether preloaded celery worker nodes should be used. Default is {}'.format(celery))
     return parser
 
 def get_args():

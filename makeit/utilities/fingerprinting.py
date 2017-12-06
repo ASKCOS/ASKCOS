@@ -6,6 +6,16 @@ from i_o.logging import MyLogger
 from parsing import check_smiles
 fingerprinting_loc = 'fingerprinting'
 
+def mol_to_fp(mol, radius=2, nBits=gc.fingerprint_bits):
+        if mol is None:
+            return np.zeros((nBits,), dtype=np.float32)
+        return np.array(AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=nBits, 
+            useChirality=True), dtype=np.bool)
+
+def smi_to_fp(smi, radius=2, nBits=gc.fingerprint_bits):
+    if not smi:
+        return np.zeros((nBits,), dtype=np.float32)
+    return mol_to_fp(Chem.MolFromSmiles(smi), radius, nBits)
 def create_rxn_Morgan2FP(rxn_smiles, fpsize=gc.fingerprint_bits, useFeatures=True):
     """Create a rxn Morgan (r=2) fingerprint as bit vector from a reaction SMILES string
 
@@ -35,9 +45,9 @@ def create_rxn_Morgan2FP(rxn_smiles, fpsize=gc.fingerprint_bits, useFeatures=Tru
 
     if pfp is not None and rfp is not None:
         pfp -= rfp
-    return pfp
+    return pfp.reshape(1,len(pfp))
 
-def get_condition_input_from_smiles(conditions_smiles , split = False):
+def get_condition_input_from_smiles(conditions_smiles , split = False, s_fp = 256, r_fp = 256, c_fp = 256):
     '''
     If split is used: first molecule in the conditions_smiles should be the solvent!
     '''
@@ -53,9 +63,9 @@ def get_condition_input_from_smiles(conditions_smiles , split = False):
             MyLogger.print_and_log('Unparsable conditions. Leaving out this reaction: {}.'.format(instance['_id']), fingerprinting_loc, level = 1)
     #otherwise: assume list of strings
     else:
-        for smiles in conditions_smiles: 
+        for (descr, smiles) in conditions_smiles: 
             try:
-                conditions_mol.append(Chem.MolFromSmiles(smiles))
+                conditions_mol.append((descr,Chem.MolFromSmiles(smiles)))
                 inputlength += 1
             #If any unparsable: skip this iteration
             except Exception as e:
@@ -63,20 +73,38 @@ def get_condition_input_from_smiles(conditions_smiles , split = False):
                 continue
         
     fps = []
-    for mol in conditions_mol:
+    for (descr, mol) in conditions_mol:
         try:
-            p = AllChem.GetMorganFingerprintAsBitVect(mol=mol, radius=2, nBits=gc.fingerprint_bits, useFeatures=True)
+            if descr=='solv':
+                p = AllChem.GetMorganFingerprintAsBitVect(mol=mol, radius=2, nBits=s_fp, useFeatures=True)
+            elif descr == 'reag':
+                p = AllChem.GetMorganFingerprintAsBitVect(mol=mol, radius=2, nBits=r_fp, useFeatures=True)
+            elif descr == 'cata':
+                p = AllChem.GetMorganFingerprintAsBitVect(mol=mol, radius=2, nBits=c_fp, useFeatures=True)
         except Exception as e:
-            p = [0]*gc.fingerprint_bits
-        fps.append(p)
+            MyLogger.print_and_log('Could not generate fingerprint for {}'.format(conditions_smiles), fingerprinting_loc)
+            if descr=='solv':
+                p = [0]*s_fp
+            elif descr == 'reag':
+                p = [0]*r_fp
+            elif descr == 'cata':
+                p = [0]*c_fp
+        fps.append((descr,p))
+    input = []
     if split:
-        for fp in fps:
-            fp = np.array(fp)
-        return fps
+        for (descr, fp) in fps:
+            if descr=='solv':
+                fp = np.array(fp).reshape(1,s_fp)
+            elif descr == 'reag':
+                fp = np.array(fp).reshape(1,r_fp)
+            elif descr == 'cata':
+                fp = np.array(fp).reshape(1,c_fp)
+            input.append(fp)
     else:
-        fps = np.array(fp).reshape(1,gc.fingerprint_bits*inputlength)
-        input = fps
-        return input
+        fps = np.array(fp).reshape(1,len(fp))
+        input.append(fp)
+    return input
+    
 def get_condition_input_from_instance(instance, chemicals, asone = False, astwo = False, use_new = False, split = False):
     conditions_smiles = get_input_condition_as_smiles(instance, chemicals, asone = asone, astwo = astwo, use_new = use_new)
     return get_condition_input_from_smiles(conditions_smiles, split = split)
@@ -84,29 +112,32 @@ def get_condition_input_from_instance(instance, chemicals, asone = False, astwo 
 def get_reaction_input_from_instance(instance, reactions, chemicals):
     
     reaction_smiles = get_reaction_as_smiles(instance, reactions, chemicals)
-        
     return get_reaction_input_from_smiles(reaction_smiles)
 
-def get_reaction_input_from_smiles(reaction_smiles):
-
+def get_reaction_input_from_smiles(reaction_smiles, r_fp = 1024, c_f = 1):
+    '''
+    c_f: compression factor for the reaction fingerprint
+    '''
     react = reaction_smiles.split('>')
     reag_s = react[0]
     prod_s = react[len(react)-1]
     reag = Chem.MolFromSmiles(reag_s)
     prod = Chem.MolFromSmiles(prod_s)
     
-    #factor for reactionfp length
-    reactionfplength = 4
-    reag = AllChem.GetMorganFingerprintAsBitVect(mol = reag, radius = 2, nBits = gc.fingerprint_bits*reactionfplength)
-    prod = AllChem.GetMorganFingerprintAsBitVect(mol = prod, radius = 2, nBits = gc.fingerprint_bits*reactionfplength)
+    reag = AllChem.GetMorganFingerprintAsBitVect(mol = reag, radius = 2, nBits = r_fp)
+    prod = AllChem.GetMorganFingerprintAsBitVect(mol = prod, radius = 2, nBits = r_fp)
     reactionfp = [i - j for i, j in zip(prod, reag)]
     reaction = []
-    for i in range(gc.fingerprint_bits):
-        pos = 0
-        for j in range(reactionfplength):
-            pos += reactionfp[i+gc.fingerprint_bits*j]
-        reaction.append(pos)
-    input = np.array(reaction).reshape(1, gc.fingerprint_bits)  
+    if(r_fp%c_f == 0):
+        compressed = int(r_fp/c_f)
+        for i in range(compressed):
+            pos = 0
+            for j in range(c_f):
+                pos += reactionfp[i+compressed*j]
+            reaction.append(pos)
+        input = np.array(reaction).reshape(1, compressed)
+    else:
+        MyLogger.print_and_log('Redefine reaction fingerprint size or reaction compression ratio. Fingerprint size should be divisible by the compression factor.', fingerprinting_loc, level = 3)  
     return input
 
 def get_reaction_as_smiles(instance, reactions, chemicals):
@@ -122,11 +153,15 @@ def get_reaction_as_smiles(instance, reactions, chemicals):
             smiles = chemical['SMILES_new']
             mol = Chem.MolFromSmiles(smiles)
             if(smiles and (not mol)):
+                return 'NONE'
+                '''
                 new_smiles = raw_input('New smiles for reactant: {}:'.format(smiles))
                 if new_smiles:
                     chemicals.update({'_id':chemical['_id']},{'$set':{'SMILES_new':new_smiles,'checked':True}})
                 else:
                     pass
+                '''
+            
         except TypeError:
             MyLogger.print_and_log('No reactant smiles found for reaction {} returning "NONE"'.format(id), fingerprinting_loc, 2)
             return 'NONE'
@@ -137,12 +172,14 @@ def get_reaction_as_smiles(instance, reactions, chemicals):
                 smiles = chemicals.find_one({'_id':reactant})['SMILES']
                 mol = Chem.MolFromSmiles(smiles)
                 if(smiles and (not mol)):
+                    return 'NONE'
+                    '''
                     new_smiles = raw_input('New smiles for reactant: {}:'.format(smiles))
                     if new_smiles:
                         chemicals.update({'_id':chemical['_id']},{'$set':{'SMILES_new':new_smiles,'checked':True}})
                     else:
                         pass
-                    
+                    '''   
             except TypeError:
                 MyLogger.print_and_log('No reactant smiles found for reaction {} returning "NONE"'.format(id), fingerprinting_loc, 2)
                 return 'NONE'
@@ -155,15 +192,16 @@ def get_reaction_as_smiles(instance, reactions, chemicals):
         try:
             chemical = chemicals.find_one({'_id':product})
             smiles = chemical['SMILES_new']
-            '''
             mol = Chem.MolFromSmiles(smiles)
             if(smiles and (not mol)):
+                return 'NONE'
+                '''
                 new_smiles = raw_input('New smiles for product: {}'.format(smiles))
                 if new_smiles:
                     chemicals.update({'_id':chemical['_id']},{'$set':{'SMILES_new':new_smiles,'checked':True}})
                 else:
                     pass
-            '''
+                '''
         except TypeError:
             MyLogger.print_and_log('No product smiles found for reaction {} returning "NONE"'.format(id), fingerprinting_loc, 2)
             return 'NONE'
@@ -171,15 +209,16 @@ def get_reaction_as_smiles(instance, reactions, chemicals):
             try:
                 chemical = chemicals.find_one({'_id':product})
                 smiles = chemicals.find_one({'_id':product})['SMILES']
-                '''
                 mol = Chem.MolFromSmiles(smiles)
                 if(smiles and (not mol)):
+                    return 'NONE'
+                    '''
                     new_smiles = raw_input('New smiles for product: {}'.format(smiles))
                     if new_smiles:
                         chemicals.update({'_id':chemical['_id']},{'$set':{'SMILES_new':new_smiles,'checked':True}})
                     else:
                         pass
-                '''
+                    '''
             except TypeError:
                 MyLogger.print_and_log('No product smiles found for reaction {} returning "NONE"'.format(id), fingerprinting_loc, 2)
                 return 'NONE'
@@ -213,16 +252,18 @@ def get_input_condition_as_smiles(doc,chemicals, asone = False, astwo = False, c
                     s= sa['SMILES']
             else:
                 s = sa['SMILES']
-            '''
+            
             mol = Chem.MolFromSmiles(s)
             if not mol:
+                s = 'NONE'
+                '''
                 new_smiles = raw_input('New smiles for solvent: {},{}'.format(sa['_id'],s))
                 if new_smiles:
                     chemicals.update({'_id':sa['_id']},{'$set':{'SMILES_new':new_smiles,'checked':True}})
                     s=new_smiles
                 else:
                     pass
-            '''
+                '''
         else:
             continue
         if solv:
@@ -246,16 +287,18 @@ def get_input_condition_as_smiles(doc,chemicals, asone = False, astwo = False, c
                     s= sa['SMILES']
             else:
                 s = sa['SMILES']
-            '''
+            
             mol = Chem.MolFromSmiles(s)
             if not mol:
+                s = 'NONE'
+                '''
                 new_smiles = raw_input('New smiles for reagent: {},{}'.format(sa['_id'],s))
                 if new_smiles:
                     chemicals.update({'_id':sa['_id']},{'$set':{'SMILES_new':new_smiles,'checked':True}})
                     s=new_smiles
                 else:
                     pass
-            '''
+                '''
         else:
             continue
         if(reag and s):
@@ -279,16 +322,18 @@ def get_input_condition_as_smiles(doc,chemicals, asone = False, astwo = False, c
                     s= sa['SMILES']
             else:
                 s = sa['SMILES']
-            '''
+                
             mol = Chem.MolFromSmiles(s)
             if not mol:
+                s = 'NONE'
+                '''
                 new_smiles = raw_input('New smiles for catalyst: {},{}'.format(sa['_id'],s))
                 if new_smiles:
                     chemicals.update({'_id':sa['_id']},{'$set':{'SMILES_new':new_smiles,'checked':True}})
                     s=new_smiles
                 else:
                     pass
-            '''
+                '''
         else:
             continue
         if(cata and s):
@@ -320,6 +365,6 @@ def get_input_condition_as_smiles(doc,chemicals, asone = False, astwo = False, c
                 ans += '.'+cata
             else:
                 ans = cata
-        return [solv, ans]
+        return [('solv', solv), ('reag',ans)]
     else:
-        return [solv, reag, cata]
+        return [('solv',solv), ('reag', reag), ('cata', cata)]

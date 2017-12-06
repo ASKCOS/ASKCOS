@@ -4,8 +4,10 @@ import rdkit.Chem.rdMolDescriptors as rdMolDescriptors
 import rdkit.Chem.EState as EState
 import rdkit.Chem.rdPartialCharges as rdPartialCharges
 import rdkit.Chem.rdChemReactions as rdRxns
-from utilities.atoms import atom_dftb
+from makeit.utilities.atoms import atom_dftb
+from makeit.utilities.logging import MyLogger
 import rdkit.Chem as Chem 
+descriptors_loc = 'descriptors'
 
 att_dtype = np.float32
 
@@ -258,6 +260,55 @@ def edits_to_vectors(edits, mol, atom_desc_dict = {}, return_atom_desc_dict = Fa
 		]
 	)
 
+def edits_to_tensor(self, candidate_edits):
+    Nc = len(candidate_edits)
+    F_atom = edit_vector_lengths()['atoms']
+    F_bond = edit_vector_lengths()['bonds']
+    
+    if Nc == 0:
+        MyLogger.print_and_log('No candidate products found at all...?', descriptors_loc, level= 2)
+        return [[] for i in range(len(contexts))]
+    Ne1 = 1
+    Ne2 = 1
+    Ne3 = 1
+    Ne4 = 1
+    for (candidate_smiles, edits) in candidate_edits:
+        Ne1 = max(Ne1, len(edits[0]))
+        Ne2 = max(Ne2, len(edits[1]))
+        Ne3 = max(Ne3, len(edits[2]))
+        Ne4 = max(Ne4, len(edits[3]))
+    x_h_lost = np.zeros((1, Nc, Ne1, F_atom))
+    x_h_gain = np.zeros((1, Nc, Ne2, F_atom))
+    x_bond_lost = np.zeros((1, Nc, Ne3, F_bond))
+    x_bond_gain = np.zeros((1, Nc, Ne4, F_bond))
+
+    smiles = []
+    for c, (candidate_smiles, edits) in enumerate(candidate_edits):
+        smiles.append(candidate_smiles)
+        edit_h_lost_vec, edit_h_gain_vec, \
+            edit_bond_lost_vec, edit_bond_gain_vec = edits_to_vectors(edits, reactants, 
+                atom_desc_dict=atom_desc_dict)
+
+        for (e, edit_h_lost) in enumerate(edit_h_lost_vec):
+            x_h_lost[0, c, e, :] = edit_h_lost
+        for (e, edit_h_gain) in enumerate(edit_h_gain_vec):
+            x_h_gain[0, c, e, :] = edit_h_gain
+        for (e, edit_bond_lost) in enumerate(edit_bond_lost_vec):
+            x_bond_lost[0, c, e, :] = edit_bond_lost
+        for (e, edit_bond_gain) in enumerate(edit_bond_gain_vec):
+            x_bond_gain[0, c, e, :] = edit_bond_gain
+
+    # Get rid of NaNs/Infs
+    x_h_lost[np.isnan(x_h_lost)] = 0.0
+    x_h_gain[np.isnan(x_h_gain)] = 0.0
+    x_bond_lost[np.isnan(x_bond_lost)] = 0.0
+    x_bond_gain[np.isnan(x_bond_gain)] = 0.0
+    x_h_lost[np.isinf(x_h_lost)] = 0.0
+    x_h_gain[np.isinf(x_h_gain)] = 0.0
+    x_bond_lost[np.isinf(x_bond_lost)] = 0.0
+    x_bond_gain[np.isinf(x_bond_gain)] = 0.0
+    return [x_h_lost, x_h_gain, x_bond_lost, x_bond_gain]
+'''
 def edits_to_tensor(edits, reactants, lenAtom = 43, lenBond = 90, atom_desc_dict = None):
 	
 	(edit_h_lost_vec, edit_h_gain_vec, edit_bond_lost_vec, edit_bond_gain_vec) = edits_to_vectors(edits, reactants, atom_desc_dict = atom_desc_dict)
@@ -286,3 +337,4 @@ def edits_to_tensor(edits, reactants, lenAtom = 43, lenBond = 90, atom_desc_dict
 	x_bond_gain[np.isinf(x_bond_gain)] = 0.0
 	
 	return [x_h_lost, x_h_gain, x_bond_lost, x_bond_gain]
+'''

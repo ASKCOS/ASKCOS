@@ -58,7 +58,9 @@ class Pricer:
                 self.prices_flat = pickle.load(file)
                 self.prices_by_xrn = pickle.load(file)  
 
-                          
+    def set_max_ppg(self, ppg):
+        self.max_ppg = ppg
+        
     def load(self, online = True, CHEMICAL_DB = None, BUYABLE_DB = None):
         '''
         Loads the object from a MongoDB collection containing transform

@@ -74,6 +74,8 @@ def summarize_reaction_outcome(mols, outcome):
 	#print('{} total changes'.format(changes))
 	return (sorted(h_lost), sorted(h_gain), sorted(bond_lost), sorted(bond_gain))
 
+
+
 def is_desired_product(outcome, desired):
 	if isinstance(outcome, str):
 		#Make sure cannonical smiles
