@@ -1,7 +1,53 @@
+##############################################################################
+#Settings:
+all_data=True #Use the full data set or use a more balanced set
+
+read_inputs_from_file = True #Read the preprocessed data from a file. Only use if no changes to the settings 
+                              #have been made. Otherwise read from raw data
+                              
+read_raw_data_from_file = True #Read the raw data from a saved file or use MongoDB
+
+write_raw_data_to_file = True #Write the extracted data to a local file (data is saved as smiles strings)
+
+write_input_data_to_file = True #Write the extracted data to a local file (actual input data)
+
+FILE = False #Read a trained and saved model from the file
+
+SAVE = False #Save the trained model to the file
+
+FullTest = True #Test again on all reactions in the database (including training)
+
+#Data input settings
+rxn_fingerprint_size = 2048 #Size of the reaction fingerprint
+s_fingerprint_size = 256 #Size of the solvent fingerprint
+r_fingerprint_size = 512 #Size of the reagent fingerprint
+rxn_compression = 2 #Compression of the reaction fingerprint. Make sure that rxn_fingerprint_size/rxn_compression is int.
+training_bias = 2 #Bias when using the balanced data set
+if all_data:
+    training_bias = 7 #Bia when using the full database
+    
+#Model settings
+activation_function = 'sigmoid' #specify activation function for the network
+optimizer = 'adam' #specify the solver for the network
+loss = 'binary_crossentropy' #specify the loss function for the network
+
+#Training settings
+batch_size = 32
+epochs = 5
+
+#Testing settings
+lower_threshold = 1.0/3.0 #Threshold for considering a prediction accurate.
+upper_threshold = 2.0/3.0 #Threshold for considering a prediction incorrect.
+#Region between the thresholds is the undecided region
+
+################################################################################
+
+#Imports
 import global_config as gc
 import numpy as np
+import time
 import h5py
-from keras.models import Sequential, Model
+from keras.models import Sequential, Model, load_model
 from keras.layers import Dense, Activation, Flatten, Dropout, Input, merge, concatenate
 from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.utils import np_utils
@@ -9,44 +55,44 @@ from keras.datasets import mnist
 from keras import optimizers
 from matplotlib import pyplot as plt
 from utilities.i_o.logging import MyLogger
-from utilities.fingerprinting import get_condition_input_from_smiles, get_condition_input_from_instance, get_input_condition_as_smiles,get_reaction_as_smiles,get_reaction_input_from_instance 
+from utilities.fingerprinting import get_condition_input_from_smiles, get_condition_input_from_instance, get_input_condition_as_smiles,get_reaction_as_smiles,get_reaction_input_from_instance, get_reaction_input_from_smiles 
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import cPickle as pickle
 import os
 flowNN_loc = 'flowNN4'
-all_data=True
-FILE = False
-SAVE = True
-FullTest = False
-training_bias = 2
-if all_data:
-    training_bias = 15
-
 np.random.seed(123)
+if rxn_fingerprint_size%rxn_compression==0:
+    rxn_compressed_size = int(rxn_fingerprint_size/rxn_compression)
+else:
+    MyLogger.print_and_log('Compression factor must be divisor of reaction fingerprint length. Exiting... ', flowNN_loc, level = 3)
 
-def set_up_model_structure(layer_nodes = None, activation = 'softmax', input = None, loss = 'binary_crossentropy'):
+def set_up_model_structure(activation = 'sigmoid', optimizer = 'adam', loss = 'binary_crossentropy'):
     
-    reaction = Input(shape = (1, 256), name = "reaction fingerprint")
-    solvent = Input(shape = (1, 256), name = "solvent fingerprint")
-    reagent = Input(shape = (1, 256), name = "reagent fingerprint")
+    reaction = Input(shape = (1, rxn_compressed_size), name = "reaction fingerprint")
+    solvent = Input(shape = (1, s_fingerprint_size), name = "solvent fingerprint")
+    reagent = Input(shape = (1, r_fingerprint_size), name = "reagent fingerprint")
     
     reaction_2 = Dense(128, activation = activation)(reaction)
     solvent_2 = Dense(128, activation = activation)(solvent)
     reagent_2 = Dense(128, activation = activation)(reagent)
     
     reaction_3 = Dense(64, activation = activation)(reaction_2)
+    
     conditions = concatenate([solvent_2, reagent_2])
     conditions_2 = Dense(64, activation = activation)(conditions)
     
     decision = concatenate([reaction_3, conditions_2])
     decision_2 = Dense(64, activation = activation)(decision)
-    result = Dense(1, activation = activation)(decision)
+    decision_3 = Dense(32, activation = activation)(decision_2)
+    result = Dense(1, activation = activation)(decision_3)
     
     model = Model(inputs = [reaction, solvent, reagent], outputs = [result])
-    model.compile(loss = loss, optimizer = 'adam', metrics = ['accuracy'])
+    model.compile(loss = loss, optimizer = optimizer, metrics = ['accuracy'])
     
     return model
+
+'''
 def get_data_workaround(reactions = None, chemicals = None, train_test_split = 0.85, write_to_file = False):
     input_docs = []
     if os.path.isfile(gc.FLOW_CONDITIONS['data_loc']):
@@ -133,8 +179,10 @@ def get_data_workaround(reactions = None, chemicals = None, train_test_split = 0
             else:
                 weights.append(1)
     return (input_test, input_train, output_test, output_train,input_test_doc,input_train_doc, np.array(weights))
+'''
 
-def get_data(flow_database = None,reactions = None, chemicals = None, train_test_split = 0.85, write_to_file = False, read_from_file = False):
+def get_data(flow_database = None,reactions = None, chemicals = None, train_test_split = 0.85, write_raw_to_file = False, 
+             write_input_to_file = False, read_raw_from_file = False, read_inputs_from_file = False):
     
     input_reaction_train = []
     input_solvent_train = []
@@ -144,117 +192,164 @@ def get_data(flow_database = None,reactions = None, chemicals = None, train_test
     input_solvent_test = []
     input_reagent_test = []
     output_test = []
-    input_train_doc = []
-    input_test_doc = []
     weights = []
-    if read_from_file:
+    ids_test = []
+    ids_train = []
+    smiles_data = []
+    #############################################################################
+    #If told to read the inputs directly from a file: load from file
+    #############################################################################
+    if read_inputs_from_file:
         if all_data:
             if os.path.isfile(gc.FLOW_CONDITIONS4['data_loc']):
                 with open(gc.FLOW_CONDITIONS4['data_loc'], 'rb') as file:
-                    input_reaction_test = pickle.load(file)
-                    input_reaction_train = pickle.load(file)
-                    input_solvent_test = pickle.load(file)
-                    input_solvent_train = pickle.load(file)
-                    input_reagent_test = pickle.load(file)
-                    input_reagent_train = pickle.load(file)
-                    output_test = pickle.load(file)
-                    output_train = pickle.load(file)
-                    input_test_doc = pickle.load(file)
-                    input_train_doc = pickle.load(file)
+                    data_set = pickle.load(file)
                     MyLogger.print_and_log('Flow condition data read from {}'.format(gc.FLOW_CONDITIONS4['data_loc']), flowNN_loc)
             else:
                 MyLogger.print_and_log('Cannot load data from non-existent file. Exiting...', flowNN_loc, level = 3)
         else:
             if os.path.isfile(gc.FLOW_CONDITIONS4_50['data_loc']):
                 with open(gc.FLOW_CONDITIONS4_50['data_loc'], 'rb') as file:
-                    input_reaction_test = pickle.load(file)
-                    input_reaction_train = pickle.load(file)
-                    input_solvent_test = pickle.load(file)
-                    input_solvent_train = pickle.load(file)
-                    input_reagent_test = pickle.load(file)
-                    input_reagent_train = pickle.load(file)
-                    output_test = pickle.load(file)
-                    output_train = pickle.load(file)
-                    input_test_doc = pickle.load(file)
-                    input_train_doc = pickle.load(file)
+                    data_set = pickle.load(file)
                     MyLogger.print_and_log('Flow condition data read from {}'.format(gc.FLOW_CONDITIONS4_50['data_loc']), flowNN_loc)
             else:
                 MyLogger.print_and_log('Cannot load data from non-existent file. Exiting...', flowNN_loc, level = 3)
+    
+    #############################################################################
+    #Otherwise:
+    #############################################################################
     else:
-        if not flow_database:
-            MyLogger.print_and_log('Cannot retrieve data without a flow database.', flowNN_loc, level =3)
-        if not chemicals:
-            MyLogger.print_and_log('Cannot retrieve data without chemicals database', flowNN_loc, level = 3)
-        i = 0
         
-        for doc in flow_database.find():
-            '''
-            if i>1000:
-                break
-            i+=1
-            '''
+        #############################################################################
+        #If told to read the raw, unprocessed smiles data from a file: load from file
+        #############################################################################
+        if read_raw_from_file:
+            if all_data:
+                if os.path.isfile(gc.FLOW_CONDITIONS4['raw_data_loc']):
+                    with open(gc.FLOW_CONDITIONS4['raw_data_loc'], 'rb') as file:
+                        smiles_data = pickle.load(file)
+                        MyLogger.print_and_log('Raw flow condition data read from {}'.format(gc.FLOW_CONDITIONS4['raw_data_loc']), flowNN_loc)
+                else:
+                    MyLogger.print_and_log('Cannot load data from non-existent file. Exiting...', flowNN_loc, level = 3)
+            else:
+                if os.path.isfile(gc.FLOW_CONDITIONS4_50['raw_data_loc']):
+                    with open(gc.FLOW_CONDITIONS4_50['raw_data_loc'], 'rb') as file:
+                        smiles_data = pickle.load(file)
+                        MyLogger.print_and_log('Raw flow condition data read from {}'.format(gc.FLOW_CONDITIONS4_50['raw_data_loc']), flowNN_loc)
+                else:
+                    MyLogger.print_and_log('Cannot load data from non-existent file. Exiting...', flowNN_loc, level = 3)
+        
+        #############################################################################
+        #Otherwise: Read data from pymongo database
+        #############################################################################
+        else:
+            if not flow_database:
+                MyLogger.print_and_log('Cannot retrieve data without a flow database.', flowNN_loc, level =3)
+            if not chemicals:
+                MyLogger.print_and_log('Cannot retrieve data without chemicals database', flowNN_loc, level = 3)
+            i = 0
+            for doc in flow_database.find():
+                if (i%1000 == 0):
+                    MyLogger.print_and_log('Processed {} reactions.'.format(i), flowNN_loc)
+                i+=1
+                split = np.random.random_sample()
+                isFlow = doc['flow']
+                condition_smiles = get_input_condition_as_smiles(doc, chemicals, astwo = True, use_new = True)
+                reaction_smiles = get_reaction_as_smiles(doc, reactions, chemicals)
+                smiles_data.append({
+                                    'isFlow': 1.0 if isFlow else 0.0, 
+                                    'condition_smiles': condition_smiles, 
+                                    'reaction_smiles': reaction_smiles, 
+                                    '_id': doc['_id']
+                                    })
+        
+        #############################################################################
+        #If desired: write the raw data to a local file 
+        #############################################################################
+        if write_raw_to_file:
+            if all_data:
+                with open(gc.FLOW_CONDITIONS4['raw_data_loc'], 'wb') as file:
+                    pickle.dump(smiles_data, file, gc.protocol)
+                    MyLogger.print_and_log('Raw flow condition data written to {}'.format(gc.FLOW_CONDITIONS4['data_loc']), flowNN_loc)
+            else:
+                with open(gc.FLOW_CONDITIONS4_50['raw_data_loc'], 'wb') as file:
+                    pickle.dump(smiles_data, file, gc.protocol)
+                    MyLogger.print_and_log('Raw flow condition data written to {}'.format(gc.FLOW_CONDITIONS4_50['data_loc']), flowNN_loc)
+        
+        #############################################################################
+        #Start preprocessing the raw data
+        #############################################################################
+        i = 0
+        #Get the fingerprints
+        for data in smiles_data:
+            fps = get_condition_input_from_smiles(data['condition_smiles'], split = True, r_fp = r_fingerprint_size, s_fp = s_fingerprint_size)
+            reac = get_reaction_input_from_smiles(data['reaction_smiles'], r_fp = rxn_fingerprint_size, c_f = rxn_compression)
+    
+            #Normalize (for compressed reaction fingerprints)
+            max_val = max([np.max(reac), abs(np.min(reac))])
+            reac = reac/float(1.0 if max_val == 0 else max_val)
+            
             split = np.random.random_sample()
-            isFlow = doc['flow']
-            
-            fps = get_condition_input_from_instance(doc, chemicals, astwo = True, split = True, use_new = True)
-            reac = get_reaction_input_from_instance(doc, reactions, chemicals)
-            
+            #Make the training/testing split
             if(split < train_test_split):
                 input_reaction_train.append(reac)
                 input_solvent_train.append(fps[0])
                 input_reagent_train.append(fps[1])
-                output_train.append(np.array([np.array([1.0] if isFlow else [0.0])]))
+                ids_train.append(data['_id'])
+                output_train.append(np.array([np.array([data['isFlow']])]))
+                if data['isFlow']:
+                    weights.append(training_bias)
+                else:
+                    weights.append(1)
             else:
                 input_reaction_test.append(reac)
                 input_solvent_test.append(fps[0])
                 input_reagent_test.append(fps[1])
-                output_test.append(np.array([np.array([1.0] if isFlow else [0.0])]))
+                ids_test.append(data['_id'])
+                output_test.append(np.array([np.array([data['isFlow']])]))
                 
-    if write_to_file:
-        if all_data:
-            with open(gc.FLOW_CONDITIONS4['data_loc'], 'wb') as file:
-                pickle.dump(input_reaction_test, file, gc.protocol)
-                pickle.dump(input_reaction_train, file, gc.protocol)
-                pickle.dump(input_solvent_test, file, gc.protocol)
-                pickle.dump(input_solvent_train, file, gc.protocol)
-                pickle.dump(input_reagent_test, file, gc.protocol)
-                pickle.dump(input_reagent_train, file, gc.protocol)
-                pickle.dump(output_test, file, gc.protocol)
-                pickle.dump(output_train, file, gc.protocol)
-                pickle.dump(input_test_doc, file, gc.protocol)
-                pickle.dump(input_train_doc, file, gc.protocol)
-                MyLogger.print_and_log('Flow condition data written to {}'.format(gc.FLOW_CONDITIONS4['data_loc']), flowNN_loc)
-        else:
-            with open(gc.FLOW_CONDITIONS4_50['data_loc'], 'wb') as file:
-                pickle.dump(input_reaction_test, file, gc.protocol)
-                pickle.dump(input_reaction_train, file, gc.protocol)
-                pickle.dump(input_solvent_test, file, gc.protocol)
-                pickle.dump(input_solvent_train, file, gc.protocol)
-                pickle.dump(input_reagent_test, file, gc.protocol)
-                pickle.dump(input_reagent_train, file, gc.protocol)
-                pickle.dump(output_test, file, gc.protocol)
-                pickle.dump(output_train, file, gc.protocol)
-                pickle.dump(input_test_doc, file, gc.protocol)
-                pickle.dump(input_train_doc, file, gc.protocol)
-                MyLogger.print_and_log('Flow condition data written to {}'.format(gc.FLOW_CONDITIONS4_50['data_loc']), flowNN_loc)
-    
-    input_reaction_test =  np.array(input_reaction_test).astype('float32')
-    input_reaction_train = np.array(input_reaction_train).astype('float32')
-    input_solvent_test = np.array(input_solvent_test).astype('float32')
-    input_solvent_train = np.array(input_solvent_train).astype('float32')
-    input_reagent_test = np.array(input_reagent_test).astype('float32')
-    input_reagent_train = np.array(input_reagent_train).astype('float32')
-    output_test = np.array(output_test)
-    output_train = np.array(output_train)
-    output_test = output_test.astype('float32')
-    output_train = output_train.astype('float32')
-    for data in output_train:
-        for set in data:
-            if set[0] == 1:
-                weights.append(training_bias)
+            if i%1000 ==0:
+                MyLogger.print_and_log('Input generated for {} reactions'.format(i),flowNN_loc)
+            i+=1
+        #Make sure the vectors are in the correct format
+        input_reaction_test =  np.array(input_reaction_test).astype('float32')
+        input_reaction_train = np.array(input_reaction_train).astype('float32')
+        input_solvent_test = np.array(input_solvent_test).astype('float32')
+        input_solvent_train = np.array(input_solvent_train).astype('float32')
+        input_reagent_test = np.array(input_reagent_test).astype('float32')
+        input_reagent_train = np.array(input_reagent_train).astype('float32')
+        output_test = np.array(output_test)
+        output_train = np.array(output_train)
+        output_test = output_test.astype('float32')
+        output_train = output_train.astype('float32')
+        data_set = {
+                    'input_test_reaction':input_reaction_test,
+                    'input_train_reaction': input_reaction_train,
+                    'input_test_solvent': input_solvent_test,
+                    'input_train_solvent': input_solvent_train,
+                    'input_test_reagent': input_reagent_test,
+                    'input_train_reagent': input_reagent_train,
+                    'output_test': output_test,
+                    'output_train': output_train,
+                    'weights': np.array(weights),
+                    'ids_test': ids_test,
+                    'ids_train':ids_train
+                    }
+        
+        #############################################################################
+        #If desired, write the processed data to a file
+        #############################################################################
+        if write_input_to_file:
+            if all_data:
+                with open(gc.FLOW_CONDITIONS4['data_loc'], 'wb') as file:
+                    pickle.dump(data_set, file, gc.protocol)
+                    MyLogger.print_and_log('Flow condition data written to {}'.format(gc.FLOW_CONDITIONS4['data_loc']), flowNN_loc)
             else:
-                weights.append(1)
-    return (input_reaction_test, input_reaction_train, input_solvent_test,input_solvent_train, input_reagent_test, input_reagent_train, output_test, output_train,input_test_doc,input_train_doc, np.array(weights))
+                with open(gc.FLOW_CONDITIONS4_50['data_loc'], 'wb') as file:
+                    pickle.dump(data_set, file, gc.protocol)
+                    MyLogger.print_and_log('Flow condition data written to {}'.format(gc.FLOW_CONDITIONS4_50['data_loc']), flowNN_loc)
+                    
+    return data_set
 
 def train_model(model,X_train, Y_train, weights, batch_size, epochs):
     model.fit(X_train, Y_train, batch_size=batch_size, epochs=epochs, sample_weight = weights, verbose=1)
@@ -279,119 +374,132 @@ def tests():
     from pymongo import MongoClient
     
     MyLogger.initialize_logFile()
-    client = MongoClient(gc.MONGO['path'], gc.MONGO['id'], connect = gc.MONGO['connect'])
-    db2 = client[gc.FLOW_CONDITIONS4['database']]
-    flow_database = None
-    if all_data:
-        flow_database = db2[gc.FLOW_CONDITIONS4['collection']]
+    
+    #Obtain data
+    MyLogger.print_and_log('Starting to read data', flowNN_loc)
+    if read_inputs_from_file:
+        data = get_data(train_test_split=0.9, read_inputs_from_file=True)
+    elif read_raw_data_from_file:
+        data = get_data(train_test_split=0.9, read_raw_from_file=True, write_input_to_file = write_input_data_to_file, write_raw_to_file=write_raw_data_to_file)
     else:
-        flow_database = db2[gc.FLOW_CONDITIONS4_50['collection']]
-    instance_database = db2[gc.INSTANCES['collection']]
-    chemicals = db2[gc.CHEMICALS['collection']]
-    reactions = db2[gc.REACTIONS['collection']]
-    (input_reaction_test, input_reaction_train, input_solvent_test,input_solvent_train, input_reagent_test, input_reagent_train, output_test, output_train,input_test_doc,input_train_doc, weights) = get_data(flow_database = flow_database,reactions = reactions,chemicals=chemicals, train_test_split=0.9, write_to_file=True)
-    #(input_test, input_train, output_test, output_train,input_test_doc,input_train_doc, weights) = get_data_workaround(reactions = reactions,chemicals=chemicals, train_test_split=0.9, write_to_file=True)
-    #(input_test, input_train, output_test, output_train,input_test_doc,input_train_doc, weights) = get_data(train_test_split=0.9, read_from_file=True)
-    input_train = [input_reaction_train, input_solvent_train, input_reagent_train]
-    input_test = [input_reaction_test, input_solvent_test, input_reagent_test]
-    layer_nodes = [128,64,32,4, 2]
-    #layer_nodes = [256,128,32,2]
+        client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', gc.MONGO['id'], connect = gc.MONGO['connect'])
+        db2 = client[gc.FLOW_CONDITIONS4['database']]
+        flow_database = None
+        MyLogger.print_and_log('Initialized databases', flowNN_loc)
+        
+        if all_data:
+            flow_database = db2[gc.FLOW_CONDITIONS4['collection']]
+        else:
+            flow_database = db2[gc.FLOW_CONDITIONS4_50['collection']]
+        instance_database = db2[gc.INSTANCES['collection']]
+        chemicals = db2[gc.CHEMICALS['collection']]
+        reactions = db2[gc.REACTIONS['collection']]
+        data = get_data(flow_database = flow_database, reactions = reactions,chemicals=chemicals, 
+                        train_test_split=0.9, read_raw_from_file=False, write_raw_to_file=write_raw_data_to_file, 
+                        write_input_to_file=write_input_data_to_file)
+    
+    input_train = [data['input_train_reaction'], data['input_train_solvent'], data['input_train_reagent']]
+    input_test = [data['input_test_reaction'], data['input_test_solvent'], data['input_test_reagent']]
+    
+    MyLogger.print_and_log('Data read, setting up model.', flowNN_loc)
+    
+    #Get a trained model: either by loading from saved file or by retraining.
     if FILE:
         model = model_from_file(full = all_data)
     else:
-        model = set_up_model_structure(layer_nodes = layer_nodes, input = gc.fingerprint_bits*2)
-        train_model(model, input_train, output_train, weights, 32, 10)
-        print test_model(model, input_test, output_test)
+        model = set_up_model_structure(activation=activation_function, loss=loss, optimizer=optimizer)
+        train_model(model, input_train, data['output_train'], data['weights'], batch_size, epochs)
+        print test_model(model, input_test, data['output_test'])
     if SAVE:
         try:
             model_to_file(model, full = all_data)
         except Exception as e:
             print e
-        
     
-    #print model.predict(np.array([input_test[165]]))
-    print output_test[165]
-    print input_test_doc[165]
-    #instance = instance_database.find_one({'RX_ID':3124853})
-    #trial = get_condition_input_from_instance(instance, chemicals, astwo = True, use_new = True)
-    #print model.predict(trial)
-    '''
-    smiles = ['O','[Cs+].[F-]']
-    print 'Should be plausible: {}'.format(model.predict(np.array([get_condition_input_from_smiles(smiles)])))
-    smiles = ['CC#N','[Cs+].[F-]']
-    print 'Should not be plausible: {}'.format(model.predict(np.array([get_condition_input_from_smiles(smiles)])))
-    smiles = ['O','']
-    print 'Should be close to certain: {}'.format(model.predict(np.array([get_condition_input_from_smiles(smiles)])))
-    instance = flow_database.find_one({'flow':True})
-    id = instance['RX_ID']
-    cont = True
-    inp = None
-    try:
-        while cont:
-            instance = flow_database.find_one({'$and':[{'flow':True},{'RX_ID':{'$gt':id}}]})
-            id = instance['RX_ID']
-            inp = get_condition_input_from_instance(instance, chemicals, astwo = True, use_new = True)
-            if inp == None:
-                cont= True
-            else:
-                cont =False
-    except ValueError:
-        pass
-    print '{} @ T:{} should be true: {}'.format(id, instance['RXD_T'], model.predict(np.array([inp])))
+    MyLogger.print_and_log('Trained model loaded.', flowNN_loc)
     
-    inp = None
-    try:
-        while cont:
-            instance = flow_database.find_one({'$and':[{'flow':False},{'RX_ID':{'$gt':id}}]})
-            id = instance['RX_ID']
-            inp = get_condition_input_from_instance(instance, chemicals, astwo = True, use_new = True)
-            if inp == None:
-                cont= True
-            else:
-                cont =False
-    except ValueError:
-        pass
-    print '{} @ T:{} should be false: {}'.format(id,instance['RXD_T'], model.predict(np.array([inp])))
+    #Test on a specific reaction
+    MyLogger.print_and_log('Prediction is: {}'.
+                           format(model.predict(
+                                    [data['input_test_reaction'][165].reshape(1,1,rxn_compressed_size), 
+                                    data['input_test_solvent'][165].reshape(1,1,s_fingerprint_size), 
+                                    data['input_test_reagent'][165].reshape(1,1,r_fingerprint_size)]
+                                )),
+                           flowNN_loc
+                           )
     
+    MyLogger.print_and_log('Prediction should be: {}'.format(data['output_test'][165]),flowNN_loc)
+    MyLogger.print_and_log('For reaction: {}'.format(data['ids_test']),flowNN_loc)
     
+    # Run test on the full reactions database
     if FullTest:
         FP = 0
         FN = 0
         UD = 0
         CP = 0
         CN = 0
+        test_no = len(data['ids_test'])
+        train_no = len(data['ids_train'])
         #Use full database for this test
+        client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', gc.MONGO['id'], connect = gc.MONGO['connect'])
+        db2 = client[gc.FLOW_CONDITIONS4['database']]
         flow_database = db2[gc.FLOW_CONDITIONS4['collection']]
         reaction_database = db2[gc.REACTIONS['collection']]
-        for i,instance in enumerate(flow_database.find()):
-            score = model.predict(np.array([get_condition_input_from_instance(instance,chemicals, astwo = True, use_new = True)]))
-            #print 'Should be {}, is {}'.format(instance['flow'], score)
-            if abs(score[0][0][0] - (1 if instance['flow'] else 0)) > 0.6666:
-                if abs(score[0][0][0] - (1 if instance['flow'] else 0)) > 0.85:
-                    print 'Reaction #{} with Reaxys ID {} should be {}, is {}'.format(i, instance['_id'], instance['flow'], score)
-                    conditions = get_input_condition_as_smiles(instance, chemicals)
-                    reaction_smiles = get_reaction_as_smiles(instance, reaction_database, chemicals)
-                    print '\tSmiles of failed reaction: {}'.format(reaction_smiles)
-                    print '\tSolvent: {}\tReagent: {}\tCatalyst: {}'.format(conditions[0],conditions[1],conditions[2])
-                if instance['flow']:
+        
+        for i in range(test_no + train_no):
+            reac = None
+            solv = None
+            reag = None
+            id = None
+            if i<test_no:
+                reac = data['input_test_reaction'][i]
+                solv = data['input_test_solvent'][i]
+                reag = data['input_test_reagent'][i]
+                flow = data['output_test'][i]
+                id = data['id_test'][i]
+                
+            else:
+                reac = data['input_train_reaction'][i-test_no]
+                solv = data['input_train_solvent'][i-test_no]
+                reag = data['input_train_reagent'][i-test_no]
+                flow = data['output_train'][i-test_no]
+                id = data['id_train'][i-test_no]
+                
+            score = model.predict([reac, solv, reag])[0][0][0] 
+            
+            #Output format to export to excel:
+            #Format:
+            #Reaction ID reaxys /t Reaction smiles /t Reported compatibility /t Predicted Compatibility /t Undecided /t False Negative /t False Positive
+            text_line = ['{}'.format(id),'{}'.format(reac), '{}'.format(flow), '{}'.format(score), 'No', 'No', 'No']
+            
+            #Wrong prediction
+            if abs(score - flow) > upper_threshold:
+                if flow:
                     FN += 1
+                    text_line[5] = 'Yes'
                 else:
                     FP += 1
-            if abs(score[0][0][0] - (1 if instance['flow'] else 0)) < 0.6666 and abs(score[0][0][0] - (1 if instance['flow'] else 0)) > 0.3333:
-                UD += 1
+                    text_line[6] = 'Yes'
             
-            if abs(score[0][0][0] - (1 if instance['flow'] else 0)) < 0.6666 and abs(score[0][0][0] - (1 if instance['flow'] else 0)) < 0.3333:
+            #Undecided prediction 
+            elif abs(score - flow) > lower_threshold:
+                UD += 1
+                text_line[4] = 'Yes'
+            
+            #Correct prediction
+            else:
                 if instance['flow']:
                     CP += 1
                 else:
                     CN += 1
-                
-        print 'False positives: {}'.format(FP)
-        print 'False negatives: {}'.format(FN)      
-        print 'Correct positives: {}'.format(CP)
-        print 'Correct negatives: {}'.format(CN)
-        print 'Number of undecided outcomes: {}'.format(UD)
-        '''
+            MyLogger.print_and_log('\t'.join(text_line),flowNN_loc)
+            
+        MyLogger.print_and_log('False positives: {}'.format(FP),flowNN_loc)
+        MyLogger.print_and_log('False negatives: {}'.format(FN),flowNN_loc)
+        MyLogger.print_and_log('Correct positives: {}'.format(CP),flowNN_loc)
+        MyLogger.print_and_log('Correct negatives: {}'.format(CN),flowNN_loc)
+        MyLogger.print_and_log('Number of undecided outcomes: {}'.format(UD),flowNN_loc)
+        
 if __name__ == '__main__':
     tests()
     

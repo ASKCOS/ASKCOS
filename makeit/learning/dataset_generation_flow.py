@@ -49,16 +49,17 @@ def get_all_data():
         number = reaction['RX_NVAR']
         #filter out reactions that don't have smiles.
         smiles = get_reaction_as_smiles(doc, reactions, chemicals)
-        if smiles == 'NONE':
+        if smiles == 'NONE' or (not smiles):
             missing_smiles += 1
             print '@{}: Reaction {} does not have SMILES information.'.format(round((time.time()-start_time)*1000)/1000, rx)
             continue
-        split_smiles = smiles.split('>>')
-        for smile in split_smiles:
-            if not smile:
-                missing_smiles += 1
-                print '@{}: Reaction {} does not have SMILES information.'.format(round((time.time()-start_time)*1000)/1000, rx)
-                continue
+        else:
+            split_smiles = smiles.split('>>')
+            for smile in split_smiles:
+                if not smile:
+                    missing_smiles += 1
+                    print '@{}: Reaction {} does not have SMILES information.'.format(round((time.time()-start_time)*1000)/1000, rx)
+                    continue
         temp = doc['RXD_T']
         # use lower bound of temperature
         try:
@@ -70,8 +71,13 @@ def get_all_data():
         reagent = doc['RXD_RGTXRN']
         catalyst = doc['RXD_CATXRN']
         solrgtcat = get_input_condition_as_smiles(doc, chemicals, asone = True, check = True)
-        conditions_mol = Chem.MolFromSmiles(solrgtcat)
-        if (not solvent and not reagent and not catalyst) or not solrgtcat or not conditions_mol:
+        conditions_mol = None
+        try:
+            conditions_mol = Chem.MolFromSmiles(solrgtcat)
+        except:
+            pass
+        
+        if (not solvent and not reagent and not catalyst) or 'NONE' in solrgtcat or not conditions_mol:
             #skip this one: we need conditions to assess compatibility.
             print '@{}: Reaction {} does not have conditional information.'.format(round((time.time()-start_time)*1000)/1000, rx)
             flow_cond += 1
@@ -84,6 +90,7 @@ def get_all_data():
             continue
         #only go through each reaction once.
         if rx not in encountered:
+            comp_smiles = Chem.MolToSmiles(conditions_mol)
             encountered.append(rx)
             doc['flow'] = True
             flow_database.insert(doc)
@@ -107,6 +114,7 @@ def get_all_data():
                         catalyst_a = associate['RXD_CATXRN']
                         solrgtcat = get_input_condition_as_smiles(associate, chemicals, asone = True, check = True)
                         conditions_mol = Chem.MolFromSmiles(solrgtcat)
+                        
                         temp = doc['RXD_T']
                         # use lower bound of temperature
                         try:
@@ -121,7 +129,9 @@ def get_all_data():
                             ex_temp +=1
                         else:
                             #print '{}, {}'.format(tag, associate)
-                            flow = False
+                            # if conditions are idential as those for the flow labeled reaction: label this one as flow too
+                            comp_smiles2 = Chem.MolToSmiles(conditions_mol)
+                            flow = comp_smiles == comp_smiles2
                             
                             #extract conditions as a single string.
                             condition = str(associate['RXD_COND'])
@@ -131,6 +141,8 @@ def get_all_data():
                             reaction_count +=1
                             associate['flow_condition'] = solrgtcat
                             associate['flow'] = flow
+                            if flow:
+                                flow_count += 1
                             flow_database.insert(associate)
         else:
             print '@{}: Reaction {} has already been encountered.'.format(round((time.time()-start_time)*1000)/1000, rx)
@@ -183,16 +195,17 @@ def get_50_50_data():
         number = reaction['RX_NVAR']
         #filter out reactions that don't have smiles.
         smiles = get_reaction_as_smiles(doc, reactions, chemicals)
-        if smiles == 'NONE':
+        if 'NONE' in smiles:
             missing_smiles += 1
             print '@{}: Reaction {} does not have SMILES information.'.format(round((time.time()-start_time)*1000)/1000, rx)
             continue
-        split_smiles = smiles.split('>>')
-        for smile in split_smiles:
-            if not smile:
-                missing_smiles += 1
-                print '@{}: Reaction {} does not have SMILES information.'.format(round((time.time()-start_time)*1000)/1000, rx)
-                continue
+        else:    
+            split_smiles = smiles.split('>>')
+            for smile in split_smiles:
+                if not smile:
+                    missing_smiles += 1
+                    print '@{}: Reaction {} does not have SMILES information.'.format(round((time.time()-start_time)*1000)/1000, rx)
+                    continue
         temp = doc['RXD_T']
         # use lower bound of temperature
         try:
@@ -204,8 +217,14 @@ def get_50_50_data():
         reagent = doc['RXD_RGTXRN']
         catalyst = doc['RXD_CATXRN']
         solrgtcat = get_input_condition_as_smiles(doc, chemicals, asone = True, check = True)
-        conditions_mol = Chem.MolFromSmiles(solrgtcat)
-        if (not solvent and not reagent and not catalyst) or not solrgtcat or not conditions_mol:
+        conditions_mol = None
+        
+        try:
+            conditions_mol = Chem.MolFromSmiles(solrgtcat)
+        except:
+            pass
+        
+        if (not solvent and not reagent and not catalyst) or ('NONE' in solrgtcat) or not conditions_mol:
             #skip this one: we need conditions to assess compatibility.
             print '@{}: Reaction {} does not have conditional information.'.format(round((time.time()-start_time)*1000)/1000, rx)
             flow_cond += 1
@@ -218,6 +237,7 @@ def get_50_50_data():
             continue
         #only go through each reaction once.
         if rx not in encountered:
+            comp_smiles = Chem.MolToSmiles(conditions_mol)
             encountered.append(rx)
             doc['flow'] = True
             flow_database.insert(doc)
@@ -256,14 +276,14 @@ def get_50_50_data():
                             ex_temp +=1
                         else:
                             #print '{}, {}'.format(tag, associate)
-                            flow = False
-                            
                             #extract conditions as a single string.
                             condition = str(associate['RXD_COND'])
+                            comp_smiles2 = Chem.MolToSmiles(conditions_mol)
+                            flow = bool((comp_smiles == comp_smiles2) or flowsearch.search(condition))                          
                             if flow_entry_balance >= 0:
-                                if flowsearch.search(condition):
+                                if flow:
                                     flow_entry_balance += 1
-                                    flow = True
+                                    flow_count += 1
                                 else:
                                     flow_entry_balance -= 1
                                 
@@ -285,5 +305,5 @@ def get_50_50_data():
     print 'Total number of associates that are missing: {}'.format(missing_count)
     print "Total number of associates that don't have conditions specified: {}".format(missing_solvent_count)
 if __name__ == '__main__':
-    #get_50_50_data()
-    get_all_data()
+    get_50_50_data()
+    #get_all_data()
