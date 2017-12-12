@@ -33,6 +33,10 @@ def smi_to_fp(smi, radius=FP_rad, nBits=FP_len):
 def sigmoid(x):
   return 1 / (1 + math.exp(-x))
 
+def softmax(x):
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
+
 class RetroTempPrioritizer():
     def __init__(self, score_scale=score_scale):
         self.vars = []
@@ -71,7 +75,10 @@ class RetroTempPrioritizer():
     def get_topk_from_mol(self, mol, k=100):
         fp = mol_to_fp(mol).astype(np.float32)
         cur_scores = self.apply(fp)
-        return list(cur_scores.argsort()[-k:][::-1])
+        indices = list(cur_scores.argsort()[-k:][::-1])
+        cur_scores.sort()
+        probs = softmax(cur_scores)
+        return probs[-k:][::-1], indices
 
 
 if __name__ == '__main__':
@@ -79,5 +86,5 @@ if __name__ == '__main__':
     model.restore(os.path.join(project_root, 'models', '5d4M_Reaxys', 'model.ckpt-105660.as_numpy.pickle'))
     smis = ['CCCOCCC', 'CCCNc1ccccc1']
     for smi in smis:
-        lst = model.get_topk_from_smi(smi)
+        probs, lst = model.get_topk_from_smi(smi)
         print('{} -> {}'.format(smi, lst))
