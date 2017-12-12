@@ -48,7 +48,8 @@ from tqdm import tqdm
 from pymongo import MongoClient    # mongodb plugin
 client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', 27017)
 db = client['uspto']
-TRANSFORM_DB = db['transforms_retro_v1_allunmapped']
+TRANSFORM_DB = db['transforms_retro_v2_allunmapped']
+REACTION_DB = db['reactions']
 v = False
 USE_STEREOCHEMISTRY = True 
 INCLUDE_ALL_UNMAPPED_REACTANT_ATOMS = True
