@@ -45,7 +45,7 @@ class FocusedTransformer(Transformer):
         print('Performing retro on %s' % smiles)
 
         # Get list of template priorities
-        template_nums = self.prioritizer.get_topk_from_smi(smiles, k=k)
+        probs, template_nums = self.prioritizer.get_topk_from_smi(smiles, k=k)
         print('Got list of template priorities')
 
         # Try each in turn - keep sorted by est. applicability
@@ -56,6 +56,7 @@ class FocusedTransformer(Transformer):
                 # add_precursor(precursor, Pricer=self.Pricer)
                 prec_list.append({
                     'template_rank': i+1,
+                    'template_prob': probs[i],
                     'smiles_list': precursor.smiles_list,
                     'template_id': self.templates[template_num]['_id'],
                     'num_examples': self.templates[template_num]['count']
@@ -100,7 +101,7 @@ if __name__ == '__main__':
         if prompt == 'done': break
         try:
             start = time()
-            prec_list = RetroFocusedTransformerChiral.perform_retro(prompt.strip(), k=5000, breakif=100)
+            prec_list = RetroFocusedTransformerChiral.perform_retro(prompt.strip(), k=100, breakif=100)
             print('RESULTS CALCULATED IN {:.3f} SECONDS'.format(time()-start))
             for prec in prec_list[:25]:
                 print(prec)
