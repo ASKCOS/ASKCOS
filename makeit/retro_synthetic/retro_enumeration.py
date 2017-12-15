@@ -63,4 +63,4 @@ class RetroPrecursor:
         Calculate the score of this step as the worst of all precursors,
         plus some penalty for a large necessary_reagent
         '''
-        self.retroscore = prioritizer.give_priority_score(self)
+        self.retroscore = prioritizer.get_priority(self)
