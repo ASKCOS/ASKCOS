@@ -10,8 +10,16 @@ from forward_enumeration import *
 from pymongo import MongoClient
 from interfaces.template_transformer import TemplateTransformer
 from interfaces.forward_enumerator import ForwardEnumerator
+from prioritization.precursor_prioritization.heuristic_prioritizer import HeuristicPrioritizer
+from prioritization.precursor_prioritization.scs_prioritizer import SCSPrioritizer
+from prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
+from prioritization.template_prioritization.relevance_prioritizer import RelevancePrioritizer
+from prioritization.default_prioritizer import DefaultPrioritizer
+from makeit.utilities.reactants import clean_reactant_mapping
+from makeit.utilities.outcomes import summarize_reaction_outcome
 from rdchiral.main import rdchiralRun
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
+
 forward_transformer_loc = 'forward_transformer'
 
 class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
@@ -20,31 +28,100 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
     one-step retrosyntheses for a given molecule.
     '''
 
-    def __init__(self, mincount=4, TEMPLATE_DB = None, loc = False, done = None):
+    def __init__(self, mincount=0, TEMPLATE_DB = None, loc = False, done = None, celery = False):
         '''
         Initialize a transformer.
         TEMPLATE_DB: indicate the database you want to use (def. none)
         loc: indicate that local file data should be read instead of online data (def. false)
         '''
-        self.TEMPLATE_DB = TEMPLATE_DB
+        
         self.done = done
         self.mincount = mincount
         self.templates = []
         self.id_to_index = {}
+        self.celery = celery
+        self.template_prioritizers = {}
+        self.TEMPLATE_DB = TEMPLATE_DB
+    
+    def template_count(self):
+        return len(self.templates)
+    
+    def get_prioritizers(self, template_prioritizer):
+        if not template_prioritizer:
+            MyLogger.print_and_log('Cannot run the synthetic transformer without a template prioritization method. Exiting...', forward_transformer_loc, level = 3)
+        if template_prioritizer in self.template_prioritizers:
+            template = self.template_prioritizers[template_prioritizer]
+        else:
+            if template_prioritizer == gc.popularity:
+                template = PopularityPrioritizer()
+            elif template_prioritizer == gc.relevance:
+                template = RelevancePrioritizer()
+            elif template_prioritizer == gc.natural:
+                template = DefaultPrioritizer()
+            else:
+                template = DefaultPrioritizer()
+                MyLogger.print_and_log('Prioritization method not recognized. Using natural prioritization.', forward_transformer_loc, level = 1)
+                
+            template.load_model()
+            self.template_prioritizers[template_prioritizer] = template
+    
+        self.template_prioritizer = template
         
-    def get_outcomes(self, smiles, singleonly = False, stop_if = False):
+    def get_outcomes(self, smiles, mincount, template_prioritization, start_at = -1, end_at = -1, 
+                     singleonly = True, stop_if = False, chiral = False):
         '''
         Each candidate in self.result.products is of type ForwardProduct
         '''
-        return self.perform_transformations(smiles, singleonly=singleonly, stop_if=stop_if).products
+        self.get_prioritizers(template_prioritization)
+        prioritized_templates = self.template_prioritizer.get_priority((self.templates, smiles))
+        self.mincount = mincount
+        self.start_at = start_at
+        self.singleonly = singleonly
+        self.stop_if = stop_if
         
-    def load(self, lowe=False, refs=False, efgs=False):
+        if end_at == -1 or end_at >= len(self.templates):
+            self.end_at = len(self.templates)
+        else:
+            self.end_at = end_at
+        self.chiral = chiral
+         # Define mol to operate on
+        mol = Chem.MolFromSmiles(smiles)
+        clean_reactant_mapping(mol)
+        reactants_smiles = Chem.MolToSmiles(mol)
+        smiles = Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY) # to canonicalize
+        # Initialize results object
+        if self.celery:
+            result = []
+        else:
+            result = ForwardResult(smiles)
+        
+        for i in range(self.start_at,self.end_at):
+            #only use templates between the specified boundaries.
+            template = prioritized_templates[i]
+            if template['count'] > mincount:
+                products = self.apply_one_template(mol, smiles, template, singleonly=singleonly, stop_if=stop_if)
+                
+                if self.celery:
+                    for product in products:
+                        result.append({'smiles_list':product.smiles_list,
+                           'smiles':product.smiles,
+                           'edits':product.edits,
+                           'template_ids':product.template_ids,
+                           'num_examples':product.num_examples
+                           })
+                else:
+                    result.add_products(products)
+        
+        return (smiles,result)
+        
+    def load(self, chiral = False, lowe=False, refs=False, efgs=False):
         '''
         Loads and parses the template database to a useable one
         '''
+        MyLogger.print_and_log('Loading synthetic transformer, including all templates with more than {} hits'.format(self.mincount), forward_transformer_loc)
         # Save collection TEMPLATE_DB
         if not self.TEMPLATE_DB:
-            self.load_databases()
+            self.load_databases(chiral)
         
         if self.mincount and 'count' in self.TEMPLATE_DB.find_one(): 
             filter_dict = {'count': { '$gte': self.mincount}}
@@ -107,94 +184,96 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
             self.templates.append(template)
 
         self.num_templates = len(self.templates)
-        self.reorder()
         
-        MyLogger.print_and_log('Synthetic transformer has been loaded.', forward_transformer_loc)
+        MyLogger.print_and_log('Synthetic transformer has been loaded - using {} templates'.format(self.num_templates), forward_transformer_loc)
         
         #multiprocessing notify done
         if self.done == None:
             pass
         else:
             self.done.value = 1
-        
-
-    def perform_transformations(self, smiles, singleonly = False, stop_if = False):
-        '''
-        Performs a one-step retrosynthesis given a SMILES string of a
-        target molecule by applying each transformation template
-        sequentially.
-        '''
-
-        # Define mol to operate on
-        mol = Chem.MolFromSmiles(smiles)
-        smiles = Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY) # to canonicalize
-        # Initialize results object
-        result = ForwardResult(smiles)
-        for template in self.top_templates():
-            for product in self.apply_one_template(mol, smiles, template, singleonly = singleonly, stop_if = stop_if):
-                result.add_product(product)
-                
-        return result
+              
     
-    def apply_one_template(self, mol, smiles, template, singleonly = False, stop_if = False, chiral = False):
+    def apply_one_template(self, mol, smiles, template, singleonly=True, stop_if=False):
         '''
-        Takes a mol object and applies a single template. Mol object should have property molAtomMapNumber:
-        react_mol = clean_reactant_mapping(react_mol)
+        Takes a mol object and applies a single template. 
         '''
-        results = []
+
         try:
             if template['product_smiles']:
                 react_mol = Chem.MolFromSmiles(smiles + '.' + '.'.join(template['product_smiles']))
             else:
                 react_mol = mol
             
-            if chiral: 
+            if self.chiral: 
             #RDCHIRAL still needs some testing?
                 reaction = rdchiralReaction(str('(' + str(template['reaction_smarts']).replace('>>', ')>>')))
                 react_mol = rdchiralReactants(smiles)
                 outcomes = rdchiralRun(template['rxn_f'], react_mol)
             else:
                 outcomes = template['rxn_f'].RunReactants([react_mol])
-            
+
         except Exception as e:
             MyLogger.print_and_log('Failed transformation for {} because of {}'.format(template['reaction_smarts'], e), forward_transformer_loc, level = 1)
             return []
-        for j, outcome in enumerate(outcomes):
-            try:
-                for x in outcome:
-                    x.UpdatePropertyCache()
-                    Chem.SanitizeMol(x)
-                    [a.SetProp('molAtomMapNumber', a.GetProp('old_molAtomMapNumber')) \
-                    for a in x.GetAtoms() \
-                    if 'old_molAtomMapNumber' in a.GetPropsAsDict()]
-            except Exception as e:
-                #print(e) # fail quietly
-                continue
-            smiles_list = []
+        
+        results = []
+        if not outcomes:
+            pass
+        else:
+            for outcome in outcomes:
+                smiles_list = []
+                outcome = outcome[0] # all products represented as single mol by transforms
+                
+                try:
+                    outcome.UpdatePropertyCache()
+                    Chem.SanitizeMol(outcome)
+                except Exception as e:
+                    MyLogger.print_and_log('Non-sensible molecule constructed by template {}'.format(template['reaction_smarts']), forward_transformer_loc, level = 1)
+                    continue
+                [a.SetProp(str('molAtomMapNumber'), a.GetProp(str('old_molAtomMapNumber'))) \
+                    for a in outcome.GetAtoms() \
+                    if str('old_molAtomMapNumber') in a.GetPropsAsDict()]
             
-            for x in outcome:                
-                smiles_list.extend(Chem.MolToSmiles(x, isomericSmiles = USE_STEREOCHEMISTRY).split('.'))
-            if template['intra_only'] and len(smiles_list) > 1:
-                continue
+                # Reduce to largest (longest) product only
+                candidate_smiles = Chem.MolToSmiles(outcome, isomericSmiles=True)
+                smiles_list = candidate_smiles.split('.')
+                if singleonly:
+                    candidate_smiles = max(candidate_smiles.split('.'), key = len)
+                outcome = Chem.MolFromSmiles(candidate_smiles)
+                
+                # Find what edits were made
+                edits = summarize_reaction_outcome(react_mol, outcome)
+
+                # Remove mapping before matching
+                [x.ClearProp(str('molAtomMapNumber')) for x in outcome.GetAtoms() \
+                    if x.HasProp(str('molAtomMapNumber'))] # remove atom mapping from outcome
+
+                # Overwrite candidate_smiles without atom mapping numbers
+                candidate_smiles = Chem.MolToSmiles(outcome, isomericSmiles=True)
+                
+                product = ForwardProduct(
+                    smiles_list = sorted(smiles_list),
+                    smiles = candidate_smiles,
+                    template_id = str(template['_id']),
+                    num_examples = template['count'],
+                    edits = edits
+                    )
+                
+                if candidate_smiles == smiles: continue # no transformation
+                if stop_if:
+                    if stop_if in product.smiles_list: 
+                        print('Found true product - skipping remaining templates to apply')
+                        return True
+                else:
+                    results.append(product)
+            # Were we trying to stop early?
+            if stop_if: 
+                return False
             
-            #reduce the outcome to only the longest one
-            if singleonly: smiles_list = [max(smiles_list, key = len)]
-            product = ForwardProduct(
-                smiles_list = sorted(smiles_list),
-                template_id = template['_id'],
-                num_examples = template['count']
-                )
-            if '.'.join(product.smiles_list) == smiles: continue # no transformation
-            if stop_if:
-                if stop_if in product.smiles_list: 
-                    print('Found true product - skipping remaining templates to apply')
-                    return True
-            else:
-                results.append(product)
-        # Were we trying to stop early?
-        if stop_if: 
-            return False
         return results
+    
+    
     
     def dump_to_file(self, file_name):
         '''
@@ -222,27 +301,30 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
             self.load_databases()
 
         
-    def load_databases(self):
+    def load_databases(self, chiral):
         db_client = MongoClient(gc.MONGO['path'],gc.MONGO['id'], connect = gc.MONGO['connect'])
         self.TEMPLATE_DB = db_client[gc.SYNTH_TRANSFORMS['database']][gc.SYNTH_TRANSFORMS['collection']]
     
-    def reorder(self):
+    def top_templates(self, target):
         '''
-        Re-orders the list of templates (self.templates) according to 
-        field 'count' in descending order. This means we will apply the
-        most popular templates first
+        Generator to return only top templates. 
+        First applies the template prioritization method and returns top of that list.
         '''
-        self.num_templates = len(self.templates)
-        self.templates[:] = [x for x in sorted(self.templates, key = lambda z: z['count'], reverse = True)]
-        self.id_to_index = {template['_id']: i for i, template in enumerate(self.templates)}
-
-    def top_templates(self):
-        '''Generator to return only top templates. 
-        Assumes templates are already sorted'''
-        for template in self.templates:
+        prioritized_templates = self.template_prioritizer.get_priority((self.templates, target))
+        counter = 0
+        for template in prioritized_templates:
+            # only yield template if between start and end points and if mincount criterium is fulfilled.
+            # do not break on count<mincount: assumes sorted by popularity, not necessarily true
             if template['count'] < self.mincount: 
-                break
-            yield template
+                counter += 1
+            elif counter<self.start_at:
+                counter += 1
+            elif counter>self.end_at:
+                counter += 1
+            else:
+                counter += 1
+                yield template
+
             
     def lookup_id(self, template_id):
         '''
@@ -250,4 +332,10 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
         '''
         if template_id in self.id_to_index:
             return self.templates[self.id_to_index[template_id]]     
-    
+if __name__ == '__main__':
+    MyLogger.initialize_logFile()
+    ft = ForwardTransformer(mincount = 100)
+    ft.load()
+    smiles, out = ft.get_outcomes("CCC(=O)O.CCCCN", 100, start_at=-1, end_at=-1, template_prioritization = gc.popularity)
+    for outp in out.products:
+        print(outp.smiles)

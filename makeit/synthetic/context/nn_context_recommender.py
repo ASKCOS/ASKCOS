@@ -1,5 +1,7 @@
 import global_config as gc
 from pymongo import MongoClient
+import rdkit.Chem as Chem
+from rdkit.Chem import AllChem
 import cPickle as pickle
 import numpy as np
 import random
@@ -8,12 +10,14 @@ from sklearn.externals import joblib
 import utilities.strings as strings
 import utilities.fingerprinting as fp
 from utilities.i_o.logging import MyLogger
+from interfaces.context_recommender import ContextRecommender
 contextRecommender_loc = 'contextRecommender'
 
 class NNContextRecommender(ContextRecommender):
     """Reaction condition predictor based on Nearest Neighbor method"""
 
-    def __init__(self, max_total_contexts = 10, singleSlvt=True, with_smiles=True, done = None):
+    def __init__(self, max_total_contexts = 10, singleSlvt=True, with_smiles=True, done = None, REACTION_DB = None,
+                 CHEMICAL_DB=None, INSTANCE_DB= None):
         """
         :param singleSlvt:
         :param with_smiles:
@@ -28,6 +32,9 @@ class NNContextRecommender(ContextRecommender):
         self.max_int = 15
         self.max_context = 2
         self.done = done
+        self.REACTION_DB = REACTION_DB
+        self.CHEMICAL_DB = CHEMICAL_DB
+        self.INSTANCE_DB = INSTANCE_DB
     
     def load(self, model_path = "", info_path = ""):
         self.load_databases()
@@ -44,14 +51,16 @@ class NNContextRecommender(ContextRecommender):
     def load_nn_model(self, model_path = "", info_path = ""):
         """Loads the nearest neighbor model"""
         
+        
         if not model_path:      
             MyLogger.print_and_log('Cannot load nearest neighbor context recommender without a specific path to the model. Exiting...', contextRecommender_loc, level = 3)
         if not info_path:
             MyLogger.print_and_log('Cannot load nearest neighbor context recommender without a specific path to the model info. Exiting...', contextRecommender_loc, level = 3)
         # Load the nearest neighbor model
+        
         with open(model_path, 'rb') as infile:
             self.nnModel = joblib.load(infile)
-
+            
         # Load the rxn ids associated with the nearest neighbor model
         rxd_ids = []
         rxn_ids = []
@@ -83,12 +92,15 @@ class NNContextRecommender(ContextRecommender):
         db = db_client[gc.CHEMICALS['database']]
         self.CHEMICAL_DB = db[gc.CHEMICALS['collection']]
         
-    def get_top_condition(self, rxn):
-        return get_n_conditions(rxn, n = 1)
-        
-    def get_n_conditions(self, rxn, n=10):
-        """Reaction condition recommendations for a rxn (SMILES) from top n NN"""
-        
+    
+    def get_n_conditions(self, rxn, n=10, singleSlvt=True, with_smiles=True):
+        """
+        Reaction condition recommendations for a rxn (SMILES) from top n NN
+        Returns the top n parseable conditions.
+        """
+        self.singleSlvt = singleSlvt
+        self.with_smiles = with_smiles
+
         #If the databases haven't been loaded into the object yet, do so.
         if not (self.REACTION_DB and self.INSTANCE_DB and self.CHEMICAL_DB):
             self.load_databases()
@@ -103,7 +115,7 @@ class NNContextRecommender(ContextRecommender):
             
             return self.n_rxn_condition(n, dists=dists[0], idx=ids[0])
         except Exception as e:
-            print('Rxn {} with an exception: {}'.format(rxn, e))
+            MyLogger.print_and_log('Rxn {} with an exception: {}'.format(rxn, e),contextRecommender_loc, level = 2)
             return None
 
     def path_condition(self, n, path):
@@ -129,8 +141,9 @@ class NNContextRecommender(ContextRecommender):
         return contexts
     
     def n_rxn_condition(self, n, dists, idx):
-        """Reaction condition list from the top 10 NN
-    
+        """
+        Reaction condition list from the top 10 NN
+        Only returns parseable solvents
         :param n: int, the number of nearest neighbors to extract rxn conditions from, n <= 10 here
         :param dists, idx: np.array output from NearestNeighbor model for one rxn (10L, )
         :return: A list of reaction conditions [(T, solvent, reagent, catalyst, rxn_time, rxn_yield), ()]
@@ -192,7 +205,7 @@ class NNContextRecommender(ContextRecommender):
             for xrn in inst_doc['RXD_SOLXRN']:
                 slvt = self.CHEMICAL_DB.find_one({'_id': xrn})
                 if not slvt:
-                    print('########## COULD NOT FIND SOLVENT {} ###########'.format(xrn))
+                    MyLogger.print_and_log('COULD NOT FIND SOLVENT {}'.format(xrn), contextRecommender_loc)
                     continue
                 smi_or_name = str(slvt['SMILES'])
                 if (not smi_or_name) and self.with_smiles:
@@ -248,7 +261,32 @@ class NNContextRecommender(ContextRecommender):
             # Time, yield
             rxn_time = inst_doc['RXD_TIM']
             rxn_yield = inst_doc['RXD_NYD']
-            
+           
+            #Test that all proposed conditions are actually parseable!
+            try:
+                solvent_mols = [Chem.MolFromSmiles(sol) for sol in solvent.split('.')]
+                if None in solvent_mols:
+                    MyLogger.print_and_log('Unparseable solvent recommended. Not adding {}'.format(solvent),contextRecommender_loc)
+                    continue
+            except Exception as e:
+                MyLogger.print_and_log('Unparseable solvent recommended. Not adding {}'.format(solvent),contextRecommender_loc)
+                continue
+            try:
+                reagents_mols = [Chem.MolFromSmiles(rea) for rea in reagent.split('.')]
+                if None in reagents_mols:
+                    MyLogger.print_and_log('Unparseable reagent recommended. Not adding {}'.format(reagent), contextRecommender_loc)
+                    continue
+            except Exception as e:
+                MyLogger.print_and_log('Unparseable reagent recommended. Not adding {}'.format(reagent), contextRecommender_loc)
+                continue
+            try:
+                catalyst_mols = [Chem.MolFromSmiles(cat) for cat in catalyst.split('.')]
+                if None in catalyst_mols:
+                    MyLogger.print_and_log('Unparseable catalyst recommended. Not adding {}'.format(catalyst), contextRecommender_loc)
+                    continue
+            except Exception as e:
+                MyLogger.print_and_log('Unparseable catalyst recommended. Not adding {}'.format(catalyst), contextRecommender_loc)
+                continue
             context_set.add(context_info)
             if len(context_set) > num_context:
                 contexts.append((T, solvent, reagent, catalyst, rxn_time, rxn_yield))
@@ -261,5 +299,5 @@ class NNContextRecommender(ContextRecommender):
 
 if __name__ == '__main__':
     import global_config as gc
-    cont = NNConditionPredictor()
-    cont.load(model_path = gc.CONTEXT_REC['model_path'], info_path = gc.CONTEXT_REC['info_path'])
+    cont = NNContextRecommender()
+    cont.load_nn_model(model_path = gc.CONTEXT_REC['model_path'], info_path = gc.CONTEXT_REC['info_path'])
