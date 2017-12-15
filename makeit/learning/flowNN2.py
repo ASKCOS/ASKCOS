@@ -15,10 +15,10 @@ from rdkit.Chem import AllChem
 import cPickle as pickle
 import os
 flowNN_loc = 'flowNN2'
-all_data=False
-FILE = False
+all_data=True
+FILE = True
 SAVE = True
-FullTest = True
+FullTest = False
 training_bias = 2
 if all_data:
     training_bias = 15
@@ -168,7 +168,7 @@ def tests():
     from pymongo import MongoClient
     
     MyLogger.initialize_logFile()
-    client = MongoClient(gc.MONGO['path'], gc.MONGO['id'], connect = gc.MONGO['connect'])
+    client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', gc.MONGO['id'], connect = gc.MONGO['connect'])
     db2 = client[gc.FLOW_CONDITIONS2['database']]
     flow_database = None
     if all_data:
@@ -177,10 +177,10 @@ def tests():
         flow_database = db2[gc.FLOW_CONDITIONS2_50['collection']]
     instance_database = db2[gc.INSTANCES['collection']]
     chemicals = db2[gc.CHEMICALS['collection']]
-    (input_test, input_train, output_test, output_train,input_test_doc,input_train_doc, weights) = get_data(flow_database = flow_database,chemicals=chemicals, train_test_split=0.9, write_to_file=True)
-    #(input_test, input_train, output_test, output_train,input_test_doc,input_train_doc, weights) = get_data(train_test_split=0.9, read_from_file=True)
-    layer_nodes = [128,64,32,4, 2]
-    #layer_nodes = [256,128,32,2]
+    #(input_test, input_train, output_test, output_train,input_test_doc,input_train_doc, weights) = get_data(flow_database = flow_database,chemicals=chemicals, train_test_split=0.9, write_to_file=True)
+    (input_test, input_train, output_test, output_train,input_test_doc,input_train_doc, weights) = get_data(train_test_split=0.9, read_from_file=True)
+    #layer_nodes = [128,64,32,4, 2]
+    layer_nodes = [256,128,32,2]
     if FILE:
         model = model_from_file(full = all_data)
     else:
@@ -200,11 +200,11 @@ def tests():
     #instance = instance_database.find_one({'RX_ID':3124853})
     #trial = get_condition_input_from_instance(instance, chemicals, use_new = True)
     #print model.predict(trial)
-    smiles = ['O','[Cs+].[F-]',""]
+    smiles = [('solv','O'),('cata','[Cs+].[F-]'),('reag',"")]
     print 'Should be plausible: {}'.format(model.predict(np.array([get_condition_input_from_smiles(smiles)])))
-    smiles = ['CC#N','[Cs+].[F-]',""]
+    smiles = [('solv','CC#N'),('cata','[Cs+].[F-]'),('reag',"")]
     print 'Should not be plausible: {}'.format(model.predict(np.array([get_condition_input_from_smiles(smiles)])))
-    smiles = ['O','','']
+    smiles = [('solv','O'),('cata',""),('reag',"")]
     print 'Should be close to certain: {}'.format(model.predict(np.array([get_condition_input_from_smiles(smiles)])))
     instance = flow_database.find_one({'flow':True})
     id = instance['RX_ID']
@@ -237,7 +237,21 @@ def tests():
         pass
     print '{} @ T:{} should be false: {}'.format(id,instance['RXD_T'], model.predict(np.array([inp])))
     
-    
+    from AUROC import get_AUROC
+    test_true = []
+    test_pred = []
+    for i,input in enumerate(input_test):
+        score = model.predict(np.array([input]))[0][0][0]
+        test_true.append(1.0 if input_test_doc[i]['flow'] else 0.0)
+        test_pred.append(score)
+    print 'AUC test = {}'.format(get_AUROC(test_true,test_pred))
+    train_true = []
+    train_pred = []
+    for i,input in enumerate(input_train):
+        score = model.predict(np.array([input]))[0][0][0]
+        train_true.append(1.0 if input_train_doc[i]['flow'] else 0.0)
+        train_pred.append(score)
+    print 'AUC train = {}'.format(get_AUROC(train_true, train_pred))
     if FullTest:
         FP = 0
         FN = 0

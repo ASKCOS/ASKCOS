@@ -11,17 +11,19 @@ write_raw_data_to_file = True #Write the extracted data to a local file (data is
 
 write_input_data_to_file = True #Write the extracted data to a local file (actual input data)
 
-FILE = False #Read a trained and saved model from the file
+FILE = True #Read a trained and saved model from the file
 
-SAVE = False #Save the trained model to the file
+SAVE = True #Save the trained model to the file
 
 FullTest = True #Test again on all reactions in the database (including training)
 
+print_text = False
+
 #Data input settings
-rxn_fingerprint_size = 2048 #Size of the reaction fingerprint
+rxn_fingerprint_size = 1024 #Size of the reaction fingerprint
 s_fingerprint_size = 256 #Size of the solvent fingerprint
-r_fingerprint_size = 512 #Size of the reagent fingerprint
-rxn_compression = 2 #Compression of the reaction fingerprint. Make sure that rxn_fingerprint_size/rxn_compression is int.
+r_fingerprint_size = 1024 #Size of the reagent fingerprint
+rxn_compression = 1 #Compression of the reaction fingerprint. Make sure that rxn_fingerprint_size/rxn_compression is int.
 training_bias = 2 #Bias when using the balanced data set
 if all_data:
     training_bias = 7 #Bia when using the full database
@@ -33,7 +35,7 @@ loss = 'binary_crossentropy' #specify the loss function for the network
 
 #Training settings
 batch_size = 32
-epochs = 5
+epochs = 25
 
 #Testing settings
 lower_threshold = 1.0/3.0 #Threshold for considering a prediction accurate.
@@ -54,6 +56,7 @@ from keras.utils import np_utils
 from keras.datasets import mnist
 from keras import optimizers
 from matplotlib import pyplot as plt
+from pymongo import MongoClient
 from utilities.i_o.logging import MyLogger
 from utilities.fingerprinting import get_condition_input_from_smiles, get_condition_input_from_instance, get_input_condition_as_smiles,get_reaction_as_smiles,get_reaction_input_from_instance, get_reaction_input_from_smiles 
 import rdkit.Chem as Chem
@@ -184,6 +187,8 @@ def get_data_workaround(reactions = None, chemicals = None, train_test_split = 0
 def get_data(flow_database = None,reactions = None, chemicals = None, train_test_split = 0.85, write_raw_to_file = False, 
              write_input_to_file = False, read_raw_from_file = False, read_inputs_from_file = False):
     
+    smiles_train = []
+    smiles_test = []
     input_reaction_train = []
     input_solvent_train = []
     input_reagent_train = []
@@ -292,6 +297,7 @@ def get_data(flow_database = None,reactions = None, chemicals = None, train_test
             split = np.random.random_sample()
             #Make the training/testing split
             if(split < train_test_split):
+                smiles_train.append(data['reaction_smiles'])
                 input_reaction_train.append(reac)
                 input_solvent_train.append(fps[0])
                 input_reagent_train.append(fps[1])
@@ -302,6 +308,7 @@ def get_data(flow_database = None,reactions = None, chemicals = None, train_test
                 else:
                     weights.append(1)
             else:
+                smiles_test.append(data['reaction_smiles'])
                 input_reaction_test.append(reac)
                 input_solvent_test.append(fps[0])
                 input_reagent_test.append(fps[1])
@@ -323,6 +330,8 @@ def get_data(flow_database = None,reactions = None, chemicals = None, train_test
         output_test = output_test.astype('float32')
         output_train = output_train.astype('float32')
         data_set = {
+                    'smiles_test':smiles_test,
+                    'smiles_train':smiles_train,
                     'input_test_reaction':input_reaction_test,
                     'input_train_reaction': input_reaction_train,
                     'input_test_solvent': input_solvent_test,
@@ -368,12 +377,121 @@ def model_from_file(full = True):
         return load_model(gc.FLOW_CONDITIONS4['model_loc'])
     else:
         return load_model(gc.FLOW_CONDITIONS4_50['model_loc'])
+
+def full_test(data, model, no_write=False):
+    FP = 0
+    FN = 0
+    UD = 0
+    CP = 0
+    CN = 0
+    test_no = len(data['ids_test'])
+    train_no = len(data['ids_train'])
+    #Use full database for this test
+    client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', gc.MONGO['id'], connect = gc.MONGO['connect'])
+    db2 = client[gc.FLOW_CONDITIONS4['database']]
+    flow_database = db2[gc.FLOW_CONDITIONS4['collection']]
+    reaction_database = db2[gc.REACTIONS['collection']]
+    data_test = []
+    data_train = []
+    true_test = []
+    true_train = []
+    pred_test = []
+    pred_train = []
+    for i in range(test_no + train_no):
+        reac = None
+        solv = None
+        reag = None
+        id = None
+        data_line_test = []
+        data_line_train = []
+        if i<test_no:
+            reac = data['input_test_reaction'][i].reshape(1,1,rxn_compressed_size)
+            solv = data['input_test_solvent'][i].reshape(1,1,s_fingerprint_size)
+            reag = data['input_test_reagent'][i].reshape(1,1,r_fingerprint_size)
+            flow = data['output_test'][i][0][0]
+            true_test.append(flow)
+            id = data['ids_test'][i]
+            smiles = data['smiles_test'][i]
+            data_line_test.append('{}'.format(id))
+            data_line_test.append('{}'.format(flow))
+        else:
+            reac = data['input_train_reaction'][i-test_no].reshape(1,1,rxn_compressed_size)
+            solv = data['input_train_solvent'][i-test_no].reshape(1,1,s_fingerprint_size)
+            reag = data['input_train_reagent'][i-test_no].reshape(1,1,r_fingerprint_size)
+            flow = data['output_train'][i-test_no][0][0]
+            true_train.append(flow)
+            id = data['ids_train'][i-test_no]
+            smiles = data['smiles_train'][i-test_no]
+            data_line_train.append('{}'.format(id))
+            data_line_train.append('{}'.format(flow))
+            
+            
+        score = model.predict([reac, solv, reag])[0][0][0] 
+        if i<test_no:
+            pred_test.append(score)
+            data_line_test.append('{}'.format(score))
+        else:
+            pred_train.append(score)
+            data_line_train.append('{}'.format(score))
+        #Output format to export to excel:
+        #Format:
+        #Reaction ID reaxys /t Reaction smiles /t Reported compatibility /t Predicted Compatibility /t Undecided /t False Negative /t False Positive
+        text_line = ['{}'.format(id), '{}'.format(smiles), '{}'.format(flow), '{}'.format(score), 'No', 'No', 'No']
         
-def tests():
+        #Wrong prediction
+        if abs(score - flow) > upper_threshold:
+            if flow:
+                FN += 1
+                text_line[5] = 'Yes'
+            else:
+                FP += 1
+                text_line[6] = 'Yes'
+        
+        #Undecided prediction 
+        elif abs(score - flow) > lower_threshold:
+            UD += 1
+            text_line[4] = 'Yes'
+        
+        #Correct prediction
+        else:
+            if flow:
+                CP += 1
+            else:
+                CN += 1
+        if print_text and not no_write:
+            MyLogger.print_and_log('\t'.join(text_line),flowNN_loc)
+        if data_line_test != []:
+            data_test.append(data_line_test)
+        elif data_line_train != []:
+            data_train.append(data_line_train)
+        else:
+            pass
     
-    from pymongo import MongoClient
+    if not no_write:
+        MyLogger.print_and_log('Reporting individual training results:',flowNN_loc)
+        for data in data_train:
+            MyLogger.print_and_log('\t'.join(data), flowNN_loc)
+        MyLogger.print_and_log('Reporting individual test results:',flowNN_loc)
+        for data in data_test:
+            MyLogger.print_and_log('\t'.join(data), flowNN_loc)
+    from AUROC import get_AUROC
+    MyLogger.print_and_log('False positives: {}'.format(FP),flowNN_loc)
+    MyLogger.print_and_log('False negatives: {}'.format(FN),flowNN_loc)
+    MyLogger.print_and_log('Correct positives: {}'.format(CP),flowNN_loc)
+    MyLogger.print_and_log('Correct negatives: {}'.format(CN),flowNN_loc)
+    MyLogger.print_and_log('Number of undecided outcomes: {}'.format(UD),flowNN_loc)
+    (auc_train, TPR_train, FPR_train) = get_AUROC(true_train, pred_train)
+    (auc_test, TPR_test, FPR_test) = get_AUROC(true_test, pred_test)
+    MyLogger.print_and_log('AUROC for training data: {}'.format(auc_train),flowNN_loc)
+    MyLogger.print_and_log(FPR_train,flowNN_loc)
+    MyLogger.print_and_log(TPR_train,flowNN_loc)
+    MyLogger.print_and_log('AUROC for test data: {}'.format(auc_test),flowNN_loc)
+    MyLogger.print_and_log(FPR_test,flowNN_loc)
+    MyLogger.print_and_log(TPR_test,flowNN_loc)
     
-    MyLogger.initialize_logFile()
+    
+
+def basic_tests():
     
     #Obtain data
     MyLogger.print_and_log('Starting to read data', flowNN_loc)
@@ -429,77 +547,14 @@ def tests():
                            )
     
     MyLogger.print_and_log('Prediction should be: {}'.format(data['output_test'][165]),flowNN_loc)
-    MyLogger.print_and_log('For reaction: {}'.format(data['ids_test']),flowNN_loc)
+    MyLogger.print_and_log('For reaction: {}'.format(data['ids_test'][165]),flowNN_loc)
     
-    # Run test on the full reactions database
-    if FullTest:
-        FP = 0
-        FN = 0
-        UD = 0
-        CP = 0
-        CN = 0
-        test_no = len(data['ids_test'])
-        train_no = len(data['ids_train'])
-        #Use full database for this test
-        client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', gc.MONGO['id'], connect = gc.MONGO['connect'])
-        db2 = client[gc.FLOW_CONDITIONS4['database']]
-        flow_database = db2[gc.FLOW_CONDITIONS4['collection']]
-        reaction_database = db2[gc.REACTIONS['collection']]
-        
-        for i in range(test_no + train_no):
-            reac = None
-            solv = None
-            reag = None
-            id = None
-            if i<test_no:
-                reac = data['input_test_reaction'][i]
-                solv = data['input_test_solvent'][i]
-                reag = data['input_test_reagent'][i]
-                flow = data['output_test'][i]
-                id = data['id_test'][i]
-                
-            else:
-                reac = data['input_train_reaction'][i-test_no]
-                solv = data['input_train_solvent'][i-test_no]
-                reag = data['input_train_reagent'][i-test_no]
-                flow = data['output_train'][i-test_no]
-                id = data['id_train'][i-test_no]
-                
-            score = model.predict([reac, solv, reag])[0][0][0] 
-            
-            #Output format to export to excel:
-            #Format:
-            #Reaction ID reaxys /t Reaction smiles /t Reported compatibility /t Predicted Compatibility /t Undecided /t False Negative /t False Positive
-            text_line = ['{}'.format(id),'{}'.format(reac), '{}'.format(flow), '{}'.format(score), 'No', 'No', 'No']
-            
-            #Wrong prediction
-            if abs(score - flow) > upper_threshold:
-                if flow:
-                    FN += 1
-                    text_line[5] = 'Yes'
-                else:
-                    FP += 1
-                    text_line[6] = 'Yes'
-            
-            #Undecided prediction 
-            elif abs(score - flow) > lower_threshold:
-                UD += 1
-                text_line[4] = 'Yes'
-            
-            #Correct prediction
-            else:
-                if instance['flow']:
-                    CP += 1
-                else:
-                    CN += 1
-            MyLogger.print_and_log('\t'.join(text_line),flowNN_loc)
-            
-        MyLogger.print_and_log('False positives: {}'.format(FP),flowNN_loc)
-        MyLogger.print_and_log('False negatives: {}'.format(FN),flowNN_loc)
-        MyLogger.print_and_log('Correct positives: {}'.format(CP),flowNN_loc)
-        MyLogger.print_and_log('Correct negatives: {}'.format(CN),flowNN_loc)
-        MyLogger.print_and_log('Number of undecided outcomes: {}'.format(UD),flowNN_loc)
+    return (data,model)
         
 if __name__ == '__main__':
-    tests()
+    MyLogger.initialize_logFile()
+    (data,model) = basic_tests()
+    # Run test on the full reactions database
+    if FullTest:
+        full_test(data,model, no_write=True)
     

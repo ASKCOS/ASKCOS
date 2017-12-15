@@ -15,9 +15,10 @@ from rdkit.Chem import AllChem
 import cPickle as pickle
 import os
 flowNN_loc = 'flowNN'
-all_data=False
-FILE = False
+all_data=True
+FILE = True
 SAVE = True
+FullTest = False
 training_bias = 2
 if all_data:
     training_bias = 15
@@ -87,12 +88,14 @@ def get_data(flow_database = None,chemicals = None, train_test_split = 0.85, wri
         if not chemicals:
             MyLogger.print_and_log('Cannot retrieve data without chemicals database', flowNN_loc, level = 3)
         i = 0
+
         for doc in flow_database.find():
             '''
             if i>1000:
                 break
             i+=1
             '''
+            
             split = np.random.random_sample()
             isFlow = doc['flow']
 
@@ -168,7 +171,7 @@ def tests():
     from pymongo import MongoClient
     
     MyLogger.initialize_logFile()
-    client = MongoClient(gc.MONGO['path'], gc.MONGO['id'], connect = gc.MONGO['connect'])
+    client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', gc.MONGO['id'], connect = gc.MONGO['connect'])
     db2 = client[gc.FLOW_CONDITIONS['database']]
     flow_database = None
     if all_data:
@@ -177,8 +180,8 @@ def tests():
         flow_database = db2[gc.FLOW_CONDITIONS_50['collection']]
     instance_database = db2[gc.INSTANCES['collection']]
     chemicals = db2[gc.CHEMICALS['collection']]
-    (input_test, input_train, output_test, output_train,input_test_doc,input_train_doc, weights) = get_data(flow_database = flow_database,chemicals=chemicals, train_test_split=0.9, write_to_file=True)
-    #(input_test, input_train, output_test, output_train,input_test_doc,input_train_doc, weights) = get_data(train_test_split=0.9, read_from_file=True)
+    #(input_test, input_train, output_test, output_train,input_test_doc,input_train_doc, weights) = get_data(flow_database = flow_database,chemicals=chemicals, train_test_split=0.9, write_to_file=True)
+    (input_test, input_train, output_test, output_train,input_test_doc,input_train_doc, weights) = get_data(train_test_split=0.9, read_from_file=True)
     #layer_nodes = [128,64,16,4, 2]
     layer_nodes = [256,128,32,2]
     if FILE:
@@ -234,42 +237,59 @@ def tests():
     except ValueError:
         pass
     print '{} @ T:{} should be false: {}'.format(id,instance['RXD_T'], model.predict(inp))
+    from AUROC import get_AUROC
+    test_true = []
+    test_pred = []
+    for i,input in enumerate(input_test):
+        score = model.predict(np.array([input]))[0][0][0]
+        test_true.append(1.0 if input_test_doc[i]['flow'] else 0.0)
+        test_pred.append(score)
+    print 'AUC test = {}'.format(get_AUROC(test_true,test_pred))
+    train_true = []
+    train_pred = []
+    for i,input in enumerate(input_train):
+        score = model.predict(np.array([input]))[0][0][0]
+        train_true.append(1.0 if input_train_doc[i]['flow'] else 0.0)
+        train_pred.append(score)
+    print 'AUC train = {}'.format(get_AUROC(train_true, train_pred))
     
-    FP = 0
-    FN = 0
-    UD = 0
-    CP = 0
-    CN = 0
-    flow_database = db2[gc.FLOW_CONDITIONS['collection']]
-    reaction_database = db2[gc.REACTIONS['collection']]
-    for i,instance in enumerate(flow_database.find()):
-        score = model.predict(np.array([get_condition_input_from_instance(instance,chemicals, asone = True, use_new = True)]))
-        #print 'Should be {}, is {}'.format(instance['flow'], score)
-        if abs(score[0][0][0] - (1 if instance['flow'] else 0)) > 0.6666:
-            if abs(score[0][0][0] - (1 if instance['flow'] else 0)) > 0.85:
-                print 'Reaction #{} with Reaxys ID {} should be {}, is {}'.format(i, instance['_id'], instance['flow'], score)
-                conditions = get_input_condition_as_smiles(instance, chemicals)
-                reaction_smiles = get_reaction_as_smiles(instance, reaction_database,chemicals)
-                print '\tSmiles of failed reaction: {}'.format(reaction_smiles)
-                print '\tSolvent: {}\tReagent: {}\tCatalyst: {}'.format(conditions[0],conditions[1],conditions[2])
-            if instance['flow']:
-                FN += 1
-            else:
-                FP += 1
-        if abs(score[0][0][0] - (1 if instance['flow'] else 0)) < 0.6666 and abs(score[0][0][0] - (1 if instance['flow'] else 0)) > 0.3333:
-            UD += 1
-        
-        if abs(score[0][0][0] - (1 if instance['flow'] else 0)) < 0.6666 and abs(score[0][0][0] - (1 if instance['flow'] else 0)) < 0.3333:
-            if instance['flow']:
-                CP += 1
-            else:
-                CN += 1
+    
+    if FullTest:
+        FP = 0
+        FN = 0
+        UD = 0
+        CP = 0
+        CN = 0
+        flow_database = db2[gc.FLOW_CONDITIONS['collection']]
+        reaction_database = db2[gc.REACTIONS['collection']]
+        for i,instance in enumerate(flow_database.find()):
+            score = model.predict(np.array([get_condition_input_from_instance(instance,chemicals, asone = True, use_new = True)]))
+            #print 'Should be {}, is {}'.format(instance['flow'], score)
+            if abs(score[0][0][0] - (1 if instance['flow'] else 0)) > 0.6666:
+                if abs(score[0][0][0] - (1 if instance['flow'] else 0)) > 0.85:
+                    print 'Reaction #{} with Reaxys ID {} should be {}, is {}'.format(i, instance['_id'], instance['flow'], score)
+                    conditions = get_input_condition_as_smiles(instance, chemicals)
+                    reaction_smiles = get_reaction_as_smiles(instance, reaction_database,chemicals)
+                    print '\tSmiles of failed reaction: {}'.format(reaction_smiles)
+                    print '\tSolvent: {}\tReagent: {}\tCatalyst: {}'.format(conditions[0],conditions[1],conditions[2])
+                if instance['flow']:
+                    FN += 1
+                else:
+                    FP += 1
+            if abs(score[0][0][0] - (1 if instance['flow'] else 0)) < 0.6666 and abs(score[0][0][0] - (1 if instance['flow'] else 0)) > 0.3333:
+                UD += 1
             
-    print 'False positives: {}'.format(FP)
-    print 'False negatives: {}'.format(FN)      
-    print 'Correct positives: {}'.format(CP)
-    print 'Correct negatives: {}'.format(CN)
-    print 'Number of undecided outcomes: {}'.format(UD)
+            if abs(score[0][0][0] - (1 if instance['flow'] else 0)) < 0.6666 and abs(score[0][0][0] - (1 if instance['flow'] else 0)) < 0.3333:
+                if instance['flow']:
+                    CP += 1
+                else:
+                    CN += 1
+                
+        print 'False positives: {}'.format(FP)
+        print 'False negatives: {}'.format(FN)      
+        print 'Correct positives: {}'.format(CP)
+        print 'Correct negatives: {}'.format(CN)
+        print 'Number of undecided outcomes: {}'.format(UD)
 if __name__ == '__main__':
     tests()
     
