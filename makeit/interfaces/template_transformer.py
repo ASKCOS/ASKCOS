@@ -14,6 +14,11 @@ class TemplateTransformer(object):
         '''
         
         raise NotImplementedError
+    
+    def get_prioritizers(self, prioritizers):
+        '''
+        Define which prioritization methods should be used. The prioritizers argument can contain 2 (retro - for precursor and templates) or 1 (synthetic - templates) element
+        '''
         
     def dump_to_file(self, file_name):
         '''
@@ -28,11 +33,9 @@ class TemplateTransformer(object):
         '''
         raise NotImplementedError
     
-    def reorder(self):
+    def get_prioritizers(self, args):
         '''
-        Re-orders the list of templates (self.templates) according to 
-        field 'count' in descending order. This means we will apply the
-        most popular templates first
+        Get the prioritization methods for the transformer (templates and/or precursors)
         '''
         raise NotImplementedError
 
@@ -48,10 +51,10 @@ class TemplateTransformer(object):
         raise NotImplementedError
     
     #Define the methods that should be present in each transformer subclass.
-    def load(self, lowe=False, refs=False, efgs=False, queue = None):
+    def load(self, chiral = False, lowe=False, refs=False, efgs=False, queue = None):
         raise NotImplementedError
     
-    def perform_transformations(self, smiles, singleonly = False, stop_if = False):
+    def get_outcomes(self, smiles, mincount, prioritizers, start_at = -1, end_at = -1, singleonly = False, stop_if = False, chiral=False):
         '''
         Performs a one-step retrosynthesis given a SMILES string of a
         target molecule by applying each transformation template
@@ -59,7 +62,7 @@ class TemplateTransformer(object):
         '''
         raise NotImplementedError
     
-    def load_databases(self):
+    def load_databases(self, chiral):
         
         raise NotImplementedError
     
