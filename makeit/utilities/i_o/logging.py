@@ -13,15 +13,21 @@ class MyLogger:
         3:'FATAL'
     }
     time_zero = 0
+    initialized = False
     @staticmethod
     def initialize_logFile(ROOT = os.getcwd(), name = ''):
         MyLogger.logFile = os.path.join(ROOT, '{}_log.txt'.format(name))
         if os.path.isfile(MyLogger.logFile):
            os.remove(MyLogger.logFile)  
-        MyLogger.time_zero = time.time()         
+        MyLogger.time_zero = time.time()
+        MyLogger.initialized = True         
     
     @staticmethod
     def print_and_log(text,location,level=0):
+
+        if not MyLogger.initialized:
+            MyLogger.time_zero = time.time()
+            MyLogger.initialized = True
         file = open(MyLogger.logFile,'a')
         time_elapsed = round((time.time() - MyLogger.time_zero)*1000)/1000
         length = len(str(time_elapsed))

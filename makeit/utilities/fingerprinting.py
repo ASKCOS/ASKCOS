@@ -6,16 +6,6 @@ from i_o.logging import MyLogger
 from parsing import check_smiles
 fingerprinting_loc = 'fingerprinting'
 
-def mol_to_fp(mol, radius=2, nBits=gc.fingerprint_bits):
-        if mol is None:
-            return np.zeros((nBits,), dtype=np.float32)
-        return np.array(AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=nBits, 
-            useChirality=True), dtype=np.bool)
-
-def smi_to_fp(smi, radius=2, nBits=gc.fingerprint_bits):
-    if not smi:
-        return np.zeros((nBits,), dtype=np.float32)
-    return mol_to_fp(Chem.MolFromSmiles(smi), radius, nBits)
 def create_rxn_Morgan2FP(rxn_smiles, fpsize=gc.fingerprint_bits, useFeatures=True):
     """Create a rxn Morgan (r=2) fingerprint as bit vector from a reaction SMILES string
 
@@ -56,13 +46,14 @@ def get_condition_input_from_smiles(conditions_smiles , split = False, s_fp = 25
     #If input is a single string: immediately extract molecule
     if (type(conditions_smiles) is str) or (type(conditions_smiles) is unicode):
         try:
-            conditions_mol.append(Chem.MolFromSmiles(conditions_smiles))
+            conditions_mol.append(('cond',Chem.MolFromSmiles(conditions_smiles)))
             inputlength += 1
         #If any unparsable: skip this iteration
         except Exception as e:
             MyLogger.print_and_log('Unparsable conditions. Leaving out this reaction: {}.'.format(instance['_id']), fingerprinting_loc, level = 1)
     #otherwise: assume list of strings
     else:
+        print conditions_smiles
         for (descr, smiles) in conditions_smiles: 
             try:
                 conditions_mol.append((descr,Chem.MolFromSmiles(smiles)))
@@ -79,7 +70,7 @@ def get_condition_input_from_smiles(conditions_smiles , split = False, s_fp = 25
                 p = AllChem.GetMorganFingerprintAsBitVect(mol=mol, radius=2, nBits=s_fp, useFeatures=True)
             elif descr == 'reag':
                 p = AllChem.GetMorganFingerprintAsBitVect(mol=mol, radius=2, nBits=r_fp, useFeatures=True)
-            elif descr == 'cata':
+            elif descr == 'cata' or descr == 'cond':
                 p = AllChem.GetMorganFingerprintAsBitVect(mol=mol, radius=2, nBits=c_fp, useFeatures=True)
         except Exception as e:
             MyLogger.print_and_log('Could not generate fingerprint for {}'.format(conditions_smiles), fingerprinting_loc)
@@ -97,12 +88,13 @@ def get_condition_input_from_smiles(conditions_smiles , split = False, s_fp = 25
                 fp = np.array(fp).reshape(1,s_fp)
             elif descr == 'reag':
                 fp = np.array(fp).reshape(1,r_fp)
-            elif descr == 'cata':
+            elif descr == 'cata' or descr == 'cond':
                 fp = np.array(fp).reshape(1,c_fp)
             input.append(fp)
     else:
-        fps = np.array(fp).reshape(1,len(fp))
-        input.append(fp)
+        for (descr, fp) in fps:
+            input += fp
+        input = np.array(input).reshape(1,len(input))
     return input
     
 def get_condition_input_from_instance(instance, chemicals, asone = False, astwo = False, use_new = False, split = False):

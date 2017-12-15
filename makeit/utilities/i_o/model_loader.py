@@ -8,6 +8,9 @@ from synthetic.forward_evaluation.scorer import Scorer
 from synthetic.forward_enumeration.forward_transformer import ForwardTransformer
 from retro_synthetic.retro_transformer import RetroTransformer
 from retro_synthetic.heuristic_prioritizer import HeuristicPrioritizer
+
+
+from synthetic.forward_evaluation.template_neuralnet_scorer import TemplateNeuralNetScorer
 from multiprocessing import Process
 from multiprocessing import JoinableQueue as Queue
 from functools import partial
@@ -145,7 +148,26 @@ def load_Scorer():
     
     MyLogger.print_and_log('Reaction scoring neural network loaded.',model_loader_loc)
     return scorer
-    
+
+def load_fastfilter():
+    #Still has to be implemented
+    return None
+
+def load_templatebased(chiral = False, mincount = 25, celery = False):
+    transformer = None
+    databases = load_Databases()
+    if not celery:
+        transformer = ForwardTransformer(mincount = mincount)
+        transformer.load(chiral = chiral)
+        
+    scorer = TemplateNeuralNetScorer(forward_transformer = transformer, celery = celery)
+    scorer.load(databases['Solvent_Database'], gc.PREDICTOR['trained_model_path'])
+    return scorer
+
+def load_templatefree():
+    #Still has to be implemented
+    return None
+
 def load_Context_Recommender(max_total_contexts):
     '''
     Load the context recommendation model

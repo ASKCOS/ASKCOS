@@ -47,26 +47,28 @@ def context_to_edit(context, solvent_name_to_smiles, solvent_smiles_to_params):
     try:
         T = float(T)
     except TypeError:
-        print('Cannot convert temperature {} to float'.format(T))
+        MyLogger.print_and_log('Cannot convert temperature {} to float'.format(T), contexts_loc)
         return None
 
     # Look up solvent from saved dicts
     try:
+        if solvent == '':
+            solvent = 'default'
+            
         solvent_mol = Chem.MolFromSmiles(solvent)
         doc = solvent_smiles_to_params[Chem.MolToSmiles(solvent_mol)]
     except Exception as e: # KeyError or Boost.Python.ArgumentError
         try:
             doc = solvent_smiles_to_params[solvent_name_to_smiles[solvent]]
         except KeyError:
-            print('Could not parse solvent {}'.format(solvent))
+            MyLogger.print_and_log('Could not parse solvent {}'.format(solvent), contexts_loc)
             return None
     solvent_vec = [doc['c'], doc['e'], doc['s'], doc['a'], doc['b'], doc['v']]
-    solvent = doc['name']
 
     # Unreacting reagents
     reagents = [Chem.MolFromSmiles(reagent) for reagent in reagents.split('.')]
     if None in reagents:
-        print('Could not parse all reagents!')
+        MyLogger.print_and_log('Could not parse all reagents!', contexts_loc)
         return None
     reagent_fp = np.zeros((1, 256))
     for reagent in reagents:

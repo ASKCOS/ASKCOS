@@ -5,7 +5,7 @@ import rdkit.Chem.EState as EState
 import rdkit.Chem.rdPartialCharges as rdPartialCharges
 import rdkit.Chem.rdChemReactions as rdRxns
 from makeit.utilities.atoms import atom_dftb
-from makeit.utilities.logging import MyLogger
+from makeit.utilities.i_o.logging import MyLogger
 import rdkit.Chem as Chem 
 descriptors_loc = 'descriptors'
 
@@ -242,7 +242,6 @@ def edits_to_vectors(edits, mol, atom_desc_dict = {}, return_atom_desc_dict = Fa
 		return atom_desc_dict
 
 	# h_lost, h_gain, bond_lost, bond_gain = edits
-
 	return (
 		[atom_desc_dict[molAtomMapNumber] for molAtomMapNumber in edits[0]], 
 		[atom_desc_dict[molAtomMapNumber] for molAtomMapNumber in edits[1]], 
@@ -260,14 +259,15 @@ def edits_to_vectors(edits, mol, atom_desc_dict = {}, return_atom_desc_dict = Fa
 		]
 	)
 
-def edits_to_tensor(self, candidate_edits):
+def edits_to_tensor(candidate_edits, reactants, atom_desc_dict):
+	
     Nc = len(candidate_edits)
     F_atom = edit_vector_lengths()['atoms']
     F_bond = edit_vector_lengths()['bonds']
     
     if Nc == 0:
         MyLogger.print_and_log('No candidate products found at all...?', descriptors_loc, level= 2)
-        return [[] for i in range(len(contexts))]
+        return None
     Ne1 = 1
     Ne2 = 1
     Ne3 = 1
