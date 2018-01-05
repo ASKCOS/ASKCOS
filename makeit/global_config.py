@@ -1,6 +1,6 @@
 import os
 
-# Should we use stereochemistry?
+# Should we use stereochemistry? [should deprecate this setting]
 USE_STEREOCHEMISTRY = True
 
 #Output debugging statements
@@ -9,7 +9,7 @@ DEBUG = False
 #Use highest protocol in pickle
 protocol = -1
 data_path = os.path.join(os.getcwd(),'data')
-fingerprint_bits = 256
+fingerprint_bits = 256 # [should remove this setting]
 pricer_data = os.path.join(data_path,'buyable')
 retro_template_data = os.path.join(data_path,'retro-synthetic')
 synth_template_data = os.path.join(data_path,'synthetic')
@@ -17,7 +17,7 @@ database = 'reaxys_v2'
 
 #Required database names
 MONGO = {
-        'path': 'mongodb://guest:guest@rmg.mit.edu/admin', 
+        'path': 'mongodb://guest:guest@askcos2.mit.edu/admin', 
         'id': 27017,
         'connect': False
         }
@@ -29,9 +29,10 @@ YIELDS = {
     'data_loc': os.path.join(data_path, 'forward_scoring/yield_est_data'),
     'model_loc': os.path.join(data_path, 'forward_scoring/yield_est_model.h5')
     }
+
 RETRO_TRANSFORMS = {
     'database': database,
-    'collection': 'transforms_retro_v8', # 'lowe' or 'chematica'
+    'collection': 'transforms_retro_v8', 
     }
 
 SYNTH_TRANSFORMS = {
