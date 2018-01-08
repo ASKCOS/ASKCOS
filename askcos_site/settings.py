@@ -138,7 +138,7 @@ RETRO_TRANSFORMS = {
 }
 RETRO_TRANSFORMS_CHIRAL = {
     'database': 'reaxys_v2',
-    'collection': 'transforms_retro_v7',
+    'collection': 'transforms_retro_v9',
     'mincount': 25,
     'mincount_chiral': 10
 }

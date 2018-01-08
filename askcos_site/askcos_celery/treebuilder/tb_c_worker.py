@@ -10,86 +10,60 @@ transformer and grabs templates from the database.
 from __future__ import absolute_import, unicode_literals, print_function
 from celery import shared_task
 from celery.signals import celeryd_init
+from pymongo import MongoClient
+import makeit.global_config as gc 
+from makeit.retro_synthetic.retro_transformer import RetroTransformer
 from rdkit import RDLogger
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
-
-CORRESPONDING_QUEUE = 'tb_worker'
-CORRESPONDING_RESERVABLE_QUEUE = 'tb_worker_reservable'
-
-RetroTransformer = None
+CORRESPONDING_QUEUE = 'tb_c_worker'
+CORRESPONDING_RESERVABLE_QUEUE = 'tb_c_worker_reservable'
 
 @celeryd_init.connect
 def configure_worker(options={},**kwargs):
+    
     if 'queues' not in options: 
         return 
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
         return
     print('### STARTING UP A TREE BUILDER WORKER ###')
-
-    global RetroTransformer
-    
     # Get Django settings
     from django.conf import settings
-
+    
     # Database
-    from database import db_client
-    db = db_client[settings.INSTANCES['database']]
-    RETRO_DB = db[settings.RETRO_TRANSFORMS['collection']]
+    db_client = MongoClient('mongodb://guest:guest@rmg.mit.edu:27017/admin', serverSelectionTimeoutMS = 2000, connect=True)
+    db = db_client[settings.RETRO_TRANSFORMS_CHIRAL['database']]
+    RETRO_DB = db[settings.RETRO_TRANSFORMS_CHIRAL['collection']]
+    
+    global retroTransformer
+    #Instantiate and load retro transformer
+    retroTransformer = RetroTransformer(TEMPLATE_DB = RETRO_DB, mincount = settings.RETRO_TRANSFORMS_CHIRAL['mincount'],
+                                        mincount_c = settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'])
+    
+    retroTransformer.load(chiral = True)
+    print('### TREE BUILDER WORKER STARTED UP ###')
 
-    # Setting logging low
-    from rdkit import RDLogger
-    lg = RDLogger.logger()
-    lg.setLevel(RDLogger.CRITICAL)
-
-    # Import retro transformer class and load
-    #import makeit.webapp.transformer_v2 as transformer
-    import makeit.retro.transformer as transformer 
-    RetroTransformer = transformer.Transformer(parallel=False, nb_workers=1)
-    mincount_retro = settings.RETRO_TRANSFORMS['mincount']
-    RetroTransformer.load(RETRO_DB, mincount=mincount_retro, get_retro=True, get_synth=False)
-    print('Tree builder worker loaded {} retro templates'.format(RetroTransformer.num_templates))
-
-    # Also - get the Pricer and load it into the RetroTransformer object.
-    db = db_client[settings.BUYABLES['database']]
-    BUYABLE_DB = db[settings.BUYABLES['collection']]
-    db = db_client[settings.CHEMICALS['database']]
-    CHEMICAL_DB = db[settings.CHEMICALS['collection']]
-    print('Loading prices...')
-    import makeit.retro.pricer as pricer
-    RetroTransformer.Pricer = pricer.Pricer()
-    RetroTransformer.Pricer.load(CHEMICAL_DB, BUYABLE_DB)
-    print('Loaded known prices')
 
 @shared_task
-def get_top_precursors(smiles, mincount=0, max_branching=20, raw_results=False):
+def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=25, max_branching=20):
     '''Get the precursors for a chemical defined by its SMILES
 
     smiles = SMILES of node to expand
     mincount = minimum template popularity
     max_branching = maximum number of precursor sets to return, prioritized
-        using heuristic chemical scoring function'''
+        using heuristic chemical scoring function
+    chiral = whether or not to use the version of the transformer that takes chriality into account.
+    template_prioritizer = keyword for which prioritization method for the templates should be used, keywords can be found in global_config
+    precursor_prioritizer = keyword for which prioritization method for the precursors should be used.'''
 
     print('Treebuilder worker was asked to expand {} (mincount {}, branching {})'.format(
         smiles, mincount, max_branching
     ))
-
-    global RetroTransformer
-
-    result = RetroTransformer.perform_retro(smiles, mincount=mincount)
-    if result is None:
-        precursors = []
-    else:
-        precursors = result.return_top(n=max_branching)
-    if raw_results:
-        for i in range(len(precursors)):
-            # Must convert ObjectID to string to json-serialize
-            precursors[i]['tforms'] = [str(tform) for tform in precursors[i]['tforms']]
-        return precursors
-    return (smiles, [({'necessary_reagent': precursor['necessary_reagent'],
-              'num_examples': precursor['num_examples'],
-               'score': precursor['score']}, 
-               precursor['smiles_split']) for precursor in precursors])
+    
+    global retroTransformer
+    result = retroTransformer.get_outcomes(smiles, mincount, (precursor_prioritizer, template_prioritizer))
+    precursors = result.return_top(n=max_branching)
+    return (smiles, precursors)
 
 @shared_task(bind=True)
 def reserve_worker_pool(self):

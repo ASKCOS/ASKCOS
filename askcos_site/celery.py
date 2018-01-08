@@ -11,16 +11,17 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'askcos_site.settings')
 SERVERHOST = '18.172.0.124' # rmg.mit.edu
 SERVERHOST = '18.63.4.47' # askcos.mit.edu
 SERVERHOST = 'localhost'
-app = Celery('askcos_site', broker='amqp://worker:askcos@{}:5672'.format(SERVERHOST), 
-    backend='django-db',
+app = Celery('askcos_site', broker='amqp://', 
+    backend='redis://',
 	include=[
-        'askcos_site.askcos_celery.treebuilder.worker',
-        'askcos_site.askcos_celery.treebuilder.coordinator',
-        'askcos_site.askcos_celery.forwardpredictor.worker',
-        'askcos_site.askcos_celery.forwardpredictor.coordinator',
-        'askcos_site.askcos_celery.contextrecommender.worker',
-        'askcos_site.askcos_celery.chiralretro.coordinator',
-        'askcos_site.askcos_celery.chiralretro.worker',
+	'askcos_site.askcos_celery.treebuilder.tb_c_worker',
+        'askcos_site.askcos_celery.treebuilder.tb_worker',
+	'askcos_site.askcos_celery.treebuilder.tb_coordinator',
+	'askcos_site.askcos_celery.treeevaluator.tree_evaluation_coordinator',
+	'askcos_site.askcos_celery.treeevaluator.scoring_coordinator',
+	'askcos_site.askcos_celery.treeevaluator.forward_trans_worker',
+	'askcos_site.askcos_celery.contextrecommender.cr_nn_worker',
+	'askcos_site.askcos_celery.contextrecommender.cr_coordinator',
     ]
 )
 
@@ -32,4 +33,6 @@ app.config_from_object('django.conf:settings',)# namespace='CELERY')
 app.conf.task_queue_max_priority = 20 # necessary for new tb_worker queues to be priority
 
 if __name__ == '__main__':
+    print('Starting Celery')
     app.start()
+    print('Started Celery')
