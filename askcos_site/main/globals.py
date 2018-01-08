@@ -109,7 +109,7 @@ SYNTH_FOOTNOTE = 'Using {} forward templates (mincount {}) from {}/{}'.format(Sy
 ### Databases
 db = db_client[settings.REACTIONS['database']]
 REACTION_DB = db[settings.REACTIONS['collection']]
-RETRO_LIT_FOOTNOTE = 'Searched {} known reactions from literature'.format(REACTION_DB.count())
+# RETRO_LIT_FOOTNOTE = 'Searched {} known reactions from literature'.format(REACTION_DB.count())
 
 db = db_client[settings.INSTANCES['database']]
 INSTANCE_DB = db[settings.INSTANCES['collection']]

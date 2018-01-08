@@ -36,6 +36,7 @@ TASK_ROUTES = {
     'askcos_site.askcos_celery.chiralretro.worker.get_chiral_precursor_batch': {'queue': 'cr_worker'},
     'askcos_site.askcos_celery.chiralretro.worker.get_top_precursors': {'queue': 'cr_worker'},
     'askcos_site.askcos_celery.chiralretro.worker.reserve_worker_pool': {'queue': 'cr_worker_reservable'},
+    'askcos_site.askcos_celery.tf_forwardpredictor.worker.*': {'queue': 'tffp_worker'},
 }
 CELERY_ROUTES = TASK_ROUTES
 

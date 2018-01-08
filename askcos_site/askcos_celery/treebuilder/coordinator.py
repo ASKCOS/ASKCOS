@@ -250,9 +250,9 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
         try:
             print('Searching for private worker pool to reserve')
             if chiral:
-                private_worker_queue = crworker.reserve_worker_pool.delay().get(timeout=5)
+                private_worker_queue = crworker.reserve_worker_pool.delay().get(timeout=15)
             else:
-                private_worker_queue = reserve_worker_pool.delay().get(timeout=5)
+                private_worker_queue = reserve_worker_pool.delay().get(timeout=15)
             print('Found one! Will use private queue {}'.format(private_worker_queue))
         except TimeoutError:
             raise TimeoutError('Treebuidler coordinator could not find an open pool of workers to reserve!')

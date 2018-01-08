@@ -23,7 +23,8 @@ rdchiralReactants = None
 def configure_worker(options={},**kwargs):
     if 'queues' not in options: 
         return 
-    if CORRESPONDING_QUEUE not in options['queues'].split(','):
+    if CORRESPONDING_QUEUE not in options['queues'].split(',') and \
+            CORRESPONDING_RESERVABLE_QUEUE not in options['queues'].split(','):
         return
     print('### STARTING UP A CHIRAL RETRO WORKER ###')
 
