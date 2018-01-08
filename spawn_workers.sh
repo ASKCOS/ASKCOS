@@ -18,9 +18,11 @@ celery -A askcos_site worker -c 2 -Q context_worker -n "context_rec@$(hostname)"
 celery -A askcos_site worker -c 6 -Q cr_worker -n "chiralretro_worker@$(hostname)" --max-tasks-per-child 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
 celery -A askcos_site worker -c 2 -Q cr_coordinator -n "chiralretro_coordinator@$(hostname)" --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
 
+celery -A askcos_site worker -c 1 -Q tffp_worker -n "tf_forwardpredictor_worker@$(hostname)" --max-tasks-per-child 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
+
 # Some bonus worker pools for the treebuilder(s) to reserve
 celery -A askcos_site worker -c 6 -Q tb_worker,tb_worker_reservable -n "treebuilder_worker_pool1@$(hostname)" --max-tasks-per-child 10000 --loglevel=$CELERY_LOG_LEVEL --logfile=celery_logs/%p.log &
-celery -A askcos_site worker -c 6 -Q cr_worker,cr_worker_reservable -n "chiralretro_worker_pool1@$(hostname)" --max-tasks-per-child 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
-celery -A askcos_site worker -c 6 -Q cr_worker,cr_worker_reservable -n "chiralretro_worker_pool2@$(hostname)" --max-tasks-per-child 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
+celery -A askcos_site worker -c 6 -Q cr_worker_reservable -n "chiralretro_worker_pool1@$(hostname)" --max-tasks-per-child 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
+celery -A askcos_site worker -c 6 -Q cr_worker_reservable -n "chiralretro_worker_pool2@$(hostname)" --max-tasks-per-child 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
 
 source deactivate

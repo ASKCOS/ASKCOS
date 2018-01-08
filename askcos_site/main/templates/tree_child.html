@@ -3,8 +3,8 @@
 {% if target.is_chemical %}
 
 <div id="{{ target.id }}" class="chem">
-<a class="tooltip" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
-<img src="{% url 'draw_smiles' target.smiles %}" width="75%">
+<a class="treetooltip treebox" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
+<img src="" data-async-load="{% url 'draw_smiles' target.smiles %}" alt="{{ target.smiles }}" width="75%">
 <div>
 	<center>
 		<font class="smiles">{{ target.smiles }}</font>
@@ -17,15 +17,20 @@
 
 {% else %} 
 
-<div targetid="{{ target.id }}" class="rxn rxn{{ target.id }}" smiles="{{ target.smiles }}" necessaryreagent="{{ target.necessary_reagent }}">
-<a targetid="{{ target.id }}" class="tooltip tooltip{{ target.id }}" style="border-color:black">
-{% if target.num_examples %}{{ target.num_examples }} examples{% endif %}
 <div>
+<a targetid="{{ target.id }}" class="treetooltip treetooltip{{ target.id }} treebox rxnbox{{ target.id }}" style="border-color:black">
+{% if target.num_examples %}{{ target.num_examples }} examples{% endif %}
+<div style="width:300px">
     <center>
-        <p class="eval{{ target.id }}">Click to evaluate (v0.1)!</p>
+        <span class="hiderxn" targetid="{{ target.id }}"><span class="pseudolink" style="float:right; font-size:smaller">hide all</span></span><span class="blacklistrxn pseudolink" style="padding-right:5px; float:right; font-size:smaller" smiles="{{ target.smiles }}">blacklist</span></span><br>
+        <span class="rxn rxn{{ target.id }} eval{{ target.id }}" smiles="{{ target.smiles }}" necessaryreagent="{{ target.necessary_reagent }}" targetid="{{ target.id }}"><span class="pseudolink">Click to evaluate (v0.1)!</span></span><br>
         {% if target.info %}{{ target.info }}<br>{% endif %}
-        {% if target.necessary_reagent %}Needs source of {{ target.necessary_reagent }}{% endif %}
-
+        {% if target.necessary_reagent %}Needs source of {{ target.necessary_reagent }}<br>{% endif %}
+        <br>Based on templates...
+        {% for tform in target.tforms %}
+        <br><span class="pseudolink" onclick="window.open('{% url 'template_target' tform %}')">Template {{ tform }}</span>
+        {% endfor %}
+        <br><br><span class="pseudolink" onclick="window.open('{% url 'synth_interactive_target_smiles' target.smiles %}')"><i>Evaluate in new tab</i></span>
     </center>
 </div>
 </a>

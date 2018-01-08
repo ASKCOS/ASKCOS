@@ -6,18 +6,26 @@
 {% block extrahead %}{% endblock %}
 
 {% block navbar_items %}
-<a href="{% url 'main.views.retro' %}">One-step Retro</a>
+<a href="{% url 'retro_home' %}">One-step Retro</a>
 {% endblock %}
 
 {% block sidebar_items %}{% endblock %}
 
 {% block page_body %}
 
-<p>Begin by entering in the SMILES string of the target molecule.</p>
+<p>Begin by entering in the SMILES string or name of the target molecule, or choose from one of the proposal targets below.</p>
 
 <form method="post" id="smiles_form" action="{% url 'retro_home' %}">
-<table>
-{{ form.as_table }}
+<table class="table table-borderless table-nonfluid">
+{% for field in form %}
+    <tr>
+        <td colspan="2">{{ field.errors }}</td>
+    </tr>
+    <tr>
+        <td class="fieldKey">{{ field.label_tag }}</td>
+        <td class="fieldValue">{{ field }}</td>
+    </tr>
+{% endfor %}
 	<th>{% csrf_token %}</th>
 	<td>
 		<!-- <input type="submit" value="Search (achiral)" name="retro"> -->
@@ -28,11 +36,13 @@
 </form>
 
 {% if suggestions %}
-	<h4>Suggestions from the proposal:</h4>
 	<table>
 	{% for suggestion in suggestions %}
 		<tr>
-			<td><a href="{% url 'retro_target' suggestion.smiles %}">{{ suggestion.name }}</a></td>
+			<td>
+				<a href="{% url 'retro_target' suggestion.smiles %}">{{ suggestion.name }}</a><br>
+				<a href="{% url 'retro_interactive_target' suggestion.smiles %}"><i>tree builder</i></a>
+			</td>
 			<td><img src="{% url 'draw_smiles' suggestion.smiles %}"></td>
 		</tr>
 	{% endfor %}
@@ -42,8 +52,8 @@
 {% endif %}
 
 {% if target %}
-	<h4>Target molecule: <font class="smiles">{{ target.smiles }}</font></h4>
-	<img src="{{ target.img }}">
+	<h5>Target molecule: <font class="smiles">{{ target.smiles }}</font></h5>
+	<img src="{{ target.img }}" alt="{{ target.smiles }}">
 	<br>
 	<br>
 	<i>Please note that precursor sets are scored and sorted by a <b>very</b> crude heuristic function that tries to break the target into similarly-sized reactants with fewer rings and - on this page - have not been evaluated for plausibility in the forward direction.</i><br><br>
@@ -51,13 +61,16 @@
 	<br>
 	<br>
 
-	<table class="table_precursors">
-		<tr>
-			<th>Rank</th>
-			<th><font class="smiles">Precursor(s)</font></th>
-			<th>Score</th>
-			<th># Ex.</th>
-		</tr>
+	<table class="table table_precursors" id="results">
+		<thead>
+			<tr>
+				<th>Rank</th>
+				<th><font class="smiles"><center>Precursor(s)</center></font></th>
+				<th>Score</th>
+				<th># Examples</th>
+			</tr>
+		</thead>
+		<tbody>
 		{% for precursor in precursors %}
 		<tr>
 			<td>{{ precursor.rank }}</td>
@@ -71,16 +84,16 @@
 					{% endif %}
 				</font>
 				{% if not forloop.last %} + {% endif %}{% endfor %}
-				<a href="{% url 'synth_interactive_target' precursor.smiles %}">&rarr; ?</a>
+				<a href="{% url 'synth_interactive_target2' precursor.smiles target.smiles %}">&rarr; ?</a>
 				<br>
-				<a><img src="{% url 'draw_smiles' precursor.smiles %}" onclick="toggle_visibility('expand{{ precursor.rank }}');"></a>
+				<a><img src="" data-async-load="{% url 'draw_smiles' precursor.smiles %}" alt="{{ precursor.smiles }}" onclick="toggle_visibility('expand{{ precursor.rank }}');"></a>
 				
 				<div id='expand{{ precursor.rank }}' style='display:none'>	
 					{% if precursor.tforms %}
 					<font class="smiles"><b>Based on retrosynthetic transform template(s):</b></font><br>
 					{% for tform in precursor.tforms %}
 						<font class="smiles">
-							<a href="{% url 'draw_template_page' tform.reaction_smarts %}">{{ tform.reaction_smarts }}</a>{% if tform.count %} (<a href="{% url 'template_target' tform.id %}">{{ tform.count }} examples</a>){% endif %}
+							<a href="{% url 'template_target' tform.id %}">Template {{ tform.id }} ({{ tform.count }} examples)</a>
 						</font>{% if not forloop.last %}<br>{% endif %}
 					{% endfor %}
 					{% endif %}
@@ -94,6 +107,7 @@
 			<td>{{ precursor.num_examples }}</td>
 		</tr>
 		{% endfor %}
+		</tbody>
 	</table>
 {% endif %}
 
@@ -103,6 +117,3 @@
 {% endif %}
 
 {% endblock %}
-
-<p onclick="toggle_visibility('testhidden');"><a>Click me!</a></p>
-<div id='testhidden' style='display:none'>hidden</div>

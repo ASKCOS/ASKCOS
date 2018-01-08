@@ -56,18 +56,21 @@ def get_candidate_edits(reactants_smiles, start_at, end_at):
     import rdkit.Chem as Chem 
     from makeit.predict.summarize_reaction_outcome import summarize_reaction_outcome
 
-    #print('Forward predictor worker was asked to expand {} ({}->{})'.format(reactants_smiles, start_at, end_at))
+    # print('Forward predictor worker was asked to expand {} ({}->{})'.format(reactants_smiles, start_at, end_at))
     reactants = Chem.MolFromSmiles(reactants_smiles)
 
     candidate_list = []
     for i in range(start_at, end_at):
         try:
+
             outcomes = templates[i]['rxn_f'].RunReactants([reactants])
+            if templates[i]['reaction_smarts'] == str('[#8]=[C;H0;+0:1](-[*:2])-[OH;+0:3].[*:4]-[OH;+0:5]>>[*:2]-[C;H0;+0:1](=[O;H0;+0:3])-[O;H0;+0:5]-[*:4]'):
+                print(outcomes)
             if not outcomes: continue # no match
 
-            candidate_list = []
             for j, outcome in enumerate(outcomes):
                 outcome = outcome[0] # all products represented as single mol by transforms
+
                 try:
                     outcome.UpdatePropertyCache()
                     Chem.SanitizeMol(outcome)
@@ -77,7 +80,7 @@ def get_candidate_edits(reactants_smiles, start_at, end_at):
                 
                     # Reduce to largest (longest) product only
                     candidate_smiles = Chem.MolToSmiles(outcome, isomericSmiles=True)
-                    candidate_smiles = max(candidate_smiles.split('.'), key = len)
+                    candidate_smiles = max(candidate_smiles.split('.'), key=len)
                     outcome = Chem.MolFromSmiles(candidate_smiles)
                         
                     # Find what edits were made
@@ -93,9 +96,13 @@ def get_candidate_edits(reactants_smiles, start_at, end_at):
                     # Add to ongoing list
                     candidate_list.append((candidate_smiles, edits))
                 except Exception as e: # other RDKit error?
-                    #print(e) # fail quietly
+                    # print(e) # fail quietly
+                    # print(Chem.MolToSmiles(outcome))
+                    # print(templates[i]['reaction_smarts'])
+                    # print(templates[i]['_id'])
                     continue
         except IndexError: # out of range w/ templates
+            print('INDEX ERROR!')
             break 
         except Exception as e: # other RDKit error?
             print(e)

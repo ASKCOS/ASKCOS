@@ -1,0 +1,13 @@
+{% extends 'registration/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans 'Registration was submitted' %}{% endblock %}
+
+{% block content_title %}<h1>{% trans 'Registration was submitted (additional action required)' %}</h1>{% endblock %}
+
+{% block contents %}
+{{ block.super }}
+<p>{% trans 'Your registration was submitted successfully. You should receive a confirmation email shortly; please check your spam folder.' %}</p>
+<p>{% trans 'Please send an email to ccoley@mit.edu with your name and company/university affiliation and wait for an administrator to review your account.' %}
+{% trans 'You will receive an acceptance or rejection email within several days.' %}</p>
+{% endblock %}

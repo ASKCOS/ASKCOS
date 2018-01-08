@@ -72,7 +72,7 @@ def chem_dict(_id, smiles, ppg, children=[]):
     }
 
 def rxn_dict(_id, info, necessary_reagent='', num_examples=0, 
-        children=[], smiles=''):
+        children=[], smiles='', tforms=[]):
     '''Reaction object as expected by website'''
     return {
         'id': _id,
@@ -82,6 +82,7 @@ def rxn_dict(_id, info, necessary_reagent='', num_examples=0,
         'num_examples': num_examples,
         'children': children,
         'smiles': smiles,
+        'tforms': tforms,
     }
 
 def tree_status(tree_dict):
@@ -116,23 +117,27 @@ def get_trees_iddfs(tree_dict, max_depth, max_trees=25):
         headNode indicates whether this is the first (head) node, in which case
         we should expand it even if it is itself buyable'''
 
-        if depth == 0:
-            # Not allowing deeper - is this buyable?
-            if tree_dict[chem_id]['ppg']:
-                yield []  # viable node, calling function doesn't need children
+        if not headNode and tree_dict[chem_id]['smiles'] == tree_dict[1]['smiles']:
+            pass # do not let trees terminate in the head node itself
         else:
-            # Do we need to go deeper?
-            if tree_dict[chem_id]['ppg'] and not headNode:
-                yield [] # Nope, this is a viable node
+            if depth == 0:
+                # Not allowing deeper - is this buyable?
+                if tree_dict[chem_id]['ppg']:
+                    yield []  # viable node, calling function doesn't need children
             else:
-                # Try going deeper via DLS_rxn function
-                for rxn_id in tree_dict[chem_id]['prod_of']:
-                    rxn_info_string = ''
-                    for path in DLS_rxn(rxn_id, depth):
-                        yield [rxn_dict(rxn_id, rxn_info_string, tree_dict[rxn_id]['necessary_reagent'], 
-                             tree_dict[rxn_id]['num_examples'], 
-                             children = path,
-                             smiles = '.'.join(sorted([tree_dict[x]['smiles'] for x in tree_dict[rxn_id]['rcts']])) + '>>' + tree_dict[chem_id]['smiles'])]
+                # Do we need to go deeper?
+                if tree_dict[chem_id]['ppg'] and not headNode:
+                    yield [] # Nope, this is a viable node
+                else:
+                    # Try going deeper via DLS_rxn function
+                    for rxn_id in tree_dict[chem_id]['prod_of']:
+                        rxn_info_string = ''
+                        for path in DLS_rxn(rxn_id, depth):
+                            yield [rxn_dict(rxn_id, rxn_info_string, tree_dict[rxn_id]['necessary_reagent'], 
+                                 tree_dict[rxn_id]['num_examples'], 
+                                 children=path,
+                                 smiles='.'.join(sorted([tree_dict[x]['smiles'] for x in tree_dict[rxn_id]['rcts']])) + '>>' + tree_dict[chem_id]['smiles'],
+                                 tforms=tree_dict[rxn_id]['tforms'])]
 
     def DLS_rxn(rxn_id, depth):
         '''Return children paths starting from a specific rxn_id'''
@@ -231,6 +236,7 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
     global Pricer
     from .worker import get_top_precursors, reserve_worker_pool, unreserve_worker_pool
     import askcos_site.askcos_celery.chiralretro.worker as crworker
+    import askcos_site.askcos_celery.chiralretro.coordinator as crcoordinator
 
     tree_dict = {}
     chem_to_id = {smiles: 1}
@@ -244,18 +250,23 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
         try:
             print('Searching for private worker pool to reserve')
             if chiral:
-                private_worker_queue = crworker.reserve_worker_pool.delay().get(timeout=5)
+                private_worker_queue = crworker.reserve_worker_pool.delay().get(timeout=15)
             else:
-                private_worker_queue = reserve_worker_pool.delay().get(timeout=5)
+                private_worker_queue = reserve_worker_pool.delay().get(timeout=15)
             print('Found one! Will use private queue {}'.format(private_worker_queue))
         except TimeoutError:
             raise TimeoutError('Treebuidler coordinator could not find an open pool of workers to reserve!')
         # Wrap everything else in a try/finally block to make sure we unreserve this pool at the end!
         try:
-            def expand(smiles, priority=0):
+            def expand(smiles, priority=0, first=False):
                 # Cannot use 'delay' wrapper if we want to use priority arg, so use apply_async
                 # Note that we use our private_worker_queue which has been previously reserved
                 if chiral:
+                    if first:
+                        return crcoordinator.get_top_chiral_precursors.apply_async(
+                            args=(smiles,), 
+                            kwargs={'mincount':mincount, 'max_branching':max_branching}, 
+                        )
                     return crworker.get_top_precursors.apply_async(
                         args=(smiles,), 
                         kwargs={'mincount':mincount, 'max_branching':max_branching}, 
@@ -284,7 +295,7 @@ def get_buyable_paths(self, smiles, mincount=0, max_branching=20, max_depth=3,
             time_last_report = 0.
 
             # Add first expansion
-            pending_results = [expand(smiles, priority=99)]
+            pending_results = [expand(smiles, priority=99, first=True)]
 
             while len(pending_results) > 0:
                 time_now = time.time()

@@ -2,9 +2,9 @@ import rdkit.Chem as Chem
 import rdkit.Chem.AllChem as AllChem 
 
 def load_templates(SYNTH_DB, mincount=0, countsonly=False):
-    print('Loading synthetic templates for forward predictor cooridnator (need for batching)')
+    print('Loading synthetic templates for forward predictor')
     templates = []
-    for doc in SYNTH_DB.find({'count': {'$gt': mincount}}, ['_id', 'count', 'reaction_smarts']):
+    for doc in SYNTH_DB.find({'count': {'$gte': mincount}}, ['_id', 'count', 'reaction_smarts']):
         if 'reaction_smarts' not in doc: continue
         reaction_smarts = str(doc['reaction_smarts'])
         if not reaction_smarts: continue
@@ -16,6 +16,7 @@ def load_templates(SYNTH_DB, mincount=0, countsonly=False):
         try:
             rxn_f = AllChem.ReactionFromSmarts('(' + reaction_smarts.replace('>>', ')>>(') + ')')
             if rxn_f.Validate()[1] != 0:
+                print('Could not validate {}'.format(reaction_smarts))
                 continue
             template['rxn_f'] = rxn_f
         except Exception as e:
@@ -24,7 +25,7 @@ def load_templates(SYNTH_DB, mincount=0, countsonly=False):
         templates.append(template)
 
     num_templates = len(templates)
-    templates = [x for x in sorted(templates, key=lambda z: z['count'], reverse=True)]
+    templates = sorted(templates, key=lambda z: z['count'], reverse=True)
     print('Loaded {} templates'.format(num_templates))
 
     if countsonly:

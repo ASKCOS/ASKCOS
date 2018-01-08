@@ -6,7 +6,7 @@
 {% block extrahead %}{% endblock %}
 
 {% block navbar_items %}
-<a href="{% url 'main.views.synth_interactive' %}">Predictor</a>
+<a href="{% url 'synth_interactive' %}">Predictor</a>
 {% endblock %}
 
 {% block sidebar_items %}{% endblock %}
@@ -38,25 +38,29 @@ $("#reactants").change(function () {
 });
 $("#reagents").change(function () {
 	console.log( $(this).val() );
-	$.ajax({
-		url: '/ajax/smiles_to_image/',
-		data: {
-			smiles: $(this).val(),
-		},
-		dataType: 'json',
-		success: function (data) {
-			if (data.err) {
-				$("#reagents_image").html('error! could not parse');
-				$("#reagent_mol_wrapper").show();
-				$("#controls_wrapper").hide();
-			} else {
-				$("#reagents").val(data.smiles)
-				$("#reagents_image").html(data.html);
-				$("#reagent_mol_wrapper").show();
-				$("#controls_wrapper").show();
-			}
-		},
-	});
+	if ($(this).val()) {
+		$.ajax({
+			url: '/ajax/smiles_to_image/',
+			data: {
+				smiles: $(this).val(),
+			},
+			dataType: 'json',
+			success: function (data) {
+				if (data.err) {
+					$("#reagents_image").html('error! could not parse');
+					$("#reagent_mol_wrapper").show();
+					$("#controls_wrapper").hide();
+				} else {
+					$("#reagents").val(data.smiles)
+					$("#reagents_image").html(data.html);
+					$("#reagent_mol_wrapper").show();
+					$("#controls_wrapper").show();
+				}
+			},
+		});
+	} else {
+		$("#reagent_mol_wrapper").hide();
+	};
 
 });
 $("#start_synth").click(function () {
@@ -69,6 +73,7 @@ $("#start_synth").click(function () {
 			solvent: $("#solvent").val(),
 			temperature: $("#temperature").val(),
 			mincount: $("#mincount").val(),
+			maxreturn: $("#maxreturn").val(),
 		},
 		dataType: 'json',
 		success: function (data) {
@@ -106,27 +111,30 @@ $(document).ready(function() {
 
 
 {% block page_body %}
+<i>Note: reagents are not allowed to contribute atoms to the final product, but can influence the perceived likelihoods of different outcomes. Please include all compounds that can contribute atoms to the product as reactants. Stereochemistry is not perceived during the forward prediction. </i>
 
-<table>
+<table class="table table-borderless table-nonfluid">
 
-<tr><th style="vertical-align: text-top; text-align:left">Reactants: </th><td><input id="reactants" maxlength="500" size="40" type="text"/></td></tr>
+<tr><th style="vertical-align: text-top;">Reactants: </th><td><input id="reactants" maxlength="500" size="40" type="text"/></td></tr>
 
 <!-- Placeholder for rendering image after a SMILES string is entered -->
-<tr id="reactant_mol_wrapper" style="display:none"><th style="vertical-align: text-top; text-align:left">Parsed reactants:</th><td id="reactants_image"></td></tr>
+<tr id="reactant_mol_wrapper" style="display:none"><th style="vertical-align: text-top">Parsed reactants:</th><td id="reactants_image"></td></tr>
 
 <tr><th>{% csrf_token %}</th></tr>
 
 <tr><th style="vertical-align: text-top; text-align:left">Reagents: </th><td><input id="reagents" maxlength="500" size="40" type="text"/></td></tr>
 
 <!-- Placeholder for rendering image after a SMILES string is entered -->
-<tr id="reagent_mol_wrapper" style="display:none"><th style="vertical-align: text-top; text-align:left">Parsed reagents:</th><td id="reagents_image"></td></tr>
+<tr id="reagent_mol_wrapper" style="display:none"><th style="vertical-align: text-top;"">Parsed reagents:</th><td id="reagents_image"></td></tr>
 
-<tr><th style="vertical-align: text-top; text-align:left">Solvent: </th><td><select id="solvent">{% for solvent in solvent_choices %}<option value="{{ solvent.smiles }}" {% if solvent.name == solventselected %}selected{% endif %}>{{ solvent.name }}</option>{% endfor %}</select></td></tr>
+<tr><th>Solvent: </th><td><select id="solvent">{% for solvent in solvent_choices %}<option value="{{ solvent.smiles }}" {% if solvent.name == solventselected %}selected{% endif %}>{{ solvent.name }}</option>{% endfor %}</select></td></tr>
 
 
-<tr><th style="vertical-align: text-top; text-align:left">Temperature (Celsius): </th><td><input id="temperature" maxlength="6" size="6" type="text" value="{{ temperature }}"/></td></tr>
+<tr><th>Temperature (Celsius): </th><td><input id="temperature" maxlength="6" size="6" type="text" value="{{ temperature }}"/></td></tr>
 
-<tr><th style="vertical-align: text-top; text-align:left">Minimum template count: </th><td><input id="mincount" maxlength="6" size="6" type="text" value="{{ mincount }}"/></td></tr>
+<tr><th>Minimum template count: <a href="#" data-toggle="tooltip" title="What is the minimum template popularity you would like to use during the forward enumeration when evaluating suggested reactions? The default value of {{ mincount }} shows the value used during intiialization, so you cannot specify a value lower than this."><span class="glyphicon glyphicon-info-sign"></span></a></th><td><input id="mincount" maxlength="6" size="6" type="text" value="{{ mincount }}"/></td></tr>
+
+<tr><th>Maximum num. products: <a href="#" data-toggle="tooltip" title="Up to how many candidate outcomes should be returned? The only downside to returning a large number is the time it takes to render the images; it does not increase the computational time."><span class="glyphicon glyphicon-info-sign"></span></a></th><td><input id="maxreturn" maxlength="6" size="6" type="text" value="100"/></td></tr>
 
 <!-- Controls -->
 <tr id="controls_wrapper" style="display:none">

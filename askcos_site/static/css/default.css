@@ -12,19 +12,19 @@ body, #document {
 
 #main {
     background-color: #FFFFFF;
-    border: 1px solid #993333;
+    border: 1px solid #0000A0;
     border-right: 0px;
 }
 
 h1, h2, h3 {
       color: #333333;
 }
-a, #logo {
+/*a, #logo {
     color: #993333;
-}
+}*/
 
 #navbar {
-    border-bottom: 1px solid #993333;
+    border-bottom: 1px solid #0000A0;
 }
 
 /* Hyperlinks */
@@ -38,8 +38,43 @@ a:hover {
 }
 
 .biglink {
-    font-size: 150%;
+    font-size: 100%;
     text-align: center;
+}
+
+.nav-tabs > li > a {
+    margin-right: 0px;
+    border-radius: 0px 0px 0 0;
+    border-color: transparent;
+}
+
+.tooltip-inner {
+    min-width: 50px;
+    max-width: 400px; 
+}
+
+.table-borderless > tbody > tr > td,
+.table-borderless > tbody > tr > th,
+.table-borderless > tfoot > tr > td,
+.table-borderless > tfoot > tr > th,
+.table-borderless > thead > tr > td,
+.table-borderless > thead > tr > th {
+    border: none !important;
+}
+.table-nonfluid {
+   width: auto !important;
+}
+.table_templates {
+    font-size:small; 
+    table-layout:fixed;
+    width:100%;
+}
+.table_templates td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+.table_templates > tbody > tr:nth-child(2n+1) > td {
+    border-top: 3px solid #bbb;
 }
 
 /* Headings */
@@ -69,8 +104,8 @@ h3 {
 
 #sidebar {
     float: left;
-    width: 180px;
-    padding: 4px;
+    width: 200px;
+    padding: 0px;
 }
 
 #logo {
@@ -80,7 +115,7 @@ h3 {
 }
 
 #mainbar {
-    margin: 0px 0px 0px 190px;
+    margin: 0px 0px 0px 200px;
     padding: 0px;
 }
 
@@ -109,6 +144,9 @@ html, body, #document, #mainbar {
 #header, #footer {
     text-align: right;
 }
+/*#header > .dropdown:hover > ul.dropdown-menu {
+    display: block;    
+}*/
 
 #footer {
     text-align: center;
@@ -132,6 +170,7 @@ html, body, #document, #mainbar {
     text-align: left;
     vertical-align: top;
     font-style: italic;
+    padding:5px;
 }
 
 #sidebar img {
@@ -296,6 +335,9 @@ font.smiles {
     border-bottom: 1px;
     border-color: solid #ccc;
 }
+.table_templates tr:nth-child(even) {
+    border-top: 3px;
+}
 
 
 /* BEGIN TREE CSS */
@@ -368,7 +410,7 @@ right connector from last child*/
     width: 0; height: 20px;
 }
 
-.tree li a{
+.tree li a.treebox{
     border: 1px solid #888;
     padding: 5px 10px;
     text-decoration: none;
@@ -392,7 +434,7 @@ right connector from last child*/
     background: #c8e4f8; color: #000; border: 1px solid #94a0b4;
 }
 */
-.tree li a:hover {
+.tree li a.treebox:hover {
     #border-width: 2px;
 }
 
@@ -409,22 +451,22 @@ Thanks :)*/
 
 
 /* BEGIN TOOLTIP (http://www.menucool.com/tooltip/css-tooltip) */
-a.tooltip {outline:none; }
-a.tooltip strong {line-height:30px;}
-a.tooltip:hover {text-decoration:none;} 
-a.tooltip div {
+a.treetooltip {outline:none; }
+a.treetooltip strong {line-height:30px;}
+a.treetooltip:hover {text-decoration:none;} 
+a.treetooltip div {
     z-index:10;display:none; padding:14px 20px;
-    margin-top:-30px; margin-left:28px;
+    margin-top:-30px; margin-left:0px;
     #width:200px; 
     line-height:16px;
 }
-a.tooltip:hover div{
+a.treetooltip:hover div{
     display:inline; position:absolute; color:#111;
     border:1px solid #DCA; background:#fffAF0;}
 .callout {z-index:20;position:absolute;top:30px;border:0;left:-12px;}
     
 /*CSS3 extras*/
-a.tooltip div
+a.treetooltip div
 {
     border-radius:4px;
     box-shadow: 5px 5px 8px #CCC;
@@ -441,4 +483,16 @@ input[type='number'] {
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
     -webkit-appearance: none;
+}
+
+.pseudolink {
+    color:blue;
+    text-decoration:underline;
+    cursor:pointer;
+}
+[data-toggle="collapse"].collapsed .if-not-collapsed {
+    display:none;
+}
+[data-toggle="collapse"]:not(.collapsed) .if-collapsed {
+    display:none;
 }

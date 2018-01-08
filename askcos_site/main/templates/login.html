@@ -16,14 +16,16 @@
 <p>Your username and password did not match. Please try again.</p>
 {% endif %}
 
-<form method="post" action="{% url 'main.views.login' %}">
+<form method="post" action="{% url 'login' %}">
 {% csrf_token %}
 
-<table>
+<table class="table table-borderless table-nonfluid">
 {% for field in form %}
+    {% if field.errors %}
     <tr>
         <td colspan="2">{{ field.errors }}</td>
     </tr>
+    {% endif %}
     <tr>
         <td class="fieldKey">{{ field.label_tag }}</td>
         <td class="fieldValue">{{ field }}</td>
@@ -33,7 +35,10 @@
 
 <p><input type="submit" value="Login" id="submit"/></p>
 <input type="hidden" name="next" value="{{ next }}"/>
-
 </form>
+
+<br>
+<a href="registration/register/">Need an account?</a>
+<a href="registration/password/reset/">Forgot your password?</a>
 
 {% endblock %}
