@@ -1,0 +1,77 @@
+
+###############################################################################################
+MAKE-IT:
+Software for the prediction of feasible synthetic routes towards a desired compound
+###############################################################################################
+
+###############################################################################################
+Options
+###############################################################################################
+There are several options available to run the software. The commands, including all possible
+options are listed below. 
+-----------------------------------------------------------------------------------------------
+Model choices: the following options influence which models are used to carry out the different
+tasks within the algorithm.
+
+- Context recommendation: via '--context_recommender', currently has the following options:
+	-'Nearest_Neighbor': Uses a nearest neighbor based database search
+
+- Context prioritization: via '--context_prioritization', currently has the following options:
+	-'Probability': uses the likelihood of success for the reaction under that condition
+	-'Rank': uses the rank of the reaction under that condition relative to all other outcomes
+
+- Forward evaluation: via '--forward_scoring', currently has the following options:
+	-'Template_Based': uses the original forward evaluation method enumerating all possible 
+	  outcomes by applying templates and then predicting the most likely main product
+
+- Template prioritization: via '--template_prioritization', currently has the following options:
+	-'Relevance': Quantifies how relevant a given template is for the considered reactants
+	-'Popularity': Ranking based on number of references in literature, independent of reactants
+
+- Precursor prioritization: via '--precusor_prioritization', currently has the following options:
+	-'Heuristic': Simple heuristic, with decreasing score as number of atoms, rings and chiral
+	  centers increases
+	-'SCS': Synthetic Complexity Score - learned quantity indicating how complex a molecule is. 
+	 Correctly interprets molecules with a protection/deprotection group as less complex than
+	 their non-protected counterparts.
+
+- Tree scoring: via '--tree_scoring', currently has the following options:
+	-'Product': uses the product of template score and forward prediction score
+	-'Forward_only': uses only the forward prediction score
+	-'Template_only': uses only the template score
+
+--------------------------------------------------------------------------------------------------
+Limits and thresholds: the following options will set limits for the different parts of the
+program
+
+- Expansion time via '--expansion_time': limit the amount of time the program spends expanding the
+  retro synthetic tree. Default value is 60 seconds.
+  
+- Maximum search depth via '--max_depth': limit the search depth in the retro synthetic expansion.
+  Default value is 3
+  
+- Maximum degree of branching via '--max_branching': limit the number of branches generated in each
+  layer of the retro synthetic tree. Default value is 10
+  
+- Maximum number of buyable trees via '--max_trees': limit the number of buyable trees the program 
+  should search for. Default value is 100
+  
+- Minimal number of templates to be considered in retro synthetic direction for non-chiral reactions
+  via '--mincount_retro'. Default value is 25.
+  
+- Minimal number of templates to be considered in retro synthetic direction for chiral reactions via
+  '--mincoun_retro_c'. Default value is 10.
+ 
+- Minimal number of templates to be considered in synthetic direction via '--synth_mincount'. Default
+  value is 50
+  
+- Minimal target rank for considering a target feasible via '--rank_threshold'. Default value is 10.
+
+- Minimal probability for considering a target feasible via '--prob_threshold'. Default value is 0.05.
+
+- Maximum number of contexts to be proposed for each reaction via '--max_contexts'. Default value is
+  10
+
+- Maximum price per gram for a component to be considered buyable via '--max_ppg'. Default value is
+  10
+  
