@@ -13,7 +13,7 @@
 {% block page_body %}
 
 <form method="post" id="draw_form" action="{% url 'draw' %}">
-<table>
+<table class="table table-borderless table-nonfluid">
 {{ form.as_table }}
 	<th>{% csrf_token %}</th>
 	<td>
@@ -31,10 +31,10 @@
 <div class="warning">{{ warn }}</div>
 {% endif %}
 
-<h4>
+<h5>
 	{% if label_title %}{{ label_title }}: {% endif %}
 	{% if label %}<font class="smiles">{{ label }}</font><br>{% endif %}
-</h4>
+</h5>
 
 {% if image_url %}
 <img src="{{ image_url }}" >

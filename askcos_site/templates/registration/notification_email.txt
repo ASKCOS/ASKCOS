@@ -1,0 +1,6 @@
+{% load i18n %}
+{% blocktrans with site.name as site_name %}A new registration at {{ site_name }} was created by {{ user }}.{% endblocktrans %}
+
+{% trans 'Please click the following url and inspect his/her registration.' %}
+
+http://{{ site.domain }}{% url 'admin:index' %}registration/registrationprofile/{{ profile.pk }}/

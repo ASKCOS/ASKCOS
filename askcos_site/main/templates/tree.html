@@ -14,10 +14,8 @@
 <h2>Target: {{ target }}</h2>
 
 {% for tree in trees %}
-{% if trees|length > 1 %}
 <h3>Option {{ forloop.counter }}, score = {{ tree.score }}</h3>
-{% endif %}
-<div class="tree">
+<div class="tree" id="tree{{ forloop.counter }}">
 	<ul>
 		<li>
 			{% include 'tree_child.html' with target=tree %}

@@ -13,9 +13,9 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 PROJECT_PATH = os.path.dirname(__file__)
 
-# Celery 
-import djcelery
-djcelery.setup_loader()
+# # Celery 
+# import djcelery
+# djcelery.setup_loader()
 
 # Get settings from separate celeryconfig.py
 from askcos_celery.celeryconfig import *
@@ -27,7 +27,7 @@ from askcos_celery.celeryconfig import *
 SECRET_KEY = 'px$*ir)-wd=x6^!r++t53ik^2)z7!9cvw+m#@!-$ut@xjyjtg*'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['askcos.mit.edu']
 
@@ -51,6 +51,7 @@ TEMPLATES = [
                 'django.template.context_processors.media',
                 'django.template.context_processors.static',
                 'django.template.context_processors.tz',
+                'django.template.context_processors.request',
                 'django.contrib.messages.context_processors.messages',
             ],
         },
@@ -67,7 +68,9 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'askcos_site.main',
-    'django_celery_results',
+    # 'django_celery_results',
+    'registration',
+    'registration.contrib.notification',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -83,7 +86,18 @@ ROOT_URLCONF = 'askcos_site.urls'
 
 WSGI_APPLICATION = 'askcos_site.wsgi.application'
 
-
+# Registration
+REGISTRATION_SUPPLEMENT_CLASS = None
+ACCOUNT_ACTIVATION_DAYS = 7
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'localhost'
+EMAIL_PORT = 25
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
+EMAIL_USE_TLS = False
+DEFAULT_FROM_EMAIL = 'ccoley@mit.edu'
+REGISTRATION_NOTIFICATION = True
+REGISTRATION_NOTIFICATION_RECIPIENTS = ['ccoley@mit.edu']
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
 
@@ -149,7 +163,7 @@ RETRO_TRANSFORMER = {
 SYNTH_TRANSFORMS = {
     'database': 'reaxys',
     'collection': 'transforms_forward_v1',
-    'mincount': 25, 
+    'mincount': 5, 
 }
 SYNTH_TRANSFORMER = {
 }
@@ -165,6 +179,20 @@ CHEMICALS = {
     'database': 'reaxys_v2',
     'collection': 'chemicals',
 }
+
+INSTANCES_OLD = {
+    'database': 'reaxys',
+    'collection': 'instances',
+}
+REACTIONS_OLD = {
+    'database': 'reaxys',
+    'collection': 'reactions',
+}
+CHEMICALS_OLD = {
+    'database': 'reaxys',
+    'collection': 'chemicals',
+}
+
 BUYABLES = {
     'database': 'reaxys_v2',
     'collection': 'buyables',
@@ -181,11 +209,25 @@ PREDICTOR = {
 }
 
 CONTEXT_REC = {
-    'info_path': '/data/fatmodels/2MRxnModel/fpNN-10_2MRxn_info.txt',
-    'model_path': '/data/fatmodels/2MRxnModel/fpNN-10_2MRxn_lshf.pickle',
     'model_dir': '/data/fatmodels/FullReaxysModel',
     'database': 'reaxys',
 }
+
+LOCAL_STORAGE = {
+    'root': '/data/www-data',
+    'dir': '/data/www-data/local_db_dumps',
+    'user_saves': '/data/www-data/user_saves',
+}
+
+# For searching "old" templates
+TEMPLATE_BACKUPS = [
+    ('reaxys_v2', 'transforms_retro_v8'),
+    ('reaxys_v2', 'transforms_retro_v7'),
+    ('reaxys', 'transforms_retro_v6'),
+    ('reaxys', 'transforms_retro_v5'),
+    ('reaxys', 'transforms_retro_v4'),
+    ('reaxys', 'transforms_retro_v3'),
+]
 
 # LOGIN
 LOGIN_URL = '/login'

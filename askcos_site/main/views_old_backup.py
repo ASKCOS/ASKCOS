@@ -8,21 +8,26 @@ import django.contrib.auth.views
 from forms import SmilesInputForm, DrawingInputForm, is_valid_smiles
 from pymongo.message import bson
 from bson.objectid import ObjectId
+from datetime import datetime
 import time
 import numpy as np 
 import json
+import os
 
 import rdkit.Chem as Chem 
 import urllib2
 
 from askcos_site.askcos_celery.chiralretro.coordinator import get_top_chiral_precursors
 from askcos_site.askcos_celery.treebuilder.worker import get_top_precursors
+from askcos_site.askcos_celery.contextrecommender.worker import get_context_recommendation
 
 from askcos_site.main.globals import RetroTransformer, RETRO_FOOTNOTE, \
     SynthTransformer, SYNTH_FOOTNOTE, REACTION_DB, INSTANCE_DB, CHEMICAL_DB, \
-    BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, builder, predictor, \
-    PREDICTOR_FOOTNOTE, DONE_SYNTH_PREDICTIONS, RETRO_CHIRAL_FOOTNOTE
+    BUYABLE_DB, SOLVENT_DB, Pricer, TransformerOnlyKnown, \
+    PREDICTOR_FOOTNOTE, DONE_SYNTH_PREDICTIONS, RETRO_CHIRAL_FOOTNOTE, \
+    TEMPLATE_BACKUPS, REACTION_DB_OLD, INSTANCE_DB_OLD, CHEMICAL_DB_OLD
 
+can_control_robot = lambda request: request.user.get_username() in ['ccoley']
 
 def log_this_request(method):
     def f(*args, **kwargs):
@@ -34,24 +39,131 @@ def log_this_request(method):
         return method(*args, **kwargs)
     return f
 
-def index(request):
+@login_required
+def index(request, err=None):
     '''
     Homepage
     '''
-    print('Somebody loaded the index page!')
-    return render(request, 'index.html')
+    print('{} loaded the index page!'.format(request.user))
+    return render(request, 'index.html', {'err': err})
 
 def login(request):
     '''
     User login
     '''
-    return django.contrib.auth.views.login(request, template_name = 'login.html')
+    return django.contrib.auth.views.login(request, template_name='login.html')
 
 def logout(request):
     '''
     User logout
     '''
-    return django.contrib.auth.views.logout(request, template_name = 'logout.html')
+    return django.contrib.auth.views.logout(request, template_name='logout.html')
+
+from models import SavedResults
+@login_required
+def user_saved_results(request, err=None):
+    saved_results = SavedResults.objects.filter(user=request.user)
+    return render(request, 'saved_results.html', {'saved_results':saved_results, 'err': err})
+
+@login_required
+def user_saved_results_id(request, _id=-1):
+    saved_result = SavedResults.objects.filter(user=request.user, id=_id)
+    if saved_result.count() == 0:
+        return user_saved_results(request, err='Could not find that ID')
+    with open(saved_result[0].fpath, 'r') as fid:
+        html = fid.read().decode('utf8')
+    return render(request, 'saved_results_id.html', 
+        {'saved_result':saved_result[0], 'html':html, 'dt': saved_result[0].dt})
+
+@login_required
+def user_saved_results_del(request, _id=-1):
+    obj = SavedResults.objects.filter(user=request.user, id=_id)
+    if len(obj) == 1:
+        os.remove(obj[0].fpath)
+        obj[0].delete()
+    return user_saved_results(request, err=None)
+
+@login_required
+def ajax_user_save_page(request):
+    html = request.POST.get('html', None)
+    desc = request.POST.get('desc', 'no description')
+    dt   = request.POST.get('datetime', datetime.utcnow().strftime('%B %d, %Y %H:%M:%S %p UTC'))
+    if html is None:
+        print('Got None html')
+        data = {'err': 'Could not get HTML to save'}
+        return JsonResponse(data)
+    print('Got request to save a page')
+    now = datetime.now()
+    unique_str = '%i.txt' % hash((now, request.user))
+    fpath = os.path.join(settings.LOCAL_STORAGE['user_saves'], unique_str)
+    try:
+        with open(fpath, 'w') as fid:
+            fid.write(html.encode('utf8'))
+        print('Wrote to {}'.format(fpath))
+        obj = SavedResults.objects.create(user=request.user, 
+            description=desc,
+            dt=dt,
+            created=now,
+            fpath=fpath)
+        print('Created saved object {}'.format(obj.id))
+    except Exception as e:
+        print(e)
+        print('Could not write to file {}?'.format(fpath))
+        return JsonResponse({'err': 'Could not write to file {}?'.format(fpath)})
+
+    return JsonResponse({'err': False})
+
+from models import BlacklistedReactions
+@login_required
+def user_blacklisted_reactions(request, err=None):
+    blacklisted_reactions = BlacklistedReactions.objects.filter(user=request.user)
+    return render(request, 'blacklisted_reactions.html', {'blacklisted_reactions':blacklisted_reactions, 'err': err})
+
+@login_required
+def user_blacklisted_reactions_del(request, _id=-1):
+    obj = BlacklistedReactions.objects.filter(user=request.user, id=_id)
+    if len(obj) == 1:
+        obj[0].delete()
+    return user_blacklisted_reactions(request, err=None)
+
+@login_required
+def ajax_user_blacklist_reaction(request):
+    smiles = request.POST.get('smiles', None)
+    desc = request.POST.get('desc', 'no description')
+    dt   = request.POST.get('datetime', datetime.utcnow().strftime('%B %d, %Y %H:%M:%S %p UTC'))
+    if smiles is None:
+        print('Got None smiles')
+        data = {'err': 'Could not get reaction SMILES to save'}
+        return JsonResponse(data)
+    print('Got request to block a reaction')
+    obj = BlacklistedReactions.objects.create(user=request.user, 
+        description=desc,
+        dt=dt,
+        created=datetime.now(),
+        smiles=smiles,
+        active=True)
+    print('Created blacklisted reaction object {}'.format(obj.id))
+    return JsonResponse({'err': False})
+
+@login_required 
+def ajax_user_activate_reaction(request):
+    _id = request.GET.get('id', -1)
+    obj = BlacklistedReactions.objects.filter(user=request.user, id=_id)
+    if len(obj) == 1:
+        obj[0].active = True 
+        obj[0].save()
+        return JsonResponse({'err': False})
+    return JsonResponse({'err': 'Could not activate?'})
+
+@login_required 
+def ajax_user_deactivate_reaction(request):
+    _id = request.GET.get('id', -1)
+    obj = BlacklistedReactions.objects.filter(user=request.user, id=_id)
+    if len(obj) == 1:
+        obj[0].active = False 
+        obj[0].save()
+        return JsonResponse({'err': False})
+    return JsonResponse({'err': 'Could not deactivate?'})
 
 @login_required
 def retro(request):
@@ -94,11 +206,12 @@ def retro(request):
         {'name': 'Bortezomib', 'smiles': 'CC(C)C[C@@H](NC(=O)[C@@H](Cc1ccccc1)NC(=O)c2cnccn2)B(O)O'},
         {'name': 'Itraconazole', 'smiles': 'CCC(C)N1N=CN(C1=O)c2ccc(cc2)N3CCN(CC3)c4ccc(OC[C@H]5CO[C@@](Cn6cncn6)(O5)c7ccc(Cl)cc7Cl)cc4'},
         {'name': '6-Carboxytetramethylrhodamine', 'smiles': 'CN(C)C1=CC2=C(C=C1)C(=C3C=CC(=[N+](C)C)C=C3O2)C4=C(C=CC(=C4)C(=O)[O-])C(=O)O'},
+        {'name': '6-Carboxytetramethylrhodamine isomer', 'smiles': 'CN(C)c1ccc2c(c1)Oc1cc(N(C)C)ccc1C21OC(=O)c2ccc(C(=O)O)c1c2'},
         {'name': '(S)-Warfarin', 'smiles': 'CC(=O)C[C@@H](C1=CC=CC=C1)C2=C(C3=CC=CC=C3OC2=O)O'},
         {'name': 'Tranexamic Acid', 'smiles': 'NC[C@@H]1CC[C@H](CC1)C(O)=O'},
     ]
 
-    context['footnote'] = RETRO_FOOTNOTE
+    context['footnote'] = RETRO_CHIRAL_FOOTNOTE
     return render(request, 'retro.html', context)
 
 @login_required
@@ -195,7 +308,7 @@ def retro_lit_target(request, smiles, max_n = 50):
     return render(request, 'retro.html', context)
 
 @login_required
-def retro_interactive(request):
+def retro_interactive(request, target=None):
     '''Builds an interactive retrosynthesis page'''
 
     context = {}
@@ -208,23 +321,18 @@ def retro_interactive(request):
     context['expansion_time_default'] = 60
     context['max_ppg_default'] = 100
 
+    if target is not None:
+        context['target_mol'] = target
+
     return render(request, 'retro_interactive.html', context)
 
 @login_required
-def synth_interactive(request, reactants='', reagents='', solvent='toluene', temperature='20', mincount=''):
+def synth_interactive(request, reactants='', reagents='', solvent='toluene', 
+        temperature='20', mincount='25', product=None):
     '''Builds an interactive forward synthesis page'''
 
-    print(request.POST)
-    print(reactants)
     context = {} 
     context['footnote'] = PREDICTOR_FOOTNOTE
-
-    context['reactants'] = reactants
-    context['reagents'] = reagents
-    context['solventselected'] = solvent
-    context['temperature'] = temperature
-    context['mincount'] = mincount if mincount != '' else settings.SYNTH_TRANSFORMS['mincount']
-
     solvent_choices = []
     for doc in SOLVENT_DB.find({'_id': {'$ne': 'default'}}):
         solvent_choices.append({
@@ -232,15 +340,48 @@ def synth_interactive(request, reactants='', reagents='', solvent='toluene', tem
             'name': doc['name'],
         })
     context['solvent_choices'] = sorted(solvent_choices, key = lambda x: x['name'])
+    context['reactants'] = reactants
 
+    if product is None:    
+        context['reagents'] = reagents
+        context['solventselected'] = solvent
+        context['temperature'] = temperature
+    else:
+        # Get suggested conditions
+        smiles = '%s>>%s' % (reactants, product)
+        from askcos_site.askcos_celery.contextrecommender.worker import get_context_recommendation
+        res = get_context_recommendation.delay(smiles, n=10)
+        contexts = res.get(60)
+        if contexts is None or len(contexts) == 0:
+            raise ValueError('Context recommender was unable to get valid context(?)')
+        (T1, slvt1, rgt1, cat1, t1, y1) = contexts[0]
+        slvt1 = trim_trailing_period(slvt1)
+        rgt1 = trim_trailing_period(rgt1)
+        cat1 = trim_trailing_period(cat1)
+        (rgt1, cat1, slvt1) = fix_rgt_cat_slvt(rgt1, cat1, slvt1)
+        for slvt in solvent_choices:
+            if slvt['smiles'] == slvt1:
+                context['solventselected'] = slvt['name']
+                break
+        context['reagents'] = rgt1
+        context['temperature'] = T1 
+
+    context['mincount'] = mincount if mincount != '' else settings.SYNTH_TRANSFORMS['mincount']
     return render(request, 'synth_interactive.html', context)
+
+@login_required
+def synth_interactive_smiles(request, smiles):
+    '''Synth interactive initialized w/ reaction smiles'''
+    return synth_interactive(request, reactants=smiles.split('>')[0], product=smiles.split('>')[-1])
 
 def ajax_error_wrapper(ajax_func):
     def ajax_func_call(*args, **kwargs):
         try:
             return ajax_func(*args, **kwargs)
         except Exception as e:
+            print(e)
             return JsonResponse({'err':True, 'message': str(e)})
+
     return ajax_func_call
 
 def resolve_smiles(smiles):
@@ -326,29 +467,58 @@ def ajax_start_synth(request):
     temperature = request.GET.get('temperature', None)
     reagents = request.GET.get('reagents', None)
     mincount = int(request.GET.get('mincount', None))
+    maxreturn = int(request.GET.get('maxreturn', 100))
     print('Conditions for forward synthesis:')
     print('reactants: {}'.format(reactants))
     print('solvent: {}'.format(solvent))
     print('temp: {}'.format(temperature))
     print('reagents: {}'.format(reagents))
     print('mincount: {}'.format(mincount))
+    print('max return: {}'.format(maxreturn))
 
     startTime = time.time()
     from askcos_site.askcos_celery.forwardpredictor.coordinator import get_outcomes
     res = get_outcomes.delay(reactants, 
         contexts=[(temperature, reagents, solvent)], 
         mincount=mincount,
-        top_n=25)
+        top_n=maxreturn)
     outcomes = res.get(300)[0]
 
     print('Got top outcomes, length {}'.format(len(outcomes)))
     data['html_time'] = '{:.3f} seconds elapsed'.format(time.time() - startTime)
 
     if outcomes:
-        data['html'] = render_to_string('synth_outcomes_only.html', {'outcomes': outcomes})
+
+        data['html'] = render_to_string('synth_outcomes_only.html', 
+            {'outcomes': outcomes})
     else:
         data['html'] = 'No outcomes found? That is weird...'
+    
+    # Save in session in case used wants to print
+    request.session['last_synth_interactive'] = {'reactants': reactants, 
+        'temperature': temperature, 'reagents': reagents, 'solvent': solvent,
+        'mincount': mincount, 'outcomes': outcomes}
+
     return JsonResponse(data)
+
+@login_required
+def export_synth_results(request):
+    if 'last_synth_interactive' not in request.session:
+        return index(request, err='Could not find synth results to save?')
+    
+    synth_data = request.session['last_synth_interactive']
+    txt = '%s\r\n' % SYNTH_FOOTNOTE
+    txt += 'Reactants: %s\r\n' % synth_data['reactants']
+    txt += 'Reagents: %s\r\n' % synth_data['reagents']
+    txt += 'Temperature: %s\r\n' % synth_data['temperature']
+    txt += 'Solvent: %s\r\n' % synth_data['solvent']
+    txt += '\r\n'
+    txt += '%s\t%s\t%s\t%s\r\n' % ('Rank', 'SMILES', 'Probability', 'Score')
+    for outcome in synth_data['outcomes']:
+        txt += '%s\t%s\t%s\t%s\r\n' % (outcome['rank'], outcome['smiles'], outcome['prob'], outcome['score'])
+    response = HttpResponse(txt, content_type='text/csv')
+    response['Content-Disposition'] = 'attachment;filename=export.csv'
+    return response
 
 @ajax_error_wrapper
 def ajax_start_retro_celery(request):
@@ -363,11 +533,15 @@ def ajax_start_retro_celery(request):
     max_ppg = int(request.GET.get('max_ppg', 10))
     chiral = json.loads(request.GET.get('chiral', 'false'))
 
+    blacklisted_reactions = list(set([x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))
+
     from askcos_site.askcos_celery.treebuilder.coordinator import get_buyable_paths
     res = get_buyable_paths.delay(smiles, mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth, 
-        max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5, chiral=chiral)
+        max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5, chiral=chiral,
+        known_bad_reactions=blacklisted_reactions)
     (tree_status, trees) = res.get(expansion_time * 3)
-    print(tree_status)
+    print('Tree building {} for user {} ({} forbidden reactions)'.format(
+        smiles, request.user, len(blacklisted_reactions)))
     # print(trees)
 
     (num_chemicals, num_reactions, at_depth) = tree_status
@@ -381,14 +555,201 @@ def ajax_start_retro_celery(request):
         data['html_stats'] += '<br>   at depth {}, {} {}'.format(depth, count, label)
 
     if trees:
-        data['html_trees'] = render_to_string('trees_only.html', {'trees': trees})
+        data['html_trees'] = render_to_string('trees_only.html', 
+            {'trees': trees, 'can_control_robot': can_control_robot(request)})
     else:
         data['html_trees'] = 'No trees resulting in buyable chemicals found!'
+    
+    # Save to session in case user wants to export
+    request.session['last_retro_interactive'] = trees
+    print('Saved {} trees to {} session'.format(len(trees), request.user.get_username()))
+
     return JsonResponse(data)     
+
+def get_name(smiles):
+    try:
+        names = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/names'.format(smiles)).read()
+        return names.split('\n')[0]
+    except urllib2.HTTPError:
+        return smiles
+
+@login_required
+def export_retro_results(request, _id=1):
+    if 'last_retro_interactive' not in request.session:
+        return index(request, err='Could not find retro results to save?')
+    if not can_control_robot(request):
+        return index(request, err='You do not have permission to be here!')
+    
+    try:
+        _id = int(_id)
+    except Exception:
+        return index(request, err='Passed _id was non-integer...?')
+
+    if _id > len(request.session['last_retro_interactive']):
+        return index(request, err='Requested index out of range?')
+
+    tree = request.session['last_retro_interactive'][_id - 1]
+
+    class mutable:
+        bays = []; 
+        reagents = []
+        bay_id = 1; 
+        reagent_id = 1 # start at 1 and work up, then change at the end
+
+    def recursive_get_bays(chem):
+        # Is this the product of a reaction? Then start defining the reactor
+        if chem['children']:
+            this_bay = {'type': 'reactor', 'id': mutable.bay_id}
+            mutable.bay_id += 1
+            
+            # Outlet is this chemical (smiles)
+            this_bay['outlet_smiles'] = chem['smiles']
+            this_bay['outlet'] = get_name(chem['smiles'])
+            # Only child is a reaction
+            rxn = chem['children'][0]
+            # Make sure this is not a convergent synthesis
+            if sum([len(child['children']) > 0 for child in rxn['children']]) > 1:
+                return index(request, err='Cannot perform convergent syntheses yet...')
+
+            # Save reaction SMILES for the reactor
+            this_bay['reaction_smiles'] = rxn['smiles']
+            this_bay['necessary_reagent'] = rxn['necessary_reagent']
+            
+            # Get context recommendations (just one for now, no forward evaluator)
+            res = get_context_recommendation.delay(rxn['smiles'], n=10)
+            contexts = res.get(60)
+            if not contexts:
+                # use default conditions
+                (T1, slvt1, rgt1, cat1) = 20., 'C1COCC1', '', ''
+                slvt1_name = 'THF (unk. solvent)'
+                this_bay['context_failed'] = True
+            else:
+                (T1, slvt1, rgt1, cat1, t1, y1) = contexts[0]
+                slvt1_name = get_name(slvt1)
+                this_bay['context_failed'] = False
+            this_bay['temperature'] = T1
+            this_bay['reaction_solvent_smiles'] = slvt1
+            this_bay['reaction_solvent_name'] = slvt1_name
+
+            # Define inlets
+            this_bay['inlets'] = []
+
+            # Define inlets - reagents/catalysts
+            for rgt in rgt1.split('.') + cat1.split('.'):
+                if not rgt:
+                    continue
+                reagent = {
+                    'id': mutable.reagent_id,
+                    'smiles': rgt,
+                    'name': '%s in %s' % (get_name(rgt), slvt1_name),
+                    'type': 'reagent',
+                }
+                mutable.reagent_id += 1
+                mutable.reagents.append(reagent)
+                this_bay['inlets'].append(reagent)
+
+            # Define inlets - new reactants/feeds
+            for child in rxn['children']:
+                if not child['children']:
+                    reagent = {
+                        'id': mutable.reagent_id,
+                        'smiles': child['smiles'],
+                        'name': '%s in %s' % (get_name(child['smiles']), slvt1_name),
+                        'type': 'reactant',
+                        'ppg': child['ppg'],
+                    }
+                    mutable.reagent_id += 1
+                    mutable.reagents.append(reagent)
+                    this_bay['inlets'].append(reagent)
+
+            # Save this bay
+            mutable.bays.append(this_bay)
+
+            # Now add the next bays as needed
+            for child in rxn['children']:
+                if child['children']:
+                    recursive_get_bays(child)
+
+    # Actually perform this on the current head node
+    recursive_get_bays(tree)
+    bays = mutable.bays 
+    reagents = mutable.reagents
+
+    # Renumber bays
+    num_bays = len(bays)
+    for bay in bays:
+        bay['id'] = num_bays - bay['id'] + 1
+    # Renumber reagents
+    num_reagents = len(reagents)
+    for reagent in reagents:
+        reagent['id'] = num_reagents - reagent['id'] + 1
+
+    # Report (for debugging mostly)
+    print('{} bays'.format(len(bays)))
+    for bay in sorted(bays, key=lambda x:int(x['id'])):
+        print('\nBay ID {:2d}'.format(bay['id']))
+        print('    {:20s}{:20s}'.format('type', bay['type']))
+        print('    {:20s}{:20s}'.format('solvent', bay['reaction_solvent_name']))
+        print('    {:20s}{:20s}'.format('temperature', str(bay['temperature'])))
+        inlets = ', '.join([str(rgt['id']) for rgt in bay['inlets']])
+        if bay['id'] != 1:
+            inlets += ', and bay {} outlet'.format(bay['id'] - 1)
+        print('    {:20s}{:20s}'.format('inlets', inlets))
+        print('    {:20s}{:20s}'.format('outlet', bay['outlet']))
+    print('\n{} reagents'.format(len(reagents)))
+    for reagent in sorted(reagents, key=lambda x:int(x['id'])):
+        print('ID {:2d}: {}'.format(reagent['id'], reagent['name']))
+
+    
+
+    # Reformat for Suzanne
+    bay_dict = {}
+    for bay in bays:
+        key = 'bay{}'.format(bay['id'])
+        bay_dict[key] = {
+            'transformation': bay['reaction_smiles'],
+            'temp': bay['temperature'],
+        }
+        for i in range(len(bay['inlets'])):
+            bay_dict[key]['reagent{}'.format(i+1)] = bay['inlets'][i]['name']
+    
+    bays = json.dumps(bays)
+    print('Post-json dump: {}'.format(bays))
+
+    bay_dict = json.dumps(bay_dict)
+    print('Bay-dict for Suzanne: {}'.format(bay_dict))
+
+
+    return post_data_to_external_page(request, 'http://Apex-env.qr9fgjkxpf.us-east-2.elasticbeanstalk.com/move_robot/', 
+        {'bay_dict': bay_dict, 'bays': bays})
+
+@login_required
+def post_data_to_external_page(request, url, data={}):
+    '''
+    Returns a dummy page that immediately posts to an external site
+    '''
+    return render(request, 'redirect.html', {'data': data, 'url': url})
 
 @login_required
 def evaluate_rxnsmiles(request):
     return render(request, 'evaluate.html', {})
+
+# Clean up
+def fix_rgt_cat_slvt(rgt1, cat1, slvt1):
+    # Merge cat and reagent for forward predictor
+    if rgt1 and cat1:
+        rgt1 = rgt1 + '.' + cat1
+    elif cat1:
+        rgt1 = cat1
+    # Reduce solvent to single one
+    if '.' in slvt1:
+        slvt1 = slvt1.split('.')[0]
+    return (rgt1, cat1, slvt1)
+def trim_trailing_period(txt):
+    if txt:
+        if txt[-1] == '.':
+            return txt[:-1]
+    return txt
 
 @ajax_error_wrapper
 def ajax_evaluate_rxnsmiles(request):
@@ -411,30 +772,12 @@ def ajax_evaluate_rxnsmiles(request):
         num_contexts = 1
     else:
         num_contexts = 10
-    from askcos_site.askcos_celery.contextrecommender.worker import get_context_recommendation
     res = get_context_recommendation.delay(smiles, n=num_contexts)
     contexts = res.get(60)
     print('Got context(s)')
     print(contexts)
     if contexts is None:
         raise ValueError('Context recommender was unable to get valid context(?)')
-
-    # Clean up
-    def fix_rgt_cat_slvt(rgt1, cat1, slvt1):
-        # Merge cat and reagent for forward predictor
-        if rgt1 and cat1:
-            rgt1 = rgt1 + '.' + cat1
-        elif cat1:
-            rgt1 = cat1
-        # Reduce solvent to single one
-        if '.' in slvt1:
-            slvt1 = slvt1.split('.')[0]
-        return (rgt1, cat1, slvt1)
-    def trim_trailing_period(txt):
-        if txt:
-            if txt[-1] == '.':
-                return txt[:-1]
-        return txt
 
     contexts_for_predictor = []
     for (T1, slvt1, rgt1, cat1, t1, y1) in contexts:
@@ -451,7 +794,7 @@ def ajax_evaluate_rxnsmiles(request):
     if necessary_reagent and contexts_for_predictor[0][1]:
         reactant_smiles += contexts_for_predictor[0][1] # add rgt
     from askcos_site.askcos_celery.forwardpredictor.coordinator import get_outcomes
-    res = get_outcomes.delay(reactant_smiles, contexts=contexts_for_predictor, mincount=synth_mincount, top_n=10)
+    res = get_outcomes.delay(reactant_smiles, contexts=contexts_for_predictor, mincount=synth_mincount, top_n=50)
     all_outcomes = res.get(300)
     if all([len(outcome) == 0 for outcome in all_outcomes]):
         if not verbose:
@@ -469,7 +812,7 @@ def ajax_evaluate_rxnsmiles(request):
             data['html_color'] = str('#%02x%02x%02x' % (int(255), int(0), int(0)))
             return JsonResponse(data)
     plausible = [0. for i in range(len(all_outcomes))]
-    ranks = ['>10' for i in range(len(all_outcomes))]
+    ranks = ['>50' for i in range(len(all_outcomes))]
     major_prods = ['none found' for i in range(len(all_outcomes))]
     major_probs = ['n/a' for i in range(len(all_outcomes))]
     for i, outcomes in enumerate(all_outcomes):
@@ -522,7 +865,7 @@ def ajax_evaluate_rxnsmiles(request):
         elif rank == 1:
             data['html'] += '\n<br><i>Nearest neighbor got {}% yield</i>'.format(y1)
 
-
+    plausible = plausible / 100.
     B = 150.
     R = 255. - (plausible > 0.5) * (plausible - 0.5) * (255. - B) * 2.
     G = 255. - (plausible < 0.5) * (0.5 - plausible) * (255. - B) * 2.
@@ -532,59 +875,68 @@ def ajax_evaluate_rxnsmiles(request):
     DONE_SYNTH_PREDICTIONS['{}-{}'.format(smiles, synth_mincount)] = data
     return JsonResponse(data)
 
-@login_required
-def synth(request):
-    '''
-    Forward synthesis homepage
-    '''
-    context = {}
+# @login_required
+# def synth(request):
+#     '''
+#     Forward synthesis homepage
+#     '''
+#     context = {}
 
-    if request.method == 'POST':
-        context['form'] = SmilesInputForm(request.POST)
-        if not context['form'].is_valid():
-            context['err'] = 'Could not parse!'
-        else:
-            # Identify target
-            smiles = context['form'].cleaned_data['smiles']
-            if is_valid_smiles(smiles):
-                return redirect('synth_target', smiles = smiles)
-            else:
-                context['err'] = 'Invalid SMILES string: {}'.format(smiles)
-    else:
-        context['form'] = SmilesInputForm()
+#     if request.method == 'POST':
+#         context['form'] = SmilesInputForm(request.POST)
+#         if not context['form'].is_valid():
+#             context['err'] = 'Could not parse!'
+#         else:
+#             # Identify target
+#             smiles = context['form'].cleaned_data['smiles']
+#             if is_valid_smiles(smiles):
+#                 return redirect('synth_target', smiles = smiles)
+#             else:
+#                 context['err'] = 'Invalid SMILES string: {}'.format(smiles)
+#     else:
+#         context['form'] = SmilesInputForm()
 
-    context['footnote'] = SYNTH_FOOTNOTE
-    return render(request, 'synth.html', context)
+#     context['footnote'] = SYNTH_FOOTNOTE
+#     return render(request, 'synth.html', context)
 
-@login_required
-def synth_target(request, smiles, max_n = 50):
-    '''
-    Given a set of reactants as a single SMILES string, find products
-    '''
+# @login_required
+# def synth_target(request, smiles, max_n = 50):
+#     '''
+#     Given a set of reactants as a single SMILES string, find products
+#     '''
 
-    # Render form with target
-    context = {}
-    context['form'] = SmilesInputForm({'smiles': smiles})
+#     # Render form with target
+#     context = {}
+#     context['form'] = SmilesInputForm({'smiles': smiles})
 
-    # Look up target
-    smiles_img = reverse('draw_smiles', kwargs={'smiles':smiles})
-    context['target'] = {
-        'smiles': smiles,
-        'img': smiles_img,
-    }
+#     # Look up target
+#     smiles_img = reverse('draw_smiles', kwargs={'smiles':smiles})
+#     context['target'] = {
+#         'smiles': smiles,
+#         'img': smiles_img,
+#     }
 
-    # Perform forward synthesis
-    result = SynthTransformer.perform_forward(smiles)
-    context['products'] = result.return_top(n = 50)
-    #print(context['products'])
-    # Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
-    # (add "id" field to be string version of ObjectId "_id")
-    for (i, product) in enumerate(context['products']):
-        context['products'][i]['tforms'] = \
-            [dict(SynthTransformer.lookup_id(_id), **{'id':str(_id)}) for _id in product['tforms']]
+#     # Perform forward synthesis
+#     result = SynthTransformer.perform_forward(smiles)
+#     context['products'] = result.return_top(n = 50)
+#     #print(context['products'])
+#     # Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
+#     # (add "id" field to be string version of ObjectId "_id")
+#     for (i, product) in enumerate(context['products']):
+#         context['products'][i]['tforms'] = \
+#             [dict(SynthTransformer.lookup_id(_id), **{'id':str(_id)}) for _id in product['tforms']]
 
-    context['footnote'] = SYNTH_FOOTNOTE
-    return render(request, 'synth.html', context)
+#     context['footnote'] = SYNTH_FOOTNOTE
+#     return render(request, 'synth.html', context)
+
+def fancyjoin(lst, nonemessage='(none)'):
+    if not lst:
+        return nonemessage
+    if len(lst) == 1:
+        return lst[0]
+    if len(lst) == 2:
+        return '%s and %s' % (lst[0], lst[1])
+    return ', '.join(lst[:-1]) + ', and %s' % lst[-1]
 
 @login_required
 def template_target(request, id):
@@ -598,43 +950,69 @@ def template_target(request, id):
     context = {}
 
     transform = RetroTransformer.lookup_id(ObjectId(id))
-    if not transform: transform = SynthTransformer.lookup_id(ObjectId(id))
+    if not transform: 
+        transform = SynthTransformer.lookup_id(ObjectId(id))
 
+    # Look through backups...
     if not transform:
-        context['err'] = 'Transform not found'
-        return render(request, 'template.html', context)
+        for coll in TEMPLATE_BACKUPS:
+            transform = coll.find_one({'_id': ObjectId(id)})
+            if transform: 
+                context['warn'] = 'This template is out of date (from %s)' % coll._Collection__full_name
+                break
+        if not transform:
+            context['err'] = 'Transform not found, even after looking in backup DBs %s' % ', '.join([coll._Collection__full_name for coll in TEMPLATE_BACKUPS])
+            return render(request, 'template.html', context)
+    
     context['template'] = transform
+    context['template']['id'] = id
     reference_ids = transform['references']
 
-    references = []; done_refs = set()
+    references = []
+    rx_docs = {}; xrn_to_smiles = {}
     context['total_references'] = len(reference_ids)
-    for i, ref_id in enumerate(reference_ids):
-        rx_id = int(ref_id.split('-')[0])
-        if rx_id in done_refs:
-            continue
-        doc = None
-        try:
-            doc = REACTION_DB.find_one({'_id': rx_id})
-        except Exception as e:
-            print(e)
-        if doc is not None:
-            references.append({
-                'id': rx_id,
-                'label': ref_id,
-                'reaction_smiles': doc['RXN_SMILES'],
-                'maxpub': int(doc['RX_MAXPUB'][0]) if 'RX_MAXPUB' in doc else '????',
-                'nvar': doc['RX_NVAR'] if 'RX_NVAR' in doc else '?',
-                'numref': doc['RX_NUMREF'] if 'RX_NUMREF' in doc else '?',
-            })
-            done_refs.add(rx_id)
-        else:
-            print('Could not find doc with example')
-        # Limit number retrieved
-        if len(references) >= 100:
-            break
-    context['references'] = sorted(references, key=lambda x: x['maxpub'], reverse=True)
-    from makeit.retro.conditions import average_template_list
-    context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
+    for rxd_doc in INSTANCE_DB.find({'_id': {'$in': reference_ids}}):
+        rx_id = int(rxd_doc['_id'].split('-')[0])
+        rx_doc = REACTION_DB.find_one({'_id': rx_id})
+        if rx_doc is None: rx_doc = {}
+        ref = {
+            'rx_id': rx_id,
+            'rxd_num': rxd_doc['_id'].split('-')[1],
+            'label': rxd_doc['_id'],
+            'T': rxd_doc['RXD_T'] if rxd_doc['RXD_T'] != -1 else 'unk',
+            'y': float(rxd_doc['RXD_NYD']) if rxd_doc['RXD_NYD'] != -1 else 'unk',
+            't': rxd_doc['RXD_TIM'] if rxd_doc['RXD_TIM'] != -1 else 'unk',
+            'smiles': rx_doc.get('RXN_SMILES', 'no smiles found'),
+            'nvar': rx_doc.get('RX_NVAR', '?'),
+            'cond': fancyjoin(rxd_doc['RXD_COND'], nonemessage=''),
+            'ded': rxd_doc.get('RXD_DED', [''])[0],
+        }
+
+        def rxn_lst_to_name_lst(xrn_lst):
+            lst = []
+            for xrn in xrn_lst:
+                if xrn not in xrn_to_smiles: 
+                    chem_doc = CHEMICAL_DB.find_one({'_id': xrn})
+                    if chem_doc is None:
+                        xrn_to_smiles[xrn] = 'Chem-%i' % xrn
+                    elif 'IDE_CN' not in chem_doc:
+                        if 'SMILES' not in chem_doc:
+                            xrn_to_smiles[xrn] = 'Chem-%i' % xrn
+                        else:
+                            xrn_to_smiles[xrn] = chem_doc['SMILES']                      
+                    else:
+                        xrn_to_smiles[xrn] = chem_doc['IDE_CN']
+                lst.append(xrn_to_smiles[xrn])
+            return lst
+
+        ref['reagents'] = fancyjoin(rxn_lst_to_name_lst(rxd_doc['RXD_RGTXRN']))
+        ref['solvents'] = fancyjoin(rxn_lst_to_name_lst(rxd_doc['RXD_SOLXRN']))
+        ref['catalysts'] = fancyjoin(rxn_lst_to_name_lst(rxd_doc['RXD_CATXRN']))
+        references.append(ref)
+        
+    context['references'] = sorted(references, key=lambda x: x['y'] if x['y'] != 'unk' else -1, reverse=True)[:500]
+    #from makeit.retro.conditions import average_template_list
+    #context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
 
     return render(request, 'template.html', context)
 
@@ -707,8 +1085,8 @@ def draw_smiles(request, smiles):
     Returns a png response for a target smiles
     '''
     from makeit.retro.draw import MolsSmilesToImage
-    response = HttpResponse(content_type = 'img/png')
-    MolsSmilesToImage(str(smiles)).save(response, 'png')
+    response = HttpResponse(content_type = 'image/jpeg')
+    MolsSmilesToImage(str(smiles)).save(response, 'jpeg', quality=70)
     return response
 
 @login_required
@@ -735,8 +1113,8 @@ def draw_template(request, template):
     Returns a png response for a reaction SMARTS template
     '''
     from makeit.retro.draw import TransformStringToImage
-    response = HttpResponse(content_type = 'img/png')
-    TransformStringToImage(str(template)).save(response, 'png')
+    response = HttpResponse(content_type = 'image/jpeg')
+    TransformStringToImage(str(template)).save(response, 'jpeg', quality=70)
     return response
 
 @login_required
@@ -763,8 +1141,8 @@ def draw_reaction(request, smiles):
     Returns a png response for a SMILES reaction string
     '''
     from makeit.retro.draw import ReactionStringToImage
-    response = HttpResponse(content_type = 'img/png')
-    ReactionStringToImage(str(smiles)).save(response, 'png')
+    response = HttpResponse(content_type = 'image/jpeg')
+    ReactionStringToImage(str(smiles)).save(response, 'jpeg', quality=70)
     return response
 
 @login_required

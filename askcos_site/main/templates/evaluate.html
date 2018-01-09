@@ -6,7 +6,7 @@
 {% block extrahead %}{% endblock %}
 
 {% block navbar_items %}
-<a href="{% url 'main.views.evaluate_rxnsmiles' %}">Evaluator</a>
+<a href="{% url 'evaluate_rxnsmiles' %}">Evaluator</a>
 {% endblock %}
 
 {% block sidebar_items %}{% endblock %}
@@ -79,7 +79,7 @@ $(document).ready(function() {
 
 {% block page_body %}
 
-<table>
+<table class="table table-borderless table-nonfluid">
 <tr><th>{% csrf_token %}</th></tr>
 
 <tr><th style="vertical-align: text-top; text-align:left">Reactants: </th><td><input id="reactants" maxlength="500" size="40" type="text"/></td></tr>

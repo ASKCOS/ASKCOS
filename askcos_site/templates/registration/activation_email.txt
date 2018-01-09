@@ -1,0 +1,24 @@
+{% load i18n %}
+{% blocktrans %}Dear {{ user }},{% endblocktrans %}
+{% if is_generated %}
+{% blocktrans with site.name as site_name %}Your account at {{ site_name }} has been activated!{% endblocktrans %}
+
+{% trans 'The password of your account was generated automatically and displayed below.' %}
+{% trans 'Please click the following url to login.' %}
+{% trans 'It is strongly recommended that you change your initial password to something more secure.' %}
+
+{% trans '::Your account information::' %}
+{% blocktrans %}USERNAME: {{ user }}{% endblocktrans %}
+{% blocktrans %}PASSWORD: {{ password }}{% endblocktrans %}
+
+http://{{ site.domain }}{% url 'login' %}
+{% else %}
+{% blocktrans with site.name as site_name %}Your account of {{ site_name }} has been activated! {% endblocktrans %}
+
+{% trans 'Please click the following url to login.' %}
+
+{% trans '::Your account information::' %}
+{% blocktrans %}USERNAME: {{ user }}{% endblocktrans %}
+
+http://{{ site.domain }}{% url 'login' %}
+{% endif %}

@@ -1,0 +1,10 @@
+{% load i18n %}
+{% blocktrans %}Dear {{ user }},{% endblocktrans %}
+
+{% blocktrans with site.name as site_name %}Your registration of {{ site_name }} has been approved.{% endblocktrans %}
+
+{% trans 'Please click the following url and set your account password to finish activation.' %}
+
+http://{{ site.domain }}{% url 'registration_activate' activation_key=activation_key %}
+
+{% blocktrans %}The activation link above will expire in {{ expiration_days }} days.{% endblocktrans %}

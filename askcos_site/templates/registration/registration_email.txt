@@ -1,0 +1,8 @@
+{% load i18n %}
+{% blocktrans %}Dear {{ user }},{% endblocktrans %}
+
+{% trans 'Your account registration was submitted successfully.' %}
+
+{% trans 'Please send an email to ccoley@mit.edu with your name and company/university affiliation, then wait for an administrator to verify your registration.' %}
+
+{% trans 'You should receive an acceptance or rejection email within a few days. If not, please follow up with ccoley@mit.edu' %}

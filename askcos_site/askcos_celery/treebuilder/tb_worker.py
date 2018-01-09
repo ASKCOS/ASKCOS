@@ -59,12 +59,36 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
     print('Treebuilder worker was asked to expand {} (mincount {}, branching {})'.format(
         smiles, mincount, max_branching
     ))
+<<<<<<< HEAD:askcos_site/askcos_celery/treebuilder/tb_worker.py
     
     global retroTransformer
     result = retroTransformer.get_outcomes(smiles, mincount, (precursor_prioritizer, template_prioritizer))
     precursors = result.return_top(n=max_branching)
     print('Task completed, returning results.')
     return (smiles, precursors)
+=======
+
+    global RetroTransformer
+
+    result = RetroTransformer.perform_retro(smiles, mincount=mincount)
+    if result is None:
+        precursors = []
+    else:
+        precursors = result.return_top(n=max_branching)
+    
+    # Must convert ObjectID to string to json-serialize
+    for i in range(len(precursors)):
+        precursors[i]['tforms'] = [str(tform) for tform in precursors[i]['tforms']]
+
+    if raw_results:
+        return precursors
+        
+    return (smiles, [({'necessary_reagent': precursor['necessary_reagent'],
+              'num_examples': precursor['num_examples'],
+               'score': precursor['score'],
+               'tforms': precursor['tforms']}, 
+               precursor['smiles_split']) for precursor in precursors])
+>>>>>>> 53b125d4bd2cee599ca71a780a384abe74751830:askcos_site/askcos_celery/treebuilder/worker.py
 
 @shared_task(bind=True)
 def reserve_worker_pool(self):
