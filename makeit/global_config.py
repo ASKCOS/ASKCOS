@@ -1,6 +1,7 @@
 import os
 time_zero = 0
-# Should we use stereochemistry?
+# Should we use stereochemistry? [should deprecate this setting]
+
 USE_STEREOCHEMISTRY = True
 
 #Output debugging statements
@@ -46,8 +47,10 @@ forward_scoring = network
 #Use highest protocol in pickle
 protocol = -1
 data_path = os.path.join(os.getcwd(),'data')
+
 fingerprint_bits = 256
 reaction_fingerprint_bits = 2048
+
 pricer_data = os.path.join(data_path,'buyable')
 retro_template_data = os.path.join(data_path,'retro_synthetic')
 synth_template_data = os.path.join(data_path,'synthetic')
@@ -70,9 +73,10 @@ YIELDS = {
     'data_loc': os.path.join(data_path, 'forward_scoring/yield_est_data'),
     'model_loc': os.path.join(data_path, 'forward_scoring/yield_est_model.h5')
     }
+
 RETRO_TRANSFORMS = {
     'database': database,
-    'collection': 'transforms_retro_v6', # 'lowe' or 'chematica'
+    'collection': 'transforms_retro_v8', 
     }
 RETRO_TRANSFORMS_CHIRAL = {
     'database': database,
