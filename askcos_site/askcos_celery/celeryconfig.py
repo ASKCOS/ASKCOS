@@ -27,7 +27,6 @@ worker_prefetch_multiplier = 1
 
 # Task routes (to make sure workers are task-specific)
 TASK_ROUTES = {
-<<<<<<< HEAD
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.get_top_precursors': {'queue': 'tb_c_worker'},
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.reserve_worker_pool': {'queue': 'tb_c_worker_reservable'},
     'askcos_site.askcos_celery.treebuilder.tb_worker.get_top_precursors': {'queue': 'tb_worker'},
@@ -38,19 +37,5 @@ TASK_ROUTES = {
     'askcos_site.askcos_celery.treeevaluator.forward_trans_worker.*': {'queue':'ft_worker'},
     'askcos_site.askcos_celery.contextrecommender.cr_nn_worker.*': {'queue':'cr_nn_worker'},
     'askcos_site.askcos_celery.contextrecommender.cr_coordinator.*':{'queue':'cr_coordinator'},
-
-=======
-    'askcos_site.askcos_celery.treebuilder.worker.get_top_precursors': {'queue': 'tb_worker'},
-    'askcos_site.askcos_celery.treebuilder.worker.reserve_worker_pool': {'queue': 'tb_worker_reservable'},
-    'askcos_site.askcos_celery.treebuilder.coordinator.*': {'queue': 'tb_coordinator'},
-    'askcos_site.askcos_celery.forwardpredictor.worker.*': {'queue': 'fp_worker'},
-    'askcos_site.askcos_celery.forwardpredictor.coordinator.*': {'queue': 'fp_coordinator'}, 
-    'askcos_site.askcos_celery.contextrecommender.worker.*': {'queue': 'context_worker'},   
-    'askcos_site.askcos_celery.chiralretro.coordinator.*': {'queue': 'cr_coordinator'},
-    'askcos_site.askcos_celery.chiralretro.worker.get_chiral_precursor_batch': {'queue': 'cr_worker'},
-    'askcos_site.askcos_celery.chiralretro.worker.get_top_precursors': {'queue': 'cr_worker'},
-    'askcos_site.askcos_celery.chiralretro.worker.reserve_worker_pool': {'queue': 'cr_worker_reservable'},
-    'askcos_site.askcos_celery.tf_forwardpredictor.worker.*': {'queue': 'tffp_worker'},
->>>>>>> 53b125d4bd2cee599ca71a780a384abe74751830
 }
 CELERY_ROUTES = TASK_ROUTES
