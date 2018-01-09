@@ -16,7 +16,7 @@ contextRecommender_loc = 'contextRecommender'
 class NNContextRecommender(ContextRecommender):
     """Reaction condition predictor based on Nearest Neighbor method"""
 
-    def __init__(self, max_total_contexts = 10, singleSlvt=True, with_smiles=True, done = None, REACTION_DB = None,
+    def __init__(self, max_contexts = 10, singleSlvt=True, with_smiles=True, done = None, REACTION_DB = None,
                  CHEMICAL_DB=None, INSTANCE_DB= None):
         """
         :param singleSlvt:
@@ -28,7 +28,7 @@ class NNContextRecommender(ContextRecommender):
         self.dist_limit = 0.3
         self.singleSlvt = singleSlvt
         self.with_smiles = with_smiles
-        self.max_total_context = max_total_contexts
+        self.max_total_context = max_contexts
         self.max_int = 15
         self.max_context = 2
         self.done = done
@@ -115,8 +115,10 @@ class NNContextRecommender(ContextRecommender):
             
             return self.n_rxn_condition(n, dists=dists[0], idx=ids[0])
         except Exception as e:
-            MyLogger.print_and_log('Rxn {} with an exception: {}'.format(rxn, e),contextRecommender_loc, level = 2)
-            return None
+
+            MyLogger.print_and_log('Failed for reaction {} because {}. Returning None.'.format(rxn,e), contextRecommender_loc, level=2)
+            
+            return [[]]
 
     def path_condition(self, n, path):
         """Reaction condition recommendation for a reaction path with multiple reactions
@@ -159,7 +161,9 @@ class NNContextRecommender(ContextRecommender):
             if i >= n:
                 break
             context = self.reaction_condition(self.rxn_ids[rid])
-            [contexts.append(c) for c in context]
+            for c in context:
+                if not (c == []):
+                    contexts.append(c)
             if len(contexts) >= self.max_total_context:
                 contexts = contexts[:self.max_total_context]
                 break
@@ -179,7 +183,8 @@ class NNContextRecommender(ContextRecommender):
         """
         
         rxn_doc = self.REACTION_DB.find_one({'_id': int(r_id)})
-        
+        if not rxn_doc:
+            return [[]]
         # Look for conditions in the corresponding instances
         rxd_id_list = ['{}-{}'.format(rxn_doc['_id'], j) for j in range(1, int(rxn_doc['RX_NVAR']) + 1)]
         context_set = set()
@@ -218,7 +223,7 @@ class NNContextRecommender(ContextRecommender):
                         break
                     if not solvent:
                         continue
-                    
+
             # Reagents
             reagent = ''
             context_info += 'rgt:'
@@ -301,3 +306,4 @@ if __name__ == '__main__':
     import global_config as gc
     cont = NNContextRecommender()
     cont.load_nn_model(model_path = gc.CONTEXT_REC['model_path'], info_path = gc.CONTEXT_REC['info_path'])
+    print cont.get_n_conditions('CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1>>CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3', 10)

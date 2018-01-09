@@ -28,6 +28,8 @@ class PopularityPrioritizer(Prioritizer):
         else:
             templates[:] = [x for x in sorted(templates, key = lambda z: z['count'], reverse = True)]
             self.sorted = True
+            for template in templates:
+                template['score'] = 1
             self.reordered_templates = templates
             return templates
     

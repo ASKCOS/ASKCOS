@@ -7,7 +7,7 @@ def chem_dict(_id, smiles, ppg, children = []):
         'ppg' : ppg,
         'children': children,}
     
-def rxn_dict(_id, info, necessary_reagent = '', num_examples = 0, children = [], smiles = ''):
+def rxn_dict(_id, info, template_score =1, necessary_reagent = '', num_examples = 0, children = [], smiles = ''):
     '''Reaction object as expected by website'''
     return {
         'id': _id,
@@ -17,5 +17,6 @@ def rxn_dict(_id, info, necessary_reagent = '', num_examples = 0, children = [],
         'num_examples': num_examples,
         'children': children,
         'smiles': smiles,
+        'template_score':template_score
         }
         

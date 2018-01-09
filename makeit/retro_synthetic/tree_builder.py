@@ -9,6 +9,7 @@ from prioritization.precursor_prioritization.heuristic_prioritizer import Heuris
 from prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
 from utilities.buyable.pricer import Pricer
 from utilities.i_o.logging import MyLogger
+from utilities.i_o import model_loader
 from utilities.formats import chem_dict,rxn_dict
 from celery.result import allow_join_result
 from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors, reserve_worker_pool, unreserve_worker_pool
@@ -21,11 +22,12 @@ class TreeBuilder:
     '''
     def __init__(self, retroTransformer = None, pricer = None, max_branching = 20, max_depth = 3, expansion_time = 240, 
                  celery = False, nproc = 1, mincount = 25, chiral = False, template_prioritization = gc.popularity, 
-                 precursor_prioritization = gc.heuristic):
+                 precursor_prioritization = gc.heuristic, mincount_c = 10):
         #General parameters
         self.celery = celery
         self.max_branching = max_branching
         self.mincount = mincount
+        self.mincount_c = mincount_c
         self.max_depth = max_depth
         self.expansion_time = expansion_time
         self.template_prioritization = template_prioritization
@@ -36,7 +38,7 @@ class TreeBuilder:
         if pricer:
             self.pricer = pricer
         else:
-            MyLogger.print_and_log('Cannot build a buyable tree without a pricer. Exiting...', treebuilder_loc, level = 3)
+            self.pricer = Pricer()
             
         self.reset()
         
@@ -44,12 +46,15 @@ class TreeBuilder:
             if retroTransformer:
                 self.retroTransformer = retroTransformer
             else:
-                MyLogger.print_and_log('Cannot build a tree without a transformer. Exiting...', treebuilder_loc, level = 3)
+                self.retroTransformer = model_loader.load_Retro_Transformer(mincount = self.mincount, 
+                                                                            mincount_c=self.mincount_c,
+                                                                            chiral = self.chiral)
         
         #Define method to check if all results processed
         if self.celery:
             def waiting_for_results(is_ready):
                 #update
+                time.sleep(1)
                 self.pending_results = [res for (i, res) in enumerate(self.pending_results) if i not in is_ready]
                 return self.pending_results != []
         else:
@@ -132,7 +137,7 @@ class TreeBuilder:
                         args=(smiles,self.template_prioritization, self.precursor_prioritization), 
                         kwargs={'mincount':self.mincount, 'max_branching':self.max_branching},
                         #Prioritize higher depths: Depth first search. 
-                        priority=int(99+depth-self.max_depth),
+                        priority=int(depth),
                         queue=self.private_worker_queue,
                     ))
                 else:
@@ -140,7 +145,7 @@ class TreeBuilder:
                         args=(smiles,self.template_prioritization, self.precursor_prioritization), 
                         kwargs={'mincount':self.mincount, 'max_branching':self.max_branching},
                         #Prioritize higher depths: Depth first search. 
-                        priority=int(99+depth-self.max_depth),
+                        priority=int(depth),
                         queue=self.private_worker_queue,
                     ))
         else:
@@ -156,7 +161,7 @@ class TreeBuilder:
             def set_initial_target(smiles):
                 self.expansion_queues[-1].put((1, smiles))
                 while self.results_queue.empty():
-                    time.sleep(1)
+                    time.sleep(0.25)
         self.set_initial_target = set_initial_target
         
     def reset(self):
@@ -194,6 +199,7 @@ class TreeBuilder:
         for precursor in precursors:
             children.append((
                 {'template': precursor['tforms'][0],
+                 'template_score': precursor['template_score'],
                 'necessary_reagent': precursor['necessary_reagent'],
                 'num_examples': precursor['num_examples'],
                 'score': precursor['score'],
@@ -318,13 +324,18 @@ class TreeBuilder:
                     pass
                 except Exception as e:
                     print e
+            time.sleep(0.01)
             self.idle[i] = True
 
     def coordinate(self):
         start_time = time.time()
         elapsed_time = time.time() - start_time
         is_ready = []
+        next = 1
         while (elapsed_time < self.expansion_time) and self.waiting_for_results(is_ready):
+            if (int(elapsed_time)/10 == next):
+                next+=1
+                MyLogger.print_and_log('Worked for {}/{} s'.format(int(elapsed_time*10)/10.0,self.expansion_time),treebuilder_loc)
             try:
                 for (_id, smiles, precursors, is_ready) in self.get_ready_result():
                     children = self.get_children(precursors)
@@ -359,7 +370,7 @@ class TreeBuilder:
                 self.coordinate()
     
     def get_buyable_paths(self, target, max_depth = 3, max_branching = 25, expansion_time = 240, template_prioritization = None,
-                          precursor_prioritization = None, nproc = 1, mincount = 25, chiral = False, max_trees = 25, maxppg = 1e10, 
+                          precursor_prioritization = None, nproc = 1, mincount = 25, chiral = False, max_trees = 25, max_ppg = 1e10, 
                           known_bad_reactions = []):
         '''Get viable synthesis trees using an iterative deepening depth-first search'''
         
@@ -370,9 +381,18 @@ class TreeBuilder:
         self.template_prioritization = template_prioritization
         self.precursor_prioritization = precursor_prioritization
         self.nproc = nproc
+        #Load new prices based op specified max price-per-gram
+        self.pricer.load(max_ppg = max_ppg)
         #Override: if relevance method is used, chiral database must be used!
-        self.chiral = chiral or template_prioritization == gc.relevance
-        self.pricer.set_max_ppg(maxppg)
+        if chiral or template_prioritization == gc.relevance:
+            self.chiral = True
+        if template_prioritization == gc.relevance and not self.celery:
+            if not (self.retroTransformer.mincount ==25 
+                    and self.retroTransformer.mincount_c ==10 
+                    and self.retroTransformer.chiral):
+                MyLogger.print_and_log('When using relevance based template prioritization, chiral template database '+
+                                       'must be used with mincount = 25 and mincount_c = 10. Exiting...', treebuilder_loc, level = 3)
+        
         self.known_bad_reactions = known_bad_reactions
         self.reset()
         
@@ -410,9 +430,9 @@ class TreeBuilder:
                     for rxn_id in self.tree_dict[chem_id]['prod_of']:
                         rxn_info_string = ''
                         for path in DLS_rxn(rxn_id, depth):
-                            yield [rxn_dict(rxn_id, rxn_info_string, self.tree_dict[rxn_id]['necessary_reagent'], 
-                                             self.tree_dict[rxn_id]['num_examples'], 
-                                             children = path,
+                            yield [rxn_dict(rxn_id, rxn_info_string, necessary_reagent = self.tree_dict[rxn_id]['necessary_reagent'], 
+                                             num_examples = self.tree_dict[rxn_id]['num_examples'], children = path,
+                                             template_score = float(self.tree_dict[rxn_id]['template_score']),
                                              smiles = '.'.join(sorted([self.tree_dict[x]['smiles'] for x in self.tree_dict[rxn_id]['rcts']])) + '>>' + self.tree_dict[chem_id]['smiles'])]
 
         def DLS_rxn(rxn_id, depth):
@@ -482,7 +502,7 @@ class TreeBuilder:
             counter += 1
 
             if counter == max_trees:
-                MyLogger.print_and_log('Generated {} trees, stopping looking for more...'.format(max_trees), treebuilder_loc)
+                MyLogger.print_and_log('Generated {} trees, stopped looking for more...'.format(max_trees), treebuilder_loc)
                 break
 
         return trees
@@ -496,16 +516,10 @@ if __name__ == '__main__':
     db_client = MongoClient(gc.MONGO['path'],gc.MONGO['id'], connect = gc.MONGO['connect'])
     TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL['database']][gc.RETRO_TRANSFORMS_CHIRAL['collection']]
     celery = False
-    retroTrans = None
-    if not celery:
-        retroTrans = RetroTransformer(mincount = 50,mincount_c = 25, TEMPLATE_DB = TEMPLATE_DB)
-        retroTrans.load(chiral = False)
-    pricer = Pricer()
-    pricer.load()
     treedict = []
     
-    treeBuilder = TreeBuilder(retroTransformer=retroTrans, celery = celery, pricer=  pricer)
+    treeBuilder = TreeBuilder(celery = celery, mincount = 25, mincount_c=10)
     #treeBuilder.build_tree('c1ccccc1C(=O)OCCN')
-    print treeBuilder.get_buyable_paths('CCC(=O)OCCCNCC', max_depth = 3, template_prioritization=gc.popularity, 
-                                        precursor_prioritization = gc.heuristic, nproc = 16, expansion_time=30, max_trees=1)
-        
+    print treeBuilder.get_buyable_paths('CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3', max_depth = 2, template_prioritization=gc.relevance, 
+                                        precursor_prioritization = gc.scs, nproc = 16, expansion_time=300, max_trees=10, max_ppg = 2)
+    

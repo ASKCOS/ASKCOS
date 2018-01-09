@@ -5,7 +5,7 @@ from synthetic.forward_enumeration.forward_transformer import ForwardTransformer
 from retro_synthetic.retro_transformer import RetroTransformer
 from utilities.buyable.pricer import Pricer
 from synthetic.forward_evaluation.scorer import Scorer
-from synthetic.context.nn_context_recommender import NNConditionPredictor
+from synthetic.context.nn_context_recommender import NNContextRecommender
 from utilities.i_o.logging import MyLogger
 load_models_loc = 'load_models'
 
@@ -33,7 +33,7 @@ def load_all(nproc = 3, mincount_f = 4, mincount_r = 4, NN_model_path = "", cont
     pric = Process(target = pricer.load, kwargs = {'queue':queue})
     
     context_done = Manager().Value('i', 0)
-    context_recommender = NNConditionPredictor(max_total_contexts = max_total_contexts, done = context_done)
+    context_recommender = NNContextRecommender(max_total_contexts = max_total_contexts, done = context_done)
     cont_rec = Process(target = context_recommender.load, kwargs = {'model_path': context_model_path, 'info_path': context_info_path, 'queue':queue})
     
     processes = [r_trans, cont_rec, f_trans, pric, scor]

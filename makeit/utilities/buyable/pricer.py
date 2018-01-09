@@ -14,13 +14,12 @@ class Pricer:
     are buyable.
     '''
 
-    def __init__(self, by_xrn = False, max_ppg = 1e10, done = None):
+    def __init__(self, by_xrn = False, done = None, BUYABLES = None, CHEMICALS = None):
 
-        self.CHEMICAL_DB = None
-        self.BUYABLE_DB = None
+        self.CHEMICAL_DB = CHEMICALS
+        self.BUYABLE_DB = BUYABLES
         self.by_xrn = False
         self.done = done
-        self.max_ppg = max_ppg
         self.prices = defaultdict(float) # default 0 ppg means not buyable
         self.prices_flat = defaultdict(float) # default 0 ppg means not buyable
         self.prices_by_xrn = defaultdict(float)
@@ -57,17 +56,21 @@ class Pricer:
                 self.prices = pickle.load(file)
                 self.prices_flat = pickle.load(file)
                 self.prices_by_xrn = pickle.load(file)  
-
-    def set_max_ppg(self, ppg):
-        self.max_ppg = ppg
         
-    def load(self, online = True, CHEMICAL_DB = None, BUYABLE_DB = None):
+    def load(self, online = True, CHEMICAL_DB = None, BUYABLE_DB = None, max_ppg = 1e10):
         '''
         Loads the object from a MongoDB collection containing transform
         template records.
         '''
+        MyLogger.print_and_log('Loading pricer with buyable limit of ${} per gram.'.format(max_ppg), pricer_loc)
         # Save collection source use online option to load either from local file or from online database.
-        if not (CHEMICAL_DB and BUYABLE_DB):
+        self.prices = defaultdict(float) # default 0 ppg means not buyable
+        self.prices_flat = defaultdict(float) # default 0 ppg means not buyable
+        self.prices_by_xrn = defaultdict(float)
+        
+        if self.BUYABLE_DB and self.CHEMICAL_DB:
+            pass
+        elif not (CHEMICAL_DB and BUYABLE_DB):
             if online:
                 self.load_databases()
             else:
@@ -84,7 +87,7 @@ class Pricer:
             smiles = buyable_doc['smiles']
             smiles_flat = buyable_doc['smiles_flat']
         
-            if buyable_doc['ppg'] > self.max_ppg:
+            if buyable_doc['ppg'] > max_ppg:
                 continue
         
             #buyable_dict[buyable_doc['_id']] = buyable_doc['ppg']

@@ -8,6 +8,7 @@ import math, sys, random, os
 import time
 import os 
 import cPickle as pickle
+from numpy import inf
 scs_prioritizer_loc = 'scs_prioritizer'
 
 class SCSPrioritizer(Prioritizer):
@@ -77,11 +78,11 @@ class SCSPrioritizer(Prioritizer):
             scores = []
             for smiles in retroProduct.smiles_list:
                 scores.append(self.get_score_from_smiles(smiles))
-            return self.get_score(scores)
+            return -self.get_score(scores)
         else:
-            return self.get_score_from_smiles(retroProduct)
+            return -self.get_score_from_smiles(retroProduct)
         if not retroProduct:
-            return 0.
+            return -inf
         
     def get_score(self, list_of_scores, mean=False, max=True, geometric=False):
         if mean:

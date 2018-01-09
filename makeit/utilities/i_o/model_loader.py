@@ -19,7 +19,7 @@ import sys
 model_loader_loc = 'model_loader'
 
 
-def load_all(retro_mincount = 100, synth_mincount = 100, max_contexts = 10):
+def load_all(retro_mincount = 25, retro_mincount_c = 10):
         MyLogger.print_and_log('Loading models...', model_loader_loc)
         databases = load_Databases()
         pricer = load_Pricer(databases['Chemical_Database'], databases['Buyable_Database'])
@@ -30,38 +30,14 @@ def load_all(retro_mincount = 100, synth_mincount = 100, max_contexts = 10):
         scorer = None
         contextRecommender = None
         
-        if(gc.prioritizaton == gc.heuristic):
-            prioritizer = HeuristicPrioritizer()
-        else:
-            MyLogger.print_and_log('Invalid prioritization method specified. Exiting...', model_loader_loc, level = 3)
-        
         if(gc.retro_enumeration == gc.template):
-            retroTransformer = load_Retro_Transformer(databases['Retro_Database'],prioritizer,  mincount_retro = retro_mincount)
+            retroTransformer = load_Retro_Transformer(databases['Retro_Database'],prioritizer,  mincount = retro_mincount)
         else:
             MyLogger.print_and_log('Invalid retro enumeration method specified. Exiting...', model_loader_loc, level = 3)
         
-        if(gc.forward_enumeration == gc.template):
-            synthTransformer = load_Forward_Transformer(databases['Synth_Database'], mincount_synth = synth_mincount)
-        else:
-            MyLogger.print_and_log('Invalid forward enumeration method specified. Exiting...', model_loader_loc, level = 3)
-        
-        if(gc.forward_scoring == gc.network):
-            scorer = load_Scorer()
-        else:
-            MyLogger.print_and_log('Invalid scoring method specified. Exiting...', model_loader_loc, level = 3)
-            
-        if(gc.context_module == gc.nearest_neighbor):
-            contextRecommender = load_Context_Recommender(max_total_contexts = max_contexts)
-        else:
-            MyLogger.print_and_log('Invalid context recommendation method specified. Exiting...', model_loader_loc, level = 3)
-        
         models ={
             'retro_transformer':retroTransformer,
-            'prioritizer': prioritizer,
-            'synthetic_transformer':synthTransformer,
             'pricer':pricer,
-            'context_recommender':contextRecommender,
-            'scorer':scorer
             }
         
         MyLogger.print_and_log('All models loaded.', model_loader_loc)
@@ -69,13 +45,19 @@ def load_all(retro_mincount = 100, synth_mincount = 100, max_contexts = 10):
         return models
 
    
-def load_Retro_Transformer(RETRO_DB, prioritizer, mincount_retro = 250):
+def load_Retro_Transformer(RETRO_DB = None, mincount = 25, mincount_c = 10, chiral = False):
     '''    
     Load the model and databases required for the retro transformer. Returns the retro transformer, ready to run.
     '''
     MyLogger.print_and_log('Loading retrosynthetic template database...',model_loader_loc)
-    retroTransformer = RetroTransformer(prioritizer = prioritizer, TEMPLATE_DB = RETRO_DB, mincount = mincount_retro)
-    retroTransformer.load()
+    if not RETRO_DB:
+        databases = load_Databases()
+        if chiral:
+            RETRO_DB = databases['Retro_Database_Chiral']
+        else:
+            RETRO_DB = databases['Retro_Database']       
+    retroTransformer = RetroTransformer(TEMPLATE_DB = RETRO_DB, mincount = mincount, mincount_c = mincount_c)
+    retroTransformer.load(chiral = chiral)
     MyLogger.print_and_log('Retrosynthetic transformer loaded.',model_loader_loc)
     return retroTransformer
     
@@ -102,7 +84,7 @@ def load_Databases():
     
     db = db_client[gc.RETRO_TRANSFORMS['database']]
     RETRO_DB = db[gc.RETRO_TRANSFORMS['collection']]
-    
+    RETRO_DB_CHIRAL = db[gc.RETRO_TRANSFORMS_CHIRAL['collection']]
     db = db_client[gc.SYNTH_TRANSFORMS['database']]
     SYNTH_DB = db[gc.SYNTH_TRANSFORMS['collection']]
     
@@ -113,6 +95,7 @@ def load_Databases():
         'Buyable_Database' : BUYABLE_DB,
         'Solvent_Database' : SOLVENT_DB,
         'Retro_Database' : RETRO_DB,
+        'Retro_Database_Chiral': RETRO_DB_CHIRAL,
         'Synth_Database' : SYNTH_DB
         }        
     MyLogger.print_and_log('Databases loaded.', model_loader_loc)        
@@ -128,37 +111,26 @@ def load_Pricer(chemical_database, buyable_database):
     MyLogger.print_and_log('Pricer Loaded.',model_loader_loc)
     return pricerModel
 
-def load_Forward_Transformer(SYNTH_DB, mincount_synth = 100):
+def load_Forward_Transformer(SYNTH_DB, mincount = 100):
     '''
     Load the forward prediction neural network
     '''
     MyLogger.print_and_log('Loading forward prediction model...',model_loader_loc)
-    transformer = ForwardTransformer(TEMPLATE_DB = SYNTH_DB, mincount = mincount_synth)
+    transformer = ForwardTransformer(TEMPLATE_DB = SYNTH_DB, mincount = mincount)
     transformer.load()
     MyLogger.print_and_log('Forward transformer loaded.',model_loader_loc)
     return transformer
 
-def load_Scorer():
-    '''
-    Load the neural network for scoring a reaction
-    '''
-    MyLogger.print_and_log('Loading reaction scoring neural network...',model_loader_loc)
-    scorer = Scorer()
-    scorer.load(folder = gc.PREDICTOR['trained_model_path'])
-    
-    MyLogger.print_and_log('Reaction scoring neural network loaded.',model_loader_loc)
-    return scorer
 
 def load_fastfilter():
     #Still has to be implemented
     return None
 
-def load_templatebased(chiral = False, mincount = 25, celery = False):
+def load_templatebased(mincount = 25, celery = False):
     transformer = None
     databases = load_Databases()
     if not celery:
-        transformer = ForwardTransformer(mincount = mincount)
-        transformer.load(chiral = chiral)
+        transformer = load_Forward_Transformer(databases['Synth_Database'], mincount = mincount)
         
     scorer = TemplateNeuralNetScorer(forward_transformer = transformer, celery = celery)
     scorer.load(databases['Solvent_Database'], gc.PREDICTOR['trained_model_path'])
@@ -168,13 +140,15 @@ def load_templatefree():
     #Still has to be implemented
     return None
 
-def load_Context_Recommender(max_total_contexts):
+def load_Context_Recommender(context_recommender, max_contexts = 10):
     '''
     Load the context recommendation model
     '''
-    
-    MyLogger.print_and_log('Loading context recommendation model...', model_loader_loc)
-    recommender = NNContextRecommender(max_total_contexts = max_total_contexts)
-    recommender.load(model_path = gc.CONTEXT_REC['model_path'], info_path = gc.CONTEXT_REC['info_path'])
+    MyLogger.print_and_log('Loading context recommendation model: {}...'.format(context_recommender), model_loader_loc)
+    if context_recommender == gc.nearest_neighbor:
+        recommender = NNContextRecommender(max_contexts = max_contexts)
+        recommender.load(model_path = gc.CONTEXT_REC['model_path'], info_path = gc.CONTEXT_REC['info_path'])
+    else:
+        raise NotImplementedError
     MyLogger.print_and_log('Context recommender loaded.', model_loader_loc)
     return recommender

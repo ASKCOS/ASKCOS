@@ -38,7 +38,8 @@ class ForwardProduct:
     '''
     A class to store a single forward product for reaction enumeration
     '''
-    def __init__(self, smiles_list = [], smiles = '', template_id = -1, num_examples = 0, edits = None, template_ids=None):
+    def __init__(self, smiles_list = [], smiles = '', template_id = -1, num_examples = 0, 
+                 edits = None, template_ids=None):
         self.smiles_list = smiles_list
         self.smiles = smiles
         self.template_ids = [template_id]

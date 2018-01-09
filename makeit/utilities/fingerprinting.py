@@ -41,6 +41,8 @@ def get_condition_input_from_smiles(conditions_smiles , split = False, s_fp = 25
     '''
     If split is used: first molecule in the conditions_smiles should be the solvent!
     '''
+    if conditions_smiles == 'NONE':
+        return None
     conditions_mol = []
     inputlength = 0
     #If input is a single string: immediately extract molecule
@@ -53,7 +55,6 @@ def get_condition_input_from_smiles(conditions_smiles , split = False, s_fp = 25
             MyLogger.print_and_log('Unparsable conditions. Leaving out this reaction: {}.'.format(instance['_id']), fingerprinting_loc, level = 1)
     #otherwise: assume list of strings
     else:
-        print conditions_smiles
         for (descr, smiles) in conditions_smiles: 
             try:
                 conditions_mol.append((descr,Chem.MolFromSmiles(smiles)))
@@ -110,6 +111,8 @@ def get_reaction_input_from_smiles(reaction_smiles, r_fp = 1024, c_f = 1):
     '''
     c_f: compression factor for the reaction fingerprint
     '''
+    if reaction_smiles == 'NONE':
+        return None
     react = reaction_smiles.split('>')
     reag_s = react[0]
     prod_s = react[len(react)-1]
@@ -327,7 +330,7 @@ def get_input_condition_as_smiles(doc,chemicals, asone = False, astwo = False, c
                     pass
                 '''
         else:
-            continue
+            contisigmnue
         if(cata and s):
             cata += '.'+s
         elif s:
@@ -347,7 +350,7 @@ def get_input_condition_as_smiles(doc,chemicals, asone = False, astwo = False, c
                 ans += '.'+cata
             else:
                 ans = cata
-        return ans
+        return ans.rstrip('.')
     if astwo:
         ans = ""
         if reag:
@@ -357,6 +360,6 @@ def get_input_condition_as_smiles(doc,chemicals, asone = False, astwo = False, c
                 ans += '.'+cata
             else:
                 ans = cata
-        return [('solv', solv), ('reag',ans)]
+        return [('solv', solv.rstrip('.').replace('..','.').replace('..','.')), ('reag',ans.rstrip('.').replace('..','.').replace('..','.'))]
     else:
-        return [('solv',solv), ('reag', reag), ('cata', cata)]
+        return [('solv',solv.rstrip('.').replace('..','.').replace('..','.')), ('reag', reag.rstrip('.').replace('..','.').replace('..','.')), ('cata', cata.rstrip('.').replace('..','.').replace('..','.'))]

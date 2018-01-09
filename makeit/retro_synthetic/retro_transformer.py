@@ -1,5 +1,7 @@
 from __future__ import print_function
 import makeit.global_config as gc
+import os
+import cPickle as pickle
 from makeit.global_config import USE_STEREOCHEMISTRY
 import rdkit.Chem as Chem          
 from rdkit.Chem import AllChem
@@ -77,11 +79,9 @@ class RetroTransformer(TemplateTransformer):
                 template = PopularityPrioritizer()
             elif template_prioritizer == gc.relevance:
                 template = RelevancePrioritizer()
-            elif template_prioritizer == gc.natural:
-                template = DefaultPrioritizer()
             else:
-                template = DefaultPrioritizer()
-                MyLogger.print_and_log('Prioritization method not recognized. Using natural prioritization.', retro_transformer_loc, level = 1)
+                template = PopularityPrioritizer()
+                MyLogger.print_and_log('Prioritization method not recognized. Using literature popularity prioritization.', retro_transformer_loc, level = 1)
                 
             template.load_model()
             self.template_prioritizers[template_prioritizer] = template
@@ -181,7 +181,8 @@ class RetroTransformer(TemplateTransformer):
             self.templates.append(template)
 
         self.num_templates = len(self.templates)
-                
+        
+        self.templates = sorted(self.templates, key = lambda z: z['count'], reverse = True)        
         MyLogger.print_and_log('Retro-synthetic transformer has been loaded - using {} templates.'.format(self.num_templates), retro_transformer_loc)
         
 
@@ -265,6 +266,7 @@ class RetroTransformer(TemplateTransformer):
             precursor = RetroPrecursor(
                 smiles_list = sorted(smiles_list),
                 template_id = str(template['_id']),
+                template_score = template['score'],
                 num_examples = template['count'],
                 necessary_reagent = template['necessary_reagent']
                 )
@@ -277,16 +279,15 @@ class RetroTransformer(TemplateTransformer):
         return results
     
     
-    def dump_to_file(self, file_name):
+    def create_file(self, file_name, chiral = False):
         '''
         Write the template database to a file, of which the path in specified in the general configuration
         '''
-        if not self.TEMPLATE_DB:
-            MyLogger.print_and_log("No database information to output to file.", retro_transformer_loc, level = 1)
-            return
-            
-        with open(os.path.join(gc.retro_template_data, file_name), 'wb') as file:
-            pickle.dump(self.TEMPLATE_DB, file, gc.protocol)
+        if not self.templates:
+            self.load(chiral)
+        file = open(os.path.join(gc.retro_template_data, file_name), "w+")
+        
+        pickle.dump(self.templates, file, gc.protocol)
 
     
     def load_from_file(self, file_name):

@@ -1,6 +1,5 @@
 import global_config as gc
 from prioritization.prioritizer import Prioritizer
-from popularity_prioritizer import PopularityPrioritizer
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import numpy as np
@@ -15,7 +14,8 @@ class RelevancePrioritizer(Prioritizer):
     '''
     Allows to prioritize the templates based on their relevance
     '''
-    def __init__(self):
+    def __init__(self, retro = True):
+        self.retro = retro
         self.FP_len = 1024
         self.FP_rad = 2
         MyLogger.print_and_log('Using relevance prioritization method for directing the tree expansion.', relevancePrioritizer_loc)
@@ -34,19 +34,18 @@ class RelevancePrioritizer(Prioritizer):
 
     def get_priority(self, input_tuple):
         (templates, target) = input_tuple
-        #Templates must be sorted by popularity for indices to be correct!
-        popularity = PopularityPrioritizer(no_log = True)
-        templates = popularity.reorder(templates)
-        top_ids = self.get_topk_from_smi(smi = target)
+        #Templates should be sorted by popularity for indices to be correct!
+        probs, top_ids = self.get_topk_from_smi(smi = target)
         top_templates = []
-        for id in top_ids:
+        for i,id in enumerate(top_ids):
+            templates[id]['score'] = probs[i]
             top_templates.append(templates[id])
         return top_templates
 
     def load_model(self):
-        with open(gc.Relevance_Prioritization['trained_model_path'], 'rb') as fid:
+        with open(gc.Relevance_Prioritization['trained_model_path_{}'.format(self.retro)], 'rb') as fid:
             self.vars = pickle.load(fid)
-        MyLogger.print_and_log('Loaded relevance based template prioritization model from {}'.format(gc.Relevance_Prioritization['trained_model_path']),relevancePrioritizer_loc)
+        MyLogger.print_and_log('Loaded relevance based template prioritization model from {}'.format(gc.Relevance_Prioritization['trained_model_path_{}'.format(self.retro)]),relevancePrioritizer_loc)
         return self
 
     def apply(self, x):
@@ -71,12 +70,17 @@ class RelevancePrioritizer(Prioritizer):
     def get_topk_from_mol(self, mol, k=100):
         fp = self.mol_to_fp(mol).astype(np.float32)
         cur_scores = self.apply(fp)
-        scored = list(cur_scores.argsort()[-k:][::-1])
-        return scored
+        indices = list(cur_scores.argsort()[-k:][::-1])
+        cur_scores.sort()
+        probs = softmax(cur_scores)
+        return probs[-k:][::-1], indices
     
 
     def sigmoid(x):
         return 1 / (1 + math.exp(-x))
+def softmax(x):
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
 
 if __name__ == '__main__':
     model = RelevancePrioritizer()    

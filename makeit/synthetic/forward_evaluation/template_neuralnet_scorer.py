@@ -27,7 +27,7 @@ class TemplateNeuralNetScorer(Scorer):
     
 
     def __init__(self, celery = False, mincount = 0, chunk_size = 250, template_prioritization = gc.popularity,
-                 forward_transformer = None, chiral = False, nproc = 1):
+                 forward_transformer = None, nproc = 1):
         self.model = None
         self.F_atom = edit_vector_lengths()['atoms']
         self.F_bond = edit_vector_lengths()['bonds']
@@ -36,7 +36,6 @@ class TemplateNeuralNetScorer(Scorer):
         self.mincount = mincount
         self.chunk_size = chunk_size
         self.template_prioritization = template_prioritization
-        self.chiral = chiral
         self.solvent_name_to_smiles = {}
         self.solvent_smiles_to_params = {}
         self.running = False
@@ -64,7 +63,7 @@ class TemplateNeuralNetScorer(Scorer):
         if self.celery:
             def expand(reactants_smiles, start_at, end_at):
                 self.pending_results.append(get_outcomes.apply_async(args=(reactants_smiles, self.mincount, start_at, end_at,
-                                                                           self.template_prioritization, self.chiral), kwargs = {}))
+                                                                           self.template_prioritization)))
         else:
             def expand(reactants_smiles, start_at, end_at):
                 self.expansion_queue.put((reactants_smiles, start_at, end_at))
@@ -72,6 +71,7 @@ class TemplateNeuralNetScorer(Scorer):
         
         if self.celery:
             def waiting_for_results():
+                time.sleep(0.05)
                 return self.pending_results != []
         else:
             def waiting_for_results():
@@ -82,19 +82,21 @@ class TemplateNeuralNetScorer(Scorer):
         self.waiting_for_results = waiting_for_results
         if self.celery:
             def get_ready_result(is_ready):
+                
                 for i in is_ready:
                     (smiles, outcomes) = self.pending_results[i].get(timeout=0.2)
                     self.pending_results[i].forget()                    
                     result = ForwardResult(smiles)
                     for outcome in outcomes:
                         result.add_product(ForwardProduct(smiles_list=outcome['smiles_list'], smiles=outcome['smiles'], 
-                                                         template_ids=outcome['template_ids'],num_examples = outcome['num_examples'],
+                                                         template_ids=outcome['template_ids'], 
+                                                         num_examples = outcome['num_examples'],
                                                          edits = outcome['edits'] ))
                     yield result, is_ready
         else:
             def get_ready_result(is_ready):
                 while not self.results_queue.empty():
-                    result = self.results_queue.get(0.2)
+                    [result,start_at, end_at] = self.results_queue.get(0.2)
                     yield result, []
         
         self.get_ready_result = get_ready_result
@@ -212,19 +214,21 @@ class TemplateNeuralNetScorer(Scorer):
             try:
                 (reactants_smiles, start_at, end_at) = self.expansion_queue.get(timeout = 0.5) # short timeout
                 self.idle[i] = False
-                
-                (smiles, result) = self.forward_transformer.get_outcomes(reactants_smiles, self.mincount, self.template_prioritization, chiral = self.chiral, 
+                (smiles, result) = self.forward_transformer.get_outcomes(reactants_smiles, self.mincount, self.template_prioritization, 
                                                                          start_at = start_at, end_at = end_at)
-                self.results_queue.put(result)
+                self.results_queue.put([result, start_at, end_at])
                 #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
-                
             except VanillaQueue.Empty:
                 #print('Queue {} empty for worker {}'.format(j, i))
                 pass
+            except Exception as e:
+                print e
+            #Wait briefly to allow the results_queue to properly update
+            time.sleep(0.5)
             self.idle[i] = True
                 
     def initialize(self, reactants, batch_size):
-        if batch_size >= self.template_count:
+        if batch_size >= self.template_count or batch_size == 0:
             self.expand(reactants, -1, -1)
             #wait until result to continue
             while(self.results_queue.empty()):
@@ -243,7 +247,7 @@ class TemplateNeuralNetScorer(Scorer):
             for i in range(nproc):
                 self.idle.append(True)
                 self.expansion_queue = Queue()
-                
+
         mol = Chem.MolFromSmiles(reactants_smiles)
         clean_reactant_mapping(mol) 
         reactants_smiles = Chem.MolToSmiles(mol)
@@ -251,7 +255,7 @@ class TemplateNeuralNetScorer(Scorer):
             self.template_prioritization = template_prioritization
             self.prepare()
             self.initialize(reactants_smiles, batch_size)
-            (all_results , candidate_edits) = self.get_candidate_edits()
+            (all_results , candidate_edits) = self.get_candidate_edits(reactants_smiles)
             reactants = Chem.MolFromSmiles(reactants_smiles)
             atom_desc_dict = edits_to_vectors([], reactants, return_atom_desc_dict=True)
             candidate_tensor = edits_to_tensor(candidate_edits, reactants, atom_desc_dict)
@@ -266,6 +270,12 @@ class TemplateNeuralNetScorer(Scorer):
             
             all_outcomes = []
             for context in contexts:
+                if context == []:
+                    all_outcomes.append({'rank': 0.0,
+                                         'outcome': None,
+                                         'score': 0.0,
+                                         'prob': 0.0,
+                                         })
                 prediction_context = context_cleaner.clean_context(context)
                 context_tensor = context_cleaner.context_to_edit(prediction_context, self.solvent_name_to_smiles, self.solvent_smiles_to_params)
                 scores = self.model.predict(candidate_tensor + context_tensor)
@@ -277,142 +287,45 @@ class TemplateNeuralNetScorer(Scorer):
                 this_outcome = sorted(zip(all_results, scores[0], probs[0]), key=lambda x: x[1], reverse=True)
                 outcomes = []
                 for i, outcome in enumerate(this_outcome):
-                    outcomes.append({
-                        'rank': i + 1,
-                        'outcome': outcome[0],
-                        'score': outcome[1],
-                        'prob': outcome[2],
-                        })
+                    outcomes.append({'rank': i + 1,
+                                     'outcome': outcome[0],
+                                     'score': float(outcome[1]),
+                                     'prob': float(outcome[2]),
+                                     })
                 all_outcomes.append(outcomes)
                
             return all_outcomes
         
-    def add_product(self, all_results, candidate_edits, product):
-        for old_product in all_results:
-            if old_product.smiles_list == product.smiles_list or old_product.smiles == product.smiles:
-                old_product.template_ids += product.template_ids
-                old_product.num_examples += product.num_examples
-                return 
-        all_results.append(product)
-        candidate_edits.append((product.get_smiles, product.get_edits()))
-        
-    def get_candidate_edits(self):
+    def get_candidate_edits(self, smiles):
         
         candidate_edits = []
+        stiched_result = ForwardResult(smiles)
         all_results = []
         is_ready = [i for (i, res) in enumerate(self.pending_results) if res.ready()]
         while self.waiting_for_results():
             try:
                 for result, is_ready in self.get_ready_result(is_ready):
+                    stiched_result.add_products(result.products)
+                    '''
                     products = result.get_products()
                     for product in products:
                         self.add_product(all_results, candidate_edits, product)
+                    '''
+                time.sleep(0.5)
                 self.pending_results = [res for (i, res) in enumerate(self.pending_results) if i not in is_ready]
                 is_ready = [i for (i, res) in enumerate(self.pending_results) if res.ready()]
             except Exception as e:
                 print e
                 pass
-    
-        self.stop_expansion()
+       
+        for product in stiched_result.products:
+            all_results.append(product)
+            candidate_edits.append((product.get_smiles, product.get_edits()))
         
+        self.stop_expansion()
         return (all_results, candidate_edits)            
             
             
-    '''        
-        
-    def score_reaction(self, reactants, target_product, context):
-        '''
-        
-    '''
-        reactants: rdkit objects for the reactants (one object)
-        target_product: rdkit object of the product (largest product: 1 molecule)
-        context: full context
-        '''
-    '''
-        prediction_context = context_cleaner.clean_context(context)
-        prediction_context = context_cleaner.context_to_edit(prediction_context)
-        prediction_edits = summarize_reaction_outcome(reactants, target_product)
-        prediction_tensor = edits_to_tensor(prediction_edits, reactants, lenAtom = self.F_atom, lenBond = self.F_bond)
-        full_tensor = prediction_tensor + prediction_context
-        
-        return self.model.predict(full_tensor)[0][0]
-    
-    def get_best_context_(self, reactants, target_product, contexts):
-        '''
-    '''
-        From a list of contexts, get the context that results in the highest absolute score
-        '''
-    '''
-        scored_contexts = []
-        
-        for context in contexts:
-            score = self.score_reaction(reactants, target_product, context)
-
-            scored_contexts.append((score, context))
-            
-        scored_contexts.sort(key=itemgetter(0), reverse=True)
-        
-        return scored_contexts[0]
-    
-    def get_scored_outcomes(self, reactants, forwardResults, context, soft_max = True, sorted = False):
-        '''
-    '''
-        Of a list of possible forwardResults, score each possible outcome. Default uses softmax filter on scores.
-        Each element in forwardResults should be of the type ForwardProduct. Reactants should be mapped.
-        '''
-    ''' 
-        if isinstance(reactants, str):
-            reactants = Chem.MolFromSmiles(reactants)
-        
-        clean_reactant_mapping(reactants)
-        atom_desc_dict = edits_to_vectors([], reactants, return_atom_desc_dict=True)
-        
-        scored_outcomes = []
-        for j, outcome in enumerate(forwardResults):
-            outcome = Chem.MolFromSmiles(parse_list_to_smiles(outcome.smiles_list)) 
-            try:
-                           
-                # Reduce to largest (longest) product only
-                candidate_smiles = Chem.MolToSmiles(outcome, isomericSmiles = gc.USE_STEREOCHEMISTRY)
-                candidate_smiles = max(candidate_smiles.split('.'), key = len)
-                outcome = Chem.MolFromSmiles(candidate_smiles)
-                score = self.score_reaction(reactants, outcome, context)
-                sys.stdout.flush()
-                sys.stderr.flush()
-                
-                # Remove mapping before matching
-                [a.ClearProp('molAtomMapNumber') for a in outcome.GetAtoms() if a.HasProp('molAtomMapNumber')] # remove atom mapping from outcome
-                
-                # Overwrite candidate_smiles without atom mapping numbers
-                candidate_smiles = Chem.MolToSmiles(outcome, isomericSmiles = gc.USE_STEREOCHEMISTRY)
-                scored_outcomes.append((candidate_smiles, outcome, context, score))
-
-            except Exception as e:
-                [a.ClearProp('molAtomMapNumber') for a in outcome.GetAtoms() if a.HasProp('molAtomMapNumber')]
-                candidate_smiles = Chem.MolToSmiles(outcome, isomericSmiles = gc.USE_STEREOCHEMISTRY)
-                MyLogger.print_and_log('Failed to score forwardResults for {}: {}.'.format(candidate_smiles, e), template_nn_scorer_loc, level = 2)
-                continue  
-     
-        
-        if sorted:
-            scored_outcomes.sort(key=itemgetter(3), reverse=True) 
-            
-        if soft_max:
-            temp = scored_outcomes
-            scored_outcomes = []
-            scores = []
-            info = []
-            for (candidate_smiles, outcome, context, score) in temp:
-                scores.append(score)
-                info.append((candidate_smiles, outcome, context))
-            scores = softmax(scores)
-            if len(scores) == len(info):
-                for i,score in enumerate(scores):
-                    (candidate_smiles, outcome, context) = info[i]
-                    scored_outcomes.append((candidate_smiles, outcome, context,score))
-        
-        return scored_outcomes
-    '''
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
     e_x = np.exp(x - np.max(x))
@@ -431,6 +344,8 @@ if __name__ == '__main__':
         scorer = TemplateNeuralNetScorer(celery=celery)
         
     scorer.load(SOLVENT_DB, gc.PREDICTOR['trained_model_path'])
-    print scorer.evaluate('NC(=O)[C@H](CCC=O)N1C(=O)c2ccccc2C1=O', [(25, 'CN(C)C=O', '', '', 50, 60)], batch_size = 500, nproc = 8)
+    res = scorer.evaluate('CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1', [[80.0, u'', u'', u'', -1, 50.0]], batch_size = 100, nproc = 8)
+    for re in res[0]:
+        print re['outcome'].smiles + " {}".format(re['prob'])
     print 'done'
             
