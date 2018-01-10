@@ -274,7 +274,7 @@ class RetroTransformer(TemplateTransformer):
         return results
     
     
-    def create_file(self, file_name, chiral = False):
+    def dump_to_file(self, file_name, chiral = False):
         '''
         Write the template database to a file, of which the path in specified in the general configuration
         '''
@@ -293,7 +293,7 @@ class RetroTransformer(TemplateTransformer):
         
         if os.path.isfile(os.path.join(gc.retro_template_data, file_name)):
             with open(os.path.join(gc.retro_template_data, file_name), 'rb') as file:
-                self.TEMPLATE_DB = pickle.load(file)
+                self.templates = pickle.load(file)
         else:
             MyLogger.print_and_log("No file to read data from, using online database instead.", retro_transformer_loc, level = 1)
             self.load_databases()
