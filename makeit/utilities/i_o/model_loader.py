@@ -4,17 +4,9 @@ from pymongo import MongoClient
 from logging import MyLogger
 from utilities.buyable.pricer import Pricer
 from synthetic.context.nn_context_recommender import NNContextRecommender
-from synthetic.forward_evaluation.scorer import Scorer
 from synthetic.forward_enumeration.forward_transformer import ForwardTransformer
 from retro_synthetic.retro_transformer import RetroTransformer
-from retro_synthetic.heuristic_prioritizer import HeuristicPrioritizer
-
-
 from synthetic.forward_evaluation.template_neuralnet_scorer import TemplateNeuralNetScorer
-from multiprocessing import Process
-from multiprocessing import JoinableQueue as Queue
-from functools import partial
-import threading
 import sys
 model_loader_loc = 'model_loader'
 
@@ -49,7 +41,7 @@ def load_Retro_Transformer(RETRO_DB = None, mincount = 25, mincount_c = 10, chir
     '''    
     Load the model and databases required for the retro transformer. Returns the retro transformer, ready to run.
     '''
-    MyLogger.print_and_log('Loading retrosynthetic template database...',model_loader_loc)
+    MyLogger.print_and_log('Loading retro synthetic template database...',model_loader_loc)
     if not RETRO_DB:
         databases = load_Databases()
         if chiral:
@@ -58,7 +50,7 @@ def load_Retro_Transformer(RETRO_DB = None, mincount = 25, mincount_c = 10, chir
             RETRO_DB = databases['Retro_Database']       
     retroTransformer = RetroTransformer(TEMPLATE_DB = RETRO_DB, mincount = mincount, mincount_c = mincount_c)
     retroTransformer.load(chiral = chiral)
-    MyLogger.print_and_log('Retrosynthetic transformer loaded.',model_loader_loc)
+    MyLogger.print_and_log('Retro synthetic transformer loaded.',model_loader_loc)
     return retroTransformer
     
 def load_Databases():

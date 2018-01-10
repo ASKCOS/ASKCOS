@@ -4,7 +4,6 @@ import global_config as gc
 from utilities.i_o import arg_parser,name_parser, files
 import rdkit.Chem as Chem
 from utilities.i_o.logging import MyLogger
-import utilities.i_o.model_loader as model_loader
 from retro_synthetic.tree_builder import TreeBuilder
 from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
 from askcos_site.askcos_celery.treeevaluator.tree_evaluation_coordinator import evaluate_trees
