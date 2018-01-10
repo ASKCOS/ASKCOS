@@ -1,0 +1,9 @@
+reactions_2reac_smilesyield_179013.json generated at UTC 2016-01-25 16:58:04.156109
+
+File details
+------------
+Found 179013 random reactions from database satisfying the following criteria:
+- yield != 0.75 exactly
+
+Data list consists of entries:
+  [str(RXN_SMILES), float(yield)]

@@ -1,0 +1,7 @@
+chemical_names_with_mws_50000.json generated at UTC 2016-01-14 15:01:44.106564
+
+File details
+------------
+Found 50000 random chemicals from database satisfying the following criteria:
+- chemical['name'] == True
+- chemical['mol_weight'] == True
