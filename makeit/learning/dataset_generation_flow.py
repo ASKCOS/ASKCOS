@@ -11,7 +11,7 @@ from rdkit.Chem import AllChem
 
 def get_all_data():
     print '@{}: Initializing databases...'.format(round((time.time()-start_time)*1000)/1000)
-    client = MongoClient(gc.MONGO['path'], gc.MONGO['id'], connect = gc.MONGO['connect'])
+    client = MongoClient(gc.MONGO['path_yield_flow'], gc.MONGO['id'], connect = gc.MONGO['connect'])
     db = client[gc.REACTIONS['database']]
     reactions = db[gc.REACTIONS['collection']]
     instances = db[gc.INSTANCES['collection']]
@@ -157,7 +157,7 @@ def get_all_data():
     print "Total number of associates that don't have conditions specified: {}".format(missing_solvent_count)
 def get_50_50_data():
     print '@{}: Initializing databases...'.format(round((time.time()-start_time)*1000)/1000)
-    client = MongoClient(gc.MONGO['path'], gc.MONGO['id'], connect = gc.MONGO['connect'])
+    client = MongoClient(gc.MONGO['path_yield_flow'], gc.MONGO['id'], connect = gc.MONGO['connect'])
     db = client[gc.REACTIONS['database']]
     reactions = db[gc.REACTIONS['collection']]
     instances = db[gc.INSTANCES['collection']]

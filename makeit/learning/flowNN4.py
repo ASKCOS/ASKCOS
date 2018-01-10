@@ -2,16 +2,16 @@
 #Settings:
 all_data=True #Use the full data set or use a more balanced set
 
-read_inputs_from_file = True #Read the preprocessed data from a file. Only use if no changes to the settings 
+read_inputs_from_file = False #Read the preprocessed data from a file. Only use if no changes to the settings 
                               #have been made. Otherwise read from raw data
                               
-read_raw_data_from_file = True #Read the raw data from a saved file or use MongoDB
+read_raw_data_from_file = False #Read the raw data from a saved file or use MongoDB
 
 write_raw_data_to_file = True #Write the extracted data to a local file (data is saved as smiles strings)
 
 write_input_data_to_file = True #Write the extracted data to a local file (actual input data)
 
-FILE = True #Read a trained and saved model from the file
+FILE = False #Read a trained and saved model from the file
 
 SAVE = True #Save the trained model to the file
 

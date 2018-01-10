@@ -330,7 +330,7 @@ def get_input_condition_as_smiles(doc,chemicals, asone = False, astwo = False, c
                     pass
                 '''
         else:
-            contisigmnue
+            continue
         if(cata and s):
             cata += '.'+s
         elif s:
