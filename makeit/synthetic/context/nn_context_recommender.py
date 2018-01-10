@@ -1,4 +1,4 @@
-import global_config as gc
+import makeit.global_config as gc
 from pymongo import MongoClient
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
@@ -7,10 +7,10 @@ import numpy as np
 import random
 # from sklearn.neighbors import NearestNeighbors as NN
 from sklearn.externals import joblib
-import utilities.strings as strings
-import utilities.fingerprinting as fp
-from utilities.i_o.logging import MyLogger
-from interfaces.context_recommender import ContextRecommender
+import makeit.utilities.strings as strings
+import makeit.utilities.fingerprinting as fp
+from makeit.utilities.i_o.logging import MyLogger
+from makeit.interfaces.context_recommender import ContextRecommender
 contextRecommender_loc = 'contextRecommender'
 
 class NNContextRecommender(ContextRecommender):

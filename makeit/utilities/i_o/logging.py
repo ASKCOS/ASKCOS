@@ -1,6 +1,6 @@
 import os
 import time
-import global_config as gc
+import makeit.global_config as gc
 
 class MyLogger:
     '''

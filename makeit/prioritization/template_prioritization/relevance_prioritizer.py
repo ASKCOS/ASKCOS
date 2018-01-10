@@ -1,9 +1,9 @@
-import global_config as gc
-from prioritization.prioritizer import Prioritizer
+import makeit.global_config as gc
+from makeit.prioritization.prioritizer import Prioritizer
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import numpy as np
-from utilities.i_o.logging import MyLogger
+from makeit.utilities.i_o.logging import MyLogger
 import math, sys, random, os
 import time
 import os 

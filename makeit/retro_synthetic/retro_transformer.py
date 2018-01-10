@@ -2,21 +2,22 @@ from __future__ import print_function
 import makeit.global_config as gc
 import os
 import cPickle as pickle
-from makeit.global_config import USE_STEREOCHEMISTRY
+from pymongo import MongoClient
+
+USE_STEREOCHEMISTRY = True
 import rdkit.Chem as Chem          
 from rdkit.Chem import AllChem
 import numpy as np
 from functools import partial # used for passing args to multiprocessing
-from utilities.i_o.logging import MyLogger
-from utilities.reactants import clean_reactant_mapping
-from retro_enumeration import *
-from pymongo import MongoClient
-from interfaces.template_transformer import TemplateTransformer
-from prioritization.precursor_prioritization.heuristic_prioritizer import HeuristicPrioritizer
-from prioritization.precursor_prioritization.scs_prioritizer import SCSPrioritizer
-from prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
-from prioritization.template_prioritization.relevance_prioritizer import RelevancePrioritizer
-from prioritization.default_prioritizer import DefaultPrioritizer
+from makeit.utilities.i_o.logging import MyLogger
+from makeit.utilities.reactants import clean_reactant_mapping
+from makeit.retro_synthetic.retro_enumeration import *
+from makeit.interfaces.template_transformer import TemplateTransformer
+from makeit.prioritization.precursor_prioritization.heuristic_prioritizer import HeuristicPrioritizer
+from makeit.prioritization.precursor_prioritization.scs_prioritizer import SCSPrioritizer
+from makeit.prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
+from makeit.prioritization.template_prioritization.relevance_prioritizer import RelevancePrioritizer
+from makeit.prioritization.default_prioritizer import DefaultPrioritizer
 from rdchiral.main import rdchiralRun
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 retro_transformer_loc = 'retro_transformer'
@@ -201,7 +202,7 @@ class RetroTransformer(TemplateTransformer):
         self.get_prioritizers(precursor_prioritizer, template_prioritizer)
         # Define mol to operate on
         mol = Chem.MolFromSmiles(smiles)
-        smiles = Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY) # to canonicalize
+        smiles = Chem.MolToSmiles(mol, isomericSmiles=True) # to canonicalize
         if self.chiral:
             mol = rdchiralReactants(smiles)
         # Initialize results object

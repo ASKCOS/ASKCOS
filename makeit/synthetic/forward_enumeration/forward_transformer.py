@@ -1,22 +1,22 @@
 from __future__ import print_function
-import global_config as gc
-from global_config import USE_STEREOCHEMISTRY
+import makeit.global_config as gc
+USE_STEREOCHEMISTRY = False
 import rdkit.Chem as Chem          
 from rdkit.Chem import AllChem
 import numpy as np
 import os
 import cPickle as pickle
 from functools import partial # used for passing args to multiprocessing
-from utilities.i_o.logging import MyLogger
-from forward_enumeration import *
+from makeit.utilities.i_o.logging import MyLogger
+from makeit.synthetic.forward_enumeration.forward_enumeration import ForwardResult, ForwardProduct
 from pymongo import MongoClient
-from interfaces.template_transformer import TemplateTransformer
-from interfaces.forward_enumerator import ForwardEnumerator
-from prioritization.precursor_prioritization.heuristic_prioritizer import HeuristicPrioritizer
-from prioritization.precursor_prioritization.scs_prioritizer import SCSPrioritizer
-from prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
-from prioritization.template_prioritization.relevance_prioritizer import RelevancePrioritizer
-from prioritization.default_prioritizer import DefaultPrioritizer
+from makeit.interfaces.template_transformer import TemplateTransformer
+from makeit.interfaces.forward_enumerator import ForwardEnumerator
+from makeit.prioritization.precursor_prioritization.heuristic_prioritizer import HeuristicPrioritizer
+from makeit.prioritization.precursor_prioritization.scs_prioritizer import SCSPrioritizer
+from makeit.prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
+from makeit.prioritization.template_prioritization.relevance_prioritizer import RelevancePrioritizer
+from makeit.prioritization.default_prioritizer import DefaultPrioritizer
 from makeit.utilities.reactants import clean_reactant_mapping
 from makeit.utilities.outcomes import summarize_reaction_outcome
 

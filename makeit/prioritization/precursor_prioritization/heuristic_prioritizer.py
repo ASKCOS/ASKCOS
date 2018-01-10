@@ -1,8 +1,8 @@
-from prioritization.prioritizer import Prioritizer
+from makeit.prioritization.prioritizer import Prioritizer
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import numpy as np
-from utilities.i_o.logging import MyLogger
+from makeit.utilities.i_o.logging import MyLogger
 heuristic_prioritizer_loc = 'heuristic_prioritizer'
 
 class HeuristicPrioritizer(Prioritizer):

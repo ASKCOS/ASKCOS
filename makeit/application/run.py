@@ -1,13 +1,13 @@
 import os
 import time
-import global_config as gc
-from utilities.i_o import arg_parser,name_parser, files
+import makeit.global_config as gc
+from makeit.utilities.i_o import arg_parser,name_parser, files
 import rdkit.Chem as Chem
-from utilities.i_o.logging import MyLogger
-from retro_synthetic.tree_builder import TreeBuilder
+from makeit.utilities.i_o.logging import MyLogger
+from makeit.retro_synthetic.tree_builder import TreeBuilder
 from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
 from askcos_site.askcos_celery.treeevaluator.tree_evaluation_coordinator import evaluate_trees
-from synthetic.forward_evaluation.tree_evaluator import TreeEvaluator
+from makeit.synthetic.forward_evaluation.tree_evaluator import TreeEvaluator
 import sys
 makeit_loc = 'makeit'
 

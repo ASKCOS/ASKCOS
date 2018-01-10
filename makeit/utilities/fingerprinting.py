@@ -1,9 +1,9 @@
-import global_config as gc
+import makeit.global_config as gc
 from rdkit import Chem
 from rdkit.Chem import AllChem
 import numpy as np
-from i_o.logging import MyLogger
-from parsing import check_smiles
+from makeit.utilities.i_o.logging import MyLogger
+from makeit.utilities.parsing import check_smiles
 fingerprinting_loc = 'fingerprinting'
 
 def create_rxn_Morgan2FP(rxn_smiles, fpsize=gc.fingerprint_bits, useFeatures=True):

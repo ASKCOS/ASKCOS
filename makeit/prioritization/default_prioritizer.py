@@ -1,5 +1,5 @@
-from prioritization.prioritizer import Prioritizer
-from utilities.i_o.logging import MyLogger
+from makeit.prioritization.prioritizer import Prioritizer
+from makeit.utilities.i_o.logging import MyLogger
 defaultPrioritizer_loc = 'default_rioritizer'
 
 class DefaultPrioritizer(Prioritizer):

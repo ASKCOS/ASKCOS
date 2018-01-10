@@ -2,7 +2,7 @@
 import time
 import numpy as np
 import os
-import utilities.i_o.arg_parser as argparse
+import argparse
 import h5py # needed for save_weights, fails otherwise
 import theano
 import theano.tensor as T
@@ -20,8 +20,8 @@ try:
     from keras.utils.visualize_util import plot
 except:
     no_printing = True
-from utilities.descriptors import edits_to_vectors, oneHotVector # for testing
-from utilities.threadsafe import threadsafe_generator
+from makeit.utilities.descriptors import edits_to_vectors, oneHotVector # for testing
+from makeit.utilities.threadsafe import threadsafe_generator
 import rdkit.Chem as Chem
 
 from scipy.sparse import coo_matrix
@@ -31,7 +31,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt    # for visualization
 import scipy.stats as ss
 import itertools
-from utilities.i_o.logging import MyLogger
+from makeit.utilities.i_o.logging import MyLogger
 forwardPredictionNetwork_loc = 'forwardPredictionNetwork'
 '''
 

@@ -1,16 +1,16 @@
-import global_config as gc
+import makeit.global_config as gc
 from multiprocessing import Process, Manager, Queue
 from evaluator import Evaluator
 import Queue as VanillaQueue
 import time
-from utilities.i_o.logging import MyLogger
-from utilities.i_o import model_loader
+from makeit.utilities.i_o.logging import MyLogger
+from makeit.utilities.i_o import model_loader
 from celery.result import allow_join_result
 from askcos_site.askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
 from askcos_site.askcos_celery.treeevaluator.scoring_coordinator import evaluate
-from prioritization.context_prioritization.probability_prioritization import ProbabilityPrioritizer
-from prioritization.context_prioritization.rank_prioritization import RankPrioritizer
-from prioritization.default_prioritizer import DefaultPrioritizer
+from makeit.prioritization.context_prioritization.probability_prioritization import ProbabilityPrioritizer
+from makeit.prioritization.context_prioritization.rank_prioritization import RankPrioritizer
+from makeit.prioritization.default_prioritizer import DefaultPrioritizer
 treeEvaluator_loc = 'tree_evaluator'
 
 class TreeEvaluator():

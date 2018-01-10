@@ -1,12 +1,12 @@
-import global_config as gc
+import makeit.global_config as gc
 import time
 from multiprocessing import Process, Manager
-from synthetic.forward_enumeration.forward_transformer import ForwardTransformer
-from retro_synthetic.retro_transformer import RetroTransformer
-from utilities.buyable.pricer import Pricer
-from synthetic.forward_evaluation.scorer import Scorer
-from synthetic.context.nn_context_recommender import NNContextRecommender
-from utilities.i_o.logging import MyLogger
+from makeit.synthetic.forward_enumeration.forward_transformer import ForwardTransformer
+from makeit.retro_synthetic.retro_transformer import RetroTransformer
+from makeit.utilities.buyable.pricer import Pricer
+from makeit.synthetic.forward_evaluation.scorer import Scorer
+from makeit.synthetic.context.nn_context_recommender import NNContextRecommender
+from makeit.utilities.i_o.logging import MyLogger
 load_models_loc = 'load_models'
 
 def load_all(nproc = 3, mincount_f = 4, mincount_r = 4, NN_model_path = "", context_model_path = "", context_info_path = "", max_ppg = 1e10, max_total_contexts = 10):

@@ -1,11 +1,11 @@
-import global_config as gc
+import makeit.global_config as gc
 import rdkit.Chem as Chem
 from multiprocessing import Process, Manager, Queue
-from utilities.i_o.logging import MyLogger
-from utilities.i_o.model_loader import load_fastfilter, load_templatebased, load_templatefree
-from utilities.parsing import parse_molecule_to_smiles, parse_list_to_smiles
-from utilities.outcomes import summarize_reaction_outcome
-from utilities.descriptors import edits_to_tensor
+from makeit.utilities.i_o.logging import MyLogger
+from makeit.utilities.i_o.model_loader import load_fastfilter, load_templatebased, load_templatefree
+from makeit.utilities.parsing import parse_molecule_to_smiles, parse_list_to_smiles
+from makeit.utilities.outcomes import summarize_reaction_outcome
+from makeit.utilities.descriptors import edits_to_tensor
 from celery.result import allow_join_result
 from numpy import Inf
 

@@ -1,12 +1,12 @@
 import os
-import global_config as gc
+import makeit.global_config as gc
 from pymongo import MongoClient
 from logging import MyLogger
-from utilities.buyable.pricer import Pricer
-from synthetic.context.nn_context_recommender import NNContextRecommender
-from synthetic.forward_enumeration.forward_transformer import ForwardTransformer
-from retro_synthetic.retro_transformer import RetroTransformer
-from synthetic.forward_evaluation.template_neuralnet_scorer import TemplateNeuralNetScorer
+from makeit.utilities.buyable.pricer import Pricer
+from makeit.synthetic.context.nn_context_recommender import NNContextRecommender
+from makeit.synthetic.forward_enumeration.forward_transformer import ForwardTransformer
+from makeit.retro_synthetic.retro_transformer import RetroTransformer
+from makeit.synthetic.forward_evaluation.template_neuralnet_scorer import TemplateNeuralNetScorer
 import sys
 model_loader_loc = 'model_loader'
 

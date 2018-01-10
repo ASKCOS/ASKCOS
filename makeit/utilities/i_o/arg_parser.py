@@ -1,6 +1,7 @@
 import argparse
-import global_config as gc
+import makeit.global_config as gc
 arg_parser_loc = 'arg_parser'
+
 def setup_parser():
     
     parser = argparse.ArgumentParser()

@@ -1,16 +1,16 @@
 
-import global_config as gc
+import makeit.global_config as gc
 from multiprocessing import Process, Manager, Queue
 import Queue as VanillaQueue
 import time
 import sys
-from retro_transformer import RetroTransformer
-from prioritization.precursor_prioritization.heuristic_prioritizer import HeuristicPrioritizer
-from prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
-from utilities.buyable.pricer import Pricer
-from utilities.i_o.logging import MyLogger
-from utilities.i_o import model_loader
-from utilities.formats import chem_dict,rxn_dict
+from makeit.retro_synthetic.retro_transformer import RetroTransformer
+from makeit.prioritization.precursor_prioritization.heuristic_prioritizer import HeuristicPrioritizer
+from makeit.prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
+from makeit.utilities.buyable.pricer import Pricer
+from makeit.utilities.i_o.logging import MyLogger
+from makeit.utilities.i_o import model_loader
+from makeit.utilities.formats import chem_dict,rxn_dict
 from celery.result import allow_join_result
 from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors, reserve_worker_pool, unreserve_worker_pool
 import askcos_site.askcos_celery.treebuilder.tb_c_worker as tb_c_worker
