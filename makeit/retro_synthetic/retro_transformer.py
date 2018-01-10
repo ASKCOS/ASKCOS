@@ -280,23 +280,58 @@ class RetroTransformer(TemplateTransformer):
         '''
         if not self.templates:
             self.load(chiral)
+        
+        if chiral:
+            pickle_templates = []
+            #reconstruct template list, but without chiral rxn object => can't be pickled.
+            for template in self.templates:
+                pickle_templates.append({
+                                        'name':                 template['name'],
+                                        'reaction_smarts':      template['reaction_smarts'],
+                                        'incompatible_groups':  template['incompatible_groups'],
+                                        'references':           template['references'],
+                                        'rxn_example':          template['rxn_example'],
+                                        'explicit_H':           template['explicit_H'],
+                                        '_id':                  template['_id'],
+                                        'product_smiles':       template['product_smiles'], 
+                                        'necessary_reagent':    template['necessary_reagent'],       
+                                        'efgs':                 template['efgs'],
+                                        'intra_only':           template['intra_only'],
+                                        'dimer_only':           template['dimer_only'],        
+                                        'chiral':               template['chiral'],
+                                        'count':                template['count'],
+                                        })
+        else:
+            pickle_templates = self.templates
         file = open(os.path.join(gc.retro_template_data, file_name), "w+")
         
-        pickle.dump(self.templates, file, gc.protocol)
+        pickle.dump(pickle_templates, file, gc.protocol)
 
     
-    def load_from_file(self, file_name):
+    def load_from_file(self, file_name, chiral = False):
         '''
         Read the template database from a previously saved file, of which the path is specified in the general
         configuration
         '''
-        
+        MyLogger.print_and_log('Loading templates from {}'.format(file_name), retro_transformer_loc)
         if os.path.isfile(os.path.join(gc.retro_template_data, file_name)):
             with open(os.path.join(gc.retro_template_data, file_name), 'rb') as file:
-                self.templates = pickle.load(file)
+                if chiral:
+                    pickle_templates = pickle.load(file)
+                    self.templates = []
+                    for template in pickle_templates:
+                        try:
+                            template['rxn'] = rdchiralReaction(str('(' + template['reaction_smarts'].replace('>>', ')>>(') + ')'))
+                        except Exception as e:
+                            template['rxn'] = None
+                        self.templates.append(template)
+                else:
+                    self.templates = pickle.load(file)
         else:
             MyLogger.print_and_log("No file to read data from, using online database instead.", retro_transformer_loc, level = 1)
-            self.load_databases()
+            self.load(chiral=chiral)
+        self.num_templates = len(self.templates)
+        MyLogger.print_and_log('Loaded templates. Using {} templates'.format(self.num_templates), retro_transformer_loc)
 
     def top_templates(self, target):
         '''
