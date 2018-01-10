@@ -1,0 +1,9 @@
+reactions_2reac_1prod_10000.json generated at UTC 2016-01-14 15:25:00.450620
+
+File details
+------------
+Found 10000 random reactions from database satisfying the following criteria:
+- exactly 2 reactants
+- exactly 1 product
+for the associated chemicals...
+- chemical['name'] == True
