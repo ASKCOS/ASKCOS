@@ -46,7 +46,7 @@ forward_scoring = network
 
 #Use highest protocol in pickle
 protocol = -1
-data_path = os.path.join(os.getcwd(),'data')
+data_path = os.path.join(os.path.dirname(__file__),'data')
 
 fingerprint_bits = 256
 reaction_fingerprint_bits = 2048
