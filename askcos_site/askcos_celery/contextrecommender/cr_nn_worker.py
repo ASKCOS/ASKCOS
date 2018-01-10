@@ -9,7 +9,7 @@ from __future__ import absolute_import, unicode_literals, print_function
 from celery import shared_task
 from celery.signals import celeryd_init
 from makeit.synthetic.context.nn_context_recommender import NNContextRecommender
-import global_config as gc
+import makeit.global_config as gc
 
 CORRESPONDING_QUEUE = 'cr_nn_worker'
 
