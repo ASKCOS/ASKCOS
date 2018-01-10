@@ -306,6 +306,8 @@ class RetroTransformer(TemplateTransformer):
         file = open(os.path.join(gc.retro_template_data, file_name), "w+")
         
         pickle.dump(pickle_templates, file, gc.protocol)
+        
+        MyLogger.print_and_log('Wrote templates to {}'.format(os.path.join(gc.retro_template_data, file_name)), retro_transformer_loc)
 
     
     def load_from_file(self, file_name, chiral = False):
@@ -313,7 +315,7 @@ class RetroTransformer(TemplateTransformer):
         Read the template database from a previously saved file, of which the path is specified in the general
         configuration
         '''
-        MyLogger.print_and_log('Loading templates from {}'.format(file_name), retro_transformer_loc)
+        MyLogger.print_and_log('Loading templates from {}'.format(os.path.join(gc.retro_template_data, file_name)), retro_transformer_loc)
         if os.path.isfile(os.path.join(gc.retro_template_data, file_name)):
             with open(os.path.join(gc.retro_template_data, file_name), 'rb') as file:
                 if chiral:

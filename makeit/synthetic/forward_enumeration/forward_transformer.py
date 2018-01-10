@@ -4,6 +4,8 @@ from global_config import USE_STEREOCHEMISTRY
 import rdkit.Chem as Chem          
 from rdkit.Chem import AllChem
 import numpy as np
+import os
+import cPickle as pickle
 from functools import partial # used for passing args to multiprocessing
 from utilities.i_o.logging import MyLogger
 from forward_enumeration import *
@@ -272,27 +274,29 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
         '''
         Write the template database to a file, of which the path in specified in the general configuration
         '''
-        if not self.TEMPLATE_DB:
-            MyLogger.print_and_log("No database information to output to file.", forward_transformer_loc, level = 1)
-            return
+        if not self.templates:
+            self.load()
     
-        with open(os.path.join(gc.synth_template_data, file_name), 'wb') as file:
-            pickle.dump(self.TEMPLATE_DB, file, gc.protocol)
+        with open(os.path.join(gc.synth_template_data, file_name), 'w+') as file:
+            pickle.dump(self.templates, file, gc.protocol)
 
-    
+        MyLogger.print_and_log('Wrote templates to {}'.format(os.path.join(gc.retro_template_data, file_name)), forward_transformer_loc)
+        
     def load_from_file(self, file_name):
         '''
         Read the template database from a previously saved file, of which the path is specified in the general
         configuration
         '''
-
+        MyLogger.print_and_log('Loading templates from {}'.format(file_name), forward_transformer_loc)
         if os.path.isfile(os.path.join(gc.synth_template_data, file_name)):
             with open(os.path.join(gc.synth_template_data, file_name), 'rb') as file:
-                self.TEMPLATE_DB = pickle.load(file)
+                self.templates = pickle.load(file)
         else:
             MyLogger.print_and_log("No file to read data from, using online database instead.", forward_transformer_loc, level = 1)
-            self.load_databases()
-
+            self.load()
+        self.num_templates = len(self.templates)
+        MyLogger.print_and_log('Loaded templates. Using {} templates'.format(self.num_templates), forward_transformer_loc)
+       
         
     def load_databases(self):
         db_client = MongoClient(gc.MONGO['path'],gc.MONGO['id'], connect = gc.MONGO['connect'])
