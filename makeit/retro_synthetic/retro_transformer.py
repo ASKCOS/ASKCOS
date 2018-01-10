@@ -202,7 +202,8 @@ class RetroTransformer(TemplateTransformer):
         # Define mol to operate on
         mol = Chem.MolFromSmiles(smiles)
         smiles = Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY) # to canonicalize
-        
+        if self.chiral:
+            mol = rdchiralReactants(smiles)
         # Initialize results object
         result = RetroResult(smiles)
         
@@ -212,20 +213,14 @@ class RetroTransformer(TemplateTransformer):
         
         return result
     
-    def apply_one_template(self, mol, smiles, template, singleonly = False, stop_if = False):
+    def apply_one_template(self, react_mol, smiles, template, singleonly = False, stop_if = False):
         '''
         Takes a mol object and applies a single template. Mol object should have property molAtomMapNumber:
         react_mol = clean_reactant_mapping(react_mol)
         '''
         results = []
         try:
-            if template['product_smiles']:
-                react_mol = Chem.MolFromSmiles(smiles + '.' + '.'.join(template['product_smiles']))
-            else:
-                react_mol = mol
-            if self.chiral: 
-                reaction = rdchiralReaction(str('(' + str(template['reaction_smarts']).replace('>>', ')>>')))
-                react_mol = rdchiralReactants(smiles)
+            if self.chiral:
                 outcomes = rdchiralRun(template['rxn'], react_mol)
             else:
                 outcomes = template['rxn'].RunReactants([react_mol])
@@ -331,5 +326,5 @@ if __name__ == '__main__':
     TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL['database']][gc.RETRO_TRANSFORMS_CHIRAL['collection']]
     t = RetroTransformer(mincount = 100, mincount_c = 50, TEMPLATE_DB=TEMPLATE_DB)
     t.load(chiral = True)
-    print(t.get_outcomes('C1C(=O)OCC12CC(C)CC2', 100, (gc.heuristic, gc.popularity), chiral = True).precursors)
+    print(t.get_outcomes('C1C(=O)OCC12CC(C)CC2', 100, (gc.heuristic, gc.popularity)).precursors)
     
