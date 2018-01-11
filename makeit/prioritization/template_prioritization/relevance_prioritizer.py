@@ -16,7 +16,7 @@ class RelevancePrioritizer(Prioritizer):
     '''
     def __init__(self, retro = True):
         self.retro = retro
-        self.FP_len = 1024
+        self.FP_len = 2048
         self.FP_rad = 2
         MyLogger.print_and_log('Using relevance prioritization method for directing the tree expansion.', relevancePrioritizer_loc)
         self.vars = []
