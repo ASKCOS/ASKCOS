@@ -152,7 +152,7 @@ class TreeEvaluator():
                                                             rank_threshold, prob_threshold, mincount, nproc, batch_size, n, is_target = True))
         else:
             self.spin_up_workers(nproc_t)
-            self.populate_queue(trees)
+            self.populate_queue(tree_list)
             self.get_scored_trees()
 
         return self.scored_trees
@@ -255,8 +255,8 @@ class TreeEvaluator():
             p = Process(target = self.work, args = (i,))
             self.workers.append(p)
             p.start()
-    def populate_queue(self, trees):
-        for tree in trees:
+    def populate_queue(self, tree_list):
+        for tree in tree_list:
             self.evaluation_queue.put(tree)
     def waiting_for_results(self):
         time.sleep(0.05)
