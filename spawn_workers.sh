@@ -47,4 +47,3 @@ celery -A askcos_site worker -c 2 -Q cr_nn_worker -n "cr_nn_worker@$(hostname)" 
 
 
 source deactivate
->>>>>>> 34b03cc6b40a8c381444bdb7fd48a523cdbacd29
