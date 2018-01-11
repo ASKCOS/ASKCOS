@@ -4,7 +4,7 @@ from celery.signals import celeryd_init
 from celery.result import allow_join_result 
 from makeit.synthetic.context.nn_context_recommender import NNContextRecommender
 from askcos_site.askcos_celery.contextrecommender.cr_nn_worker import get_n_conditions
-import global_config as gc
+import makeit.global_config as gc
 CORRESPONDING_QUEUE = 'cr_coordinator'
 import time
 
