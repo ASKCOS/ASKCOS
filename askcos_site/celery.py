@@ -15,13 +15,14 @@ app = Celery('askcos_site', broker='amqp://worker:askcos@{}:5672'.format(SERVERH
     backend='redis://',
     include=[
         'askcos_site.askcos_celery.treebuilder.tb_worker',
-	'askcos_site.askcos_celery.treebuilder.tb_c_worker',
+	    'askcos_site.askcos_celery.treebuilder.tb_c_worker',
         'askcos_site.askcos_celery.treebuilder.tb_coordinator',
         'askcos_site.askcos_celery.contextrecommender.cr_coordinator',
 	'askcos_site.askcos_celery.contextrecommender.cr_nn_worker',
 	'askcos_site.askcos_celery.treeevaluator.forward_trans_worker',
 	'askcos_site.askcos_celery.treeevaluator.scoring_coordinator',
 	'askcos_site.askcos_celery.treeevaluator.tree_evaluation_coordinator',
+
     ]
 )
 
