@@ -34,14 +34,14 @@ if os.path.isfile(save_path):
     #with open(save_path, 'rb') as fid:
     #    RetroTransformer.templates = pickle.load(fid)
     RetroTransformer = transformer.RetroTransformer()
-    RetroTransformer.load_from_file(save_path, chiral=False)
+    RetroTransformer.load_from_file(save_path, chiral=False, rxns=False)
     RetroTransformer.reorder()
 else:
     database = db_client[settings.RETRO_TRANSFORMS['database']]
     RETRO_DB = database[settings.RETRO_TRANSFORMS['collection']]
     mincount_retro = settings.RETRO_TRANSFORMS['mincount']
     RetroTransformer = transformer.RetroTransformer(TEMPLATE_DB=RETRO_DB, mincount=mincount_retro, 
-        get_retro=False, get_synth=False, refs=True)
+        get_retro=False, get_synth=False, refs=True, rxns=False)
     print('Saving achiral retro transformer for the (only?) first time')
     RetroTransformer.dump_to_file(save_path)
     #with open(save_path, 'wb') as fid:
@@ -60,14 +60,14 @@ save_path = get_retrotransformer_chiral_path(
 )
 if os.path.isfile(save_path):
     RetroTransformerChiral = transformer.RetroTransformer()
-    RetroTransformer.load_from_file(save_path, chiral=True)
+    RetroTransformer.load_from_file(save_path, chiral=True, rxns=False)
     RetroTransformerChiral.reorder()
 else:
     mincount_retro = settings.RETRO_TRANSFORMS_CHIRAL['mincount']
     mincount_retro_chiral = settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral']
     RetroTransformerChiral = transformer.RetroTransformer(TEMPLATE_DB=RETRO_DB, 
         mincount=mincount_retro, mincount_chiral=mincount_retro_chiral)
-    RetroTransformerChiral.load(get_retro=False, get_synth=False, refs=True)
+    RetroTransformerChiral.load(get_retro=False, get_synth=False, refs=True, rxns=False)
     print('Saving chiral retro transformer for the (only?) first time')
     RetroTransformerChiral.dump_to_file(save_path)
     #with open(save_path, 'wb') as fid:
@@ -84,25 +84,25 @@ print('{} total templates available'.format(len(RetroTransformer.templates)))
 RetroTransformer.reorder() # rebuilds id->template dictionary
 
 ### Forward transformer 
-SynthTransformer = transformer.Transformer()
 save_path = get_synthtransformer_path(
     settings.SYNTH_TRANSFORMS['database'],
     settings.SYNTH_TRANSFORMS['collection'],
     settings.SYNTH_TRANSFORMS['mincount'],
 )
+import makeit.synthetic.forward_enumeration.forward_transformer as transformer
 if os.path.isfile(save_path):
-    with open(save_path, 'rb') as fid:
-        SynthTransformer.templates = pickle.load(fid)
+    SynthTransformer = transformer.ForwardTransformer()
+    SynthTransformer.load_from_file(save_path, rxns=False)
     SynthTransformer.reorder()
 else:
     database = db_client[settings.SYNTH_TRANSFORMS['database']]
     SYNTH_DB = database[settings.SYNTH_TRANSFORMS['collection']]
     mincount_synth = settings.SYNTH_TRANSFORMS['mincount']
-    SynthTransformer.load(SYNTH_DB, mincount = mincount_synth, get_retro = False, get_synth = True)
+    SynthTransformer = transformer.SynthTransformer(TEMPLATE_DB=SYNTH_DB, mincount=mincount_synth)
+    SynthTransformer.load(refs=True, rxns=False)
     print('Loaded {} forward templates'.format(SynthTransformer.num_templates))
     print('Saving synth transformer for the (only?) first time')
-    with open(save_path, 'wb') as fid:
-        pickle.dump(SynthTransformer.templates, fid, -1)
+    SynthTransformer.dump_to_file(save_path)
 SYNTH_FOOTNOTE = 'Using {} forward templates (mincount {}) from {}/{}'.format(SynthTransformer.num_templates,
     settings.SYNTH_TRANSFORMS['mincount'], settings.SYNTH_TRANSFORMS['database'], settings.SYNTH_TRANSFORMS['collection'])
 
@@ -136,7 +136,7 @@ CHEMICAL_DB_OLD = db[settings.CHEMICALS_OLD['collection']]
 
 ### Prices
 print('Loading prices...')
-import makeit.retro.pricer as pricer
+import makeit.utilities.buyable.pricer as pricer
 Pricer = pricer.Pricer()
 save_path = get_pricer_path(
     settings.CHEMICALS['database'], 
