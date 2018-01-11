@@ -37,9 +37,7 @@ class TreeEvaluator():
                                                               kwargs= {'n':n, 'singleSlvt':self.single_solv, 
                                                                        'with_smiles':self.with_smiles, 
                                                                        'context_recommender':self.recommender})
-                while not res.ready():
-                    time.sleep(0.2)
-                return res.get()
+                return res.get(120)
         else:
             def get_contexts(rxn, n):
                 return self.context_recommender.get_n_conditions(rxn, n=n, singleSlvt=self.single_solv, with_smiles=self.with_smiles)
@@ -50,9 +48,7 @@ class TreeEvaluator():
             def evaluate_reaction(reactant_smiles, target, contexts):
                 res = evaluate.apply_async(args = (reactant_smiles, target, contexts), 
                                            kwargs = {'mincount': self.mincount, 'forward_scorer': self.forward_scorer})
-                while not res.ready():
-                    time.sleep(0.2)
-                return res.get()
+                return res.get(120)
         else:
             def evaluate_reaction(reactant_smiles, target, contexts):
                 return self.evaluator.evaluate(reactant_smiles, target, contexts, mincount = self.mincount,
@@ -120,9 +116,10 @@ class TreeEvaluator():
             try:
                 tree = self.evaluation_queue.get(timeout = 0.5) # short timeout
                 self.idle[i] = False
-                plausible, score = self.evaluate_tree(tree, context_method = '', forward_scoring_method = '', tree_scoring_method = '',
-                                                      rank_threshold = 5, prob_threshold = 0.2, is_target = False, 
-                                                      mincount = 25, nproc = 1,batch_size = 500, n = 10)
+                plausible, score = self.evaluate_tree(tree, context_recommender = '', context_scoring_method = '', 
+                                                    forward_scoring_method = '', tree_scoring_method = '',
+                                                    rank_threshold = 5, prob_threshold = 0.2, is_target = False, 
+                                                    mincount = 25, nproc = 1,batch_size = 500, n = 10)
                 self.results_queue.put([tree, plausible, score])
                 #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
             except VanillaQueue.Empty:
