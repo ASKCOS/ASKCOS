@@ -12,7 +12,7 @@ from makeit.utilities.i_o.logging import MyLogger
 from makeit.utilities.i_o import model_loader
 from makeit.utilities.formats import chem_dict,rxn_dict
 from celery.result import allow_join_result
-from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors, reserve_worker_pool, unreserve_worker_pool
+import askcos_site.askcos_celery.treebuilder.tb_worker as tb_worker
 import askcos_site.askcos_celery.treebuilder.tb_c_worker as tb_c_worker
 treebuilder_loc = 'tree_builder'
 
@@ -89,7 +89,7 @@ class TreeBuilder:
                 if self.chiral:
                     self.private_worker_queue = tb_c_worker.reserve_worker_pool.delay().get(timeout=5)
                 else:
-                    self.private_worker_queue = reserve_worker_pool.delay().get(timeout=5)
+                    self.private_worker_queue = tb_worker.reserve_worker_pool.delay().get(timeout=5)
         else:
             def prepare():
                 MyLogger.print_and_log('Tree builder spinning off {} child processes'.format(self.nproc),treebuilder_loc)
@@ -113,7 +113,7 @@ class TreeBuilder:
                 if self.chiral:
                     released = tb_c_worker.unreserve_worker_pool.apply_async(queue=self.private_worker_queue, retry=True).get()
                 else:
-                    released = unreserve_worker_pool.apply_async(queue=self.private_worker_queue, retry=True).get()
+                    released = tb_worker.unreserve_worker_pool.apply_async(queue=self.private_worker_queue, retry=True).get()
                 self.running = False
         else:
             def stop():
@@ -141,7 +141,7 @@ class TreeBuilder:
                         queue=self.private_worker_queue,
                     ))
                 else:
-                    self.pending_results.append(get_top_precursors.apply_async(
+                    self.pending_results.append(tb_worker.get_top_precursors.apply_async(
                         args=(smiles,self.template_prioritization, self.precursor_prioritization), 
                         kwargs={'mincount':self.mincount, 'max_branching':self.max_branching},
                         #Prioritize higher depths: Depth first search. 
