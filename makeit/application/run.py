@@ -145,7 +145,11 @@ def find_synthesis():
     MyLogger.print_and_log('MAKEIT generated {} buyable tree(s) that meet(s) all constraints.'.format(len(trees)), makeit_loc)
     feasible_trees = makeit.evaluate_synthesis_trees(trees)
     MyLogger.print_and_log('MAKEIT found {} tree(s) that are(is) likely to result in a successful synthesis.'.format(len(feasible_trees)),makeit_loc)
-    print feasible_trees
+    
+    for i, feasible_tree in enumerate(feasible_trees):
+        MyLogger.print_and_log('', makeit_loc)
+        MyLogger.print_and_log('Feasible tree {}'.format(i+1), makeit_loc)
+        MyLogger.print_and_log('{}.'.format(feasible_tree), makeit_loc)
     
 if __name__ == '__main__':
     find_synthesis()
