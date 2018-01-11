@@ -25,7 +25,7 @@ def configure_worker(options={}, **kwargs):
     lg.setLevel(RDLogger.CRITICAL)
 
     # Import as needed
-    from makeit.webapp.rexgen_release.predict import TFFP 
+    from makeit.synthetic.forward_evaluation.rexgen_release.predict import TFFP 
     print('Imported TFFP')
     try:
         tffp = TFFP()
