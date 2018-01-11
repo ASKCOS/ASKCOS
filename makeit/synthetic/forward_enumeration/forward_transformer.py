@@ -43,7 +43,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
         self.template_prioritizers = {}
         self.TEMPLATE_DB = TEMPLATE_DB
 
-        super(RetroTransformer, self).__init__()
+        super(ForwardTransformer, self).__init__()
     
     def template_count(self):
         return len(self.templates)
