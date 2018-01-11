@@ -117,7 +117,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                     result.add_products(products)
         return (smiles,result)
         
-    def load(self, lowe=False, refs=False, efgs=False):
+    def load(self, lowe=False, refs=False, efgs=False, rxns=True):
         '''
         Loads and parses the template database to a useable one
         '''
@@ -166,22 +166,24 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                 template['count'] = document['popularity']
             else:
                 template['count'] = 1
-            try:
-                if lowe:
-                    reaction_smarts_synth = '(' + reaction_smarts.split('>')[2] + ')>>(' + reaction_smarts.split('>')[0] + ')'
-                else:
-                    reaction_smarts_synth = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
-                rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_synth)
-                #if rxn_f.Validate() == (0, 0):
-                if rxn_f.Validate()[1] == 0:
-                    template['rxn_f'] = rxn_f
-                else:
-                    template['rxn_f'] = None
-            except Exception as e:
-                MyLogger.print_and_log('Couldnt load forward: {}: {}'.format(reaction_smarts_synth, e), forward_transformer_loc, level = 1)
-                template['rxn_f'] = None
 
-            if not template['rxn_f']: continue
+            if rxns: # Load into RDKit 
+                try:
+                    if lowe:
+                        reaction_smarts_synth = '(' + reaction_smarts.split('>')[2] + ')>>(' + reaction_smarts.split('>')[0] + ')'
+                    else:
+                        reaction_smarts_synth = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
+                    rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_synth)
+                    #if rxn_f.Validate() == (0, 0):
+                    if rxn_f.Validate()[1] == 0:
+                        template['rxn_f'] = rxn_f
+                    else:
+                        template['rxn_f'] = None
+                except Exception as e:
+                    MyLogger.print_and_log('Couldnt load forward: {}: {}'.format(reaction_smarts_synth, e), forward_transformer_loc, level = 1)
+                    template['rxn_f'] = None
+
+                if not template['rxn_f']: continue
 
             # Add to list
             self.templates.append(template)
@@ -284,7 +286,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
 
         MyLogger.print_and_log('Wrote templates to {}'.format(os.path.join(gc.retro_template_data, file_name)), forward_transformer_loc)
         
-    def load_from_file(self, file_name):
+    def load_from_file(self, file_name, rxns=True):
         '''
         Read the template database from a previously saved file, of which the path is specified in the general
         configuration

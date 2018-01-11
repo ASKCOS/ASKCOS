@@ -1,4 +1,5 @@
 from __future__ import print_function
+
 import makeit.global_config as gc
 import os
 import cPickle as pickle
@@ -92,7 +93,7 @@ class RetroTransformer(TemplateTransformer):
         self.precursor_prioritizer = precursor
         self.template_prioritizer = template
         
-    def load(self, TEMPLATE_DB=None, chiral=False, lowe=False, refs=False, efgs=False,rxn_ex = False):
+    def load(self, TEMPLATE_DB=None, chiral=False, lowe=False, refs=False, rxns=True, efgs=False, rxn_ex=False):
         '''
         Loads and parses the template database to a useable one
         '''
@@ -164,25 +165,26 @@ class RetroTransformer(TemplateTransformer):
                 template['count'] = document['popularity']
             else:
                 template['count'] = 1
-            # Define reaction in RDKit and validate
-            try:
-                # Force reactants and products to be one molecule (not really, but for bookkeeping)
-                reaction_smarts_retro = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
+            
+            if rxns:  # Define reaction in RDKit and validate
+                try:
+                    # Force reactants and products to be one molecule (not really, but for bookkeeping)
+                    reaction_smarts_retro = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
                 
-                if chiral:
-                    rxn = rdchiralReaction(str(reaction_smarts_retro))
-                    template['rxn'] = rxn
-                else:
-                    rxn = AllChem.ReactionFromSmarts(str(reaction_smarts_retro))
-                    if rxn.Validate()[1] == 0: 
+                    if chiral:
+                        rxn = rdchiralReaction(str(reaction_smarts_retro))
                         template['rxn'] = rxn
                     else:
-                        template['rxn'] = None
+                        rxn = AllChem.ReactionFromSmarts(str(reaction_smarts_retro))
+                        if rxn.Validate()[1] == 0: 
+                            template['rxn'] = rxn
+                        else:
+                            template['rxn'] = None
                 
-            except Exception as e:
-                if gc.DEBUG:
-                    MyLogger.print_and_log('Couldnt load retro: {}: {}'.format(reaction_smarts_retro, e),retro_transformer_loc, level=1)
-                template['rxn'] = None
+                except Exception as e:
+                    if gc.DEBUG:
+                        MyLogger.print_and_log('Couldnt load retro: {}: {}'.format(reaction_smarts_retro, e),retro_transformer_loc, level=1)
+                    template['rxn'] = None
             
             # Add to list
             self.templates.append(template)
@@ -301,7 +303,7 @@ class RetroTransformer(TemplateTransformer):
         MyLogger.print_and_log('Wrote templates to {}'.format(os.path.join(gc.retro_template_data, file_name)), retro_transformer_loc)
 
     
-    def load_from_file(self, file_name, chiral = True):
+    def load_from_file(self, file_name, chiral=True, rxns=True):
         '''
         Read the template database from a previously saved file, of which the path is specified in the general
         configuration
@@ -309,7 +311,7 @@ class RetroTransformer(TemplateTransformer):
         MyLogger.print_and_log('Loading templates from {}'.format(os.path.join(gc.retro_template_data, file_name)), retro_transformer_loc)
         if os.path.isfile(os.path.join(gc.retro_template_data, file_name)):
             with open(os.path.join(gc.retro_template_data, file_name), 'rb') as file:
-                if chiral:
+                if chiral and rxns:
                     pickle_templates = pickle.load(file)
                     self.templates = []
                     for template in pickle_templates:
