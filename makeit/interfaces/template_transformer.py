@@ -12,8 +12,11 @@ class TemplateTransformer(object):
         TEMPLATE_DB: indicate the database you want to use (def. none)
         loc: indicate that local file data should be read instead of online data (def. false)
         '''
+
+        # Dictionary to keep track of ID -> index in self.templates
+        self.id_to_index = {}
         
-        raise NotImplementedError
+        return
     
     def get_prioritizers(self, prioritizers):
         '''
@@ -44,11 +47,22 @@ class TemplateTransformer(object):
         Assumes templates are already sorted'''
         raise NotImplementedError
     
+    def reorder(self):
+        '''Reorder self.templates in descending popularity. Also builds id_tO_index table'''
+        self.num_templates = len(self.templates)
+        self.templates = sorted(self.templates, key=lambda z: z[
+                                'count'], reverse=True)
+        self.id_to_index = {template['_id']: i for i, template in enumerate(self.templates)}
+        return
+
     def lookup_id(self, template_id):
         '''
         Find the reaction smarts for this template_id
         '''
-        raise NotImplementedError
+        
+        if not self.id_to_index: # need to build
+            self.id_to_index = {template['_id']: i for (i, template) in enumerate(self.templates)}
+        return self.templates[self.id_to_index[template_id]]
     
     #Define the methods that should be present in each transformer subclass.
     def load(self, chiral = False, lowe=False, refs=False, efgs=False, queue = None):

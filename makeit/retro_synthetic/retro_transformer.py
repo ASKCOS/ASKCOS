@@ -28,7 +28,7 @@ class RetroTransformer(TemplateTransformer):
     one-step retrosyntheses for a given molecule.
     '''
 
-    def __init__(self, celery = False, mincount=0, mincount_c=-1, TEMPLATE_DB = None, loc = False, done = None):
+    def __init__(self, celery = False, mincount=0, mincount_chiral=-1, TEMPLATE_DB = None, loc = False, done = None):
         '''
         Initialize a transformer.
         TEMPLATE_DB: indicate the database you want to use (def. none)
@@ -36,21 +36,23 @@ class RetroTransformer(TemplateTransformer):
         '''
         self.done = done
         self.mincount = mincount
-        if mincount_c == -1:
-            self.mincount_c = mincount
+        if mincount_chiral == -1:
+            self.mincount_chiral = mincount
         else:
-            self.mincount_c = mincount_c
+            self.mincount_chiral = mincount_chiral
         self.templates = []
         self.celery = celery
-        if not self.celery and not TEMPLATE_DB:
-            MyLogger.print_and_log('Predefined template database is required for the retro transformer. Exiting...', retro_transformer_loc, level=3)
+        #if not self.celery and not TEMPLATE_DB:
+        #    MyLogger.print_and_log('Predefined template database is required for the retro transformer. Exiting...', retro_transformer_loc, level=3)
         
         self.TEMPLATE_DB = TEMPLATE_DB
         self.precursor_prioritizers = {}
         self.template_prioritizers = {}
         self.precursor_prioritizer = None
         self.template_prioritizer = None
-    
+        
+        super(RetroTransformer, self).__init__()
+        
     def get_prioritizers(self, precursor_prioritizer = None, template_prioritizer = None):
         
         if not precursor_prioritizer:
@@ -90,20 +92,24 @@ class RetroTransformer(TemplateTransformer):
         self.precursor_prioritizer = precursor
         self.template_prioritizer = template
         
-    def load(self, chiral=False, lowe=False, refs=False, efgs=False,rxn_ex = False):
+    def load(self, TEMPLATE_DB=None, chiral=False, lowe=False, refs=False, efgs=False,rxn_ex = False):
         '''
         Loads and parses the template database to a useable one
         '''
-        
-        MyLogger.print_and_log('Loading retro-synthetic transformer, including all templates with more than {} hits ({} for chiral reactions)'.format(self.mincount, self.mincount_c), retro_transformer_loc)
+       
+        MyLogger.print_and_log('Loading retro-synthetic transformer, including all templates with more than {} hits ({} for chiral reactions)'.format(self.mincount, self.mincount_chiral), retro_transformer_loc)
         self.chiral = chiral
+
+        # Override previous TEMPLATE_DB?
+        if TEMPLATE_DB is not None:
+            self.TEMPLATE_DB = TEMPLATE_DB
         
         # Save collection TEMPLATE_DB
         if not self.TEMPLATE_DB:
             self.load_databases()
         
         if self.mincount and 'count' in self.TEMPLATE_DB.find_one(): 
-            filter_dict = {'count': { '$gte': min(self.mincount,self.mincount_c)}}
+            filter_dict = {'count': { '$gte': min(self.mincount,self.mincount_chiral)}}
         else: 
             filter_dict = {}
        
@@ -128,7 +134,7 @@ class RetroTransformer(TemplateTransformer):
                     chiral_rxn = True 
                     break
 
-            if chiral_rxn and document['count'] < self.mincount_c:
+            if chiral_rxn and document['count'] < self.mincount_chiral:
                 continue
             if not chiral_rxn and document['count'] < self.mincount:
                 continue
@@ -183,10 +189,9 @@ class RetroTransformer(TemplateTransformer):
 
         self.num_templates = len(self.templates)
         
-        self.templates = sorted(self.templates, key = lambda z: z['count'], reverse = True)        
+        self.reorder()        
         MyLogger.print_and_log('Retro-synthetic transformer has been loaded - using {} templates.'.format(self.num_templates), retro_transformer_loc)
         
-
     def get_outcomes(self, smiles, mincount, prioritizers, start_at = -1, end_at = -1,
                      singleonly = False, stop_if = False):
         '''
@@ -275,33 +280,18 @@ class RetroTransformer(TemplateTransformer):
         return results
     
     
-    def dump_to_file(self, file_name, chiral = False):
+    def dump_to_file(self, file_name, chiral=True):
         '''
         Write the template database to a file, of which the path in specified in the general configuration
         '''
         if not self.templates:
-            self.load(chiral)
+            raise ValueError('RetroTransformer cannot dump_to_file before tempaltes initialized')
         
-        if chiral:
+        if chiral: # cannot pickle pre-loaded rxn
             pickle_templates = []
-            #reconstruct template list, but without chiral rxn object => can't be pickled.
             for template in self.templates:
-                pickle_templates.append({
-                                        'name':                 template['name'],
-                                        'reaction_smarts':      template['reaction_smarts'],
-                                        'incompatible_groups':  template['incompatible_groups'],
-                                        'references':           template['references'],
-                                        'rxn_example':          template['rxn_example'],
-                                        'explicit_H':           template['explicit_H'],
-                                        '_id':                  template['_id'],
-                                        'product_smiles':       template['product_smiles'], 
-                                        'necessary_reagent':    template['necessary_reagent'],       
-                                        'efgs':                 template['efgs'],
-                                        'intra_only':           template['intra_only'],
-                                        'dimer_only':           template['dimer_only'],        
-                                        'chiral':               template['chiral'],
-                                        'count':                template['count'],
-                                        })
+                del template['rxn']
+                pickle_templates.append(template)
         else:
             pickle_templates = self.templates
         file = open(os.path.join(gc.retro_template_data, file_name), "w+")
@@ -311,7 +301,7 @@ class RetroTransformer(TemplateTransformer):
         MyLogger.print_and_log('Wrote templates to {}'.format(os.path.join(gc.retro_template_data, file_name)), retro_transformer_loc)
 
     
-    def load_from_file(self, file_name, chiral = False):
+    def load_from_file(self, file_name, chiral = True):
         '''
         Read the template database from a previously saved file, of which the path is specified in the general
         configuration
@@ -362,7 +352,7 @@ if __name__ == '__main__':
     MyLogger.initialize_logFile()
     db_client = MongoClient(gc.MONGO['path'],gc.MONGO['id'], connect = gc.MONGO['connect'])
     TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL['database']][gc.RETRO_TRANSFORMS_CHIRAL['collection']]
-    t = RetroTransformer(mincount = 100, mincount_c = 50, TEMPLATE_DB=TEMPLATE_DB)
+    t = RetroTransformer(mincount = 100, mincount_chiral = 50, TEMPLATE_DB=TEMPLATE_DB)
     t.load(chiral = True)
     print(t.get_outcomes('C1C(=O)OCC12CC(C)CC2', 100, (gc.heuristic, gc.popularity)).precursors)
     
