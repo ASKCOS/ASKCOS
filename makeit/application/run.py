@@ -102,13 +102,13 @@ class MAKEIT:
                 if len(trees)>2:
                     parallel = True
                     nproc_t = 2
-                    nproc = self.nproc/2
+                    nproc = max(1, self.nproc/2)
                 else:
                     nproc_t = 1
                     nproc = self.nproc
                     parallel = False
             else:
-                nproc_t = self.nproc
+                nproc_t = max(1, self.nproc)
                 nproc = 1
             treeEvaluator = TreeEvaluator(celery = False, context_recommender = self.context_recommender)
             evaluated_trees = treeEvaluator.evaluate_trees(trees, context_recommender = self.context_recommender, context_scoring_method=self.context_prioritization,
