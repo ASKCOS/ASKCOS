@@ -5,8 +5,6 @@ import Queue as VanillaQueue
 import time
 import sys
 from makeit.retro_synthetic.retro_transformer import RetroTransformer
-from makeit.prioritization.precursor_prioritization.heuristic_prioritizer import HeuristicPrioritizer
-from makeit.prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
 from makeit.utilities.buyable.pricer import Pricer
 from makeit.utilities.i_o.logging import MyLogger
 from makeit.utilities.i_o import model_loader
@@ -511,8 +509,6 @@ if __name__ == '__main__':
     
     MyLogger.initialize_logFile()
     from pymongo import MongoClient
-    #prec_prioritizer = HeuristicPrioritizer()
-    #temp_prioritizer = PopularityPrioritizer()
     db_client = MongoClient(gc.MONGO['path'],gc.MONGO['id'], connect = gc.MONGO['connect'])
     TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL['database']][gc.RETRO_TRANSFORMS_CHIRAL['collection']]
     celery = False

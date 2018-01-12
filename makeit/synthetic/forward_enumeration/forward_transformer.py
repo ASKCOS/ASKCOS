@@ -12,8 +12,6 @@ from makeit.synthetic.forward_enumeration.forward_enumeration import ForwardResu
 from pymongo import MongoClient
 from makeit.interfaces.template_transformer import TemplateTransformer
 from makeit.interfaces.forward_enumerator import ForwardEnumerator
-from makeit.prioritization.precursor_prioritization.heuristic_prioritizer import HeuristicPrioritizer
-from makeit.prioritization.precursor_prioritization.scscore import SCScorePrioritizer
 from makeit.prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
 from makeit.prioritization.template_prioritization.relevance_prioritizer import RelevancePrioritizer
 from makeit.prioritization.default_prioritizer import DefaultPrioritizer

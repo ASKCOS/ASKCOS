@@ -14,7 +14,7 @@ from makeit.utilities.i_o.logging import MyLogger
 from makeit.utilities.reactants import clean_reactant_mapping
 from makeit.retro_synthetic.retro_enumeration import *
 from makeit.interfaces.template_transformer import TemplateTransformer
-from makeit.prioritization.precursor_prioritization.heuristic_prioritizer import HeuristicPrioritizer
+from makeit.prioritization.precursor_prioritization.heuristic import HeuristicPrioritizer
 from makeit.prioritization.precursor_prioritization.scscore import SCScorePrioritizer
 from makeit.prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
 from makeit.prioritization.template_prioritization.relevance_prioritizer import RelevancePrioritizer
