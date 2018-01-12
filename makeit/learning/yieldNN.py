@@ -8,7 +8,7 @@ from keras.utils import np_utils
 from keras.datasets import mnist
 from keras import optimizers
 from matplotlib import pyplot as plt
-from utilities.i_o.logging import MyLogger
+from utilities.io.logging import MyLogger
 from utilities.fingerprinting import get_reaction_input_from_smiles, get_condition_input_from_smiles, get_reaction_input_from_instance, get_condition_input_from_instance
 from utilities.strings import string_or_range_to_float
 import rdkit.Chem as Chem

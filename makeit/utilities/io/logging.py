@@ -29,7 +29,7 @@ class MyLogger:
         file = open(MyLogger.logFile, 'a')
         time_elapsed = time.time() - gc.time_zero
 
-        outstr = '{:25s}: [{:.3f}s]\t{}'.format('{}@{}'.format(MyLogger.levels[level], location),
+        outstr = '{:25s}: [{:04.3f}s]\t{}'.format('{}@{}'.format(MyLogger.levels[level], location)[:25],
             time_elapsed, text)
         print(outstr)
         file.write(outstr)

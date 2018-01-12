@@ -9,7 +9,7 @@ import random
 from sklearn.externals import joblib
 import makeit.utilities.strings as strings
 import makeit.utilities.fingerprinting as fp
-from makeit.utilities.i_o.logging import MyLogger
+from makeit.utilities.io.logging import MyLogger
 from makeit.interfaces.context_recommender import ContextRecommender
 contextRecommender_loc = 'contextRecommender'
 
@@ -212,12 +212,12 @@ class NNContextRecommender(ContextRecommender):
                 if not slvt:
                     MyLogger.print_and_log('COULD NOT FIND SOLVENT {}'.format(xrn), contextRecommender_loc)
                     continue
-                smi_or_name = str(slvt['SMILES'])
-                if (not smi_or_name) and self.with_smiles:
+                smior_name = str(slvt['SMILES'])
+                if (not smior_name) and self.with_smiles:
                     continue
-                if not smi_or_name:
-                    smi_or_name = str(slvt['IDE_CN'])
-                    solvent += smi_or_name + '.'
+                if not smior_name:
+                    smior_name = str(slvt['IDE_CN'])
+                    solvent += smior_name + '.'
                     context_info += str(slvt['IDE_CN']) + '(' + str(slvt['SMILES']) + ')' + ','
                     if self.singleSlvt:
                         break
@@ -232,12 +232,12 @@ class NNContextRecommender(ContextRecommender):
                 if not rgt:
                     print('########## COULD NOT FIND REAGENT {} ###########'.format(xrn))
                     continue
-                smi_or_name = str(rgt['SMILES'])
-                if (not smi_or_name) and self.with_smiles:
+                smior_name = str(rgt['SMILES'])
+                if (not smior_name) and self.with_smiles:
                     continue
-                if not smi_or_name:
-                    smi_or_name = str(rgt['IDE_CN'])
-                reagent += smi_or_name + '.'
+                if not smior_name:
+                    smior_name = str(rgt['IDE_CN'])
+                reagent += smior_name + '.'
                 context_info += str(rgt['IDE_CN']) + '(' + str(rgt['SMILES']) + ')' + ','
 
             # Catalysts
@@ -248,12 +248,12 @@ class NNContextRecommender(ContextRecommender):
                 if not cat:
                     print('########## COULD NOT FIND CATALYST {} ###########'.format(xrn))
                     continue
-                smi_or_name = str(cat['SMILES'])
-                if (not smi_or_name) and self.with_smiles:
+                smior_name = str(cat['SMILES'])
+                if (not smior_name) and self.with_smiles:
                     continue
-                if not smi_or_name:
-                    smi_or_name = str(cat['IDE_CN'])
-                catalyst += smi_or_name + '.'
+                if not smior_name:
+                    smior_name = str(cat['IDE_CN'])
+                catalyst += smior_name + '.'
                 context_info += str(cat['IDE_CN']) + '(' + str(cat['SMILES']) + ')' + ','
 
             if solvent and solvent[-1] == '.':

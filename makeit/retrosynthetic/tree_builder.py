@@ -6,8 +6,8 @@ import time
 import sys
 from makeit.retrosynthetic.retro_transformer import RetroTransformer
 from makeit.utilities.buyable.pricer import Pricer
-from makeit.utilities.i_o.logging import MyLogger
-from makeit.utilities.i_o import model_loader
+from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io import model_loader
 from makeit.utilities.formats import chem_dict, rxn_dict
 from celery.result import allow_join_result
 import askcos_site.askcos_celery.treebuilder.tb_worker as tb_worker

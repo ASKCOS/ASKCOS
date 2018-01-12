@@ -3,8 +3,8 @@ from multiprocessing import Process, Manager, Queue
 from evaluator import Evaluator
 import Queue as VanillaQueue
 import time
-from makeit.utilities.i_o.logging import MyLogger
-from makeit.utilities.i_o import model_loader
+from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io import model_loader
 from celery.result import allow_join_result
 from askcos_site.askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
 from askcos_site.askcos_celery.treeevaluator.scoring_coordinator import evaluate

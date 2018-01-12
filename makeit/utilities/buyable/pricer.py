@@ -2,7 +2,7 @@ import makeit.global_config as gc
 import rdkit.Chem as Chem          
 from collections import defaultdict
 from tqdm import tqdm
-from makeit.utilities.i_o.logging import MyLogger
+from makeit.utilities.io.logging import MyLogger
 import cPickle as pickle
 from pymongo import MongoClient
 from multiprocessing import Manager

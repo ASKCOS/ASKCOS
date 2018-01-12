@@ -31,7 +31,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt    # for visualization
 import scipy.stats as ss
 import itertools
-from makeit.utilities.i_o.logging import MyLogger
+from makeit.utilities.io.logging import MyLogger
 forwardPredictionNetwork_loc = 'forwardPredictionNetwork'
 '''
 
