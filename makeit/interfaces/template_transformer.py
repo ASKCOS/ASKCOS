@@ -193,7 +193,7 @@ class TemplateTransformer(object):
                 i, template) in enumerate(self.templates)}
         return self.templates[self.id_to_index[template_id]]
 
-    def load_templates(self, retro, chiral=False, lowe=False, refs=False, efgs=False, rxn_ex=False):
+    def load_templates(self, retro, chiral=False, lowe=False, refs=False, rxns=True, efgs=False, rxn_ex=False):
         # Save collection TEMPLATE_DB
         if not self.TEMPLATE_DB:
             self.load_databases(retro, chiral=chiral)
@@ -264,40 +264,41 @@ class TemplateTransformer(object):
             else:
                 template['count'] = 1
             # Define reaction in RDKit and validate
-            try:
-                # Force reactants and products to be one molecule (not really,
-                # but for bookkeeping)
-                if lowe:
-                    reaction_smarts_one = '(' + reaction_smarts.split(
-                        '>')[2] + ')>>(' + reaction_smarts.split('>')[0] + ')'
-                else:
-                    reaction_smarts_one = '(' + \
-                        reaction_smarts.replace('>>', ')>>(') + ')'
-
-                if retro:
-                    if chiral:
-                        rxn = rdchiralReaction(str(reaction_smarts_one))
-                        template['rxn'] = rxn
+            if rxns:
+                try:
+                    # Force reactants and products to be one molecule (not really,
+                    # but for bookkeeping)
+                    if lowe:
+                        reaction_smarts_one = '(' + reaction_smarts.split(
+                            '>')[2] + ')>>(' + reaction_smarts.split('>')[0] + ')'
                     else:
-                        rxn = AllChem.ReactionFromSmarts(
-                            str(reaction_smarts_one))
-                        if rxn.Validate()[1] == 0:
+                        reaction_smarts_one = '(' + \
+                            reaction_smarts.replace('>>', ')>>(') + ')'
+
+                    if retro:
+                        if chiral:
+                            rxn = rdchiralReaction(str(reaction_smarts_one))
                             template['rxn'] = rxn
                         else:
-                            template['rxn'] = None
-                else:
-                    rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_synth)
-                    # if rxn_f.Validate() == (0, 0):
-                    if rxn_f.Validate()[1] == 0:
-                        template['rxn_f'] = rxn_f
+                            rxn = AllChem.ReactionFromSmarts(
+                                str(reaction_smarts_one))
+                            if rxn.Validate()[1] == 0:
+                                template['rxn'] = rxn
+                            else:
+                                template['rxn'] = None
                     else:
-                        template['rxn_f'] = None
-            except Exception as e:
-                if gc.DEBUG:
-                    MyLogger.print_and_log('Couldnt load : {}: {}'.format(
-                        reaction_smarts_one, e), transformer_loc, level=1)
-                template['rxn'] = None
-                template['rxn_f'] = None
+                        rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_synth)
+                        # if rxn_f.Validate() == (0, 0):
+                        if rxn_f.Validate()[1] == 0:
+                            template['rxn_f'] = rxn_f
+                        else:
+                            template['rxn_f'] = None
+                except Exception as e:
+                    if gc.DEBUG:
+                        MyLogger.print_and_log('Couldnt load : {}: {}'.format(
+                            reaction_smarts_one, e), transformer_loc, level=1)
+                    template['rxn'] = None
+                    template['rxn_f'] = None
 
             # Add to list
             self.templates.append(template)
