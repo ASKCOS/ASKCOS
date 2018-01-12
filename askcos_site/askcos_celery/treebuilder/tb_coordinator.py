@@ -21,7 +21,7 @@ import time
 from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors, reserve_worker_pool, unreserve_worker_pool
 from rdkit import RDLogger
 from makeit.utilities.buyable.pricer import Pricer
-from makeit.retro_synthetic.tree_builder import TreeBuilder
+from makeit.retrosynthetic.tree_builder import TreeBuilder
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
 
