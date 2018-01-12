@@ -173,7 +173,7 @@ def find_synthesis():
     MyLogger.print_and_log('MAKEIT found {} tree(s) that are(is) likely to result in a successful synthesis.'.format(
         len(feasible_trees)), makeit_loc)
 
-    for i, feasible_tree in enumerate(feasible_trees):
+    for i, feasible_tree in enumerate(sorted(feasible_trees, key=lambda x: x['score'], reverse=True)):
         MyLogger.print_and_log('', makeit_loc)
         MyLogger.print_and_log('Feasible tree {}, plausible = {}, overall score = {}'.format(i+1,
                 feasible_tree['plausible'], feasible_tree['score']), makeit_loc)

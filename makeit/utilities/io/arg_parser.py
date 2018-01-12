@@ -14,10 +14,10 @@ def setup_parser():
     max_trees = 5000
     context_recommender = gc.nearest_neighbor
     forward_scoring_method = gc.templatebased
-    tree_scoring_method = gc.product
+    tree_scoring_method = gc.forwardonly
     context_prioritization = gc.probability
     template_prioritization = gc.relevance
-    precursor_prioritization = gc.scscore
+    precursor_prioritization = gc.heuristic
     retro_mincount = 25
     retro_mincount_chiral = 10
     synth_mincount = 25
@@ -29,7 +29,7 @@ def setup_parser():
     min_trees_success = 5
     output_dir = 'output'
     chiral = True
-    nproc = 1
+    nproc = 2
     celery = False
 
     # Set all arguments
