@@ -12,13 +12,13 @@ import numpy as np
 from functools import partial # used for passing args to multiprocessing
 from makeit.utilities.i_o.logging import MyLogger
 from makeit.utilities.reactants import clean_reactant_mapping
-from makeit.retro_synthetic.retro_enumeration import *
+from makeit.retro_synthetic.results import RetroResult, RetroPrecursor
 from makeit.interfaces.template_transformer import TemplateTransformer
-from makeit.prioritization.precursor_prioritization.heuristic import HeuristicPrioritizer
-from makeit.prioritization.precursor_prioritization.scscore import SCScorePrioritizer
-from makeit.prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
-from makeit.prioritization.template_prioritization.relevance_prioritizer import RelevancePrioritizer
-from makeit.prioritization.default_prioritizer import DefaultPrioritizer
+from makeit.prioritization.precursors.heuristic import HeuristicPrecursorPrioritizer
+from makeit.prioritization.precursors.scscore import SCScorePrecursorPrioritizer
+from makeit.prioritization.templates.popularity import PopularityTemplatePrioritizer
+from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
+from makeit.prioritization.default import DefaultPrioritizer
 from rdchiral.main import rdchiralRun
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 retro_transformer_loc = 'retro_transformer'

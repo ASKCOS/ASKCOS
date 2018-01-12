@@ -8,9 +8,9 @@ from makeit.utilities.i_o import model_loader
 from celery.result import allow_join_result
 from askcos_site.askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
 from askcos_site.askcos_celery.treeevaluator.scoring_coordinator import evaluate
-from makeit.prioritization.context_prioritization.probability_prioritization import ProbabilityPrioritizer
-from makeit.prioritization.context_prioritization.rank_prioritization import RankPrioritizer
-from makeit.prioritization.default_prioritizer import DefaultPrioritizer
+from makeit.prioritization.contexts.probability import ProbabilityContextPrioritizer
+from makeit.prioritization.contexts.rank import RankContextPrioritizer
+from makeit.prioritization.default import DefaultPrioritizer
 treeEvaluator_loc = 'tree_evaluator'
 
 class TreeEvaluator():
