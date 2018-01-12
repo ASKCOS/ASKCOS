@@ -5,7 +5,7 @@ import rdkit.Chem.EState as EState
 import rdkit.Chem.rdPartialCharges as rdPartialCharges
 import rdkit.Chem.rdChemReactions as rdRxns
 from makeit.utilities.atoms import atom_dftb
-from makeit.utilities.i_o.logging import MyLogger
+from makeit.utilities.io.logging import MyLogger
 import rdkit.Chem as Chem 
 descriptors_loc = 'descriptors'
 

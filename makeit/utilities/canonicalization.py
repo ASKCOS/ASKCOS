@@ -1,6 +1,5 @@
 import rdkit.Chem as Chem
 import rdkit.Chem.AllChem as AllChem
-from global_config import USE_STEREOCHEMISTRY
 
 class SmilesFixer():
 	'''
@@ -56,7 +55,7 @@ class SmilesFixer():
 		if not mol: 
 			return old_smiles 
 
-		new_smiles = Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY)
+		new_smiles = Chem.MolToSmiles(mol, isomericSmiles = True)
 		old_smiles = ''
 		while new_smiles != old_smiles:
 			old_smiles = new_smiles
@@ -67,6 +66,6 @@ class SmilesFixer():
 				else:
 					mol = outcomes[0][0]
 					Chem.SanitizeMol(mol)
-					new_smiles = Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY)
+					new_smiles = Chem.MolToSmiles(mol, isomericSmiles = True)
 
 		return new_smiles

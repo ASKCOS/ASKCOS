@@ -6,6 +6,7 @@ from prioritization.template_prioritization.popularity_prioritizer import Popula
 from prioritization.template_prioritization.relevance_prioritizer import RelevancePrioritizer
 from prioritization.default_prioritizer import DefaultPrioritizer
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
+from pymongo import MongoClient
 from utilities.i_o.logging import MyLogger 
 transformer_loc = 'template_transformer'
 
@@ -21,8 +22,11 @@ class TemplateTransformer(object):
         TEMPLATE_DB: indicate the database you want to use (def. none)
         loc: indicate that local file data should be read instead of online data (def. false)
         '''
+
+        # Dictionary to keep track of ID -> index in self.templates
+        self.id_to_index = {}
         
-        raise NotImplementedError
+        return
     
     def get_prioritizers(self, kwargs = {}):
         '''
@@ -158,7 +162,23 @@ class TemplateTransformer(object):
 
     def load(self, chiral = False, lowe=False, refs=False, efgs=False,rxn_ex = False):
         raise NotImplementedError
-    
+
+    def reorder(self):
+        '''Reorder self.templates in descending popularity. Also builds id_tO_index table'''
+        self.num_templates = len(self.templates)
+        self.templates = sorted(self.templates, key=lambda z: z[
+                                'count'], reverse=True)
+        self.id_to_index = {template['_id']: i for i, template in enumerate(self.templates)}
+        return
+
+    def lookup_id(self, template_id):
+        '''
+        Find the reaction smarts for this template_id
+        '''
+        
+        if not self.id_to_index: # need to build
+            self.id_to_index = {template['_id']: i for (i, template) in enumerate(self.templates)}
+        return self.templates[self.id_to_index[template_id]]
     
     def load_templates(self, retro, chiral = False, lowe=False, refs=False, efgs=False, rxn_ex = False):
         # Save collection TEMPLATE_DB
@@ -167,7 +187,7 @@ class TemplateTransformer(object):
         self.chiral = chiral
         if self.mincount and 'count' in self.TEMPLATE_DB.find_one(): 
             if retro:
-                filter_dict = {'count': { '$gte': min(self.mincount,self.mincount_c)}}
+                filter_dict = {'count': { '$gte': min(self.mincount,self.mincount_chiral)}}
             else:
                 filter_dict = {'count': { '$gte': self.mincount}}
         else: 
@@ -195,7 +215,7 @@ class TemplateTransformer(object):
                         chiral_rxn = True 
                         break
     
-                if chiral_rxn and document['count'] < self.mincount_c:
+                if chiral_rxn and document['count'] < self.mincount_chiral:
                     continue
                 if not chiral_rxn and document['count'] < self.mincount:
                     continue
@@ -260,10 +280,8 @@ class TemplateTransformer(object):
             
             # Add to list
             self.templates.append(template)
-
-        self.num_templates = len(self.templates)
         
-        self.templates = sorted(self.templates, key = lambda z: z['count'], reverse = True)
+        self.reorder()
     
     def get_outcomes(self, smiles, mincount, prioritizers, start_at = -1, end_at = -1, singleonly = False, stop_if = False, chiral=False):
         '''
@@ -286,8 +304,6 @@ class TemplateTransformer(object):
                 MyLogger.print_and_log("Using {} as template database.".format(gc.RETRO_TRANSFORMS['collection']), retro_transformer_loc)
         else:
             self.TEMPLATE_DB = db_client[gc.SYNTH_TRANSFORMS['database']][gc.SYNTH_TRANSFORMS['collection']]
-    
-        raise NotImplementedError
     
     def apply_one_template(self, mol, smiles, template, singleonly = False, stop_if = False, chiral = False):
         '''

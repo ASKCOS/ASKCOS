@@ -17,7 +17,7 @@ product = 'Product'
 all = 'All'
 # for precursors
 heuristic = 'Heuristic'
-scs = 'SCS'
+scscore = 'SCScore'
 # for templates
 popularity = 'Popularity'
 relevance = 'Relevance'
@@ -39,20 +39,20 @@ templatebased = 'Template_Based'
 
 #Set which modules should be used:
 context_module = nearest_neighbor
-forward_enumeration = template
+synth_enumeration = template
 retro_enumeration = template
 prioritizaton = heuristic
 forward_scoring = network
 
 #Use highest protocol in pickle
 protocol = -1
-data_path = os.path.join(os.getcwd(),'data')
+data_path = os.path.join(os.path.dirname(__file__),'data')
 
 fingerprint_bits = 256
 reaction_fingerprint_bits = 2048
 
 pricer_data = os.path.join(data_path,'buyable')
-retro_template_data = os.path.join(data_path,'retro_synthetic')
+retro_template_data = os.path.join(data_path,'retrosynthetic')
 synth_template_data = os.path.join(data_path,'synthetic')
 prioritization_data = os.path.join(data_path, 'prioritization')
 
@@ -116,7 +116,7 @@ SOLVENTS = {
     }
 
 PREDICTOR = {
-    'trained_model_path': os.path.join(os.getcwd(),'data/forward_scoring'),
+    'trained_model_path': os.path.join(os.path.dirname(__file__), 'data', 'forward_scoring'),
     'info': '01-23-17, model trained on 80k Reaxys examples, validated on 10k, tested on 10k. Nh1_200, Nh2_200, Nh3_200, l2_0, Nc_5000, enh_weight_0d1, context_weight_50, opt_adadelta, batch_5, moreFeatures'
 }
 
@@ -126,10 +126,10 @@ Relevance_Prioritization = {
     'min_chiral':10,
     'min':25
     }
-SCS_Prioritiaztion = {
-    'trained_model_path_1024bool': os.path.join(prioritization_data, 'scs_model_1024bool.pickle'),
-    'trained_model_path_2048bool': os.path.join(prioritization_data, 'scs_model_2048bool.pickle'),
-    'trained_model_path_1024uint8': os.path.join(prioritization_data, 'scs_model_1024uint8.pickle')}
+SCScore_Prioritiaztion = {
+    'trained_model_path_1024bool': os.path.join(prioritization_data, 'scscore', 'model_1024bool.pickle'),
+    'trained_model_path_2048bool': os.path.join(prioritization_data, 'scscore', 'model_2048bool.pickle'),
+    'trained_model_path_1024uint8': os.path.join(prioritization_data, 'scscore', 'model_1024uint8.pickle')}
 
 CONTEXT_REC = {
     'info_path': os.path.join(data_path,'context', 'RxnID_infoFull.txt'),

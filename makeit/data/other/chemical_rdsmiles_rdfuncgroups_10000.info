@@ -1,9 +1,0 @@
-chemical_rdsmiles_rdfuncgroups_10000.json generated at UTC 2016-02-08 16:36:00.561656
-
-File details
-------------
-Found 10000 random chemicals from database satisfying the following criteria:
-- could be parsed by RDKit using SMILES
-
-Data list consists of entries:
-  str(SMILES), list(FunctionalGroup FP)
