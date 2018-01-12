@@ -1,5 +1,7 @@
 from __future__ import print_function
 import makeit.global_config as gc
+import rdkit.Chem as Chem
+from rdkit.Chem import AllChem
 from makeit.prioritization.precursors.heuristic import HeuristicPrecursorPrioritizer
 from makeit.prioritization.precursors.scscore import SCScorePrecursorPrioritizer
 from makeit.prioritization.templates.popularity import PopularityTemplatePrioritizer
@@ -286,7 +288,7 @@ class TemplateTransformer(object):
                             else:
                                 template['rxn'] = None
                     else:
-                        rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_synth)
+                        rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_one)
                         # if rxn_f.Validate() == (0, 0):
                         if rxn_f.Validate()[1] == 0:
                             template['rxn_f'] = rxn_f
