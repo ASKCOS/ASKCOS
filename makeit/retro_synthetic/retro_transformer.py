@@ -15,7 +15,7 @@ from makeit.utilities.reactants import clean_reactant_mapping
 from makeit.retro_synthetic.retro_enumeration import *
 from makeit.interfaces.template_transformer import TemplateTransformer
 from makeit.prioritization.precursor_prioritization.heuristic_prioritizer import HeuristicPrioritizer
-from makeit.prioritization.precursor_prioritization.scs_prioritizer import SCSPrioritizer
+from makeit.prioritization.precursor_prioritization.scscore import SCScorePrioritizer
 from makeit.prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
 from makeit.prioritization.template_prioritization.relevance_prioritizer import RelevancePrioritizer
 from makeit.prioritization.default_prioritizer import DefaultPrioritizer
@@ -63,8 +63,8 @@ class RetroTransformer(TemplateTransformer):
         else:
             if precursor_prioritizer == gc.heuristic:
                 precursor = HeuristicPrioritizer()
-            elif precursor_prioritizer == gc.scs:
-                precursor = SCSPrioritizer()
+            elif precursor_prioritizer == gc.scscore:
+                precursor = SCScorePrioritizer()
             elif precursor_prioritizer == gc.natural:
                 precursor = DefaultPrioritizer()
             else:

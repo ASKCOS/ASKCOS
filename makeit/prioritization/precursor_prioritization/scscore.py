@@ -4,16 +4,20 @@ import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import numpy as np
 from makeit.utilities.i_o.logging import MyLogger
-import math, sys, random, os
+import math
+import sys
+import random
+import os
 import time
-import os 
+import os
 import cPickle as pickle
 from numpy import inf
-scs_prioritizer_loc = 'scs_prioritizer'
+scscore_prioritizer_loc = 'scscoreprioritizer'
 
-class SCSPrioritizer(Prioritizer):
+
+class SCScorePrioritizer(Prioritizer):
     '''
-    This is a standalone, importable SCScorer model. It does not have tensorflow as a
+    This is a standalone, importable SCScorecorer model. It does not have tensorflow as a
     dependency and is a more attractive option for deployment. The calculations are 
     fast enough that there is no real reason to use GPUs (via tf) instead of CPUs (via np)
     '''
@@ -24,32 +28,35 @@ class SCSPrioritizer(Prioritizer):
         self.score_scale = score_scale
         self._restored = False
 
-    def load_model(self, FP_len=1024, model_tag = '1024bool'):
-        self.FP_len = FP_len;
+    def load_model(self, FP_len=1024, model_tag='1024bool'):
+        self.FP_len = FP_len
         if model_tag != '1024bool' and model_tag != '1024uint8' and model_tag != '2048bool':
-            MyLogger.print_and_log('Non-existent SCS model requested: {}. Using "1024bool" model'.format(model_tag), scs_prioritizer_loc, level=2)
+            MyLogger.print_and_log(
+                'Non-existent SCScore model requested: {}. Using "1024bool" model'.format(model_tag), scscore_prioritizer_loc, level=2)
             model_tag = '1024bool'
         filename = 'trained_model_path_'+model_tag
-        with open(gc.SCS_Prioritiaztion[filename], 'rb') as fid:
+        with open(gc.SCScore_Prioritiaztion[filename], 'rb') as fid:
             self.vars = pickle.load(fid)
-        
-        MyLogger.print_and_log('Loaded synthetic complexity score prioritization model from {}'.format(gc.SCS_Prioritiaztion[filename]), scs_prioritizer_loc)
 
-        if 'uint8' in gc.SCS_Prioritiaztion[filename]:
+        MyLogger.print_and_log('Loaded synthetic complexity score prioritization model from {}'.format(
+            gc.SCScore_Prioritiaztion[filename]), scscore_prioritizer_loc)
+
+        if 'uint8' in gc.SCScore_Prioritiaztion[filename]:
             def mol_to_fp(mol):
                 if mol is None:
                     return np.array((self.FP_len,), dtype=np.uint8)
-                fp = AllChem.GetMorganFingerprint(mol, self.FP_rad, useChirality=True) # uitnsparsevect
+                fp = AllChem.GetMorganFingerprint(
+                    mol, self.FP_rad, useChirality=True)  # uitnsparsevect
                 fp_folded = np.zeros((self.FP_len,), dtype=np.uint8)
                 for k, v in fp.GetNonzeroElements().iteritems():
-                    fp_folded[k % self.FP_len] += v 
+                    fp_folded[k % self.FP_len] += v
                 return np.array(fp_folded)
         else:
             def mol_to_fp(mol):
                 if mol is None:
                     return np.zeros((self.FP_len,), dtype=np.float32)
-                return np.array(AllChem.GetMorganFingerprintAsBitVect(mol, self.FP_rad, nBits=self.FP_len, 
-                    useChirality=True), dtype=np.bool)
+                return np.array(AllChem.GetMorganFingerprintAsBitVect(mol, self.FP_rad, nBits=self.FP_len,
+                                                                      useChirality=True), dtype=np.bool)
         self.mol_to_fp = mol_to_fp
 
         self._restored = True
@@ -65,11 +72,11 @@ class SCSPrioritizer(Prioritizer):
         # Each pair of vars is a weight and bias term
         for i in range(0, len(self.vars), 2):
             last_layer = (i == len(self.vars)-2)
-            W = self.vars[i] 
+            W = self.vars[i]
             b = self.vars[i+1]
             x = np.matmul(x, W) + b
             if not last_layer:
-                x = x * (x > 0) # ReLU
+                x = x * (x > 0)  # ReLU
         x = 1 + (self.score_scale - 1) * sigmoid(x)
         return x
 
@@ -83,15 +90,15 @@ class SCSPrioritizer(Prioritizer):
             return -self.get_score_from_smiles(retroProduct)
         if not retroProduct:
             return -inf
-        
+
     def get_score(self, list_of_scores, mean=False, max=True, geometric=False):
         if mean:
             return np.mean(list_of_scores)
         elif geometric:
-            return np.power(np.prod(list_of_scores),1.0/len(list_of_scores))
+            return np.power(np.prod(list_of_scores), 1.0/len(list_of_scores))
         else:
             return np.max(list_of_scores)
-        
+
     def get_score_from_smiles(self, smiles):
         fp = np.array((self.smi_to_fp(smiles)), dtype=np.float32)
         if sum(fp) == 0:
@@ -100,26 +107,27 @@ class SCSPrioritizer(Prioritizer):
             # Run
             cur_score = self.apply(fp)
         return cur_score
-    
+
+
 def sigmoid(x):
-      return 1 / (1 + math.exp(-x))
-  
+    return 1 / (1 + math.exp(-x))
+
 if __name__ == '__main__':
-    model = SCScorer()    
+    model = SCScorer()
     model.load_model(model_tag='1024bool')
     smis = ['CCCOCCC', 'CCCNc1ccccc1']
     for smi in smis:
         sco = model.get_priority(smi)
         print('{} <--- {}'.format(sco, smi))
 
-    model = SCScorer()    
+    model = SCScorer()
     model.load_model(model_tag='2048bool', FP_len=2048)
     smis = ['CCCOCCC', 'CCCNc1ccccc1']
     for smi in smis:
         sco = model.get_priority(smi)
         print('{} <--- {}'.format(sco, smi))
 
-    model = SCScorer()    
+    model = SCScorer()
     model.load_model(model_tag='1024uint8')
     smis = ['CCCOCCC', 'CCCNc1ccccc1']
     for smi in smis:

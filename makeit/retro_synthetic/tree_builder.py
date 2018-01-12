@@ -521,5 +521,5 @@ if __name__ == '__main__':
     treeBuilder = TreeBuilder(celery = celery, mincount = 25, mincount_c=10)
     #treeBuilder.build_tree('c1ccccc1C(=O)OCCN')
     print treeBuilder.get_buyable_paths('CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3', max_depth = 2, template_prioritization=gc.relevance, 
-                                        precursor_prioritization = gc.scs, nproc = 16, expansion_time=300, max_trees=10, max_ppg = 2)
+                                        precursor_prioritization = gc.scscore, nproc = 16, expansion_time=300, max_trees=10, max_ppg = 2)
     

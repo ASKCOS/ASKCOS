@@ -16,7 +16,7 @@ def setup_parser():
     tree_scoring_method = gc.product
     context_prioritization = gc.probability
     template_prioritization = gc.relevance
-    precursor_prioritization = gc.scs
+    precursor_prioritization = gc.scscore
     retro_mincount = 25
     retro_mincount_c = 10
     synth_mincount = 50

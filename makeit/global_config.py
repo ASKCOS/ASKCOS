@@ -17,7 +17,7 @@ product = 'Product'
 all = 'All'
 # for precursors
 heuristic = 'Heuristic'
-scs = 'SCS'
+scsscore = 'SCScore'
 # for templates
 popularity = 'Popularity'
 relevance = 'Relevance'
@@ -126,10 +126,10 @@ Relevance_Prioritization = {
     'min_chiral':10,
     'min':25
     }
-SCS_Prioritiaztion = {
-    'trained_model_path_1024bool': os.path.join(prioritization_data, 'scs_model_1024bool.pickle'),
-    'trained_model_path_2048bool': os.path.join(prioritization_data, 'scs_model_2048bool.pickle'),
-    'trained_model_path_1024uint8': os.path.join(prioritization_data, 'scs_model_1024uint8.pickle')}
+SCScore_Prioritiaztion = {
+    'trained_model_path_1024bool': os.path.join(prioritization_data, 'scscore', 'model_1024bool.pickle'),
+    'trained_model_path_2048bool': os.path.join(prioritization_data, 'scscore', 'model_2048bool.pickle'),
+    'trained_model_path_1024uint8': os.path.join(prioritization_data, 'scscore', 'model_1024uint8.pickle')}
 
 CONTEXT_REC = {
     'info_path': os.path.join(data_path,'context', 'RxnID_infoFull.txt'),
