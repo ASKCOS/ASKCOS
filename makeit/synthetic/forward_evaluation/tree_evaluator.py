@@ -197,6 +197,7 @@ class TreeEvaluator():
                 else:
                     if necessary_reagent:
                         contexts = self.get_contexts(reaction_smiles, 1)
+                        reacants.extend(contexts[0][2].split('.')) # add reagents
                     else:
                         contexts = self.get_contexts(reaction_smiles, n)
                     evaluation = self.evaluate_reaction(
@@ -300,7 +301,7 @@ class TreeEvaluator():
     ###############################################################
 
 if __name__ == '__main__':
-    from synthetic.context.nn_context_recommender import NNContextRecommender
+    from synthetic.context.nearestneighbor import NNContextRecommender
     MyLogger.initialize_logFile()
 
     ev = TreeEvaluator(context_recommender=gc.nearest_neighbor, celery=False)
