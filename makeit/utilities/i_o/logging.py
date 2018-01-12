@@ -2,53 +2,38 @@ import os
 import time
 import makeit.global_config as gc
 
+
 class MyLogger:
     '''
-    Create logger. Four different levels of information output. A level 3 ("FATAL") log will exit the program.
+    Create logger. Four different levels of information output. A level 3 ("FATAL") 
+    log will exit the program.
     '''
-    logFile = os.path.join(os.getcwd(),'log.txt')
+    logFile = os.path.join(os.path.dirname(
+        os.path.dirname(os.path.dirname(__file__))), 'log.txt')
     levels = {
-        0:'INFO',
-        1:'WARNING',
-        2:'ERROR',
-        3:'FATAL'
+        0: 'INFO',
+        1: 'WARN',
+        2: 'ERROR',
+        3: 'FATAL'
     }
-    
+
     @staticmethod
-    def initialize_logFile(ROOT = os.getcwd(), name = ''):
+    def initialize_logFile(ROOT=os.path.dirname(os.path.dirname(os.path.dirname(__file__))), name=''):
         MyLogger.logFile = os.path.join(ROOT, '{}_log.txt'.format(name))
         if os.path.isfile(MyLogger.logFile):
-           os.remove(MyLogger.logFile)
-        gc.time_zero = time.time() 
-    
+            os.remove(MyLogger.logFile)
+        gc.time_zero = time.time()
+
     @staticmethod
-    def print_and_log(text,location,level=0):
-        file = open(MyLogger.logFile,'a')
-        time_elapsed = round((time.time() - gc.time_zero)*1000)/1000
-        length = len(str(time_elapsed))
-        pos = length
-        max = 5
-        
-        while pos < 5:
-            time_elapsed = str(time_elapsed)+'0'
-            pos+=1
-            
-        time_pos = 20
-        spaces = time_pos - len(location)
-        pos = 0
-        space = ''
-        
-        while pos < spaces:
-            space+=' '
-            pos+=1
-            
-        if spaces <= 0:
-            location = location[0:len(location)+spaces-4]+'...'
-            space = ' '
-            
-        print('{}@{}:{}[{}s]\t{}'.format(MyLogger.levels[level],location,space, time_elapsed, text))
-        file.write('{}@{}:{}[{}s]\t{}\n'.format(MyLogger.levels[level],location,space, time_elapsed, text))
-        
+    def print_and_log(text, location, level=0):
+        file = open(MyLogger.logFile, 'a')
+        time_elapsed = time.time() - gc.time_zero
+
+        outstr = '{:5s}@{:20s}:{}[{:.3f}s]\t{}'.format(
+            MyLogger.levels[level], location, space, time_elapsed, text)
+        print(outstr)
+        file.write(outstr)
+        file.write('\n')
+
         if level == 3:
             quit()
-
