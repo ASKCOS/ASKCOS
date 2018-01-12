@@ -4,7 +4,7 @@ from multiprocessing import Process, Manager, Queue
 import Queue as VanillaQueue
 import time
 import sys
-from makeit.retrosynthetic.retro_transformer import RetroTransformer
+from makeit.retrosynthetic.transformer import RetroTransformer
 from makeit.utilities.buyable.pricer import Pricer
 from makeit.utilities.io.logging import MyLogger
 from makeit.utilities.io import model_loader
