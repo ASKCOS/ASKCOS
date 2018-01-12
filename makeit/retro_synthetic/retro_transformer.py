@@ -49,45 +49,6 @@ class RetroTransformer(TemplateTransformer):
         self.template_prioritizers = {}
         self.precursor_prioritizer = None
         self.template_prioritizer = None
-    
-    def get_prioritizers(self, precursor_prioritizer = None, template_prioritizer = None):
-        
-        if not precursor_prioritizer:
-            MyLogger.print_and_log('Cannot run the Retro-Transformer without a precursor prioritization method. Exiting...', retro_transformer_loc, level = 3)
-        if precursor_prioritizer in self.precursor_prioritizers:
-            precursor = self.precursor_prioritizers[precursor_prioritizer]
-        else:
-            if precursor_prioritizer == gc.heuristic:
-                precursor = HeuristicPrioritizer()
-            elif precursor_prioritizer == gc.scs:
-                precursor = SCSPrioritizer()
-            elif precursor_prioritizer == gc.natural:
-                precursor = DefaultPrioritizer()
-            else:
-                precursor = DefaultPrioritizer()
-                MyLogger.print_and_log('Prioritization method not recognized. Using natural prioritization.', retro_transformer_loc, level = 1)
-                
-            precursor.load_model()
-            self.precursor_prioritizers[precursor_prioritizer] = precursor
-        
-        if not template_prioritizer:
-            MyLogger.print_and_log('Cannot run the Retro-Transformer without a template prioritization method. Exiting...', retro_transformer_loc, level = 3)
-        if template_prioritizer in self.template_prioritizers:
-            template = self.template_prioritizers[template_prioritizer]
-        else:
-            if template_prioritizer == gc.popularity:
-                template = PopularityPrioritizer()
-            elif template_prioritizer == gc.relevance:
-                template = RelevancePrioritizer()
-            else:
-                template = PopularityPrioritizer()
-                MyLogger.print_and_log('Prioritization method not recognized. Using literature popularity prioritization.', retro_transformer_loc, level = 1)
-                
-            template.load_model()
-            self.template_prioritizers[template_prioritizer] = template
-    
-        self.precursor_prioritizer = precursor
-        self.template_prioritizer = template
         
     def load(self, chiral=False, lowe=False, refs=False, efgs=False,rxn_ex = False):
         '''
@@ -95,94 +56,9 @@ class RetroTransformer(TemplateTransformer):
         '''
         
         MyLogger.print_and_log('Loading retro-synthetic transformer, including all templates with more than {} hits ({} for chiral reactions)'.format(self.mincount, self.mincount_c), retro_transformer_loc)
-        self.chiral = chiral
         
-        # Save collection TEMPLATE_DB
-        if not self.TEMPLATE_DB:
-            self.load_databases()
+        self.load_templates(True, chiral=chiral, lowe=lowe, refs=refs, efgs=efgs,rxn_ex = rxn_ex)
         
-        if self.mincount and 'count' in self.TEMPLATE_DB.find_one(): 
-            filter_dict = {'count': { '$gte': min(self.mincount,self.mincount_c)}}
-        else: 
-            filter_dict = {}
-       
-        # Look for all templates in collection
-        to_retrieve = ['_id', 'reaction_smarts', 'necessary_reagent', 'count', 'intra_only','dimer_only']
-        if refs:
-            to_retrieve.append('references')
-        if efgs:
-            to_retrieve.append('efgs')
-        if rxn_ex:
-            to_retrieve.append('rxn_example')
-        for document in self.TEMPLATE_DB.find(filter_dict, to_retrieve):
-            # Skip if no reaction SMARTS
-            if 'reaction_smarts' not in document: continue
-            reaction_smarts = str(document['reaction_smarts'])
-            if not reaction_smarts: continue
-            
-            #different thresholds for chiral and non chiral reactions
-            chiral_rxn = False
-            for c in reaction_smarts:
-                if c in ('@', '/', '\\'):
-                    chiral_rxn = True 
-                    break
-
-            if chiral_rxn and document['count'] < self.mincount_c:
-                continue
-            if not chiral_rxn and document['count'] < self.mincount:
-                continue
-            
-            
-            # Define dictionary
-            template = {
-                'name':                 document['name'] if 'name' in document else '',
-                'reaction_smarts':      reaction_smarts,
-                'incompatible_groups':  document['incompatible_groups'] if 'incompatible_groups' in document else [],
-                'references':           document['references'] if 'references' in document else [],
-                'rxn_example':          document['rxn_example'] if 'rxn_example' in document else '',
-                'explicit_H':           document['explicit_H'] if 'explicit_H' in document else False,
-                '_id':                  document['_id'] if '_id' in document else -1,
-                'product_smiles':       document['product_smiles'] if 'product_smiles' in document else [], 
-                'necessary_reagent':    document['necessary_reagent'] if 'necessary_reagent' in document else '',       
-                'efgs':                 document['efgs'] if 'efgs' in document else None,
-                'intra_only':           document['intra_only'] if 'intra_only' in document else False,
-                'dimer_only':           document['dimer_only'] if 'dimer_only' in document else False,        
-                'chiral':               chiral_rxn
-            }
-
-            # Frequency/popularity score
-            if 'count' in document: 
-                template['count'] = document['count']
-            elif 'popularity' in document:
-                template['count'] = document['popularity']
-            else:
-                template['count'] = 1
-            # Define reaction in RDKit and validate
-            try:
-                # Force reactants and products to be one molecule (not really, but for bookkeeping)
-                reaction_smarts_retro = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
-                
-                if chiral:
-                    rxn = rdchiralReaction(str(reaction_smarts_retro))
-                    template['rxn'] = rxn
-                else:
-                    rxn = AllChem.ReactionFromSmarts(str(reaction_smarts_retro))
-                    if rxn.Validate()[1] == 0: 
-                        template['rxn'] = rxn
-                    else:
-                        template['rxn'] = None
-                
-            except Exception as e:
-                if gc.DEBUG:
-                    MyLogger.print_and_log('Couldnt load retro: {}: {}'.format(reaction_smarts_retro, e),retro_transformer_loc, level=1)
-                template['rxn'] = None
-            
-            # Add to list
-            self.templates.append(template)
-
-        self.num_templates = len(self.templates)
-        
-        self.templates = sorted(self.templates, key = lambda z: z['count'], reverse = True)        
         MyLogger.print_and_log('Retro-synthetic transformer has been loaded - using {} templates.'.format(self.num_templates), retro_transformer_loc)
         
 
@@ -198,7 +74,8 @@ class RetroTransformer(TemplateTransformer):
         if not (template_prioritizer and precursor_prioritizer):
             MyLogger.print_and_log('Template prioritizer and/or precursor prioritizer are missing. Exiting...', retro_transformer_loc, level = 3)
         self.mincount = mincount
-        self.get_prioritizers(precursor_prioritizer, template_prioritizer)
+        self.get_precursor_prioritizers(precursor_prioritizer)
+        self.get_template_prioritizers(template_prioritizer)
         # Define mol to operate on
         mol = Chem.MolFromSmiles(smiles)
         smiles = Chem.MolToSmiles(mol, isomericSmiles = USE_STEREOCHEMISTRY) # to canonicalize
@@ -224,9 +101,7 @@ class RetroTransformer(TemplateTransformer):
                 outcomes = rdchiralRun(template['rxn'], react_mol)
             else:
                 outcomes = template['rxn'].RunReactants([react_mol])
-            
         except Exception as e:
-            #MyLogger.print_and_log('{}'.format(e), retro_transformer_loc, level = 1)
             #print(template['reaction_smarts'])
             return []
         for j, outcome in enumerate(outcomes):
@@ -273,68 +148,6 @@ class RetroTransformer(TemplateTransformer):
             return False
         return results
     
-    
-    def dump_to_file(self, file_name, chiral = False):
-        '''
-        Write the template database to a file, of which the path in specified in the general configuration
-        '''
-        if not self.templates:
-            self.load(chiral)
-        
-        if chiral:
-            pickle_templates = []
-            #reconstruct template list, but without chiral rxn object => can't be pickled.
-            for template in self.templates:
-                pickle_templates.append({
-                                        'name':                 template['name'],
-                                        'reaction_smarts':      template['reaction_smarts'],
-                                        'incompatible_groups':  template['incompatible_groups'],
-                                        'references':           template['references'],
-                                        'rxn_example':          template['rxn_example'],
-                                        'explicit_H':           template['explicit_H'],
-                                        '_id':                  template['_id'],
-                                        'product_smiles':       template['product_smiles'], 
-                                        'necessary_reagent':    template['necessary_reagent'],       
-                                        'efgs':                 template['efgs'],
-                                        'intra_only':           template['intra_only'],
-                                        'dimer_only':           template['dimer_only'],        
-                                        'chiral':               template['chiral'],
-                                        'count':                template['count'],
-                                        })
-        else:
-            pickle_templates = self.templates
-        file = open(os.path.join(gc.retro_template_data, file_name), "w+")
-        
-        pickle.dump(pickle_templates, file, gc.protocol)
-        
-        MyLogger.print_and_log('Wrote templates to {}'.format(os.path.join(gc.retro_template_data, file_name)), retro_transformer_loc)
-
-    
-    def load_from_file(self, file_name, chiral = False):
-        '''
-        Read the template database from a previously saved file, of which the path is specified in the general
-        configuration
-        '''
-        MyLogger.print_and_log('Loading templates from {}'.format(os.path.join(gc.retro_template_data, file_name)), retro_transformer_loc)
-        if os.path.isfile(os.path.join(gc.retro_template_data, file_name)):
-            with open(os.path.join(gc.retro_template_data, file_name), 'rb') as file:
-                if chiral:
-                    pickle_templates = pickle.load(file)
-                    self.templates = []
-                    for template in pickle_templates:
-                        try:
-                            template['rxn'] = rdchiralReaction(str('(' + template['reaction_smarts'].replace('>>', ')>>(') + ')'))
-                        except Exception as e:
-                            template['rxn'] = None
-                        self.templates.append(template)
-                else:
-                    self.templates = pickle.load(file)
-        else:
-            MyLogger.print_and_log("No file to read data from, using online database instead.", retro_transformer_loc, level = 1)
-            self.load(chiral=chiral)
-        self.num_templates = len(self.templates)
-        MyLogger.print_and_log('Loaded templates. Using {} templates'.format(self.num_templates), retro_transformer_loc)
-
     def top_templates(self, target):
         '''
         Generator to return only top templates. 
@@ -346,17 +159,7 @@ class RetroTransformer(TemplateTransformer):
                 pass
             else:
                 yield template
-    
-    def load_databases(self):
         
-        db_client = MongoClient(gc.MONGO['path'],gc.MONGO['id'], connect = gc.MONGO['connect'])
-        if self.chiral:
-            self.TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL['database']][gc.RETRO_TRANSFORMS_CHIRAL['collection']]
-            MyLogger.print_and_log("Using {} as template database.".format(gc.RETRO_TRANSFORMS_CHIRAL['collection']), retro_transformer_loc)
-        else:
-            self.TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS['database']][gc.RETRO_TRANSFORMS['collection']]
-            MyLogger.print_and_log("Using {} as template database.".format(gc.RETRO_TRANSFORMS['collection']), retro_transformer_loc)
-            
 if __name__ == '__main__':
     MyLogger.initialize_logFile()
     db_client = MongoClient(gc.MONGO['path'],gc.MONGO['id'], connect = gc.MONGO['connect'])

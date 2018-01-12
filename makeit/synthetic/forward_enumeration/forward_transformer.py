@@ -45,34 +45,13 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
     
     def template_count(self):
         return len(self.templates)
-    
-    def get_prioritizers(self, template_prioritizer):
-        if not template_prioritizer:
-            MyLogger.print_and_log('Cannot run the synthetic transformer without a template prioritization method. Exiting...', forward_transformer_loc, level = 3)
-        if template_prioritizer in self.template_prioritizers:
-            template = self.template_prioritizers[template_prioritizer]
-        else:
-            if template_prioritizer == gc.popularity:
-                template = PopularityPrioritizer()
-            elif template_prioritizer == gc.relevance:
-                template = RelevancePrioritizer(retro = False)
-            elif template_prioritizer == gc.natural:
-                template = PopularityPrioritizer()
-            else:
-                template = DefaultPrioritizer()
-                MyLogger.print_and_log('Prioritization method not recognized. Using literature popularity prioritization.', forward_transformer_loc, level = 1)
-                
-            template.load_model()
-            self.template_prioritizers[template_prioritizer] = template
-    
-        self.template_prioritizer = template
-        
+
     def get_outcomes(self, smiles, mincount, template_prioritization, start_at = -1, end_at = -1, 
                      singleonly = True, stop_if = False):
         '''
         Each candidate in self.result.products is of type ForwardProduct
         '''
-        self.get_prioritizers(template_prioritization)
+        self.get_template_prioritizers(template_prioritizer)
         #Get sorted by popularity during loading.
         if template_prioritization == gc.popularity:
             prioritized_templates = self.templates
@@ -115,78 +94,14 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                     result.add_products(products)
         return (smiles,result)
         
-    def load(self, lowe=False, refs=False, efgs=False):
+    def load(self, chiral = False, lowe=False, refs=False, efgs=False, rxn_ex = False):
         '''
         Loads and parses the template database to a useable one
+        Chrial and rxn_ex are not used, but for compatibility with retro_transformer
         '''
         MyLogger.print_and_log('Loading synthetic transformer, including all templates with more than {} hits'.format(self.mincount), forward_transformer_loc)
-        # Save collection TEMPLATE_DB
-        if not self.TEMPLATE_DB:
-            self.load_databases()
-        
-        if self.mincount and 'count' in self.TEMPLATE_DB.find_one(): 
-            filter_dict = {'count': { '$gte': self.mincount}}
-        else: 
-            filter_dict = {}
-
-        # Look for all templates in collection
-        to_retrieve = ['_id', 'reaction_smarts', 'necessary_reagent', 'count', 'intra_only']
-        if refs:
-            to_retrieve.append('references')
-        if efgs:
-            to_retrieve.append('efgs')
-        for document in self.TEMPLATE_DB.find(filter_dict, to_retrieve):
-            # Skip if no reaction SMARTS
-            if 'reaction_smarts' not in document: continue
-            reaction_smarts = str(document['reaction_smarts'])
-            if not reaction_smarts: continue
-
-            # Define dictionary
-            template = {
-                'name':                 document['name'] if 'name' in document else '',
-                'reaction_smarts':      reaction_smarts,
-                'incompatible_groups':  document['incompatible_groups'] if 'incompatible_groups' in document else [],
-                'reference':            document['reference'] if 'reference' in document else '',
-                'references':           document['references'] if 'references' in document else [],
-                'rxn_example':          document['rxn_example'] if 'rxn_example' in document else '',
-                'explicit_H':           document['explicit_H'] if 'explicit_H' in document else False,
-                '_id':                  document['_id'] if '_id' in document else -1,
-                'product_smiles':       document['product_smiles'] if 'product_smiles' in document else [], 
-                'necessary_reagent':    document['necessary_reagent'] if 'necessary_reagent' in document else '',       
-                'efgs':                 document['efgs'] if 'efgs' in document else None,
-                'intra_only':           document['intra_only'] if 'intra_only' in document else False,
-            }
-
-            # Frequency/popularity score
-            if 'count' in document: 
-                template['count'] = document['count']
-            elif 'popularity' in document:
-                template['count'] = document['popularity']
-            else:
-                template['count'] = 1
-            try:
-                if lowe:
-                    reaction_smarts_synth = '(' + reaction_smarts.split('>')[2] + ')>>(' + reaction_smarts.split('>')[0] + ')'
-                else:
-                    reaction_smarts_synth = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
-                rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_synth)
-                #if rxn_f.Validate() == (0, 0):
-                if rxn_f.Validate()[1] == 0:
-                    template['rxn_f'] = rxn_f
-                else:
-                    template['rxn_f'] = None
-            except Exception as e:
-                MyLogger.print_and_log('Couldnt load forward: {}: {}'.format(reaction_smarts_synth, e), forward_transformer_loc, level = 1)
-                template['rxn_f'] = None
-
-            if not template['rxn_f']: continue
-
-            # Add to list
-            self.templates.append(template)
-
-        self.num_templates = len(self.templates)
-        
-        self.templates = sorted(self.templates, key = lambda z: z['count'], reverse = True)
+       
+        self.load_templates(False, lowe=lowe, refs=refs, efgs=efgs)
         
         MyLogger.print_and_log('Synthetic transformer has been loaded - using {} templates'.format(self.num_templates), forward_transformer_loc)
         
@@ -267,68 +182,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                 return False
             
         return results
-    
-    
-    
-    def dump_to_file(self, file_name):
-        '''
-        Write the template database to a file, of which the path in specified in the general configuration
-        '''
-        if not self.templates:
-            self.load()
-    
-        with open(os.path.join(gc.synth_template_data, file_name), 'w+') as file:
-            pickle.dump(self.templates, file, gc.protocol)
-
-        MyLogger.print_and_log('Wrote templates to {}'.format(os.path.join(gc.retro_template_data, file_name)), forward_transformer_loc)
-        
-    def load_from_file(self, file_name):
-        '''
-        Read the template database from a previously saved file, of which the path is specified in the general
-        configuration
-        '''
-        MyLogger.print_and_log('Loading templates from {}'.format(file_name), forward_transformer_loc)
-        if os.path.isfile(os.path.join(gc.synth_template_data, file_name)):
-            with open(os.path.join(gc.synth_template_data, file_name), 'rb') as file:
-                self.templates = pickle.load(file)
-        else:
-            MyLogger.print_and_log("No file to read data from, using online database instead.", forward_transformer_loc, level = 1)
-            self.load()
-        self.num_templates = len(self.templates)
-        MyLogger.print_and_log('Loaded templates. Using {} templates'.format(self.num_templates), forward_transformer_loc)
-       
-        
-    def load_databases(self):
-        db_client = MongoClient(gc.MONGO['path'],gc.MONGO['id'], connect = gc.MONGO['connect'])
-        self.TEMPLATE_DB = db_client[gc.SYNTH_TRANSFORMS['database']][gc.SYNTH_TRANSFORMS['collection']]
-    
-    def top_templates(self, target):
-        '''
-        Generator to return only top templates. 
-        First applies the template prioritization method and returns top of that list.
-        '''
-        prioritized_templates = self.template_prioritizer.get_priority((self.templates, target))
-        counter = 0
-        for template in prioritized_templates:
-            # only yield template if between start and end points and if mincount criterium is fulfilled.
-            # do not break on count<mincount: assumes sorted by popularity, not necessarily true
-            if template['count'] < self.mincount: 
-                counter += 1
-            elif counter<self.start_at:
-                counter += 1
-            elif counter>self.end_at:
-                counter += 1
-            else:
-                counter += 1
-                yield template
-
-            
-    def lookup_id(self, template_id):
-        '''
-        Find the reaction smarts for this template_id
-        '''
-        if template_id in self.id_to_index:
-            return self.templates[self.id_to_index[template_id]]     
+           
 if __name__ == '__main__':
     MyLogger.initialize_logFile()
     ft = ForwardTransformer(mincount = 10)
