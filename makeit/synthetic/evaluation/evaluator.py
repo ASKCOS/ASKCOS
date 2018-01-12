@@ -102,8 +102,8 @@ if __name__ == '__main__':
 
     MyLogger.initialize_logFile()
     evaluator = Evaluator(celery=False)
-    res = evaluator.evaluate('CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1', 'CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3',
-                             [[80.0, u'', u'', u'', -1, 50.0], [100.0, u'', u'', u'', 8.0, -1], [130.0, u'', u'O=C([O-])[O-].[K+].I.[NaH]', u'', 1.0, 24.0], [20.0, u'', u'', u'', 3.0, -1], [20.0, u'', u'CN(C)c1ccncc1', u'', 0.5, 93.0], [20.0, u'', u'', u'', 0.5, 84.0], [-78.0, u'', u'', u'', 2.0, -1], [20.0, u'', u'CN(C)[P+](On1nnc2ccccc21)(N(C)C)N(C)C.F[P](F)(F)(F)(F)F.CCN(C(C)C)C(C)C', u'', 1.0, 62.0]], mincount=25, forward_scorer=gc.templatebased,
+    res = evaluator.evaluate('Cc1cccc(C)c1NC(=O)CCl', 'Cc1cccc(C)c1NC(=O)CN',
+                             [[10.0, '', 'O=C(Cl)C(=O)Cl', '', 2.0, -1]], mincount=25, forward_scorer=gc.templatebased,
                              batch_size=1000, nproc=16)
     print res
     '''

@@ -1,13 +1,15 @@
 from __future__ import print_function
 import global_config as gc
-from prioritization.precursor_prioritization.heuristic_prioritizer import HeuristicPrioritizer
-from prioritization.precursor_prioritization.scs_prioritizer import SCSPrioritizer
-from prioritization.template_prioritization.popularity_prioritizer import PopularityPrioritizer
-from prioritization.template_prioritization.relevance_prioritizer import RelevancePrioritizer
-from prioritization.default_prioritizer import DefaultPrioritizer
+import rdkit.Chem as Chem
+from rdkit.Chem import AllChem
+from prioritization.precursors.heuristic import HeuristicPrecursorPrioritizer
+from prioritization.precursors.scscore import SCScorePrecursorPrioritizer
+from prioritization.templates.popularity import PopularityTemplatePrioritizer
+from prioritization.templates.relevance import RelevanceTemplatePrioritizer
+from prioritization.default import DefaultPrioritizer
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 from pymongo import MongoClient
-from utilities.i_o.logging import MyLogger 
+from utilities.io.logging import MyLogger 
 transformer_loc = 'template_transformer'
 
 class TemplateTransformer(object):
@@ -62,11 +64,11 @@ class TemplateTransformer(object):
             template = self.template_prioritizers[template_prioritizer]
         else:
             if template_prioritizer == gc.popularity:
-                template = PopularityPrioritizer()
+                template = PopularityTemplatePrioritizer()
             elif template_prioritizer == gc.relevance:
-                template = RelevancePrioritizer()
+                template = RelevanceTemplatePrioritizer()
             else:
-                template = PopularityPrioritizer()
+                template = PopularityTemplatePrioritizer()
                 MyLogger.print_and_log('Prioritization method not recognized. Using literature popularity prioritization.', transformer_loc, level = 1)
                 
             template.load_model()
@@ -266,7 +268,7 @@ class TemplateTransformer(object):
                         else:
                             template['rxn'] = None
                 else:
-                    rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_synth)
+                    rxn_f = AllChem.ReactionFromSmarts(reaction_smarts_one)
                     #if rxn_f.Validate() == (0, 0):
                     if rxn_f.Validate()[1] == 0:
                         template['rxn_f'] = rxn_f
