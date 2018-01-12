@@ -89,7 +89,7 @@ save_path = get_synthtransformer_path(
     settings.SYNTH_TRANSFORMS['collection'],
     settings.SYNTH_TRANSFORMS['mincount'],
 )
-import makeit.synthetic.forward_enumeration.forward_transformer as transformer
+import makeit.synthetic.enumeration.transformer as transformer
 if os.path.isfile(save_path):
     SynthTransformer = transformer.ForwardTransformer()
     SynthTransformer.load_from_file(save_path, rxns=False)
