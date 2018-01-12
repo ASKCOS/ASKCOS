@@ -17,7 +17,7 @@ product = 'Product'
 all = 'All'
 # for precursors
 heuristic = 'Heuristic'
-scsscore = 'SCScore'
+scscore = 'SCScore'
 # for templates
 popularity = 'Popularity'
 relevance = 'Relevance'

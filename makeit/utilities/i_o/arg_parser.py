@@ -18,7 +18,7 @@ def setup_parser():
     template_prioritization = gc.relevance
     precursor_prioritization = gc.scscore
     retro_mincount = 25
-    retro_mincount_c = 10
+    retro_mincount_chiral = 10
     synth_mincount = 50
     rank_threshold = 10
     p_threshold = 0.05
@@ -46,8 +46,8 @@ def setup_parser():
                         help = 'Maximum number of trees that will be investigated. Default value is {}.'.format(max_trees))
     parser.add_argument('--retro_mincount', type = int, default = retro_mincount,
                         help = 'Minimum template count for retrosynthetic templates. Default value is {}.'.format(retro_mincount))
-    parser.add_argument('--retro_mincount_c', type = int, default = retro_mincount_c,
-                        help =  'Minimum template count for chiral retrosynthetic templates. Default value is {}'.format(retro_mincount_c))
+    parser.add_argument('--retro_mincount_chiral', type = int, default = retro_mincount_chiral,
+                        help =  'Minimum template count for chiral retrosynthetic templates. Default value is {}'.format(retro_mincount_chiral))
     parser.add_argument('--synth_mincount', type = int,  default = synth_mincount,
                         help = 'Minimum template count for synthetic templates. Default value is {}.'.format(synth_mincount))
     parser.add_argument('--rank_threshold', type = int, default = rank_threshold,

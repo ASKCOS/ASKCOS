@@ -6,7 +6,7 @@ from makeit.utilities.i_o.logging import MyLogger
 probability_context_prioritizer_loc = 'probability_context_prioritizer'
 
 
-class ProbabilityPrioritizer(Prioritizer):
+class ProbabilityContextPrioritizer(Prioritizer):
 
     def __init__(self):
         MyLogger.print_and_log(

@@ -20,12 +20,12 @@ class TreeBuilder:
     '''
     def __init__(self, retroTransformer = None, pricer = None, max_branching = 20, max_depth = 3, expansion_time = 240, 
                  celery = False, nproc = 1, mincount = 25, chiral = False, template_prioritization = gc.popularity, 
-                 precursor_prioritization = gc.heuristic, mincount_c = 10):
+                 precursor_prioritization = gc.heuristic, mincount_chiral = 10):
         #General parameters
         self.celery = celery
         self.max_branching = max_branching
         self.mincount = mincount
-        self.mincount_c = mincount_c
+        self.mincount_chiral = mincount_c
         self.max_depth = max_depth
         self.expansion_time = expansion_time
         self.template_prioritization = template_prioritization
@@ -45,7 +45,7 @@ class TreeBuilder:
                 self.retroTransformer = retroTransformer
             else:
                 self.retroTransformer = model_loader.load_Retro_Transformer(mincount = self.mincount, 
-                                                                            mincount_c=self.mincount_c,
+                                                                            mincount_chiral=self.mincount_chiral,
                                                                             chiral = self.chiral)
         
         #Define method to check if all results processed
@@ -385,11 +385,11 @@ class TreeBuilder:
         if chiral or template_prioritization == gc.relevance:
             self.chiral = True
         if template_prioritization == gc.relevance and not self.celery:
-            if not (self.retroTransformer.mincount ==25 
-                    and self.retroTransformer.mincount_c ==10 
+            if not (self.retroTransformer.mincount == 25 
+                    and self.retroTransformer.mincount_chiral ==10 
                     and self.retroTransformer.chiral):
                 MyLogger.print_and_log('When using relevance based template prioritization, chiral template database '+
-                                       'must be used with mincount = 25 and mincount_c = 10. Exiting...', treebuilder_loc, level = 3)
+                                       'must be used with mincount = 25 and mincount_chiral = 10. Exiting...', treebuilder_loc, level = 3)
         
         self.known_bad_reactions = known_bad_reactions
         self.reset()
@@ -514,7 +514,7 @@ if __name__ == '__main__':
     celery = False
     treedict = []
     
-    treeBuilder = TreeBuilder(celery = celery, mincount = 25, mincount_c=10)
+    treeBuilder = TreeBuilder(celery = celery, mincount = 25, mincount_chiral=10)
     #treeBuilder.build_tree('c1ccccc1C(=O)OCCN')
     print treeBuilder.get_buyable_paths('CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3', max_depth = 2, template_prioritization=gc.relevance, 
                                         precursor_prioritization = gc.scscore, nproc = 16, expansion_time=300, max_trees=10, max_ppg = 2)

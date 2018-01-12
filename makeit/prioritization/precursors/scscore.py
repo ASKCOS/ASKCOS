@@ -15,7 +15,7 @@ from numpy import inf
 scscore_prioritizer_loc = 'scscoreprioritizer'
 
 
-class SCScorePrioritizer(Prioritizer):
+class SCScorePrecursorPrioritizer(Prioritizer):
     '''
     This is a standalone, importable SCScorecorer model. It does not have tensorflow as a
     dependency and is a more attractive option for deployment. The calculations are 
