@@ -4,7 +4,7 @@ import makeit.global_config as gc
 from makeit.utilities.i_o import arg_parser, name_parser, files
 import rdkit.Chem as Chem
 from makeit.utilities.i_o.logging import MyLogger
-from makeit.retro_synthetic.tree_builder import TreeBuilder
+from makeit.retrosynthetic.tree_builder import TreeBuilder
 from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
 from askcos_site.askcos_celery.treeevaluator.tree_evaluation_coordinator import evaluate_trees
 from makeit.synthetic.forward_evaluation.tree_evaluator import TreeEvaluator

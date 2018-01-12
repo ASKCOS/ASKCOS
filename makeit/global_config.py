@@ -52,7 +52,7 @@ fingerprint_bits = 256
 reaction_fingerprint_bits = 2048
 
 pricer_data = os.path.join(data_path,'buyable')
-retro_template_data = os.path.join(data_path,'retro_synthetic')
+retro_template_data = os.path.join(data_path,'retrosynthetic')
 synth_template_data = os.path.join(data_path,'synthetic')
 prioritization_data = os.path.join(data_path, 'prioritization')
 
