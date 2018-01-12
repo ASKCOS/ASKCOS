@@ -12,7 +12,7 @@ import numpy as np
 from functools import partial # used for passing args to multiprocessing
 from makeit.utilities.i_o.logging import MyLogger
 from makeit.utilities.reactants import clean_reactant_mapping
-from makeit.retro_synthetic.results import RetroResult, RetroPrecursor
+from makeit.retrosynthetic.results import RetroResult, RetroPrecursor
 from makeit.interfaces.template_transformer import TemplateTransformer
 from makeit.prioritization.precursors.heuristic import HeuristicPrecursorPrioritizer
 from makeit.prioritization.precursors.scscore import SCScorePrecursorPrioritizer
