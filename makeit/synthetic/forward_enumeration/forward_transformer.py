@@ -55,11 +55,11 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
             template = self.template_prioritizers[template_prioritizer]
         else:
             if template_prioritizer == gc.popularity:
-                template = PopularityPrioritizer()
+                template = PopularityTemplatePrioritizer()
             elif template_prioritizer == gc.relevance:
-                template = RelevancePrioritizer(retro=False)
+                template = RelevanceTemplatePrioritizer(retro=False)
             elif template_prioritizer == gc.natural:
-                template = PopularityPrioritizer()
+                template = PopularityTemplatePrioritizer()
             else:
                 template = DefaultPrioritizer()
                 MyLogger.print_and_log(

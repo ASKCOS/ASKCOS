@@ -62,9 +62,9 @@ class RetroTransformer(TemplateTransformer):
             precursor = self.precursor_prioritizers[precursor_prioritizer]
         else:
             if precursor_prioritizer == gc.heuristic:
-                precursor = HeuristicPrioritizer()
+                precursor = HeuristicPrecursorPrioritizer()
             elif precursor_prioritizer == gc.scscore:
-                precursor = SCScorePrioritizer()
+                precursor = SCScorePrecursorPrioritizer()
             elif precursor_prioritizer == gc.natural:
                 precursor = DefaultPrioritizer()
             else:
@@ -80,11 +80,11 @@ class RetroTransformer(TemplateTransformer):
             template = self.template_prioritizers[template_prioritizer]
         else:
             if template_prioritizer == gc.popularity:
-                template = PopularityPrioritizer()
+                template = PopularityTemplatePrioritizer()
             elif template_prioritizer == gc.relevance:
-                template = RelevancePrioritizer()
+                template = RelevanceTemplatePrioritizer()
             else:
-                template = PopularityPrioritizer()
+                template = PopularityTemplatePrioritizer()
                 MyLogger.print_and_log('Prioritization method not recognized. Using literature popularity prioritization.', retro_transformer_loc, level = 1)
                 
             template.load_model()
