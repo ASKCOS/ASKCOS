@@ -1,5 +1,5 @@
 import makeit.global_config as gc
-import rdkit.Chem as Chem   
+import rdkit.Chem as Chem
 import json
 import time
 from pymongo import MongoClient
@@ -23,11 +23,12 @@ from askcos_site.askcos_celery.treeevaluator.forward_trans_worker import get_out
 from operator import itemgetter
 template_nn_scorer_loc = 'template_based'
 
-class TemplateNeuralNetScorer(Scorer):
-    
 
-    def __init__(self, celery = False, mincount = 0, chunk_size = 250, template_prioritization = gc.popularity,
-                 forward_transformer = None, nproc = 1):
+class TemplateNeuralNetScorer(Scorer):
+
+    def __init__(self, celery=False, mincount=0, chunk_size=500, 
+                template_prioritization=gc.popularity,
+                forward_transformer=None, nproc=1):
         self.model = None
         self.F_atom = edit_vector_lengths()['atoms']
         self.F_bond = edit_vector_lengths()['bonds']
@@ -40,26 +41,28 @@ class TemplateNeuralNetScorer(Scorer):
         self.solvent_smiles_to_params = {}
         self.running = False
         self.pending_results = []
-        
+
         if self.celery:
             tc = template_count.apply_async()
             while not tc.ready():
                 time.sleep(0.25)
             self.template_count = tc.get()
-            
+
         else:
             self.expansion_queue = Queue()
             self.results_queue = Queue()
             if forward_transformer:
                 self.forward_transformer = forward_transformer
             else:
-                MyLogger.print_and_log('Cannot evaluate a reaction without a forward transformer. Exiting...', template_nn_scorer_loc, level = 3)
+                MyLogger.print_and_log(
+                    'Cannot evaluate a reaction without a forward transformer. Exiting...', template_nn_scorer_loc, level=3)
             self.template_count = self.forward_transformer.template_count()
             self.workers = []
             self.manager = Manager()
-            self.done = self.manager.Value('i',0)
-            self.paused = self.manager.Value('i',0)
+            self.done = self.manager.Value('i', 0)
+            self.paused = self.manager.Value('i', 0)
             self.idle = self.manager.list()
+
         if self.celery:
             def expand(reactants_smiles, start_at, end_at):
                 self.pending_results.append(get_outcomes.apply_async(args=(reactants_smiles, self.mincount, start_at, end_at,
@@ -68,7 +71,7 @@ class TemplateNeuralNetScorer(Scorer):
             def expand(reactants_smiles, start_at, end_at):
                 self.expansion_queue.put((reactants_smiles, start_at, end_at))
         self.expand = expand
-        
+
         if self.celery:
             def waiting_for_results():
                 time.sleep(0.05)
@@ -80,79 +83,82 @@ class TemplateNeuralNetScorer(Scorer):
                 waiting += self.idle
                 return (not all(waiting))
         self.waiting_for_results = waiting_for_results
+
         if self.celery:
             def get_ready_result(is_ready):
-                
+
                 for i in is_ready:
-                    (smiles, outcomes) = self.pending_results[i].get(timeout=0.2)
-                    self.pending_results[i].forget()                    
+                    (smiles, outcomes) = self.pending_results[
+                        i].get(timeout=0.2)
+                    self.pending_results[i].forget()
                     result = ForwardResult(smiles)
                     for outcome in outcomes:
-                        result.add_product(ForwardProduct(smiles_list=outcome['smiles_list'], smiles=outcome['smiles'], 
-                                                         template_ids=outcome['template_ids'], 
-                                                         num_examples = outcome['num_examples'],
-                                                         edits = outcome['edits'] ))
+                        result.add_product(ForwardProduct(smiles_list=outcome['smiles_list'], smiles=outcome['smiles'],
+                                                          template_ids=outcome[
+                                                              'template_ids'],
+                                                          num_examples=outcome[
+                                                              'num_examples'],
+                                                          edits=outcome['edits']))
                     yield result, is_ready
         else:
             def get_ready_result(is_ready):
                 while not self.results_queue.empty():
-                    [result,start_at, end_at] = self.results_queue.get(0.2)
+                    [result, start_at, end_at] = self.results_queue.get(0.2)
                     yield result, []
-        
+
         self.get_ready_result = get_ready_result
-        
+
         if self.celery:
             def prepare():
-                pass     
+                pass
         else:
             def prepare():
-                MyLogger.print_and_log('Template based scorer spinning off {} child processes'.format(self.nproc),template_nn_scorer_loc)
+                MyLogger.print_and_log('Template based scorer spinning off {} child processes'.format(
+                    self.nproc), template_nn_scorer_loc)
                 for i in range(self.nproc):
-                    p = Process(target = self.work, args = (i,))
+                    p = Process(target=self.work, args=(i,))
                     self.workers.append(p)
                     p.start()
                 self.running = True
         self.prepare = prepare
-        
+
         if self.celery:
             def stop_expansion():
                 if self.pending_results != []:
-                    ## OPTION 1 - REVOKE TASKS, WHICH GETS SENT TO ALL WORKERS REGARDLESS OF TYPE
-                    #[res.revoke() for res in pending_results]
-                    # OPTION 2 - DIRECTLY PURGE THE QUEUE (NOTE: HARDCODED FOR AMQP)
-                    import celery.bin.amqp 
-                    from askcos_site.celery import app 
-                    amqp = celery.bin.amqp.amqp(app = app)
-                    amqp.run('queue.purge', self.private_worker_queue)
-                
-                    released = unreserve_worker_pool.apply_async(queue=self.private_worker_queue, retry=True).get()
-                
+                    # OPTION 1 - REVOKE TASKS, WHICH GETS SENT TO ALL WORKERS REGARDLESS OF TYPE
+                    [res.revoke() for res in pending_results]
+
                 self.running = False
         else:
             def stop_expansion():
                 if not self.running:
                     return
                 self.done.value = 1
-                MyLogger.print_and_log('Terminating forward template expansion process.', template_nn_scorer_loc)
-                
+                MyLogger.print_and_log(
+                    'Terminating forward template expansion process.', template_nn_scorer_loc)
+
                 for p in self.workers:
                     if p and p.is_alive():
                         p.terminate()
-                MyLogger.print_and_log('All forward template expansion processes done.', template_nn_scorer_loc)
+                MyLogger.print_and_log(
+                    'All forward template expansion processes done.', template_nn_scorer_loc)
                 self.running = False
         self.stop_expansion = stop_expansion
-    def load(self, SOLVENT_DB, folder = ""):
+
+    def load(self, SOLVENT_DB, folder=""):
         '''Load a neural network scoring model'''
-        MyLogger.print_and_log('Starting to load scorer...', template_nn_scorer_loc)
-        
-        #First load neural network
+        MyLogger.print_and_log(
+            'Starting to load scorer...', template_nn_scorer_loc)
+
+        # First load neural network
         if not folder:
-            MyLogger.print_and_log('Cannot load neural network without the directory in which the parameters are saved. Exiting...', template_nn_scorer_loc, level = 3)
+            MyLogger.print_and_log(
+                'Cannot load neural network without the directory in which the parameters are saved. Exiting...', template_nn_scorer_loc, level=3)
         # Get model args
         ARGS_FPATH = os.path.join(folder, 'args.json')
         with open(ARGS_FPATH, 'r') as fid:
             args = json.load(fid)
-    
+
         N_h2 = int(args['Nh2'])
         N_h1 = int(args['Nh1'])
         N_h3 = int(args['Nh3'])
@@ -161,19 +167,19 @@ class TemplateNeuralNetScorer(Scorer):
         lr = float(args['lr'])
         context_weight = float(args['context_weight'])
         enhancement_weight = float(args['enhancement_weight'])
-        optimizer          = args['optimizer']
-        inner_act          = args['inner_act']
-        TARGET_YIELD       = False
-        
-        self.model = build(F_atom = self.F_atom, F_bond = self.F_bond, N_h1 = N_h1, 
-                N_h2 = N_h2, N_h3 = N_h3, N_hf = N_hf, l2v = l2v, inner_act = inner_act,
-                context_weight = context_weight, enhancement_weight = enhancement_weight, TARGET_YIELD = TARGET_YIELD,
-                absolute_score = True)
-    
+        optimizer = args['optimizer']
+        inner_act = args['inner_act']
+        TARGET_YIELD = False
+
+        self.model = build(F_atom=self.F_atom, F_bond=self.F_bond, N_h1=N_h1,
+                           N_h2=N_h2, N_h3=N_h3, N_hf=N_hf, l2v=l2v, inner_act=inner_act,
+                           context_weight=context_weight, enhancement_weight=enhancement_weight, TARGET_YIELD=TARGET_YIELD,
+                           absolute_score=True)
+
         WEIGHTS_FPATH = os.path.join(folder, 'weights.h5')
-        self.model.load_weights(WEIGHTS_FPATH, by_name = True)
-        
-        #Now load solvent information
+        self.model.load_weights(WEIGHTS_FPATH, by_name=True)
+
+        # Now load solvent information
 
         for doc in SOLVENT_DB.find():
             try:
@@ -181,29 +187,31 @@ class TemplateNeuralNetScorer(Scorer):
                     self.solvent_name_to_smiles['default'] = doc['_id']
                 else:
                     self.solvent_name_to_smiles[doc['name']] = doc['_id']
-                
-                self.solvent_smiles_to_params[doc['_id']] = doc 
-            except KeyError:
-                MyLogger.print_and_log('Solvent doc {} missing a name'.format(doc), template_nn_scorer_loc, level = 1)
 
-        
-        MyLogger.print_and_log('Scorer has been loaded.', template_nn_scorer_loc)
-    
+                self.solvent_smiles_to_params[doc['_id']] = doc
+            except KeyError:
+                MyLogger.print_and_log('Solvent doc {} missing a name'.format(
+                    doc), template_nn_scorer_loc, level=1)
+
+        MyLogger.print_and_log('Scorer has been loaded.',
+                               template_nn_scorer_loc)
+
     def reset(self):
         if self.celery:
             self.pending_results = []
         else:
-            self.done = self.manager.Value('i',0)
-            self.paused = self.manager.Value('i',0)
+            self.done = self.manager.Value('i', 0)
+            self.paused = self.manager.Value('i', 0)
             self.idle = self.manager.list()
             self.results_queue = Queue()
             self.workers = []
-            
+
     def work(self, i):
         while True:
-        # If done, stop
+            # If done, stop
             if self.done.value:
-                MyLogger.print_and_log('Worker {} saw done signal, terminating'.format(i), template_nn_scorer_loc)
+                MyLogger.print_and_log(
+                    'Worker {} saw done signal, terminating'.format(i), template_nn_scorer_loc)
                 break
             # If paused, wait and check again
             if self.paused.value:
@@ -212,10 +220,11 @@ class TemplateNeuralNetScorer(Scorer):
                 continue
             # Grab something off the queue
             try:
-                (reactants_smiles, start_at, end_at) = self.expansion_queue.get(timeout = 0.5) # short timeout
+                (reactants_smiles, start_at, end_at) = self.expansion_queue.get(
+                    timeout=0.5)  # short timeout
                 self.idle[i] = False
-                (smiles, result) = self.forward_transformer.get_outcomes(reactants_smiles, self.mincount, self.template_prioritization, 
-                                                                         start_at = start_at, end_at = end_at)
+                (smiles, result) = self.forward_transformer.get_outcomes(reactants_smiles, self.mincount, self.template_prioritization,
+                                                                         start_at=start_at, end_at=end_at)
                 self.results_queue.put([result, start_at, end_at])
                 #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
             except VanillaQueue.Empty:
@@ -223,43 +232,46 @@ class TemplateNeuralNetScorer(Scorer):
                 pass
             except Exception as e:
                 print e
-            #Wait briefly to allow the results_queue to properly update
+            # Wait briefly to allow the results_queue to properly update
             time.sleep(0.5)
             self.idle[i] = True
-                
+
     def initialize(self, reactants, batch_size):
         if batch_size >= self.template_count or batch_size == 0:
             self.expand(reactants, -1, -1)
-            #wait until result to continue
+            # wait until result to continue
             while(self.results_queue.empty()):
                 time.sleep(0.5)
         else:
             for start_at in range(0, self.template_count, batch_size):
                 self.expand(reactants, start_at, start_at + batch_size)
+
     def set_template_count(self, template_count):
-        self.template_count = template_count           
-    
-    def evaluate(self, reactants_smiles, contexts, batch_size = 250, template_prioritization=gc.popularity, nproc = 1, soft_max = True):
+        self.template_count = template_count
+
+    def evaluate(self, reactants_smiles, contexts, batch_size=250, template_prioritization=gc.popularity, nproc=1, soft_max=True):
         self.reset()
         self.nproc = nproc
-        
+
         if not self.celery:
             for i in range(nproc):
                 self.idle.append(True)
                 self.expansion_queue = Queue()
 
         mol = Chem.MolFromSmiles(reactants_smiles)
-        clean_reactant_mapping(mol) 
+        clean_reactant_mapping(mol)
         reactants_smiles = Chem.MolToSmiles(mol)
         with allow_join_result():
             self.template_prioritization = template_prioritization
             self.prepare()
             self.initialize(reactants_smiles, batch_size)
-            (all_results , candidate_edits) = self.get_candidate_edits(reactants_smiles)
+            (all_results, candidate_edits) = self.get_candidate_edits(reactants_smiles)
             reactants = Chem.MolFromSmiles(reactants_smiles)
-            atom_desc_dict = edits_to_vectors([], reactants, return_atom_desc_dict=True)
-            candidate_tensor = edits_to_tensor(candidate_edits, reactants, atom_desc_dict)
-            
+            atom_desc_dict = edits_to_vectors(
+                [], reactants, return_atom_desc_dict=True)
+            candidate_tensor = edits_to_tensor(
+                candidate_edits, reactants, atom_desc_dict)
+
             if not candidate_tensor:
                 return [[{
                         'rank': 1,
@@ -267,7 +279,7 @@ class TemplateNeuralNetScorer(Scorer):
                         'score': 0,
                         'prob': 0,
                         }]]
-            
+
             all_outcomes = []
             for context in contexts:
                 if context == []:
@@ -277,14 +289,16 @@ class TemplateNeuralNetScorer(Scorer):
                                          'prob': 0.0,
                                          })
                 prediction_context = context_cleaner.clean_context(context)
-                context_tensor = context_cleaner.context_to_edit(prediction_context, self.solvent_name_to_smiles, self.solvent_smiles_to_params)
+                context_tensor = context_cleaner.context_to_edit(
+                    prediction_context, self.solvent_name_to_smiles, self.solvent_smiles_to_params)
                 scores = self.model.predict(candidate_tensor + context_tensor)
                 probs = scores
-            
+
                 if soft_max:
                     probs = softmax(scores)
-    
-                this_outcome = sorted(zip(all_results, scores[0], probs[0]), key=lambda x: x[1], reverse=True)
+
+                this_outcome = sorted(zip(all_results, scores[0], probs[
+                                      0]), key=lambda x: x[1], reverse=True)
                 outcomes = []
                 for i, outcome in enumerate(this_outcome):
                     outcomes.append({'rank': i + 1,
@@ -293,15 +307,16 @@ class TemplateNeuralNetScorer(Scorer):
                                      'prob': float(outcome[2]),
                                      })
                 all_outcomes.append(outcomes)
-               
+
             return all_outcomes
-        
+
     def get_candidate_edits(self, smiles):
-        
+
         candidate_edits = []
         stiched_result = ForwardResult(smiles)
         all_results = []
-        is_ready = [i for (i, res) in enumerate(self.pending_results) if res.ready()]
+        is_ready = [i for (i, res) in enumerate(
+            self.pending_results) if res.ready()]
         while self.waiting_for_results():
             try:
                 for result, is_ready in self.get_ready_result(is_ready):
@@ -312,20 +327,22 @@ class TemplateNeuralNetScorer(Scorer):
                         self.add_product(all_results, candidate_edits, product)
                     '''
                 time.sleep(0.5)
-                self.pending_results = [res for (i, res) in enumerate(self.pending_results) if i not in is_ready]
-                is_ready = [i for (i, res) in enumerate(self.pending_results) if res.ready()]
+                self.pending_results = [res for (i, res) in enumerate(
+                    self.pending_results) if i not in is_ready]
+                is_ready = [i for (i, res) in enumerate(
+                    self.pending_results) if res.ready()]
             except Exception as e:
                 print e
                 pass
-       
+
         for product in stiched_result.products:
             all_results.append(product)
             candidate_edits.append((product.get_smiles, product.get_edits()))
-        
+
         self.stop_expansion()
-        return (all_results, candidate_edits)            
-            
-            
+        return (all_results, candidate_edits)
+
+
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
     e_x = np.exp(x - np.max(x))
@@ -333,19 +350,20 @@ def softmax(x):
 if __name__ == '__main__':
     MyLogger.initialize_logFile()
     celery = False
-    db_client = MongoClient(gc.MONGO['path'], gc.MONGO['id'], connect = gc.MONGO['connect'])
+    db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
+                            'id'], connect=gc.MONGO['connect'])
     db = db_client[gc.SOLVENTS['database']]
     SOLVENT_DB = db[gc.SOLVENTS['collection']]
     if not celery:
-        forw_trans = ForwardTransformer(mincount = 25, celery = False)
+        forw_trans = ForwardTransformer(mincount=25, celery=False)
         forw_trans.load()
         scorer = TemplateNeuralNetScorer(forward_transformer=forw_trans)
     else:
         scorer = TemplateNeuralNetScorer(celery=celery)
-        
+
     scorer.load(SOLVENT_DB, gc.PREDICTOR['trained_model_path'])
-    res = scorer.evaluate('CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1', [[80.0, u'', u'', u'', -1, 50.0]], batch_size = 100, nproc = 8)
+    res = scorer.evaluate('CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1', [
+                          [80.0, u'', u'', u'', -1, 50.0]], batch_size=100, nproc=8)
     for re in res[0]:
         print re['outcome'].smiles + " {}".format(re['prob'])
     print 'done'
-            

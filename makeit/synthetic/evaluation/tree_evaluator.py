@@ -245,7 +245,7 @@ class TreeEvaluator():
                 # overwrite
                 tree['children'] = [reaction]
                 if is_target:
-                    return {'tree': tree, 'plausible': plausible, 'score': score}
+                    return {'tree': tree, 'plausible': plausible*all_children_plausible, 'score': score}
                 else:
                     return plausible, score
 

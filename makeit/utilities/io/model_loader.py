@@ -6,7 +6,7 @@ from makeit.utilities.buyable.pricer import Pricer
 from makeit.synthetic.context.nearestneighbor import NNContextRecommender
 from makeit.synthetic.enumeration.transformer import ForwardTransformer
 from makeit.retrosynthetic.retro_transformer import RetroTransformer
-from makeit.synthetic.evaluation.template_free import TemplateNeuralNetScorer
+from makeit.synthetic.evaluation.template_based import TemplateNeuralNetScorer
 import sys
 model_loader_loc = 'model_loader'
 

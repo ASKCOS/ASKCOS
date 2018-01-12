@@ -547,7 +547,7 @@ class TreeBuilder:
             counter += 1
 
             if counter == max_trees:
-                MyLogger.print_and_log('Generated {} trees, stopped looking for more...'.format(
+                MyLogger.print_and_log('Generated {} trees (max_trees met), stopped looking for more...'.format(
                     max_trees), treebuilder_loc)
                 break
 
