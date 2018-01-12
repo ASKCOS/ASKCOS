@@ -8,7 +8,7 @@ import os
 import cPickle as pickle
 from functools import partial  # used for passing args to multiprocessing
 from makeit.utilities.io.logging import MyLogger
-from makeit.synthetic.forward_enumeration.results import ForwardResult, ForwardProduct
+from makeit.synthetic.enumeration.results import ForwardResult, ForwardProduct
 from pymongo import MongoClient
 from makeit.interfaces.template_transformer import TemplateTransformer
 from makeit.interfaces.forward_enumerator import ForwardEnumerator

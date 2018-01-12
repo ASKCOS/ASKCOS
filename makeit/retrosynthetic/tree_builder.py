@@ -169,7 +169,7 @@ class TreeBuilder:
                 self.expansion_queues[depth].put((chem_id, smiles))
         self.expand = expand
 
-    # Define how first target is set.
+        # Define how first target is set.
         if self.celery:
             def set_initial_target(smiles):
                 self.expand(smiles, 1, 0)
@@ -236,11 +236,15 @@ class TreeBuilder:
         parent_chem_prod_of = parent_chem_doc['prod_of']
         # Assign unique number
         for (rxn, mols) in children:
-            # Add option to leave out blacklisted reactions.
 
+            # Add option to leave out blacklisted reactions.
             rxn_smiles = '.'.join(sorted(mols)) + '>>' + smiles
             if rxn_smiles in self.known_bad_reactions:
                 continue
+            # Exclude banned molecules too
+            for mol in mols:
+                if mol in self.forbidden_molecules:
+                    continue
 
             # depending on whether current_id was given as 'Manager.Value' type
             # or 'Integer':
@@ -398,7 +402,7 @@ class TreeBuilder:
 
     def get_buyable_paths(self, target, max_depth=3, max_branching=25, expansion_time=240, template_prioritization=None,
                           precursor_prioritization=None, nproc=1, mincount=25, chiral=True, max_trees=25, max_ppg=1e10,
-                          known_bad_reactions=[]):
+                          known_bad_reactions=[], forbidden_molecules=[]):
         '''Get viable synthesis trees using an iterative deepening depth-first search'''
 
         self.mincount = mincount
@@ -421,6 +425,7 @@ class TreeBuilder:
                                        'must be used with mincount = 25 and mincount_chiral = 10. Exiting...', treebuilder_loc, level=3)
 
         self.known_bad_reactions = known_bad_reactions
+        self.forbidden_molecules = forbidden_molecules
         self.reset()
 
         if not self.celery:

@@ -10,8 +10,8 @@ from celery.result import allow_join_result
 from multiprocessing import Queue, Process, Manager
 import Queue as VanillaQueue
 from makeit.interfaces.scorer import Scorer
-from makeit.synthetic.forward_enumeration.forward_transformer import ForwardTransformer
-from makeit.synthetic.forward_enumeration.forward_enumeration import ForwardResult, ForwardProduct
+from makeit.synthetic.enumeration.transformer import ForwardTransformer
+from makeit.synthetic.enumeration.results import ForwardResult, ForwardProduct
 from makeit.synthetic.forward_evaluation.template_neural_network import build
 import makeit.utilities.contexts as context_cleaner
 from makeit.utilities.outcomes import summarize_reaction_outcome

@@ -4,7 +4,7 @@ from pymongo import MongoClient
 from logging import MyLogger
 from makeit.utilities.buyable.pricer import Pricer
 from makeit.synthetic.context.nn_context_recommender import NNContextRecommender
-from makeit.synthetic.forward_enumeration.forward_transformer import ForwardTransformer
+from makeit.synthetic.enumeration.transformer import ForwardTransformer
 from makeit.retrosynthetic.retro_transformer import RetroTransformer
 from makeit.synthetic.forward_evaluation.template_neuralnet_scorer import TemplateNeuralNetScorer
 import sys

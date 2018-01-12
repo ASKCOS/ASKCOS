@@ -39,7 +39,7 @@ templatebased = 'Template_Based'
 
 #Set which modules should be used:
 context_module = nearest_neighbor
-forward_enumeration = template
+synth_enumeration = template
 retro_enumeration = template
 prioritizaton = heuristic
 forward_scoring = network
