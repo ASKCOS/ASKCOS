@@ -8,7 +8,7 @@ from celery import shared_task
 from celery.signals import celeryd_init
 import time
 import rdkit.Chem as Chem 
-from makeit.synthetic.forward_enumeration.forward_transformer import ForwardTransformer
+from makeit.synthetic.enumeration.transformer import ForwardTransformer
 from rdkit import RDLogger
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)

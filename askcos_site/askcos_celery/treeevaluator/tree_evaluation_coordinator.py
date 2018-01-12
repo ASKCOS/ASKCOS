@@ -7,7 +7,7 @@ from celery.result import allow_join_result
 from celery.exceptions import Terminated
 import time
 from rdkit import RDLogger
-from makeit.synthetic.forward_evaluation.tree_evaluator import TreeEvaluator
+from makeit.synthetic.evaluation.tree_evaluator import TreeEvaluator
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
 
