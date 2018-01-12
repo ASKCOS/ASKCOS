@@ -12,9 +12,6 @@ import numpy as np
 import json
 import os
 
-from ...askcos_celery.chiralretro.coordinator import get_top_chiral_precursors
-from ...askcos_celery.treebuilder.worker import get_top_precursors
-
 from ..globals import RetroTransformer, RETRO_FOOTNOTE, \
     RETRO_CHIRAL_FOOTNOTE
 
@@ -95,14 +92,19 @@ def retro_target(request, smiles, chiral=True, max_n=200):
     }
 
     # Perform retrosynthesis
+    template_prioritization = 'Popularity'
+    precursor_prioritization = 'Heuristic'
     startTime = time.time()
     if chiral:
-        res = get_top_chiral_precursors.delay(smiles, mincount=0, max_branching=max_n, raw_results=True)
-        context['precursors'] = res.get(300) # allow up to 5 minutes...can be pretty slow
+        from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors
+        res = get_top_precursors.delay(smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=max_n)
+        (smiles, precursors) = res.get(300)
+        context['precursors'] = precursors # allow up to 5 minutes...can be pretty slow
         context['footnote'] = RETRO_CHIRAL_FOOTNOTE
     else:
+        from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors
         # Use apply_async so we can force high priority 
-        res = get_top_precursors.apply_async(args=(smiles,), 
+        res = get_top_precursors.apply_async(args=(smiles, template_prioritization, precursor_prioritization), 
             kwargs={'mincount':0, 'max_branching':max_n, 'raw_results':True}, 
             priority=255)
         context['precursors'] = res.get(120)

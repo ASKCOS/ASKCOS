@@ -27,7 +27,7 @@ lg.setLevel(RDLogger.CRITICAL)
 
 CORRESPONDING_QUEUE = 'tb_coordinator'
 
-from makeit.synthetic.forward_evaluation.evaluator import Evaluator
+from makeit.synthetic.evaluation.evaluator import Evaluator
 
 
 @celeryd_init.connect

@@ -23,7 +23,7 @@ def configure_worker(options={}, **kwargs):
     global tffp
 
     # Import as needed
-    from makeit.synthetic.forward_evaluation.rexgen_release.predict import TFFP
+    from makeit.synthetic.evaluation.rexgen_release.predict import TFFP
     print('Imported TFFP')
     try:
         tffp = TFFP()

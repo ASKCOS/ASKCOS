@@ -13,7 +13,7 @@ from celery import shared_task
 from celery.signals import celeryd_init
 from pymongo import MongoClient
 import makeit.global_config as gc
-from makeit.retrosynthetic.retro_transformer import RetroTransformer
+from makeit.retrosynthetic.transformer import RetroTransformer
 from rdkit import RDLogger
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
@@ -38,21 +38,20 @@ def configure_worker(options={}, **kwargs):
     # Instantiate and load retro transformer
     global retroTransformer
     retroTransformer = RetroTransformer(TEMPLATE_DB=RETRO_DB, mincount=settings.RETRO_TRANSFORMS_CHIRAL['mincount'],
-                                        mincount_c=settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'])
+                                        mincount_chiral=settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'])
 
     retroTransformer.load(chiral=True)
     print('### TREE BUILDER WORKER STARTED UP ###')
 
 
 @shared_task
-def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=25, max_branching=20):
+def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=0, max_branching=20):
     '''Get the precursors for a chemical defined by its SMILES
 
     smiles = SMILES of node to expand
     mincount = minimum template popularity
     max_branching = maximum number of precursor sets to return, prioritized
         using heuristic chemical scoring function
-    chiral = whether or not to use the version of the transformer that takes chriality into account.
     template_prioritizer = keyword for which prioritization method for the templates should be used, keywords can be found in global_config
     precursor_prioritizer = keyword for which prioritization method for the precursors should be used.'''
 

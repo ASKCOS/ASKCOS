@@ -24,7 +24,7 @@ def get_pricer_path(chem_dbname, chem_collname, buyable_dbname, buyable_collname
         'pricer_using_%s-%s_and_%s-%s.pkl' % (chem_dbname, chem_collname, buyable_dbname, buyable_collname))
 
 ### Retro transformer
-import makeit.retrosynthetic.retro_transformer as transformer 
+import makeit.retrosynthetic.transformer as transformer 
 save_path = get_retrotransformer_achiral_path(
     settings.RETRO_TRANSFORMS['database'],
     settings.RETRO_TRANSFORMS['collection'],
