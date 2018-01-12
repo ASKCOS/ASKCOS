@@ -10,8 +10,7 @@ heuristic_precursor_prioritizer_loc = 'heuristic_precursor_prioritizer'
 class HeuristicPrecursorPrioritizer(Prioritizer):
 
     def __init__(self):
-        MyLogger.print_and_log(
-            'Using heuristic prioritization method for directing the tree expansion.', heuristic_precursor_prioritizer_loc)
+       
         self.pricer = None
         self._loaded = False
 

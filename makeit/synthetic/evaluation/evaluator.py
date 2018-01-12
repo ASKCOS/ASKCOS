@@ -36,11 +36,11 @@ class Evaluator():
         self.celery = celery
         self.scorers = {}
 
-    def evaluate(self, reactant_smiles, target, contexts, mincount=25, forward_scorer='', nproc=1, batch_size=250):
+    def evaluate(self, reactant_smiles, target, contexts, mincount=25, forward_scorer='', nproc=1, batch_size=250, worker_no = 0):
         with allow_join_result():
             target = Chem.MolToSmiles(Chem.MolFromSmiles(target))
             if not self.scorers:
-                self.get_scorers(mincount)
+                self.get_scorers(mincount, worker_no = worker_no)
             if not forward_scorer:
                 MyLogger.print_and_log(
                     'Cannot evaluate a reaction without a forward scoring method. Exiting...', evaluator_loc, level=3)
@@ -91,12 +91,12 @@ class Evaluator():
                     evaluation_results.append(evaluation_result)
             return evaluation_results
 
-    def get_scorers(self, mincount):
+    def get_scorers(self, mincount, worker_no = 0):
 
-        self.scorers[gc.fastfilter] = load_fastfilter()
+        self.scorers[gc.fastfilter] = load_fastfilter(worker_no = worker_no)
         self.scorers[gc.templatebased] = load_templatebased(
-            mincount=mincount, celery=self.celery)
-        self.scorers[gc.templatefree] = load_templatefree()
+            mincount=mincount, celery=self.celery, worker_no = worker_no)
+        self.scorers[gc.templatefree] = load_templatefree(worker_no = worker_no)
 
 if __name__ == '__main__':
 

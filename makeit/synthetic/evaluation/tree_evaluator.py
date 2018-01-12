@@ -48,14 +48,15 @@ class TreeEvaluator():
         self.get_contexts = get_contexts
 
         if self.celery:
-            def evaluate_reaction(reactant_smiles, target, contexts):
+            def evaluate_reaction(reactant_smiles, target, contexts, worker_no = 0):
                 res = evaluate.apply_async(args=(reactant_smiles, target, contexts),
                                            kwargs={'mincount': self.mincount, 'forward_scorer': self.forward_scorer})
                 return res.get(120)
         else:
-            def evaluate_reaction(reactant_smiles, target, contexts):
+            def evaluate_reaction(reactant_smiles, target, contexts, worker_no = 0):
                 return self.evaluator.evaluate(reactant_smiles, target, contexts, mincount=self.mincount,
-                                               forward_scorer=self.forward_scorer, nproc=self.nproc, batch_size=self.batch_size)
+                                               forward_scorer=self.forward_scorer, nproc=self.nproc, 
+                                               batch_size=self.batch_size, worker_no = worker_no)
 
         self.evaluate_reaction = evaluate_reaction
 
@@ -109,7 +110,7 @@ class TreeEvaluator():
             # If done, stop
             if self.done.value:
                 MyLogger.print_and_log(
-                    'Worker {} saw done signal, terminating'.format(i), template_nn_scorer_loc)
+                    'Worker {} saw done signal, terminating'.format(i), treeEvaluator_loc)
                 break
             # If paused, wait and check again
             if self.paused.value:
@@ -123,7 +124,7 @@ class TreeEvaluator():
                 plausible, score = self.evaluate_tree(tree, context_recommender='', context_scoring_method='',
                                                       forward_scoring_method='', tree_scoring_method='',
                                                       rank_threshold=5, prob_threshold=0.2, is_target=False,
-                                                      mincount=25, nproc=1, batch_size=500, n=10)
+                                                      mincount=25, nproc=1, batch_size=500, n=10, worker_no = i)
                 self.results_queue.put([tree, plausible, score])
                 #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
             except VanillaQueue.Empty:
@@ -160,7 +161,7 @@ class TreeEvaluator():
 
     def evaluate_tree(self, tree, context_recommender='', context_scoring_method='', forward_scoring_method='',
                       tree_scoring_method='', rank_threshold=5, prob_threshold=0.2, mincount=25, nproc=1,
-                      batch_size=500, n=10, is_target=False, reset=False):
+                      batch_size=500, n=10, is_target=False, reset=False , worker_no = 0):
         if is_target and reset:
             self.reset()
             self.get_context_prioritizer(context_scoring_method)
@@ -201,7 +202,7 @@ class TreeEvaluator():
                     else:
                         contexts = self.get_contexts(reaction_smiles, n)
                     evaluation = self.evaluate_reaction(
-                        '.'.join(reactants), target, contexts)
+                        '.'.join(reactants), target, contexts, worker_no = worker_no)
                     self.evaluation_dict[reaction_smiles] = evaluation
                 ###############################################################
                 # Process data
@@ -289,7 +290,7 @@ class TreeEvaluator():
         self.done.value = 1
         MyLogger.print_and_log(
             'Terminating tree evaluation process.', treeEvaluator_loc)
-
+        time.sleep(1)
         for p in self.workers:
             if p and p.is_alive():
                 p.terminate()

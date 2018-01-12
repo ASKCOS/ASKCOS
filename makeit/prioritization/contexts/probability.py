@@ -9,9 +9,7 @@ probability_context_prioritizer_loc = 'probability_context_prioritizer'
 class ProbabilityContextPrioritizer(Prioritizer):
 
     def __init__(self):
-        MyLogger.print_and_log(
-            'Ranking contexts based on target probability.', probability_context_prioritizer_loc)
-
+        pass
     def get_priority(self, outcomes):
         '''
         Outcomes are the direct outcome of calling the single reaction evaluator

@@ -30,6 +30,7 @@ class TemplateNeuralNetScorer(Scorer):
                 template_prioritization=gc.popularity,
                 forward_transformer=None, nproc=1):
         self.model = None
+        self.running = False
         self.F_atom = edit_vector_lengths()['atoms']
         self.F_bond = edit_vector_lengths()['bonds']
         self.celery = celery
@@ -39,7 +40,6 @@ class TemplateNeuralNetScorer(Scorer):
         self.template_prioritization = template_prioritization
         self.solvent_name_to_smiles = {}
         self.solvent_smiles_to_params = {}
-        self.running = False
         self.pending_results = []
 
         if self.celery:
@@ -62,7 +62,7 @@ class TemplateNeuralNetScorer(Scorer):
             self.done = self.manager.Value('i', 0)
             self.paused = self.manager.Value('i', 0)
             self.idle = self.manager.list()
-
+            
         if self.celery:
             def expand(reactants_smiles, start_at, end_at):
                 self.pending_results.append(get_outcomes.apply_async(args=(reactants_smiles, self.mincount, start_at, end_at,
@@ -110,45 +110,49 @@ class TemplateNeuralNetScorer(Scorer):
 
         if self.celery:
             def prepare():
-                pass
+                self.running = True
         else:
             def prepare():
-                MyLogger.print_and_log('Template based scorer spinning off {} child processes'.format(
+                if gc.DEBUG:
+                    MyLogger.print_and_log('Template based scorer spinning off {} child processes'.format(
                     self.nproc), template_nn_scorer_loc)
                 for i in range(self.nproc):
                     p = Process(target=self.work, args=(i,))
                     self.workers.append(p)
                     p.start()
                 self.running = True
+                
         self.prepare = prepare
-
+        
         if self.celery:
             def stop_expansion():
                 if self.pending_results != []:
                     # OPTION 1 - REVOKE TASKS, WHICH GETS SENT TO ALL WORKERS REGARDLESS OF TYPE
                     [res.revoke() for res in pending_results]
-
                 self.running = False
+                
         else:
             def stop_expansion():
                 if not self.running:
                     return
                 self.done.value = 1
-                MyLogger.print_and_log(
+                if gc.DEBUG:
+                    MyLogger.print_and_log(
                     'Terminating forward template expansion process.', template_nn_scorer_loc)
 
                 for p in self.workers:
                     if p and p.is_alive():
                         p.terminate()
-                MyLogger.print_and_log(
+                if gc.DEBUG:
+                    MyLogger.print_and_log(
                     'All forward template expansion processes done.', template_nn_scorer_loc)
                 self.running = False
         self.stop_expansion = stop_expansion
-
-    def load(self, SOLVENT_DB, folder=""):
+        
+    def load(self, SOLVENT_DB, folder="", worker_no = 0):
         '''Load a neural network scoring model'''
-        MyLogger.print_and_log(
-            'Starting to load scorer...', template_nn_scorer_loc)
+        if worker_no==0:
+            MyLogger.print_and_log('Starting to load scorer...', template_nn_scorer_loc)
 
         # First load neural network
         if not folder:
@@ -192,9 +196,8 @@ class TemplateNeuralNetScorer(Scorer):
             except KeyError:
                 MyLogger.print_and_log('Solvent doc {} missing a name'.format(
                     doc), template_nn_scorer_loc, level=1)
-
-        MyLogger.print_and_log('Scorer has been loaded.',
-                               template_nn_scorer_loc)
+        if worker_no == 0:
+            MyLogger.print_and_log('Scorer has been loaded.', template_nn_scorer_loc)
 
     def reset(self):
         if self.celery:

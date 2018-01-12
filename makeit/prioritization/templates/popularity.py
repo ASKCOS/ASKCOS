@@ -9,9 +9,6 @@ class PopularityTemplatePrioritizer(Prioritizer):
     '''
 
     def __init__(self, no_log=False):
-        if not no_log:
-            MyLogger.print_and_log(
-                'Prioritizing templates based on popularity in the literature.', popularity_template_prioritizer_loc)
         # only do 'reorder' once
         self.sorted = False
         self.reordered_templates = None

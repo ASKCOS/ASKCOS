@@ -9,9 +9,7 @@ rank_context_prioritizer_loc = 'rank_context_prioritizer'
 class RankContextPrioritizer(Prioritizer):
 
     def __init__(self):
-        MyLogger.print_and_log(
-            'Ranking contexts based on target rank.', rank_context_prioritizer_loc)
-
+        pass
     def get_priority(self, outcomes):
         '''
         Outcomes are the direct outcome of calling the single reaction evaluator

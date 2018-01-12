@@ -7,7 +7,6 @@ from makeit.utilities.io.logging import MyLogger
 import math
 import sys
 import random
-import os
 import time
 import os
 import cPickle as pickle
@@ -23,8 +22,6 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         self.retro = retro
         self.FP_len = 2048
         self.FP_rad = 2
-        MyLogger.print_and_log(
-            'Using relevance prioritization method for directing the tree expansion.', relevance_template_prioritizer_loc)
         self.vars = []
 
     def mol_to_fp(self, mol):
@@ -51,7 +48,8 @@ class RelevanceTemplatePrioritizer(Prioritizer):
     def load_model(self):
         with open(gc.Relevance_Prioritization['trained_model_path_{}'.format(self.retro)], 'rb') as fid:
             self.vars = pickle.load(fid)
-        MyLogger.print_and_log('Loaded relevance based template prioritization model from {}'.format(
+        if gc.DEBUG:
+            MyLogger.print_and_log('Loaded relevance based template prioritization model from {}'.format(
             gc.Relevance_Prioritization['trained_model_path_{}'.format(self.retro)]), relevance_template_prioritizer_loc)
         return self
 

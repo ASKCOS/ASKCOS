@@ -37,8 +37,8 @@ class SCScorePrecursorPrioritizer(Prioritizer):
         filename = 'trained_model_path_'+model_tag
         with open(gc.SCScore_Prioritiaztion[filename], 'rb') as fid:
             self.vars = pickle.load(fid)
-
-        MyLogger.print_and_log('Loaded synthetic complexity score prioritization model from {}'.format(
+        if gc.DEBUG:
+            MyLogger.print_and_log('Loaded synthetic complexity score prioritization model from {}'.format(
             gc.SCScore_Prioritiaztion[filename]), scscore_prioritizer_loc)
 
         if 'uint8' in gc.SCScore_Prioritiaztion[filename]:

@@ -14,3 +14,8 @@ class Scorer():
         a rank, a forward result, a score and a probability.
         '''
         raise NotImplementedError
+    def stop_expansion(self):
+        '''
+        Method to kill all spun up workers
+        '''
+        raise NotImplementedError

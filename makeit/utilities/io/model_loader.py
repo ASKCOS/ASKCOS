@@ -60,15 +60,15 @@ def load_Retro_Transformer(RETRO_DB=None, mincount=25, mincount_chiral=10, chira
     return retroTransformer
 
 
-def load_Databases():
+def load_Databases(worker_no = 0):
     '''
     Load the different databases that will be used: Reactions, Instances, Chemicals, Buyables, Solvents, Retro templates and Synthetic templates
     '''
 
     db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
                             'id'], connect=gc.MONGO['connect'])
-
-    MyLogger.print_and_log('Loading databases...', model_loader_loc)
+    if worker_no == 0:
+        MyLogger.print_and_log('Loading databases...', model_loader_loc)
     db = db_client[gc.REACTIONS['database']]
     REACTION_DB = db[gc.REACTIONS['collection']]
 
@@ -98,7 +98,8 @@ def load_Databases():
         'Retro_Database_Chiral': RETRO_DB_CHIRAL,
         'Synth_Database': SYNTH_DB
     }
-    MyLogger.print_and_log('Databases loaded.', model_loader_loc)
+    if worker_no == 0:
+        MyLogger.print_and_log('Databases loaded.', model_loader_loc)
     return databases
 
 
@@ -113,38 +114,40 @@ def load_Pricer(chemical_database, buyable_database):
     return pricerModel
 
 
-def load_Forward_Transformer(SYNTH_DB, mincount=100):
+def load_Forward_Transformer(SYNTH_DB, mincount=100, worker_no = 0):
     '''
     Load the forward prediction neural network
     '''
-    MyLogger.print_and_log(
+    if worker_no==0:
+        MyLogger.print_and_log(
         'Loading forward prediction model...', model_loader_loc)
     transformer = ForwardTransformer(TEMPLATE_DB=SYNTH_DB, mincount=mincount)
     transformer.load()
-    MyLogger.print_and_log('Forward transformer loaded.', model_loader_loc)
+    if worker_no==0:
+        MyLogger.print_and_log('Forward transformer loaded.', model_loader_loc)
     return transformer
 
 
-def load_fastfilter():
+def load_fastfilter(worker_no = 0):
     # Still has to be implemented
     return None
 
 
-def load_templatebased(mincount=25, celery=False):
+def load_templatebased(mincount=25, celery=False, worker_no = 0):
     transformer = None
     databases = load_Databases()
     if not celery:
         transformer = load_Forward_Transformer(
-            databases['Synth_Database'], mincount=mincount)
+            databases['Synth_Database'], mincount=mincount, worker_no = worker_no)
 
     scorer = TemplateNeuralNetScorer(
         forward_transformer=transformer, celery=celery)
     scorer.load(databases['Solvent_Database'],
-                gc.PREDICTOR['trained_model_path'])
+                gc.PREDICTOR['trained_model_path'], worker_no = worker_no)
     return scorer
 
 
-def load_templatefree():
+def load_templatefree(worker_no = 0):
     # Still has to be implemented
     return None
 

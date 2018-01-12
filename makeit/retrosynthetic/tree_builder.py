@@ -31,7 +31,9 @@ class TreeBuilder:
         self.max_depth = max_depth
         self.expansion_time = expansion_time
         self.template_prioritization = template_prioritization
+        MyLogger.print_and_log('Using {} method for template prioritization.'.format(self.template_prioritization), treebuilder_loc)
         self.precursor_prioritization = precursor_prioritization
+        MyLogger.print_and_log('Using {} method for precursor prioritization.'.format(self.precursor_prioritization), treebuilder_loc)
         self.nproc = nproc
         self.chiral = chiral
 

@@ -10,9 +10,7 @@ class DefaultPrioritizer(Prioritizer):
     '''
 
     def __init__(self):
-        MyLogger.print_and_log(
-            'No specific prioritization will be carried out.', default_prioritizer_loc)
-
+        pass
     def get_priority(self, object_to_prioritize):
         try:
             (templates, target) = object_to_prioritize
