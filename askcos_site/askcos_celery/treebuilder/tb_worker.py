@@ -8,6 +8,7 @@ transformer and grabs templates from the database.
 '''
 
 from __future__ import absolute_import, unicode_literals, print_function
+from django.conf import settings
 from celery import shared_task
 from celery.signals import celeryd_init
 from pymongo import MongoClient
@@ -19,27 +20,26 @@ lg.setLevel(RDLogger.CRITICAL)
 CORRESPONDING_QUEUE = 'tb_worker'
 CORRESPONDING_RESERVABLE_QUEUE = 'tb_worker_reservable'
 
+
 @celeryd_init.connect
-def configure_worker(options={},**kwargs):
-    
-    if 'queues' not in options: 
-        return 
+def configure_worker(options={}, **kwargs):
+
+    if 'queues' not in options:
+        return
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
         return
     print('### STARTING UP A TREE BUILDER WORKER ###')
-    # Get Django settings
-    from django.conf import settings
-    
+
     # Database
-    db_client = MongoClient('mongodb://guest:guest@rmg.mit.edu:27017/admin', serverSelectionTimeoutMS = 2000, connect=True)
+    from database import db_client
     db = db_client[settings.RETRO_TRANSFORMS['database']]
     RETRO_DB = db[settings.RETRO_TRANSFORMS['collection']]
-    
+
     global retroTransformer
-    
-    #Instantiate and load retro transformer
-    retroTransformer = RetroTransformer(TEMPLATE_DB = RETRO_DB, mincount = settings.RETRO_TRANSFORMS['mincount'])
-    
+    # Instantiate and load retro transformer
+    retroTransformer = RetroTransformer(
+        TEMPLATE_DB=RETRO_DB, mincount=settings.RETRO_TRANSFORMS['mincount'])
+
     retroTransformer.load()
     print('### TREE BUILDER WORKER STARTED UP ###')
 
@@ -59,12 +59,14 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
     print('Treebuilder worker was asked to expand {} (mincount {}, branching {})'.format(
         smiles, mincount, max_branching
     ))
-    
+
     global retroTransformer
-    result = retroTransformer.get_outcomes(smiles, mincount, (precursor_prioritizer, template_prioritizer))
+    result = retroTransformer.get_outcomes(
+        smiles, mincount, (precursor_prioritizer, template_prioritizer))
     precursors = result.return_top(n=max_branching)
     print('Task completed, returning results.')
     return (smiles, precursors)
+
 
 @shared_task(bind=True)
 def reserve_worker_pool(self):
@@ -76,18 +78,21 @@ def reserve_worker_pool(self):
     private_queue = CORRESPONDING_QUEUE + '_' + hostname
     print('Tried to reserve this worker!')
     print('I am {}'.format(hostname))
-    print('Telling myself to ignore the {} and {} queues'.format(CORRESPONDING_QUEUE, CORRESPONDING_RESERVABLE_QUEUE))
-    from askcos_site.celery import app 
+    print('Telling myself to ignore the {} and {} queues'.format(
+        CORRESPONDING_QUEUE, CORRESPONDING_RESERVABLE_QUEUE))
+    from askcos_site.celery import app
     app.control.cancel_consumer(CORRESPONDING_QUEUE, destination=[hostname])
-    app.control.cancel_consumer(CORRESPONDING_RESERVABLE_QUEUE, destination=[hostname])
+    app.control.cancel_consumer(
+        CORRESPONDING_RESERVABLE_QUEUE, destination=[hostname])
 
     # *** purge the queue in case old jobs remain
-    import celery.bin.amqp 
-    amqp = celery.bin.amqp.amqp(app = app)
+    import celery.bin.amqp
+    amqp = celery.bin.amqp.amqp(app=app)
     amqp.run('queue.purge', private_queue)
     print('Telling myself to only listen to the new {} queue'.format(private_queue))
     app.control.add_consumer(private_queue, destination=[hostname])
     return private_queue
+
 
 @shared_task(bind=True)
 def unreserve_worker_pool(self):
@@ -98,9 +103,11 @@ def unreserve_worker_pool(self):
     print('Tried to unreserve this worker!')
     print('I am {}'.format(hostname))
     print('Telling myself to ignore the {} queue'.format(private_queue))
-    from askcos_site.celery import app 
+    from askcos_site.celery import app
     app.control.cancel_consumer(private_queue, destination=[hostname])
-    print('Telling myself to only listen to the {} and {} queues'.format(CORRESPONDING_QUEUE, CORRESPONDING_RESERVABLE_QUEUE))
+    print('Telling myself to only listen to the {} and {} queues'.format(
+        CORRESPONDING_QUEUE, CORRESPONDING_RESERVABLE_QUEUE))
     app.control.add_consumer(CORRESPONDING_QUEUE, destination=[hostname])
-    app.control.add_consumer(CORRESPONDING_RESERVABLE_QUEUE, destination=[hostname])
+    app.control.add_consumer(
+        CORRESPONDING_RESERVABLE_QUEUE, destination=[hostname])
     return True

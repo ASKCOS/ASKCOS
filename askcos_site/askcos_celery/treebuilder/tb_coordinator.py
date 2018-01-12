@@ -14,7 +14,7 @@ from django.conf import settings
 from celery import shared_task
 from celery.signals import celeryd_init
 from pymongo import MongoClient
-from celery.result import allow_join_result 
+from celery.result import allow_join_result
 # NOTE: allow_join_result is only because the treebuilder worker is separate
 from celery.exceptions import Terminated
 import time
@@ -29,36 +29,37 @@ lg.setLevel(RDLogger.CRITICAL)
 CORRESPONDING_QUEUE = 'tb_coordinator'
 
 @celeryd_init.connect
-def configure_coordinator(options={},**kwargs):
-    if 'queues' not in options: 
-        return 
+def configure_coordinator(options={}, **kwargs):
+    if 'queues' not in options:
+        return
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
         return
     print('### STARTING UP A TREE BUILDER COORDINATOR ###')
 
     global treeBuilder
     global evaluator
-    
-    evaluator = Evaluator(celery = True)
-    
+
+    evaluator = Evaluator(celery=True)
+
     # Database
-    db_client = MongoClient('mongodb://guest:guest@rmg.mit.edu:27017/admin', serverSelectionTimeoutMS = 2000, connect=True)
+    from database import db_client
     db = db_client[settings.BUYABLES['database']]
     BUYABLE_DB = db[settings.BUYABLES['collection']]
     db = db_client[settings.CHEMICALS['database']]
     CHEMICAL_DB = db[settings.CHEMICALS['collection']]
 
-    ### Prices
+    # Prices
     print('Loading prices...')
-    pricer = Pricer(CHEMICALS = CHEMICAL_DB, BUYABLES = BUYABLE_DB)
+    pricer = Pricer(CHEMICALS=CHEMICAL_DB, BUYABLES=BUYABLE_DB)
     print('Loaded known prices')
-    treeBuilder = TreeBuilder(celery = True, pricer = pricer)
+    treeBuilder = TreeBuilder(celery=True, pricer=pricer)
 
     print('Finished initializing treebuilder coordinator')
 
+
 @shared_task(bind=True)
-def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=20, 
-                      max_depth=3, max_ppg=1e8, max_time=60, max_trees=25, reporting_freq=5, known_bad_reactions=[], 
+def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=20,
+                      max_depth=3, max_ppg=1e8, max_time=60, max_trees=25, reporting_freq=5, known_bad_reactions=[],
                       return_d1_if_no_trees=False, chiral=False):
     '''Get a set of buyable trees for a target compound.
 
@@ -79,8 +80,8 @@ def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritiz
     print('Treebuilder coordinator: mincount {}, max_depth {}, max_branching {}, max_ppg {}, max_time {}, max_trees {}'.format(
         mincount, max_depth, max_branching, max_ppg, max_time, max_trees
     ))
-    result =  treeBuilder.get_buyable_paths(smiles, max_depth = max_depth, max_branching = max_branching, expansion_time = max_time, 
-                                  template_prioritization = template_prioritization, precursor_prioritization = precursor_prioritization,
-                                  mincount = mincount, chiral = chiral, max_trees = max_trees, max_ppg = max_ppg, known_bad_reactions = known_bad_reactions)
+    result = treeBuilder.get_buyable_paths(smiles, max_depth=max_depth, max_branching=max_branching, expansion_time=max_time,
+                                           template_prioritization=template_prioritization, precursor_prioritization=precursor_prioritization,
+                                           mincount=mincount, chiral=chiral, max_trees=max_trees, max_ppg=max_ppg, known_bad_reactions=known_bad_reactions)
     print('Task completed, returning results.')
     return result

@@ -24,7 +24,7 @@ def get_pricer_path(chem_dbname, chem_collname, buyable_dbname, buyable_collname
         'pricer_using_%s-%s_and_%s-%s.pkl' % (chem_dbname, chem_collname, buyable_dbname, buyable_collname))
 
 ### Retro transformer
-import makeit.retro_synthetic.retro_transformer as transformer 
+import makeit.retrosynthetic.transformer as transformer 
 save_path = get_retrotransformer_achiral_path(
     settings.RETRO_TRANSFORMS['database'],
     settings.RETRO_TRANSFORMS['collection'],
@@ -34,7 +34,7 @@ if os.path.isfile(save_path):
     #with open(save_path, 'rb') as fid:
     #    RetroTransformer.templates = pickle.load(fid)
     RetroTransformer = transformer.RetroTransformer()
-    RetroTransformer.load_from_file(save_path, chiral=False, rxns=False)
+    RetroTransformer.load_from_file(True, save_path, chiral=False, rxns=False)
     RetroTransformer.reorder()
 else:
     database = db_client[settings.RETRO_TRANSFORMS['database']]
@@ -60,7 +60,7 @@ save_path = get_retrotransformer_chiral_path(
 )
 if os.path.isfile(save_path):
     RetroTransformerChiral = transformer.RetroTransformer()
-    RetroTransformer.load_from_file(save_path, chiral=True, rxns=False)
+    RetroTransformer.load_from_file(True, save_path, chiral=True, rxns=False)
     RetroTransformerChiral.reorder()
 else:
     mincount_retro = settings.RETRO_TRANSFORMS_CHIRAL['mincount']
@@ -89,10 +89,10 @@ save_path = get_synthtransformer_path(
     settings.SYNTH_TRANSFORMS['collection'],
     settings.SYNTH_TRANSFORMS['mincount'],
 )
-import makeit.synthetic.forward_enumeration.forward_transformer as transformer
+import makeit.synthetic.enumeration.transformer as transformer
 if os.path.isfile(save_path):
     SynthTransformer = transformer.ForwardTransformer()
-    SynthTransformer.load_from_file(save_path, rxns=False)
+    SynthTransformer.load_from_file(False, save_path, rxns=False)
     SynthTransformer.reorder()
 else:
     database = db_client[settings.SYNTH_TRANSFORMS['database']]

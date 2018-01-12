@@ -12,8 +12,9 @@ import numpy as np
 import json
 import os
 
-from ...askcos_celery.contextrecommender.worker import get_context_recommendation
-from ...askcos_celery.forwardpredictor.coordinator import get_outcomes
+# TODO: fix this Celery reference
+# from ...askcos_celery.contextrecommender.worker import get_context_recommendation
+# from ...askcos_celery.forwardpredictor.coordinator import get_outcomes
 
 from ..globals import PREDICTOR_FOOTNOTE, SOLVENT_DB
 from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \

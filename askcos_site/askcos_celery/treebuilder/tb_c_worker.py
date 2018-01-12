@@ -8,10 +8,11 @@ transformer and grabs templates from the database.
 '''
 
 from __future__ import absolute_import, unicode_literals, print_function
+from django.conf import settings
 from celery import shared_task
 from celery.signals import celeryd_init
 from pymongo import MongoClient
-import makeit.global_config as gc 
+import makeit.global_config as gc
 from makeit.retrosynthetic.transformer import RetroTransformer
 from rdkit import RDLogger
 lg = RDLogger.logger()
@@ -19,51 +20,51 @@ lg.setLevel(RDLogger.CRITICAL)
 CORRESPONDING_QUEUE = 'tb_c_worker'
 CORRESPONDING_RESERVABLE_QUEUE = 'tb_c_worker_reservable'
 
+
 @celeryd_init.connect
-def configure_worker(options={},**kwargs):
-    
-    if 'queues' not in options: 
-        return 
+def configure_worker(options={}, **kwargs):
+
+    if 'queues' not in options:
+        return
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
         return
     print('### STARTING UP A TREE BUILDER WORKER ###')
-    # Get Django settings
-    from django.conf import settings
-    
+
     # Database
-    db_client = MongoClient('mongodb://guest:guest@rmg.mit.edu:27017/admin', serverSelectionTimeoutMS = 2000, connect=True)
+    from database import db_client
     db = db_client[settings.RETRO_TRANSFORMS_CHIRAL['database']]
     RETRO_DB = db[settings.RETRO_TRANSFORMS_CHIRAL['collection']]
-    
+
+    # Instantiate and load retro transformer
     global retroTransformer
-    #Instantiate and load retro transformer
-    retroTransformer = RetroTransformer(TEMPLATE_DB = RETRO_DB, mincount = settings.RETRO_TRANSFORMS_CHIRAL['mincount'],
-                                        mincount_c = settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'])
-    
-    retroTransformer.load(chiral = True)
+    retroTransformer = RetroTransformer(TEMPLATE_DB=RETRO_DB, mincount=settings.RETRO_TRANSFORMS_CHIRAL['mincount'],
+                                        mincount_chiral=settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'])
+
+    retroTransformer.load(chiral=True)
     print('### TREE BUILDER WORKER STARTED UP ###')
 
 
 @shared_task
-def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=25, max_branching=20):
+def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=0, max_branching=20):
     '''Get the precursors for a chemical defined by its SMILES
 
     smiles = SMILES of node to expand
     mincount = minimum template popularity
     max_branching = maximum number of precursor sets to return, prioritized
         using heuristic chemical scoring function
-    chiral = whether or not to use the version of the transformer that takes chriality into account.
     template_prioritizer = keyword for which prioritization method for the templates should be used, keywords can be found in global_config
     precursor_prioritizer = keyword for which prioritization method for the precursors should be used.'''
 
     print('Treebuilder worker was asked to expand {} (mincount {}, branching {})'.format(
         smiles, mincount, max_branching
     ))
-    
+
     global retroTransformer
-    result = retroTransformer.get_outcomes(smiles, mincount, (precursor_prioritizer, template_prioritizer))
+    result = retroTransformer.get_outcomes(
+        smiles, mincount, (precursor_prioritizer, template_prioritizer))
     precursors = result.return_top(n=max_branching)
     return (smiles, precursors)
+
 
 @shared_task(bind=True)
 def reserve_worker_pool(self):
@@ -75,18 +76,21 @@ def reserve_worker_pool(self):
     private_queue = CORRESPONDING_QUEUE + '_' + hostname
     print('Tried to reserve this worker!')
     print('I am {}'.format(hostname))
-    print('Telling myself to ignore the {} and {} queues'.format(CORRESPONDING_QUEUE, CORRESPONDING_RESERVABLE_QUEUE))
-    from askcos_site.celery import app 
+    print('Telling myself to ignore the {} and {} queues'.format(
+        CORRESPONDING_QUEUE, CORRESPONDING_RESERVABLE_QUEUE))
+    from askcos_site.celery import app
     app.control.cancel_consumer(CORRESPONDING_QUEUE, destination=[hostname])
-    app.control.cancel_consumer(CORRESPONDING_RESERVABLE_QUEUE, destination=[hostname])
+    app.control.cancel_consumer(
+        CORRESPONDING_RESERVABLE_QUEUE, destination=[hostname])
 
     # *** purge the queue in case old jobs remain
-    import celery.bin.amqp 
-    amqp = celery.bin.amqp.amqp(app = app)
+    import celery.bin.amqp
+    amqp = celery.bin.amqp.amqp(app=app)
     amqp.run('queue.purge', private_queue)
     print('Telling myself to only listen to the new {} queue'.format(private_queue))
     app.control.add_consumer(private_queue, destination=[hostname])
     return private_queue
+
 
 @shared_task(bind=True)
 def unreserve_worker_pool(self):
@@ -97,9 +101,11 @@ def unreserve_worker_pool(self):
     print('Tried to unreserve this worker!')
     print('I am {}'.format(hostname))
     print('Telling myself to ignore the {} queue'.format(private_queue))
-    from askcos_site.celery import app 
+    from askcos_site.celery import app
     app.control.cancel_consumer(private_queue, destination=[hostname])
-    print('Telling myself to only listen to the {} and {} queues'.format(CORRESPONDING_QUEUE, CORRESPONDING_RESERVABLE_QUEUE))
+    print('Telling myself to only listen to the {} and {} queues'.format(
+        CORRESPONDING_QUEUE, CORRESPONDING_RESERVABLE_QUEUE))
     app.control.add_consumer(CORRESPONDING_QUEUE, destination=[hostname])
-    app.control.add_consumer(CORRESPONDING_RESERVABLE_QUEUE, destination=[hostname])
+    app.control.add_consumer(
+        CORRESPONDING_RESERVABLE_QUEUE, destination=[hostname])
     return True
