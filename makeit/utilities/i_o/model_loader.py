@@ -53,7 +53,7 @@ def load_Retro_Transformer(RETRO_DB=None, mincount=25, mincount_chiral=10, chira
         else:
             RETRO_DB = databases['Retro_Database']
     retroTransformer = RetroTransformer(
-        TEMPLATE_DB=RETRO_DB, mincount=mincount, mincount_chiral=mincount_c)
+        TEMPLATE_DB=RETRO_DB, mincount=mincount, mincount_chiral=mincount_chiral)
     retroTransformer.load(chiral=chiral)
     MyLogger.print_and_log(
         'Retro synthetic transformer loaded.', model_loader_loc)
