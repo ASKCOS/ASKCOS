@@ -9,7 +9,8 @@ from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 from pymongo import MongoClient
 from makeit.utilities.io.logging import MyLogger
 transformer_loc = 'template_transformer'
-
+import cPickle as pickle
+import os
 
 class TemplateTransformer(object):
     '''
@@ -38,7 +39,7 @@ class TemplateTransformer(object):
     def get_precursor_prioritizers(self, precursor_prioritizer):
         if not precursor_prioritizer:
             MyLogger.print_and_log(
-                'Cannot run the Retro-Transformer without a precursor prioritization method. Exiting...', transformer_loc, level=3)
+                'Cannot run the Transformer without a precursor prioritization method. Exiting...', transformer_loc, level=3)
         if precursor_prioritizer in self.precursor_prioritizers:
             precursor = self.precursor_prioritizers[precursor_prioritizer]
         else:
@@ -61,7 +62,7 @@ class TemplateTransformer(object):
     def get_template_prioritizers(self, template_prioritizer):
         if not template_prioritizer:
             MyLogger.print_and_log(
-                'Cannot run the Retro-Transformer without a template prioritization method. Exiting...', transformer_loc, level=3)
+                'Cannot run the Transformer without a template prioritization method. Exiting...', transformer_loc, level=3)
         if template_prioritizer in self.template_prioritizers:
             template = self.template_prioritizers[template_prioritizer]
         else:
@@ -122,7 +123,7 @@ class TemplateTransformer(object):
             MyLogger.print_and_log('Wrote templates to {}'.format(
                 os.path.join(gc.synth_template_data, file_name)), transformer_loc)
 
-    def load_from_file(self, retro, file_name, chiral=False):
+    def load_from_file(self, retro, file_name, chiral=False, rxns=True):
         '''
         Read the template database from a previously saved file, of which the path is specified in the general
         configuration
@@ -134,7 +135,7 @@ class TemplateTransformer(object):
         if retro:
             if os.path.isfile(os.path.join(gc.retro_template_data, file_name)):
                 with open(os.path.join(gc.retro_template_data, file_name), 'rb') as file:
-                    if chiral:
+                    if chiral and rxns:
                         pickle_templates = pickle.load(file)
                         self.templates = []
                         for template in pickle_templates:
