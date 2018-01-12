@@ -197,7 +197,7 @@ class TreeEvaluator():
                 else:
                     if necessary_reagent:
                         contexts = self.get_contexts(reaction_smiles, 1)
-                        reacants.extend(contexts[0][2].split('.')) # add reagents
+                        reactants.extend(contexts[0][2].split('.')) # add reagents
                     else:
                         contexts = self.get_contexts(reaction_smiles, n)
                     evaluation = self.evaluate_reaction(

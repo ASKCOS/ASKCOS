@@ -201,7 +201,7 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
     model = Model(input = [h_lost, h_gain, bond_lost, bond_gain, reagents, solvent, temp], 
         output = [score])
 
-    model.summary()
+    # model.summary()
 
     # Now compile
     if not TARGET_YIELD:

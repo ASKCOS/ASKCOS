@@ -12,7 +12,7 @@ import Queue as VanillaQueue
 from makeit.interfaces.scorer import Scorer
 from makeit.synthetic.enumeration.transformer import ForwardTransformer
 from makeit.synthetic.enumeration.results import ForwardResult, ForwardProduct
-from makeit.synthetic.forward_evaluation.template_neural_network import build
+from makeit.synthetic.evaluation.template_based_aux import build
 import makeit.utilities.contexts as context_cleaner
 from makeit.utilities.outcomes import summarize_reaction_outcome
 from makeit.utilities.descriptors import edits_to_vectors, edits_to_tensor, edit_vector_lengths
@@ -21,7 +21,7 @@ from makeit.utilities.io.logging import MyLogger
 from makeit.utilities.reactants import clean_reactant_mapping
 from askcos_site.askcos_celery.treeevaluator.forward_trans_worker import get_outcomes, template_count
 from operator import itemgetter
-template_nn_scorer_loc = 'template_neuralnet_scorer'
+template_nn_scorer_loc = 'template_based'
 
 class TemplateNeuralNetScorer(Scorer):
     

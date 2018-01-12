@@ -7,7 +7,7 @@ from makeit.utilities.io.logging import MyLogger
 from makeit.retrosynthetic.tree_builder import TreeBuilder
 from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
 from askcos_site.askcos_celery.treeevaluator.tree_evaluation_coordinator import evaluate_trees
-from makeit.synthetic.forward_evaluation.tree_evaluator import TreeEvaluator
+from makeit.synthetic.evaluation.tree_evaluator import TreeEvaluator
 import sys
 makeit_loc = 'makeit'
 
