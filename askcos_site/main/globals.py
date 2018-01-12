@@ -34,7 +34,7 @@ if os.path.isfile(save_path):
     #with open(save_path, 'rb') as fid:
     #    RetroTransformer.templates = pickle.load(fid)
     RetroTransformer = transformer.RetroTransformer()
-    RetroTransformer.load_from_file(save_path, chiral=False, rxns=False)
+    RetroTransformer.load_from_file(True, save_path, chiral=False, rxns=False)
     RetroTransformer.reorder()
 else:
     database = db_client[settings.RETRO_TRANSFORMS['database']]
@@ -60,7 +60,7 @@ save_path = get_retrotransformer_chiral_path(
 )
 if os.path.isfile(save_path):
     RetroTransformerChiral = transformer.RetroTransformer()
-    RetroTransformer.load_from_file(save_path, chiral=True, rxns=False)
+    RetroTransformer.load_from_file(True, save_path, chiral=True, rxns=False)
     RetroTransformerChiral.reorder()
 else:
     mincount_retro = settings.RETRO_TRANSFORMS_CHIRAL['mincount']
@@ -92,7 +92,7 @@ save_path = get_synthtransformer_path(
 import makeit.synthetic.enumeration.transformer as transformer
 if os.path.isfile(save_path):
     SynthTransformer = transformer.ForwardTransformer()
-    SynthTransformer.load_from_file(save_path, rxns=False)
+    SynthTransformer.load_from_file(False, save_path, rxns=False)
     SynthTransformer.reorder()
 else:
     database = db_client[settings.SYNTH_TRANSFORMS['database']]
