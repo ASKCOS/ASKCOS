@@ -138,6 +138,23 @@ class MAKEIT:
         return plausible_trees
 
 
+def print_at_depth(chemical_node, depth=1):
+    MyLogger.print_and_log('{}(${}/g) {}'.format(depth*4*' ',
+                                                 chemical_node['ppg'], chemical_node['smiles']), makeit_loc)
+    if chemical_node['children']:
+        rxn = chemical_node['children'][0]
+        MyLogger.print_and_log('{}smiles : {}'.format(
+            (depth*4+4)*' ', rxn['smiles']), makeit_loc)
+        MyLogger.print_and_log('{}num ex : {}'.format(
+            (depth*4+4)*' ', rxn['num_examples']), makeit_loc)
+        MyLogger.print_and_log('{}context: {}'.format(
+            (depth*4+4)*' ', rxn['context']), makeit_loc)
+        MyLogger.print_and_log('{}score  : {}'.format(
+            (depth*4+4)*' ', rxn['forward_score']), makeit_loc)
+        for child_node in rxn['children']:
+            print_at_depth(child_node, depth=depth+1)
+
+
 def find_synthesis():
 
     args = arg_parser.get_args()
@@ -148,7 +165,6 @@ def find_synthesis():
                     args.forward_scoring, args.tree_scoring, args.context_prioritization,
                     args.template_prioritization, args.precursor_prioritization)
     MyLogger.initialize_logFile(makeit.ROOT, makeit.case_dir)
-    # only load modules if not using celery! Modules are preloaded in celery.
 
     trees = makeit.construct_buyable_trees()
     MyLogger.print_and_log(
@@ -159,8 +175,9 @@ def find_synthesis():
 
     for i, feasible_tree in enumerate(feasible_trees):
         MyLogger.print_and_log('', makeit_loc)
-        MyLogger.print_and_log('Feasible tree {}'.format(i+1), makeit_loc)
-        MyLogger.print_and_log('{}.'.format(feasible_tree), makeit_loc)
+        MyLogger.print_and_log('Feasible tree {}, plausible = {}, overall score = {}'.format(i+1,
+                feasible_tree['plausible'], feasible_tree['score']), makeit_loc)
+        print_at_depth(feasible_tree['tree'])
 
 if __name__ == '__main__':
     find_synthesis()
