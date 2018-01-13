@@ -44,7 +44,7 @@ def configure_worker(options={}, **kwargs):
 
 
 @shared_task
-def get_outcomes(reactants_smiles, mincount, start_at, end_at, template_prioritization):
+def get_outcomes(reactants_smiles, mincount, start_at, end_at, template_prioritization, template_count=10000):
     '''Apply forward templates to a atom-mapped reactant pool. We
     use chunks (start_at, end_at) to have fewer queue messages
 
@@ -56,7 +56,7 @@ def get_outcomes(reactants_smiles, mincount, start_at, end_at, template_prioriti
     global forwardTransformer
     print('Task completed, returning results.')
     return forwardTransformer.get_outcomes(reactants_smiles, mincount, template_prioritization,
-                                           start_at=start_at, end_at=end_at)
+                                           start_at=start_at, end_at=end_at, template_count=template_count)
 
 
 @shared_task

@@ -60,7 +60,7 @@ def configure_coordinator(options={}, **kwargs):
 @shared_task(bind=True)
 def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=20,
                       max_depth=3, max_ppg=1e8, max_time=60, max_trees=25, reporting_freq=5, known_bad_reactions=[],
-                      return_d1_if_no_trees=False, chiral=False):
+                      return_d1_if_no_trees=False, chiral=False, template_count = 10000):
     '''Get a set of buyable trees for a target compound.
 
     mincount = minimum template popularity
@@ -82,6 +82,7 @@ def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritiz
     ))
     result = treeBuilder.get_buyable_paths(smiles, max_depth=max_depth, max_branching=max_branching, expansion_time=max_time,
                                            template_prioritization=template_prioritization, precursor_prioritization=precursor_prioritization,
-                                           mincount=mincount, chiral=chiral, max_trees=max_trees, max_ppg=max_ppg, known_bad_reactions=known_bad_reactions)
+                                           mincount=mincount, chiral=chiral, max_trees=max_trees, max_ppg=max_ppg, known_bad_reactions=known_bad_reactions,
+                                           template_count = template_count)
     print('Task completed, returning results.')
     return result

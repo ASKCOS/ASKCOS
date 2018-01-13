@@ -28,10 +28,10 @@ def configure_coordinator(options={},**kwargs):
     print('### SCORING COORDINATOR STARTED UP ###')
 
 @shared_task(bind=True)
-def evaluate(self, reactant_smiles, target, contexts, mincount = 25, forward_scorer=''):
+def evaluate(self, reactant_smiles, target, contexts, mincount = 25, forward_scorer='', template_count = 10000):
     print('Scoring Coordinator was asked to evaluate {} to {}'.format(reactant_smiles, target))
     result =  evaluator.evaluate(reactant_smiles, target, contexts, mincount = mincount,
-                 forward_scorer=forward_scorer)
+                 forward_scorer=forward_scorer, template_count = template_count)
     print('Task completed, returning results.')
     return result
 
