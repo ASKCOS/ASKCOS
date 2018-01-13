@@ -94,8 +94,7 @@ class Evaluator():
     def get_scorers(self, mincount, worker_no = 0):
 
         self.scorers[gc.fastfilter] = load_fastfilter(worker_no = worker_no)
-        self.scorers[gc.templatebased] = load_templatebased(
-            mincount=mincount, celery=self.celery, worker_no = worker_no)
+        self.scorers[gc.templatebased] = load_templatebased(mincount=mincount, celery=self.celery, worker_no = worker_no)
         self.scorers[gc.templatefree] = load_templatefree(worker_no = worker_no)
 
 if __name__ == '__main__':

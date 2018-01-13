@@ -220,6 +220,7 @@ class TreeEvaluator():
                     reaction['template_score'], top_result['target']['prob'])
 
                 plausible = self.is_plausible(top_result)
+                print reaction_smiles, plausible
                 all_children_plausible = True
                 for child in reaction['children']:
                     child_plausible, score_child = self.evaluate_tree(child)
@@ -246,9 +247,9 @@ class TreeEvaluator():
                 # overwrite
                 tree['children'] = [reaction]
                 if is_target:
-                    return {'tree': tree, 'plausible': plausible*all_children_plausible, 'score': score}
+                    return {'tree': tree, 'plausible': plausible and all_children_plausible, 'score': score}
                 else:
-                    return plausible, score
+                    return plausible and all_children_plausible, score
 
     #############################################################
     # MULTIPROCESSING CODE
