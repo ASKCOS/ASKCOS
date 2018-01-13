@@ -99,17 +99,19 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                     
         return (smiles,result)
         
-    def load(self, chiral = False, lowe=False, refs=False, efgs=False, rxn_ex = False):
+    def load(self, chiral = False, lowe=False, refs=False, efgs=False, rxn_ex = False, worker_no = 0):
 
         '''
         Loads and parses the template database to a useable one
         Chrial and rxn_ex are not used, but for compatibility with retro_transformer
         '''
-        MyLogger.print_and_log('Loading synthetic transformer, including all templates with more than {} hits'.format(self.mincount), forward_transformer_loc)
+        if worker_no==0:
+            MyLogger.print_and_log('Loading synthetic transformer, including all templates with more than {} hits'.format(self.mincount), forward_transformer_loc)
        
         self.load_templates(False, lowe=lowe, refs=refs, efgs=efgs)
         
-        MyLogger.print_and_log('Synthetic transformer has been loaded - using {} templates'.format(self.num_templates), forward_transformer_loc)
+        if worker_no==0:
+            MyLogger.print_and_log('Synthetic transformer has been loaded - using {} templates'.format(self.num_templates), forward_transformer_loc)
 
     def apply_one_template(self, mol, smiles, template, singleonly=True, stop_if=False):
         '''

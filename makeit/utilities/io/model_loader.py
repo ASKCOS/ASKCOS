@@ -119,10 +119,10 @@ def load_Forward_Transformer(SYNTH_DB, mincount=100, worker_no = 0):
     Load the forward prediction neural network
     '''
     if worker_no==0:
-        MyLogger.print_and_log(
-        'Loading forward prediction model...', model_loader_loc)
+        MyLogger.print_and_log('Loading forward prediction model...', model_loader_loc)
+        
     transformer = ForwardTransformer(TEMPLATE_DB=SYNTH_DB, mincount=mincount)
-    transformer.load()
+    transformer.load(worker_no = worker_no)
     if worker_no==0:
         MyLogger.print_and_log('Forward transformer loaded.', model_loader_loc)
     return transformer
