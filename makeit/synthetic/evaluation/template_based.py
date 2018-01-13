@@ -66,7 +66,8 @@ class TemplateNeuralNetScorer(Scorer):
         if self.celery:
             def expand(reactants_smiles, start_at, end_at):
                 self.pending_results.append(get_outcomes.apply_async(args=(reactants_smiles, self.mincount, start_at, end_at,
-                                                                           self.template_prioritization)))
+                                                                           self.template_prioritization),
+                                                                     kwargs={'template_count':self.template_count}))
         else:
             def expand(reactants_smiles, start_at, end_at):
                 self.expansion_queue.put((reactants_smiles, start_at, end_at))
@@ -88,8 +89,7 @@ class TemplateNeuralNetScorer(Scorer):
             def get_ready_result(is_ready):
 
                 for i in is_ready:
-                    (smiles, outcomes) = self.pending_results[
-                        i].get(timeout=0.2)
+                    (smiles, outcomes) = self.pending_results[i].get(timeout=0.2)
                     self.pending_results[i].forget()
                     result = ForwardResult(smiles)
                     for outcome in outcomes:
@@ -227,7 +227,7 @@ class TemplateNeuralNetScorer(Scorer):
                     timeout=0.5)  # short timeout
                 self.idle[i] = False
                 (smiles, result) = self.forward_transformer.get_outcomes(reactants_smiles, self.mincount, self.template_prioritization,
-                                                                         start_at=start_at, end_at=end_at)
+                                                                         start_at=start_at, end_at=end_at, template_count=self.template_count)
                 self.results_queue.put([result, start_at, end_at])
                 #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
             except VanillaQueue.Empty:
@@ -252,10 +252,11 @@ class TemplateNeuralNetScorer(Scorer):
     def set_template_count(self, template_count):
         self.template_count = template_count
 
-    def evaluate(self, reactants_smiles, contexts, batch_size=250, template_prioritization=gc.popularity, nproc=1, soft_max=True):
+    def evaluate(self, reactants_smiles, contexts, batch_size=250, template_prioritization=gc.popularity, nproc=1,
+                 soft_max=True, template_count=10000):
         self.reset()
         self.nproc = nproc
-
+        self.max_template_count = template_count
         if not self.celery:
             for i in range(nproc):
                 self.idle.append(True)

@@ -48,7 +48,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
         return len(self.templates)
 
     def get_outcomes(self, smiles, mincount, template_prioritization, start_at=-1, end_at=-1,
-                     singleonly=True, stop_if=False):
+                     singleonly=True, stop_if=False, template_count = 10000):
         '''
         Each candidate in self.result.products is of type ForwardProduct
         '''
@@ -58,7 +58,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
             prioritized_templates = self.templates
         else:
             prioritized_templates = self.template_prioritizer.get_priority(
-                (self.templates, smiles))
+                (self.templates, smiles), template_count)
         self.mincount = mincount
         self.start_at = start_at
         self.singleonly = singleonly

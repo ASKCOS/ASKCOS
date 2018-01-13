@@ -135,7 +135,7 @@ def load_fastfilter(worker_no = 0):
 
 def load_templatebased(mincount=25, celery=False, worker_no = 0):
     transformer = None
-    databases = load_Databases()
+    databases = load_Databases(worker_no = worker_no)
     if not celery:
         transformer = load_Forward_Transformer(
             databases['Synth_Database'], mincount=mincount, worker_no = worker_no)

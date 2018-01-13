@@ -80,7 +80,7 @@ class SCScorePrecursorPrioritizer(Prioritizer):
         x = 1 + (self.score_scale - 1) * sigmoid(x)
         return x
 
-    def get_priority(self, retroProduct=None, v=False):
+    def get_priority(self, retroProduct, count = 0):
         if not isinstance(retroProduct, str):
             scores = []
             for smiles in retroProduct.smiles_list:

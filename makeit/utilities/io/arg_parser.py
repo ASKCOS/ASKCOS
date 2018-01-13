@@ -31,6 +31,7 @@ def setup_parser():
     chiral = True
     nproc = 2
     celery = False
+    template_count = 10000
 
     # Set all arguments
     parser.add_argument('--TARGET', type=str,
@@ -57,6 +58,8 @@ def setup_parser():
                         help='Maximum number of search expansions to attempt. Default value is {}.'.format(max_expansions))
     parser.add_argument('--max_contexts', type=int, default=max_contexts,
                         help='Maximum number of contexts to try when reagents are not necessary. Default value is {}.'.format(max_contexts))
+    parser.add_argument('--template_count', type=int, default=template_count,
+                        help='Maximum number of templates to be applied for each expansion step. Default value is {}'.format(template_count))
     parser.add_argument('--max_ppg', type=int, default=max_ppg,
                         help='Maximum price per gram to consider a chemical buyable. Default value is {}.'.format(max_ppg))
     parser.add_argument('--min_trees_success', type=int, default=min_trees_success,

@@ -22,7 +22,7 @@ class MAKEIT:
     '''
 
     def __init__(self, TARGET, expansion_time, max_depth, max_branching, max_trees, retro_mincount, retro_mincount_chiral,
-                 synth_mincount, rank_threshold_inclusion, prob_threshold_inclusion, max_total_contexts,
+                 synth_mincount, rank_threshold_inclusion, prob_threshold_inclusion, max_total_contexts, template_count,
                  max_ppg, output_dir, chiral, nproc, celery, context_recommender, forward_scoring_method,
                  tree_scoring_method, context_prioritization, template_prioritization, precursor_prioritization):
 
@@ -53,6 +53,7 @@ class MAKEIT:
         self.celery = celery
         self.chiral = chiral
         self.known_bad_reactions = []
+        self.template_count = template_count
 
     def construct_buyable_trees(self):
 
@@ -62,7 +63,7 @@ class MAKEIT:
                                                 kwargs={'mincount': self.retro_mincount, 'max_branching': self.max_branching,
                                                         'max_depth': self.max_depth, 'max_ppg': self.max_ppg, 'max_time': self.expansion_time,
                                                         'max_trees': self.max_trees, 'known_bad_reactions': self.known_bad_reactions,
-                                                        'chiral': self.chiral})
+                                                        'chiral': self.chiral, 'template_count':self.template_count})
 
             while not res.ready():
                 if int(time.time() - working) % 10 == 0:
@@ -77,7 +78,8 @@ class MAKEIT:
                                                           precursor_prioritization=self.precursor_prioritization, nproc=self.nproc,
                                                           max_depth=self.max_depth, max_branching=self.max_branching, max_ppg=self.max_ppg,
                                                           mincount=self.retro_mincount, chiral=self.chiral, max_trees=self.max_trees,
-                                                          known_bad_reactions=self.known_bad_reactions, expansion_time=self.expansion_time)
+                                                          known_bad_reactions=self.known_bad_reactions, expansion_time=self.expansion_time,
+                                                          template_count = self.template_count)
 
         return buyable_trees
 
@@ -91,7 +93,8 @@ class MAKEIT:
                                                                     'rank_threshold': self.rank_threshold_inclusion,
                                                                     'prob_threshold': self.prob_threshold_inclusion,
                                                                     'mincount': self.synth_mincount,
-                                                                    'batch_size': 500, 'n': self.max_total_contexts})
+                                                                    'batch_size': 500, 'n': self.max_total_contexts,
+                                                                    'template_count':self.template_count})
             while not res.ready():
                 if int(time.time() - working) % 10 == 0:
                     MyLogger.print_and_log('Evaluating trees...', makeit_loc)
@@ -121,7 +124,7 @@ class MAKEIT:
                                                            forward_scoring_method=self.forward_scoring_method, tree_scoring_method=self.tree_scoring_method,
                                                            rank_threshold=self.rank_threshold_inclusion, prob_threshold=self.prob_threshold_inclusion,
                                                            mincount=self.synth_mincount, batch_size=500, n=self.max_total_contexts, nproc_t=nproc_t,
-                                                           nproc=nproc, parallel=parallel)
+                                                           nproc=nproc, parallel=parallel, template_count = self.template_count)
         plausible_trees = []
         print evaluated_trees
         for tree in evaluated_trees:
@@ -160,7 +163,7 @@ def find_synthesis():
     args = arg_parser.get_args()
     makeit = MAKEIT(args.TARGET, args.expansion_time, args.max_depth, args.max_branching,
                     args.max_trees, args.retro_mincount, args.retro_mincount_chiral, args.synth_mincount,
-                    args.rank_threshold, args.prob_threshold, args.max_contexts, args.max_ppg,
+                    args.rank_threshold, args.prob_threshold, args.max_contexts, args.template_count, args.max_ppg,
                     args.output, args.chiral, args.nproc, args.celery, args.context_recommender,
                     args.forward_scoring, args.tree_scoring, args.context_prioritization,
                     args.template_prioritization, args.precursor_prioritization)

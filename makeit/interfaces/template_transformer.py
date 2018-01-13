@@ -32,12 +32,6 @@ class TemplateTransformer(object):
 
         return
 
-    def get_prioritizers(self, kwargs={}):
-        '''
-        Define which prioritization methods should be used. The prioritizers argument can contain 2 (retro - for precursor and templates) or 1 (synthetic - templates) element
-        '''
-        raise NotImplementedError
-
     def get_precursor_prioritizers(self, precursor_prioritizer):
         if not precursor_prioritizer:
             MyLogger.print_and_log(

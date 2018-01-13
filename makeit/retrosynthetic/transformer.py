@@ -66,7 +66,7 @@ class RetroTransformer(TemplateTransformer):
         MyLogger.print_and_log('Retro-synthetic transformer has been loaded - using {} templates.'.format(self.num_templates), retro_transformer_loc)
         
     def get_outcomes(self, smiles, mincount, prioritizers, start_at = -1, end_at = -1,
-                     singleonly = False, stop_if = False):
+                     singleonly = False, stop_if = False, template_count = 10000):
         '''
         Performs a one-step retrosynthesis given a SMILES string of a
         target molecule by applying each transformation template
@@ -77,6 +77,7 @@ class RetroTransformer(TemplateTransformer):
         if not (template_prioritizer and precursor_prioritizer):
             MyLogger.print_and_log('Template prioritizer and/or precursor prioritizer are missing. Exiting...', retro_transformer_loc, level = 3)
         self.mincount = mincount
+        self.template_count = template_count
         self.get_precursor_prioritizers(precursor_prioritizer)
         self.get_template_prioritizers(template_prioritizer)
         # Define mol to operate on
@@ -156,7 +157,7 @@ class RetroTransformer(TemplateTransformer):
         Generator to return only top templates. 
         First applies the template prioritization method and returns top of that list.
         '''
-        prioritized_templates = self.template_prioritizer.get_priority((self.templates, target))
+        prioritized_templates = self.template_prioritizer.get_priority((self.templates, target), template_count = self.template_count)
         for template in prioritized_templates:
             if template['count'] < self.mincount: 
                 pass

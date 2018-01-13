@@ -36,7 +36,8 @@ class Evaluator():
         self.celery = celery
         self.scorers = {}
 
-    def evaluate(self, reactant_smiles, target, contexts, mincount=25, forward_scorer='', nproc=1, batch_size=250, worker_no = 0):
+    def evaluate(self, reactant_smiles, target, contexts, mincount=25, forward_scorer='', nproc=1, batch_size=250,
+                 worker_no = 0, template_count=10000):
         with allow_join_result():
             target = Chem.MolToSmiles(Chem.MolFromSmiles(target))
             if not self.scorers:
@@ -48,7 +49,8 @@ class Evaluator():
                 scorer = self.scorers[forward_scorer]
 
                 all_outcomes = scorer.evaluate(reactant_smiles, contexts, batch_size=batch_size,
-                                               template_prioritization=gc.popularity, nproc=nproc, soft_max=True)
+                                               template_prioritization=gc.popularity, nproc=nproc, soft_max=True,
+                                               template_count=template_count)
 
                 # output:
                 # - top product for each context + score

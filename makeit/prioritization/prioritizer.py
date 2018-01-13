@@ -3,7 +3,7 @@ class Prioritizer(object):
     def __init__(self):
         raise NotImplementedError
     
-    def get_priority(self, object_to_prioritize):
+    def get_priority(self, object_to_prioritize, number_of_objects = 100):
         '''
         Get the priority for an object that can be prioritized. This is either a retro-synthetic precursor or a tuple of
         a template and a target.

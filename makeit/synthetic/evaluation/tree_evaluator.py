@@ -50,13 +50,15 @@ class TreeEvaluator():
         if self.celery:
             def evaluate_reaction(reactant_smiles, target, contexts, worker_no = 0):
                 res = evaluate.apply_async(args=(reactant_smiles, target, contexts),
-                                           kwargs={'mincount': self.mincount, 'forward_scorer': self.forward_scorer})
+                                           kwargs={'mincount': self.mincount, 'forward_scorer': self.forward_scorer,
+                                                   'template_count':self.template_count})
                 return res.get(120)
         else:
             def evaluate_reaction(reactant_smiles, target, contexts, worker_no = 0):
                 return self.evaluator.evaluate(reactant_smiles, target, contexts, mincount=self.mincount,
                                                forward_scorer=self.forward_scorer, nproc=self.nproc, 
-                                               batch_size=self.batch_size, worker_no = worker_no)
+                                               batch_size=self.batch_size, worker_no = worker_no,
+                                               template_count = self.template_count)
 
         self.evaluate_reaction = evaluate_reaction
 
@@ -124,7 +126,8 @@ class TreeEvaluator():
                 plausible, score = self.evaluate_tree(tree, context_recommender='', context_scoring_method='',
                                                       forward_scoring_method='', tree_scoring_method='',
                                                       rank_threshold=5, prob_threshold=0.2, is_target=False,
-                                                      mincount=25, nproc=1, batch_size=500, n=10, worker_no = i)
+                                                      mincount=25, nproc=1, batch_size=500, n=10, worker_no = i,
+                                                      template_count = self.template_count)
                 self.results_queue.put([tree, plausible, score])
                 #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
             except VanillaQueue.Empty:
@@ -136,7 +139,7 @@ class TreeEvaluator():
 
     def evaluate_trees(self, tree_list, context_recommender='', context_scoring_method='', forward_scoring_method='',
                        tree_scoring_method='', rank_threshold=5, prob_threshold=0.2, mincount=25, nproc=1,
-                       batch_size=500, n=10, nproc_t=1, parallel=False):
+                       batch_size=500, n=10, nproc_t=1, parallel=False, template_count = 10000):
         self.reset()
         self.recommender = context_recommender
         self.get_context_prioritizer(context_scoring_method)
@@ -147,11 +150,13 @@ class TreeEvaluator():
         self.batch_size = batch_size
         self.forward_scorer = forward_scoring_method
         self.tree_scorer = tree_scoring_method
-
+        self.template_count = template_count
+        
         if not parallel:
             for tree in tree_list:
                 self.scored_trees.append(self.evaluate_tree(tree, context_recommender, context_scoring_method, forward_scoring_method, tree_scoring_method,
-                                                            rank_threshold, prob_threshold, mincount, nproc, batch_size, n, is_target=True))
+                                                            rank_threshold, prob_threshold, mincount, nproc, batch_size, n, is_target=True,
+                                                            template_count = template_count))
         else:
             self.spin_up_workers(nproc_t)
             self.populate_queue(tree_list)
@@ -161,7 +166,7 @@ class TreeEvaluator():
 
     def evaluate_tree(self, tree, context_recommender='', context_scoring_method='', forward_scoring_method='',
                       tree_scoring_method='', rank_threshold=5, prob_threshold=0.2, mincount=25, nproc=1,
-                      batch_size=500, n=10, is_target=False, reset=False , worker_no = 0):
+                      batch_size=500, n=10, is_target=False, reset=False , worker_no = 0, template_count = 10000):
         if is_target and reset:
             self.reset()
             self.get_context_prioritizer(context_scoring_method)
@@ -173,7 +178,8 @@ class TreeEvaluator():
             self.batch_size = batch_size
             self.forward_scorer = forward_scoring_method
             self.tree_scorer = tree_scoring_method
-
+            self.template_count = template_count
+            
         if not tree['children']:
             # Reached the end of the synthesis tree -> Stop
             if is_target:

@@ -151,7 +151,8 @@ class TreeBuilder:
                         args=(smiles, self.template_prioritization,
                               self.precursor_prioritization),
                         kwargs={'mincount': self.mincount,
-                                'max_branching': self.max_branching},
+                                'max_branching': self.max_branching,
+                                'template_count': self.template_count},
                         # Prioritize higher depths: Depth first search.
                         priority=int(depth),
                         queue=self.private_worker_queue,
@@ -161,7 +162,8 @@ class TreeBuilder:
                         args=(smiles, self.template_prioritization,
                               self.precursor_prioritization),
                         kwargs={'mincount': self.mincount,
-                                'max_branching': self.max_branching},
+                                'max_branching': self.max_branching,
+                                'template_count': self.template_count},
                         # Prioritize higher depths: Depth first search.
                         priority=int(depth),
                         queue=self.private_worker_queue,
@@ -346,7 +348,8 @@ class TreeBuilder:
                     self.idle[i] = False
                     #print('Worker {} grabbed {} (ID {}) to expand from queue {}'.format(i, smiles, _id, j))
                     result = self.retroTransformer.get_outcomes(smiles, self.mincount, (self.precursor_prioritization,
-                                                                                        self.template_prioritization))
+                                                                                        self.template_prioritization),
+                                                                template_count = self.template_count)
                     precursors = result.return_top(n=self.max_branching)
                     self.results_queue.put((_id, smiles, precursors, None))
                     #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
@@ -393,7 +396,8 @@ class TreeBuilder:
 
             if self.max_depth == 1:
                 result = self.retroTransformer.get_outcomes(target, self.mincount, (self.precursor_prioritization,
-                                                                                    self.template_prioritization))
+                                                                                    self.template_prioritization),
+                                                            template_count = self.template_count)
                 precursors = result.return_top(n=self.max_branching)
                 children = self.get_children(precursors)
                 self.add_children(children, target, 1)
@@ -404,7 +408,7 @@ class TreeBuilder:
 
     def get_buyable_paths(self, target, max_depth=3, max_branching=25, expansion_time=240, template_prioritization=None,
                           precursor_prioritization=None, nproc=1, mincount=25, chiral=True, max_trees=25, max_ppg=1e10,
-                          known_bad_reactions=[], forbidden_molecules=[]):
+                          known_bad_reactions=[], forbidden_molecules=[], template_count = 10000):
         '''Get viable synthesis trees using an iterative deepening depth-first search'''
 
         self.mincount = mincount
@@ -414,6 +418,7 @@ class TreeBuilder:
         self.template_prioritization = template_prioritization
         self.precursor_prioritization = precursor_prioritization
         self.nproc = nproc
+        self.template_count = template_count
         # Load new prices based op specified max price-per-gram
         self.pricer.load(max_ppg=max_ppg)
         # Override: if relevance method is used, chiral database must be used!

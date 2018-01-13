@@ -48,14 +48,16 @@ program
   retro synthetic tree. Default value is 60 seconds.
   
 - Maximum search depth via '--max_depth': limit the search depth in the retro synthetic expansion.
-  Default value is 3
+  Default value is 3.
   
 - Maximum degree of branching via '--max_branching': limit the number of branches generated in each
   layer of the retro synthetic tree. Default value is 10
   
 - Maximum number of buyable trees via '--max_trees': limit the number of buyable trees the program 
-  should search for. Default value is 100
-  
+  should search for. Default value is 100.
+
+- Maximum number of templates to be applied via '--template_count': limit the number of templates
+  that are appied for each expansion. Default value is 10000.
 - Minimal number of templates to be considered in retro synthetic direction for non-chiral reactions
   via '--mincount_retro'. Default value is 25.
   
@@ -63,7 +65,7 @@ program
   '--mincoun_retro_c'. Default value is 10.
  
 - Minimal number of templates to be considered in synthetic direction via '--synth_mincount'. Default
-  value is 50
+  value is 50.
   
 - Minimal target rank for considering a target feasible via '--rank_threshold'. Default value is 10.
 
