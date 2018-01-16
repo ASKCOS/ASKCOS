@@ -4,6 +4,14 @@ name_parser_loc = 'name_parser'
 
 
 def name_to_molecule(name):
+    try:
+        mol = Chem.MolFromSmiles(name)
+        if not mol:
+            raise ValueError
+        return mol
+    except:
+        pass
+
     smiles = urllib2.urlopen(
         'https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(name)).read()
     mol = Chem.MolFromSmiles(smiles)
