@@ -63,6 +63,7 @@ class SCScorePrecursorPrioritizer(Prioritizer):
         self.mol_to_fp = mol_to_fp
 
         self.pricer = Pricer()
+        self.pricer.load_from_file()
         self._restored = True
         self._loaded = True
 

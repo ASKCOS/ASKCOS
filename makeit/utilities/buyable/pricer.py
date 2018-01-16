@@ -6,6 +6,7 @@ from makeit.utilities.io.logging import MyLogger
 import cPickle as pickle
 from pymongo import MongoClient
 from multiprocessing import Manager
+import os
 pricer_loc = 'pricer'
 
 class Pricer:
