@@ -80,21 +80,21 @@ class SCScorePrecursorPrioritizer(Prioritizer):
         x = 1 + (self.score_scale - 1) * sigmoid(x)
         return x
 
-    def get_priority(self, retroProduct, count = 0):
+    def get_priority(self, retroProduct, **kwargs):
         if not isinstance(retroProduct, str):
             scores = []
             for smiles in retroProduct.smiles_list:
                 scores.append(self.get_score_from_smiles(smiles))
-            return -self.get_score(scores)
+            return -self.merge_scores(scores)
         else:
             return -self.get_score_from_smiles(retroProduct)
         if not retroProduct:
             return -inf
 
-    def get_score(self, list_of_scores, mean=False, max=True, geometric=False):
-        if mean:
+    def merge_scores(self, list_of_scores, mode='max'):
+        if mode == 'mean':
             return np.mean(list_of_scores)
-        elif geometric:
+        elif mode == 'geometric':
             return np.power(np.prod(list_of_scores), 1.0/len(list_of_scores))
         else:
             return np.max(list_of_scores)

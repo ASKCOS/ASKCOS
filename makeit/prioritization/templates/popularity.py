@@ -13,7 +13,8 @@ class PopularityTemplatePrioritizer(Prioritizer):
         self.sorted = False
         self.reordered_templates = None
 
-    def get_priority(self, input_tuple, count = 100):
+    def get_priority(self, input_tuple, **kwargs):
+        count = kwargs.pop('count', 1e9)
         (templates, target) = input_tuple
         return self.reorder(templates)[:min(len(templates), count)]
 

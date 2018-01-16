@@ -35,7 +35,8 @@ class RelevanceTemplatePrioritizer(Prioritizer):
             return np.zeros((self.FP_len,), dtype=np.float32)
         return self.mol_to_fp(Chem.MolFromSmiles(smi))
 
-    def get_priority(self, input_tuple, template_count = 100):
+    def get_priority(self, input_tuple, **kwargs):
+        template_count = kwargs.pop('template_count', 100)
         (templates, target) = input_tuple
         # Templates should be sorted by popularity for indices to be correct!
         probs, top_ids = self.get_topk_from_smi(smi=target, k = min(template_count, len(templates)))

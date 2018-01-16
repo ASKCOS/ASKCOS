@@ -11,7 +11,7 @@ class DefaultPrioritizer(Prioritizer):
 
     def __init__(self):
         pass
-    def get_priority(self, object_to_prioritize):
+    def get_priority(self, object_to_prioritize, **kwargs):
         try:
             (templates, target) = object_to_prioritize
             return templates

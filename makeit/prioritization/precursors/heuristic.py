@@ -14,7 +14,7 @@ class HeuristicPrecursorPrioritizer(Prioritizer):
         self.pricer = None
         self._loaded = False
 
-    def get_priority(self, retroPrecursor, count = 0):
+    def get_priority(self, retroPrecursor, **kwargs):
         if not self._loaded:
             self.load_model()
 
