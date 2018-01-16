@@ -57,6 +57,10 @@ class Pricer:
                 self.prices = pickle.load(file)
                 self.prices_flat = pickle.load(file)
                 self.prices_by_xrn = pickle.load(file)  
+        else:
+            self.load_databases()
+            self.load()
+            self.dump_to_file()
         
     def load(self, online = True, CHEMICAL_DB = None, BUYABLE_DB = None, max_ppg = 1e10):
         '''

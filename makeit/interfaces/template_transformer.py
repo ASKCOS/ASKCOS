@@ -41,7 +41,7 @@ class TemplateTransformer(object):
         else:
             if precursor_prioritizer == gc.heuristic:
                 precursor = HeuristicPrecursorPrioritizer()
-            elif precursor_prioritizer == gc.scs:
+            elif precursor_prioritizer == gc.scscore:
                 precursor = SCScorePrecursorPrioritizer()
             elif precursor_prioritizer == gc.natural:
                 precursor = DefaultPrioritizer()
