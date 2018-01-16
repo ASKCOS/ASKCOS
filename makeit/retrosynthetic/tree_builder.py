@@ -221,12 +221,14 @@ class TreeBuilder:
         children = []
         for precursor in precursors:
             children.append((
-                {'template': precursor['tforms'][0],
-                 'template_score': precursor['template_score'],
-                 'necessary_reagent': precursor['necessary_reagent'],
-                 'num_examples': precursor['num_examples'],
-                 'score': precursor['score'],
-                 },
+                {
+                    'tforms': precursor['tforms'],
+                    'template': precursor['tforms'][0],
+                    'template_score': precursor['template_score'],
+                    'necessary_reagent': precursor['necessary_reagent'],
+                    'num_examples': precursor['num_examples'],
+                    'score': precursor['score'],
+                },
                 precursor['smiles_split']
             ))
 
@@ -494,7 +496,9 @@ class TreeBuilder:
                                                 'num_examples'], children=path,
                                             template_score=float(self.tree_dict[rxn_id][
                                                                  'template_score']),
-                                            smiles='.'.join(sorted([self.tree_dict[x]['smiles'] for x in self.tree_dict[rxn_id]['rcts']])) + '>>' + self.tree_dict[chem_id]['smiles'])]
+                                            smiles='.'.join(sorted([self.tree_dict[x]['smiles'] for x in self.tree_dict[
+                                                            rxn_id]['rcts']])) + '>>' + self.tree_dict[chem_id]['smiles'],
+                                            tforms=self.tree_dict[rxn_id]['tforms'])]
 
         def DLS_rxn(rxn_id, depth):
             '''Return children paths starting from a specific rxn_id
