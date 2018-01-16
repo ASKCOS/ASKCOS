@@ -169,7 +169,7 @@ def find_synthesis():
                     args.template_prioritization, args.precursor_prioritization)
     MyLogger.initialize_logFile(makeit.ROOT, makeit.case_dir)
 
-    trees = makeit.construct_buyable_trees()
+    tree_status, trees = makeit.construct_buyable_trees()
     MyLogger.print_and_log(
         'MAKEIT generated {} buyable tree(s) that meet(s) all constraints.'.format(len(trees)), makeit_loc)
     feasible_trees = makeit.evaluate_synthesis_trees(trees)

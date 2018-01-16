@@ -1,11 +1,12 @@
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 
+
 class RetroResult:
     '''
     A class to store the results of a one-step retrosynthesis.
     '''
-    
+
     def __init__(self, target_smiles):
         self.target_smiles = target_smiles
         self.precursors = []
@@ -20,7 +21,7 @@ class RetroResult:
                 # Just need to add the fact that this template_id can make it
                 old_precursor.template_ids |= set(precursor.template_ids)
                 old_precursor.num_examples += precursor.num_examples
-                #Keep max score
+                # Keep max score
                 if old_precursor.template_score < precursor.template_score:
                     old_precursor.template_score = precursor.template_score
                 return
@@ -28,15 +29,16 @@ class RetroResult:
         precursor.prioritize(prioritizer)
         self.precursors.append(precursor)
 
-    def return_top(self, n = 50):
+    def return_top(self, n=50):
         '''
         Returns the top n precursors as a list of dictionaries, 
         sorted by descending score
         '''
         top = []
-        for (i, precursor) in enumerate(sorted(self.precursors, \
-                key = lambda x: (x.retroscore, x.num_examples), reverse = True)):
-            #Casts to float are necessary to maintain JSON serializability when using celery
+        for (i, precursor) in enumerate(sorted(self.precursors,
+                                               key=lambda x: x.retroscore, reverse=True)):
+            # Casts to float are necessary to maintain JSON serializability
+            # when using celery
             top.append({
                 'rank': i + 1,
                 'smiles': '.'.join(precursor.smiles_list),
@@ -44,19 +46,21 @@ class RetroResult:
                 'score': float(precursor.retroscore),
                 'num_examples': precursor.num_examples,
                 'tforms': sorted(list(precursor.template_ids)),
-                'template_score':float(precursor.template_score),
+                'template_score': float(precursor.template_score),
                 'necessary_reagent': precursor.necessary_reagent,
-                })
-            if i + 1 == n: 
+            })
+            if i + 1 == n:
                 break
         return top
+
 
 class RetroPrecursor:
     '''
     A class to store a single set of precursor(s) for a retrosynthesis
     does NOT contain the target molecule information
     '''
-    def __init__(self, smiles_list = [], template_id = -1, template_score = 1, num_examples = 0, necessary_reagent = ''):
+
+    def __init__(self, smiles_list=[], template_id=-1, template_score=1, num_examples=0, necessary_reagent=''):
         self.retroscore = 0
         self.num_examples = num_examples
         self.smiles_list = smiles_list

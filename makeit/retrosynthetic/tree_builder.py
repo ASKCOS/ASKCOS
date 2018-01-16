@@ -31,9 +31,11 @@ class TreeBuilder:
         self.max_depth = max_depth
         self.expansion_time = expansion_time
         self.template_prioritization = template_prioritization
-        MyLogger.print_and_log('Using {} method for template prioritization.'.format(self.template_prioritization), treebuilder_loc)
+        MyLogger.print_and_log('Using {} method for template prioritization.'.format(
+            self.template_prioritization), treebuilder_loc)
         self.precursor_prioritization = precursor_prioritization
-        MyLogger.print_and_log('Using {} method for precursor prioritization.'.format(self.precursor_prioritization), treebuilder_loc)
+        MyLogger.print_and_log('Using {} method for precursor prioritization.'.format(
+            self.precursor_prioritization), treebuilder_loc)
         self.nproc = nproc
         self.chiral = chiral
 
@@ -349,7 +351,7 @@ class TreeBuilder:
                     #print('Worker {} grabbed {} (ID {}) to expand from queue {}'.format(i, smiles, _id, j))
                     result = self.retroTransformer.get_outcomes(smiles, self.mincount, (self.precursor_prioritization,
                                                                                         self.template_prioritization),
-                                                                template_count = self.template_count)
+                                                                template_count=self.template_count)
                     precursors = result.return_top(n=self.max_branching)
                     self.results_queue.put((_id, smiles, precursors, None))
                     #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
@@ -397,7 +399,7 @@ class TreeBuilder:
             if self.max_depth == 1:
                 result = self.retroTransformer.get_outcomes(target, self.mincount, (self.precursor_prioritization,
                                                                                     self.template_prioritization),
-                                                            template_count = self.template_count)
+                                                            template_count=self.template_count)
                 precursors = result.return_top(n=self.max_branching)
                 children = self.get_children(precursors)
                 self.add_children(children, target, 1)
@@ -406,9 +408,26 @@ class TreeBuilder:
                 self.set_initial_target(target)
                 self.coordinate()
 
+    def tree_status(self):
+        '''Summarize size of tree after expansion'''
+        num_chemicals = 0
+        num_reactions = 0
+        at_depth = {}
+        for _id, node in self.tree_dict.iteritems():
+            depth = node['depth']
+            if depth % 1 == 0:
+                num_chemicals += 1
+            else:
+                num_reactions += 1
+            if depth not in at_depth:
+                at_depth[depth] = 1
+            else:
+                at_depth[depth] += 1
+        return (num_chemicals, num_reactions, at_depth)
+
     def get_buyable_paths(self, target, max_depth=3, max_branching=25, expansion_time=240, template_prioritization=None,
                           precursor_prioritization=None, nproc=1, mincount=25, chiral=True, max_trees=25, max_ppg=1e10,
-                          known_bad_reactions=[], forbidden_molecules=[], template_count = 10000):
+                          known_bad_reactions=[], forbidden_molecules=[], template_count=10000):
         '''Get viable synthesis trees using an iterative deepening depth-first search'''
 
         self.mincount = mincount
@@ -558,7 +577,7 @@ class TreeBuilder:
                     max_trees), treebuilder_loc)
                 break
 
-        return trees
+        return (self.tree_status(), trees)
 
 if __name__ == '__main__':
 
