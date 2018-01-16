@@ -3,6 +3,7 @@ import makeit.global_config as gc
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import numpy as np
+from makeit.utilities.buyable.pricer import Pricer
 from makeit.utilities.io.logging import MyLogger
 import math
 import sys
@@ -27,6 +28,8 @@ class SCScorePrecursorPrioritizer(Prioritizer):
         self.FP_rad = 2
         self.score_scale = score_scale
         self._restored = False
+        self.pricer = None
+        self._loaded = False
 
     def load_model(self, FP_len=1024, model_tag='1024bool'):
         self.FP_len = FP_len
@@ -59,7 +62,9 @@ class SCScorePrecursorPrioritizer(Prioritizer):
                                                                       useChirality=True), dtype=np.bool)
         self.mol_to_fp = mol_to_fp
 
+        self.pricer = Pricer()
         self._restored = True
+        self._loaded = True
 
     def smi_to_fp(self, smi):
         if not smi:
@@ -81,6 +86,9 @@ class SCScorePrecursorPrioritizer(Prioritizer):
         return x
 
     def get_priority(self, retroProduct, **kwargs):
+        if not self._loaded:
+            self.load_model()
+
         if not isinstance(retroProduct, str):
             scores = []
             for smiles in retroProduct.smiles_list:
@@ -100,6 +108,11 @@ class SCScorePrecursorPrioritizer(Prioritizer):
             return np.max(list_of_scores)
 
     def get_score_from_smiles(self, smiles):
+        # Check buyable
+        ppg = self.pricer.lookup_smiles(smiles, alreadyCanonical=True)
+        if ppg:
+            return ppg / 100.
+        
         fp = np.array((self.smi_to_fp(smiles)), dtype=np.float32)
         if sum(fp) == 0:
             cur_score = 0.
