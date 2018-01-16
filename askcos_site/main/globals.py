@@ -60,7 +60,7 @@ save_path = get_retrotransformer_chiral_path(
 )
 if os.path.isfile(save_path):
     RetroTransformerChiral = transformer.RetroTransformer()
-    RetroTransformer.load_from_file(True, save_path, chiral=True, rxns=False)
+    RetroTransformerChiral.load_from_file(True, save_path, chiral=True, rxns=False)
     RetroTransformerChiral.reorder()
 else:
     mincount_retro = settings.RETRO_TRANSFORMS_CHIRAL['mincount']

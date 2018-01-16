@@ -19,7 +19,7 @@ lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
 CORRESPONDING_QUEUE = 'tb_c_worker'
 CORRESPONDING_RESERVABLE_QUEUE = 'tb_c_worker_reservable'
-
+retroTransformer = None
 
 @celeryd_init.connect
 def configure_worker(options={}, **kwargs):
@@ -62,6 +62,7 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
     global retroTransformer
     result = retroTransformer.get_outcomes(
         smiles, mincount, (precursor_prioritizer, template_prioritizer), template_count = template_count)
+    print(result)
     precursors = result.return_top(n=max_branching)
     return (smiles, precursors)
 
