@@ -18,13 +18,13 @@
 <form method="post" id="smiles_form" action="{% url 'retro_home' %}">
 <table class="table table-borderless table-nonfluid">
     <tr>
-        <td>Target compound:</td>
+        <th>Target compound:</td>
         <td>
             <input id="id_smiles" maxlength="400" name="smiles" type="text" value="{{ form.smiles }}">
         </td>
     </tr>
     <tr>
-        <td>Template prioritization:</td>
+        <th>Template prioritization:</td>
         <td>
             <select id="id_template_prioritzation" name="template_prioritization">
                 <option value="Popularity" {% if form.template_prioritization == 'Popularity' %}selected{% endif %}>Apply all templates</option>
@@ -33,7 +33,7 @@
         </td>
     </tr>
     <tr>
-        <td>Precursor scoring:</td>
+        <th>Precursor scoring:</td>
         <td>
             <select id="id_precursor_prioritization" name="precursor_prioritization">
                 <option value="Heuristic" {% if form.precursor_prioritization == 'Heuristic' %}selected{% endif %}>Heuristic</option>

@@ -8,7 +8,7 @@ import django.contrib.auth.views
 from pymongo.message import bson
 from bson.objectid import ObjectId
 import time
-import numpy as np 
+import numpy as np
 import json
 import os
 
@@ -20,6 +20,7 @@ from .price import price_smiles_func
 from .users import can_control_robot
 from ..forms import SmilesInputForm
 from ..models import BlacklistedReactions
+
 
 @login_required
 def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
@@ -35,9 +36,11 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
     print(request.method)
     if request.method == 'POST':
         print(context['form'])
-        smiles = str(request.POST['smiles']) # not great...
-        context['form']['template_prioritization'] = str(request.POST['template_prioritization'])
-        context['form']['precursor_prioritization'] = str(request.POST['precursor_prioritization'])
+        smiles = str(request.POST['smiles'])  # not great...
+        context['form']['template_prioritization'] = str(
+            request.POST['template_prioritization'])
+        context['form']['precursor_prioritization'] = str(
+            request.POST['precursor_prioritization'])
 
         smiles = resolve_smiles(smiles)
         if smiles is None:
@@ -52,9 +55,9 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         #     return retro_target(request, smiles, chiral=False)
         # if 'retro_chiral' in request.POST:
         #     return retro_target(request, smiles, chiral=True)
-        
+
         # Look up target
-        smiles_img = reverse('draw_smiles', kwargs={'smiles':smiles})
+        smiles_img = reverse('draw_smiles', kwargs={'smiles': smiles})
         context['target'] = {
             'smiles': smiles,
             'img': smiles_img
@@ -64,7 +67,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         context['form']['smiles'] = smiles
         template_prioritization = context['form']['template_prioritization']
         precursor_prioritization = context['form']['precursor_prioritization']
-        
+
         print('Retro expansion conditions:')
         print(smiles)
         print(template_prioritization)
@@ -73,16 +76,19 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         startTime = time.time()
         if chiral:
             from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors
-            res = get_top_precursors.delay(smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=max_n)
+            res = get_top_precursors.delay(
+                smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=max_n)
             (smiles, precursors) = res.get(300)
-            context['precursors'] = precursors # allow up to 5 minutes...can be pretty slow
+            # allow up to 5 minutes...can be pretty slow
+            context['precursors'] = precursors
             context['footnote'] = RETRO_CHIRAL_FOOTNOTE
         else:
             from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors
-            # Use apply_async so we can force high priority 
-            res = get_top_precursors.apply_async(args=(smiles, template_prioritization, precursor_prioritization), 
-                kwargs={'mincount':0, 'max_branching':max_n, 'raw_results':True}, 
-                priority=255)
+            # Use apply_async so we can force high priority
+            res = get_top_precursors.apply_async(args=(smiles, template_prioritization, precursor_prioritization),
+                                                 kwargs={
+                                                     'mincount': 0, 'max_branching': max_n, 'raw_results': True},
+                                                 priority=255)
             context['precursors'] = res.get(120)
             context['footnote'] = RETRO_FOOTNOTE
         context['time'] = '%0.3f' % (time.time() - startTime)
@@ -91,10 +97,12 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         # Also add up total number of examples
         for (i, precursor) in enumerate(context['precursors']):
             context['precursors'][i]['tforms'] = \
-                [dict(RetroTransformer.lookup_id(ObjectId(_id)), **{'id':str(_id)}) for _id in precursor['tforms']]
+                [dict(RetroTransformer.lookup_id(ObjectId(_id)), **
+                      {'id': str(_id)}) for _id in precursor['tforms']]
             context['precursors'][i]['mols'] = []
             # Overwrite num examples
-            context['precursors'][i]['num_examples'] = sum(tform['count'] for tform in precursor['tforms'])
+            context['precursors'][i]['num_examples'] = sum(
+                tform['count'] for tform in precursor['tforms'])
             for smiles in precursor['smiles_split']:
                 ppg = price_smiles_func(smiles)
                 context['precursors'][i]['mols'].append({
@@ -103,6 +111,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
                 })
 
     else:
+
 
         # Define suggestions
         context['suggestions'] = [
@@ -138,58 +147,6 @@ def retro_target(request, smiles):
     '''
     return retro(request, smiles=smiles)
 
-    # Render form with target
-    context = {}
-    smiles = resolve_smiles(smiles)
-    context['form'] = SmilesInputForm({'smiles': smiles})
-    if smiles is None:
-        context['err'] = 'Could not parse!'
-        return render(request, 'retro.html', context)
-
-    # Look up target
-    smiles_img = reverse('draw_smiles', kwargs={'smiles':smiles})
-    context['target'] = {
-        'smiles': smiles,
-        'img': smiles_img
-    }
-
-    # Perform retrosynthesis
-    template_prioritization = 'Popularity'
-    precursor_prioritization = 'Heuristic'
-    startTime = time.time()
-    if chiral:
-        from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors
-        res = get_top_precursors.delay(smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=max_n)
-        (smiles, precursors) = res.get(300)
-        context['precursors'] = precursors # allow up to 5 minutes...can be pretty slow
-        context['footnote'] = RETRO_CHIRAL_FOOTNOTE
-    else:
-        from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors
-        # Use apply_async so we can force high priority 
-        res = get_top_precursors.apply_async(args=(smiles, template_prioritization, precursor_prioritization), 
-            kwargs={'mincount':0, 'max_branching':max_n, 'raw_results':True}, 
-            priority=255)
-        context['precursors'] = res.get(120)
-        context['footnote'] = RETRO_FOOTNOTE
-    context['time'] = '%0.3f' % (time.time() - startTime)
-
-    # Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
-    # Also add up total number of examples
-    for (i, precursor) in enumerate(context['precursors']):
-        context['precursors'][i]['tforms'] = \
-            [dict(RetroTransformer.lookup_id(ObjectId(_id)), **{'id':str(_id)}) for _id in precursor['tforms']]
-        context['precursors'][i]['mols'] = []
-        # Overwrite num examples
-        context['precursors'][i]['num_examples'] = sum(tform['count'] for tform in precursor['tforms'])
-        for smiles in precursor['smiles_split']:
-            ppg = price_smiles_func(smiles)
-            context['precursors'][i]['mols'].append({
-                'smiles': smiles,
-                'ppg': '${}/g'.format(ppg) if ppg else 'cannot buy'
-            })
-
-    return render(request, 'retro.html', context)
-
 @login_required
 def retro_interactive(request, target=None):
     '''Builds an interactive retrosynthesis page'''
@@ -222,38 +179,48 @@ def ajax_start_retro_celery(request):
     expansion_time = int(request.GET.get('expansion_time', 60))
     max_ppg = int(request.GET.get('max_ppg', 10))
     chiral = json.loads(request.GET.get('chiral', 'false'))
+    precursor_prioritization = request.GET.get(
+        'precursor_prioritization', 'Heuristic')
+    template_prioritization = request.GET.get(
+        'template_prioritization', 'Relevance')
 
-    blacklisted_reactions = list(set([x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))
+    blacklisted_reactions = list(set(
+        [x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))
 
-    from askcos_site.askcos_celery.treebuilder.coordinator import get_buyable_paths
-    res = get_buyable_paths.delay(smiles, mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth, 
-        max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5, chiral=chiral,
-        known_bad_reactions=blacklisted_reactions)
+    from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
+    res = get_buyable_paths.delay(smiles, template_prioritization, precursor_prioritization,
+                                  mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth,
+                                  max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5, 
+                                  chiral=chiral, known_bad_reactions=blacklisted_reactions)
     (tree_status, trees) = res.get(expansion_time * 3)
     print('Tree building {} for user {} ({} forbidden reactions)'.format(
         smiles, request.user, len(blacklisted_reactions)))
     # print(trees)
 
     (num_chemicals, num_reactions, at_depth) = tree_status
-    data['html_stats'] = 'After expanding, {} total chemicals and {} total reactions'.format(num_chemicals, num_reactions)
+    data['html_stats'] = 'After expanding, {} total chemicals and {} total reactions'.format(
+        num_chemicals, num_reactions)
     for (depth, count) in sorted(at_depth.iteritems(), key=lambda x: x[0]):
         label = 'Could not format label...?'
         if int(float(depth)) == float(depth):
             label = 'chemicals'
         else:
             label = 'reactions'
-        data['html_stats'] += '<br>   at depth {}, {} {}'.format(depth, count, label)
+        data[
+            'html_stats'] += '<br>   at depth {}, {} {}'.format(depth, count, label)
 
     if trees:
-        data['html_trees'] = render_to_string('trees_only.html', 
-            {'trees': trees, 'can_control_robot': can_control_robot(request)})
+        data['html_trees'] = render_to_string('trees_only.html',
+                                              {'trees': trees, 'can_control_robot': can_control_robot(request)})
     else:
         data['html_trees'] = 'No trees resulting in buyable chemicals found! If the program is having trouble with your target, you may want to explore the One-Step Retrosynthesis options and help guide the search.'
-    
+
     # Save to session in case user wants to export
     request.session['last_retro_interactive'] = trees
-    print('Saved {} trees to {} session'.format(len(trees), request.user.get_username()))
+    print('Saved {} trees to {} session'.format(
+        len(trees), request.user.get_username()))
 
-    return JsonResponse(data)     
+    return JsonResponse(data)
+
 
 

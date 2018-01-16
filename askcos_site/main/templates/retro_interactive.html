@@ -58,6 +58,8 @@ $("#start_retro").click(function () {
                 max_branching: $("#max_branching").val(),
                 retro_mincount: $("#retro_mincount").val(),
                 expansion_time: $("#expansion_time").val(),
+                template_prioritization: $("#id_template_prioritzation").val(),
+                precursor_prioritization: $("#id_precursor_prioritization").val(),
                 max_ppg: $("#max_ppg").val(),
                 chiral: $("#chiral").is(":checked"),
             },
@@ -199,6 +201,23 @@ $(document).ready(function() {
     Expansion time (s): <a href="#" data-toggle="tooltip" title="How long would you like to let the expansion run for? Right now, the tree builder runs in the background and you will not see any results until it terminates based on this expansion time. The expansion time is highly dependent on the depth and branching ratio of your search. For shorter syntheses (~3 steps and ~25 branching), 60 seconds might be sufficient. For longer or broader syntheses, you may want to try up to 300 seconds. The maximum we allow is 600 seconds."><span class="glyphicon glyphicon-info-sign"></span></a></td>
     <td><input type="number" id="expansion_time" style="width: 5em" min="5" max="600" value="{{expansion_time_default}}">
 </td>
+</tr>
+<tr><th></th>
+    <td>Template prioritization: <a href="#" data-toggle="tooltip" title="How would you like to prioritize template application? If only relevant tempaltes are applied, the expansion is more focused and can be conducted much faster. This setting is recommended."><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td>
+        <select id="id_template_prioritzation" name="template_prioritization">
+            <option value="Popularity">All templates</option>
+            <option value="Relevance" selected>Relevant templates</option>
+        </select>
+    </td>
+    <td>Precursor scoring: <a href="#" data-toggle="tooltip" title="How would you like precursors to be ranked? This determines the priority of different branches, so it is quite important. If using only relevant templates, we suggest heuristic or natural. If using all templates, we recommend heuristic or SCScore."><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td>
+        <select id="id_precursor_prioritization" name="precursor_prioritization">
+            <option value="Heuristic" >Heuristic</option>
+            <option value="SCScore" >SCScore</option>
+            <option value="Natural" >Natural</option>
+        </select>
+    </td>
 </tr>
 </tbody>
 
