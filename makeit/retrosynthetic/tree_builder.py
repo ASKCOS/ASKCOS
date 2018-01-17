@@ -415,8 +415,8 @@ class TreeBuilder:
         num_chemicals = 0
         num_reactions = 0
         at_depth = {}
-        for _id, node in self.tree_dict.iteritems():
-            depth = node['depth']
+        for _id in self.tree_dict.keys():
+            depth = self.tree_dict[_id]['depth']
             if depth % 1 == 0:
                 num_chemicals += 1
             else:

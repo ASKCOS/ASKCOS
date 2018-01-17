@@ -252,13 +252,12 @@ class TemplateNeuralNetScorer(Scorer):
     def set_template_count(self, template_count):
         self.template_count = template_count
 
-    def evaluate(self, reactants_smiles, contexts, batch_size=250, template_prioritization=gc.popularity, nproc=1,
-                 soft_max=True, template_count=10000):
+    def evaluate(self, reactants_smiles, contexts, **kwargs):
         self.reset()
-        self.nproc = nproc
-        self.max_template_count = template_count
+        self.nproc = kwargs.pop('nproc', 1)
+        batch_size = kwargs.pop('batch_size', 250)
         if not self.celery:
-            for i in range(nproc):
+            for i in range(self.nproc):
                 self.idle.append(True)
                 self.expansion_queue = Queue()
 
@@ -266,7 +265,7 @@ class TemplateNeuralNetScorer(Scorer):
         clean_reactant_mapping(mol)
         reactants_smiles = Chem.MolToSmiles(mol)
         with allow_join_result():
-            self.template_prioritization = template_prioritization
+            self.template_prioritization = kwargs.pop('template_prioritization', gc.popularity)
             self.prepare()
             self.initialize(reactants_smiles, batch_size)
             (all_results, candidate_edits) = self.get_candidate_edits(reactants_smiles)
@@ -298,7 +297,7 @@ class TemplateNeuralNetScorer(Scorer):
                 scores = self.model.predict(candidate_tensor + context_tensor)
                 probs = scores
 
-                if soft_max:
+                if kwargs.pop('soft_max', True):
                     probs = softmax(scores)
 
                 this_outcome = sorted(zip(all_results, scores[0], probs[

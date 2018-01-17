@@ -36,21 +36,20 @@ class Evaluator():
         self.celery = celery
         self.scorers = {}
 
-    def evaluate(self, reactant_smiles, target, contexts, mincount=25, forward_scorer='', nproc=1, batch_size=250,
-                 worker_no = 0, template_count=10000):
+    def evaluate(self, reactant_smiles, target, contexts, forward_scorer='Template_Based',
+                 worker_no=0, top_n=100, return_all_outcomes=False, chiral=False, **kwargs):
         with allow_join_result():
-            target = Chem.MolToSmiles(Chem.MolFromSmiles(target))
+            target = Chem.MolToSmiles(Chem.MolFromSmiles(target), chiral)
+            
             if not self.scorers:
-                self.get_scorers(mincount, worker_no = worker_no)
+                self.get_scorers(kwargs.get('mincount', 25), worker_no=worker_no)
             if not forward_scorer:
                 MyLogger.print_and_log(
                     'Cannot evaluate a reaction without a forward scoring method. Exiting...', evaluator_loc, level=3)
             else:
                 scorer = self.scorers[forward_scorer]
 
-                all_outcomes = scorer.evaluate(reactant_smiles, contexts, batch_size=batch_size,
-                                               template_prioritization=gc.popularity, nproc=nproc, soft_max=True,
-                                               template_count=template_count)
+                all_outcomes = scorer.evaluate(reactant_smiles, contexts, **kwargs)
 
                 # output:
                 # - top product for each context + score
@@ -58,6 +57,9 @@ class Evaluator():
                 evaluation_results = []
                 for i, outcomes in enumerate(all_outcomes):
                     evaluation_result = {'context': contexts[i]}
+                    if return_all_outcomes:
+                        evaluation_result['outcomes'] = outcomes[:top_n]
+
                     evaluation_result['top_product'] = {
                         'smiles': outcomes[0]['outcome'].smiles,
                         'template_ids': outcomes[0]['outcome'].template_ids,
@@ -93,11 +95,12 @@ class Evaluator():
                     evaluation_results.append(evaluation_result)
             return evaluation_results
 
-    def get_scorers(self, mincount, worker_no = 0):
+    def get_scorers(self, mincount, worker_no=0):
 
-        self.scorers[gc.fastfilter] = load_fastfilter(worker_no = worker_no)
-        self.scorers[gc.templatebased] = load_templatebased(mincount=mincount, celery=self.celery, worker_no = worker_no)
-        self.scorers[gc.templatefree] = load_templatefree(worker_no = worker_no)
+        self.scorers[gc.fastfilter] = load_fastfilter(worker_no=worker_no)
+        self.scorers[gc.templatebased] = load_templatebased(
+            mincount=mincount, celery=self.celery, worker_no=worker_no)
+        self.scorers[gc.templatefree] = load_templatefree(worker_no=worker_no)
 
 if __name__ == '__main__':
 
