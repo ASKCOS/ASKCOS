@@ -8,6 +8,7 @@ import makeit.global_config as gc
 CORRESPONDING_QUEUE = 'cr_coordinator'
 import time
 
+
 @celeryd_init.connect
 def configure_worker(options={}, **kwargs):
     if 'queues' not in options:
@@ -19,7 +20,7 @@ def configure_worker(options={}, **kwargs):
 
 
 @shared_task
-def get_context_recommendations(rxn, n=10, singleSlvt=True, with_smiles=True, context_recommender=''):
+def get_context_recommendations(rxn, n=10, singleSlvt=True, with_smiles=True, context_recommender='Nearest_Neighbor'):
     '''Retrieve a context recommendation given the reaction to attempt.
 
     rxn = [reacants, products], where each is a list of SMILES

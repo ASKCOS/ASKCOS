@@ -127,7 +127,7 @@ $(document).ready(function() {
 <!-- Placeholder for rendering image after a SMILES string is entered -->
 <tr id="reagent_mol_wrapper" style="display:none"><th style="vertical-align: text-top;"">Parsed reagents:</th><td id="reagents_image"></td></tr>
 
-<tr><th>Solvent: </th><td><select id="solvent">{% for solvent in solvent_choices %}<option value="{{ solvent.smiles }}" {% if solvent.name == solventselected %}selected{% endif %}>{{ solvent.name }}</option>{% endfor %}</select></td></tr>
+<tr><th>Solvent: </th><td><select id="solvent"><option value="">None</option>{% for solvent in solvent_choices %}<option value="{{ solvent.smiles }}" {% if solvent.name == solventselected %}selected{% endif %}>{{ solvent.name }}</option>{% endfor %}</select></td></tr>
 
 
 <tr><th>Temperature (Celsius): </th><td><input id="temperature" maxlength="6" size="6" type="text" value="{{ temperature }}"/></td></tr>
