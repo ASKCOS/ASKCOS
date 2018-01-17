@@ -40,7 +40,7 @@ class Evaluator():
                  worker_no=0, top_n=100, return_all_outcomes=False, chiral=False, **kwargs):
         with allow_join_result():
             target = Chem.MolToSmiles(Chem.MolFromSmiles(target), chiral)
-            
+
             if not self.scorers:
                 self.get_scorers(kwargs.get('mincount', 25), worker_no=worker_no)
             if not forward_scorer:
@@ -61,9 +61,9 @@ class Evaluator():
                         evaluation_result['outcomes'] = outcomes[:top_n]
 
                     evaluation_result['top_product'] = {
-                        'smiles': outcomes[0]['outcome'].smiles,
-                        'template_ids': outcomes[0]['outcome'].template_ids,
-                        'num_examples': outcomes[0]['outcome'].num_examples,
+                        'smiles': outcomes[0]['outcome'].smiles if not self.celery else outcomes[0]['outcome']['smiles'],
+                        'template_ids': outcomes[0]['outcome'].template_ids if not self.celery else outcomes[0]['outcome']['template_ids'],
+                        'num_examples': outcomes[0]['outcome'].num_examples if not self.celery else outcomes[0]['outcome']['num_examples'],
                         'rank': outcomes[0]['rank'],
                         'score': outcomes[0]['score'],
                         'prob': outcomes[0]['prob'],
@@ -71,12 +71,13 @@ class Evaluator():
                     evaluation_result['number_of_outcomes'] = len(outcomes)
                     found_target = False
                     for outcome in outcomes:
-                        if target in outcome['outcome'].smiles:
+                        outcome_smiles = outcome['outcome'].smiles if not self.celery else outcome['outcome']['smiles']
+                        if target in outcome_smiles:
                             found_target = True
                             evaluation_result['target'] = {
-                                'smiles': outcome['outcome'].smiles,
-                                'template_ids': outcome['outcome'].template_ids,
-                                'num_examples': outcome['outcome'].num_examples,
+                                'smiles': outcome['outcome'].smiles if not self.celery else outcome['outcome']['smiles'],
+                                'template_ids': outcome['outcome'].template_ids if not self.celery else outcome['outcome']['template_ids'],
+                                'num_examples': outcome['outcome'].num_examples if not self.celery else outcome['outcome']['num_examples'],
                                 'rank': outcome['rank'],
                                 'score': outcome['score'],
                                 'prob': outcome['prob'],

@@ -50,5 +50,13 @@ class ForwardProduct:
     
     def get_edits(self):
         return self.edits
+
     def get_smiles(self):
         return self.smiles
+
+    def as_dict(self):
+        return {
+            'smiles': self.smiles,
+            'template_ids': [str(x) for x in self.template_ids],
+            'num_examples': self.num_examples,
+        }

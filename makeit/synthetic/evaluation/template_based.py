@@ -339,8 +339,8 @@ class TemplateNeuralNetScorer(Scorer):
                 pass
 
         for product in stiched_result.products:
-            all_results.append(product)
-            candidate_edits.append((product.get_smiles, product.get_edits()))
+            all_results.append(product.as_dict())
+            candidate_edits.append((product.get_smiles(), product.get_edits()))
 
         self.stop_expansion()
         return (all_results, candidate_edits)
