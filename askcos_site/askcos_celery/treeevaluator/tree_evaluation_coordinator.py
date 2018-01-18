@@ -68,3 +68,19 @@ def evaluate_trees(self, tree_list, context_scoring_method='', context_recommend
                                        template_count = template_count)
     print('Task completed, returning results.')
     return results
+
+@shared_task
+def get_context_options():
+    return [gc.nearest_neighbor,]
+
+@shared_task
+def get_context_scoring_options():
+    return [gc.probability, gc.rank]
+
+@shared_task
+def get_forward_scoring_options():
+    return [gc.template_based, gc.template_free, gc.fastfilter]
+
+@shared_task
+def get_tree_scoring_options():
+    return [gc.forwardonly, gc.templateonly, gc.product]

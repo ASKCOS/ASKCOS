@@ -63,3 +63,7 @@ def get_outcomes(reactants_smiles, mincount=25, start_at=0, end_at=1e9, template
 def template_count():
     global forwardTransformer
     return forwardTransformer.template_count()
+
+@shared_task
+def get_template_options():
+    return [gc.popularity, gc.relevance, gc.natural]

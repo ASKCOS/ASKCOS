@@ -20,7 +20,7 @@ def configure_worker(options={}, **kwargs):
 
 
 @shared_task
-def get_context_recommendations(rxn, n=10, singleSlvt=True, with_smiles=True, context_recommender='Nearest_Neighbor'):
+def get_context_recommendations(rxn, n=10, singleSlvt=True, with_smiles=True, context_recommender=gc.nearest_neighbor):
     '''Retrieve a context recommendation given the reaction to attempt.
 
     rxn = [reacants, products], where each is a list of SMILES
@@ -37,3 +37,7 @@ def get_context_recommendations(rxn, n=10, singleSlvt=True, with_smiles=True, co
             return res.get()
         else:
             raise NotImplementedError
+        
+@shared_task
+def get_recommender_types():
+    return [gc.nearest_neighbor,]

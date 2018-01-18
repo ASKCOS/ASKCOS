@@ -87,3 +87,10 @@ def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritiz
                                            template_count=template_count, forbidden_molecules=forbidden_molecules)
     print('Task completed, returning results.')
     return result
+@shared_task
+def get_template_options():
+    return [gc.popularity, gc.relevance, gc.natural]
+
+@shared_task
+def get_precursor_options():
+    return [gc.heuristic, gc.scscore, gc.natural]
