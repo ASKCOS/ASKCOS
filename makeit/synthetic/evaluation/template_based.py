@@ -301,15 +301,23 @@ class TemplateNeuralNetScorer(Scorer):
                     probs = softmax(scores)
 
                 this_outcome = sorted(zip(all_results, scores[0], probs[
-                                      0]), key=lambda x: x[1], reverse=True)
-                outcomes = []
+                                      0]), key=lambda x: x[2], reverse=True)
+
+                # Convert to outcome dict, canonicalizing by SMILES
+                outcome_dict = {}
                 for i, outcome in enumerate(this_outcome):
-                    outcomes.append({'rank': i + 1,
-                                     'outcome': outcome[0],
-                                     'score': float(outcome[1]),
-                                     'prob': float(outcome[2]),
-                                     })
-                all_outcomes.append(outcomes)
+                    outcome_smiles = outcome[0].smiles if not self.celery else outcome[0]['smiles']
+                    if outcome_smiles not in outcome_dict:
+                        outcome_dict[outcome_smiles] = {
+                            'rank': i + 1,
+                            'outcome': outcome[0],
+                            'score': float(outcome[1]),
+                            'prob': float(outcome[2]),
+                        }
+                    else: # just add probability
+                        outcome_dict[outcome_smiles]['prob'] += float(outcome[2])
+
+                all_outcomes.append(sorted(outcome_dict.values(), key=lambda x: x['prob'], reverse=True))
 
             return all_outcomes
 

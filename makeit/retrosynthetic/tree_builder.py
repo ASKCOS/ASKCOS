@@ -429,7 +429,7 @@ class TreeBuilder:
 
     def get_buyable_paths(self, target, max_depth=3, max_branching=25, expansion_time=240, template_prioritization=None,
                           precursor_prioritization=None, nproc=1, mincount=25, chiral=True, max_trees=25, max_ppg=1e10,
-                          known_bad_reactions=[], forbidden_molecules=[], template_count=10000):
+                          known_bad_reactions=[], forbidden_molecules=[], template_count=100):
         '''Get viable synthesis trees using an iterative deepening depth-first search'''
 
         self.mincount = mincount

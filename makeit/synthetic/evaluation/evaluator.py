@@ -72,7 +72,7 @@ class Evaluator():
                     found_target = False
                     for outcome in outcomes:
                         outcome_smiles = outcome['outcome'].smiles if not self.celery else outcome['outcome']['smiles']
-                        if target in outcome_smiles:
+                        if target == outcome_smiles:
                             found_target = True
                             evaluation_result['target'] = {
                                 'smiles': outcome['outcome'].smiles if not self.celery else outcome['outcome']['smiles'],
