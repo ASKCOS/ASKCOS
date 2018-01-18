@@ -58,7 +58,8 @@ def ajax_evaluate_rxnsmiles(request):
         reactant_smiles += contexts[0][2] # add rgt
     
     res = evaluate.delay(reactant_smiles, products[0], contexts, 
-        forward_scorer='Template_Based', mincount=synth_mincount, top_n=50)
+        forward_scorer='Template_Based', mincount=synth_mincount, top_n=50,
+        return_all_outcomes=True)
     all_outcomes = res.get(300)
 
 
@@ -78,6 +79,7 @@ def ajax_evaluate_rxnsmiles(request):
             data['html_color'] = str('#%02x%02x%02x' % (int(255), int(0), int(0)))
             return JsonResponse(data)
     plausible = [outcome['target']['prob'] for outcome in all_outcomes]
+    print('All plausibilities: {}'.format(plausible))
     ranks = [outcome['target']['rank'] for outcome in all_outcomes]
     major_prods = [outcome['top_product']['smiles'] for outcome in all_outcomes]
     major_probs = [outcome['top_product']['prob'] for outcome in all_outcomes]
@@ -92,6 +94,8 @@ def ajax_evaluate_rxnsmiles(request):
     # Report
     print('Recommended context(s): {}'.format(best_context))
     print('Plausibility: {}'.format(plausible))
+    print(all_outcomes[best_context_i])
+
     (T1, slvt1, rgt1, cat1, t1, y1) = best_context
 
     if not verbose:
@@ -112,7 +116,7 @@ def ajax_evaluate_rxnsmiles(request):
     else:
         if not rgt1: rgt1 = 'none'
         data['html'] = '<h3>Plausibility score: {} (rank {})</h3>'.format(plausible, rank)
-        data['html'] += '\n<br><u>Proposed conditions ({} tried)</u>\n'.format(len(contexts_for_predictor))
+        data['html'] += '\n<br><u>Proposed conditions ({} tried)</u>\n'.format(len(contexts))
         data['html'] += '<br>Temp: {} C<br>Reagents: {}<br>Solvent: {}\n'.format(T1, rgt1, slvt1)
         if rank != 1:
             data['html'] += '<br><br><u>Predicted major product (<i>p = {}</i>)</u>'.format(major_prob)
@@ -123,7 +127,7 @@ def ajax_evaluate_rxnsmiles(request):
         elif rank == 1:
             data['html'] += '\n<br><i>Nearest neighbor got {}% yield</i>'.format(y1)
 
-    plausible = plausible / 100.
+    # plausible = plausible / 100.
     B = 150.
     R = 255. - (plausible > 0.5) * (plausible - 0.5) * (255. - B) * 2.
     G = 255. - (plausible < 0.5) * (0.5 - plausible) * (255. - B) * 2.

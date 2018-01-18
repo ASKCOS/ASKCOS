@@ -28,7 +28,7 @@ celery -A askcos_site worker -c 6 -Q tb_c_worker -n "tb_c_worker@$(hostname)" --
 celery -A askcos_site worker -c 2 -Q tb_coordinator -n "tb_coordinator@$(hostname)"  --logfile=celery_logs/%p.log &
 
 # Tree evaluator coordinator
-celery -A askcos_site worker -c 2 -Q te_coordinator -n "te_coordinator@$(hostname)"  --logfile=celery_logs/%p.log &
+# celery -A askcos_site worker -c 2 -Q te_coordinator -n "te_coordinator@$(hostname)"  --logfile=celery_logs/%p.log &
 
 # Scoring coordinator
 celery -A askcos_site worker -c 2 -Q sc_coordinator -n "sc_coordinator@$(hostname)"  --logfile=celery_logs/%p.log &
