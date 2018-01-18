@@ -31,8 +31,9 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
 
     # Set default inputs
     context['form'] = {}
-    context['form']['template_prioritization'] = 'Popularity'
+    context['form']['template_prioritization'] = 'Relevance'
     context['form']['precursor_prioritization'] = 'Heuristic'
+    context['form']['template_count'] = '100'
     print(request.method)
     if request.method == 'POST':
         print(context['form'])
@@ -67,6 +68,13 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         context['form']['smiles'] = smiles
         template_prioritization = context['form']['template_prioritization']
         precursor_prioritization = context['form']['precursor_prioritization']
+        try:
+            template_count = int(context['form']['template_count'])
+            if (template_count < 1):
+                raise ValueError
+        except ValueError:
+            context['err'] = 'Invalid template count specified!'
+            return render(request, 'retro.html', context)
 
         print('Retro expansion conditions:')
         print(smiles)
@@ -77,7 +85,8 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         if chiral:
             from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors
             res = get_top_precursors.delay(
-                smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=max_n)
+                smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=max_n,
+                template_count=template_count)
             (smiles, precursors) = res.get(300)
             # allow up to 5 minutes...can be pretty slow
             context['precursors'] = precursors
@@ -85,10 +94,8 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         else:
             from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors
             # Use apply_async so we can force high priority
-            res = get_top_precursors.apply_async(args=(smiles, template_prioritization, precursor_prioritization),
-                                                 kwargs={
-                                                     'mincount': 0, 'max_branching': max_n, 'raw_results': True},
-                                                 priority=255)
+            res = get_top_precursors.delay(smiles, template_prioritization, precursor_prioritization,
+                mincount=0, max_branching=max_n, template_count=template_count)
             context['precursors'] = res.get(120)
             context['footnote'] = RETRO_FOOTNOTE
         context['time'] = '%0.3f' % (time.time() - startTime)
@@ -160,6 +167,9 @@ def retro_interactive(request, target=None):
     context['synth_mincount_default'] = settings.SYNTH_TRANSFORMS['mincount']
     context['expansion_time_default'] = 60
     context['max_ppg_default'] = 100
+    context['template_count_default'] = 100
+    context['template_prioritization'] = 'Relevance'
+    context['precursor_prioritization'] = 'Heuristic'
 
     if target is not None:
         context['target_mol'] = target
@@ -183,6 +193,7 @@ def ajax_start_retro_celery(request):
         'precursor_prioritization', 'Heuristic')
     template_prioritization = request.GET.get(
         'template_prioritization', 'Relevance')
+    template_count = int(request.GET.get('template_count', '100'))
 
     blacklisted_reactions = list(set(
         [x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))

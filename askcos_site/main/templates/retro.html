@@ -11,6 +11,24 @@
 
 {% block sidebar_items %}{% endblock %}
 
+
+{% block javascript %}
+<script>
+function showFields(name) {
+    if (name=='Relevance') {
+        document.getElementById('RelevanceSettings').innerHTML = 'Num. templates: <input name="template_count" maxlength="6" size="6" type="text" value="{{ form.template_count }}">';
+    } else {
+        document.getElementById('RelevanceSettings').innerHTML = '';
+    }
+}
+window.onload = function() {
+    // console.log("{{ form.template_prioritization }}");
+    showFields("{{ form.template_prioritization }}");
+}
+</script>
+{% endblock %}
+
+
 {% block page_body %}
 
 <p>Begin by entering in the SMILES string or name of the target molecule, or choose from one of the proposal targets below.</p>
@@ -26,11 +44,12 @@
     <tr>
         <th>Template prioritization:</td>
         <td>
-            <select id="id_template_prioritzation" name="template_prioritization">
+            <select id="id_template_prioritzation" name="template_prioritization" onchange="showFields(this.options[this.selectedIndex].value)">
                 <option value="Popularity" {% if form.template_prioritization == 'Popularity' %}selected{% endif %}>Apply all templates</option>
                 <option value="Relevance"  {% if form.template_prioritization == 'Relevance' %}selected{% endif %}>Apply relevant templates</option>
             </select>
         </td>
+        <td id="RelevanceSettings"></td>
     </tr>
     <tr>
         <th>Precursor scoring:</td>
