@@ -64,9 +64,6 @@ class TreeBuilder:
             def waiting_for_results():
                 waiting = [expansion_queue.empty()
                            for expansion_queue in self.expansion_queues]
-                #print 'queues',waiting
-                #print 'results', self.results_queue.empty()
-                #print 'workers',self.idle
                 waiting.append(self.results_queue.empty())
                 waiting += self.idle
                 
@@ -310,7 +307,7 @@ class TreeBuilder:
                     self.chem_to_id[mol] = chem_id
 
                     if ppg:
-                        print('{} buyable!'.format(mol))
+                        #print('{} buyable!'.format(mol))
                         if self.celery:
                             self.buyable_leaves.add(chem_id)
                         else:
@@ -369,7 +366,7 @@ class TreeBuilder:
                                                                                         self.template_prioritization),
                                                                 template_count=self.template_count)
                     precursors = result.return_top(n=self.max_branching)
-                    self.results_queue.put((_id, smiles, precursors, None))
+                    self.results_queue.put((_id, smiles, precursors))
                     #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
 
                 except VanillaQueue.Empty:
@@ -604,12 +601,12 @@ if __name__ == '__main__':
                             'id'], connect=gc.MONGO['connect'])
     TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL['database']][
         gc.RETRO_TRANSFORMS_CHIRAL['collection']]
-    celery = True
+    celery = False
     treedict = []
 
-    treeBuilder = TreeBuilder(celery=celery, mincount=100, mincount_chiral=50)
+    treeBuilder = TreeBuilder(celery=celery, mincount=250, mincount_chiral=100)
     # treeBuilder.build_tree('c1ccccc1C(=O)OCCN')
-    print treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.relevance,
+    print treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.popularity,
                                         precursor_prioritization=gc.scscore, nproc=16, expansion_time=60, max_trees=500, max_ppg=10,
-                                        max_branching = 5)
+                                        max_branching = 25)[0]
     print 'done'
