@@ -254,10 +254,19 @@ class TreeBuilder:
             rxn_smiles = '.'.join(sorted(mols)) + '>>' + smiles
             if rxn_smiles in self.known_bad_reactions:
                 continue
-            # Exclude banned molecules too
+            
+            # What should be excluded?
+            skip_this = False
             for mol in mols:
+                # Exclude banned molecules too
                 if mol in self.forbidden_molecules:
-                    continue
+                    skip_this = True 
+                # Exclude reactions where the reactant is the target
+                if mol == self.tree_dict[1]['smiles']:
+                    skip_this = True 
+            if skip_this:
+                continue
+
 
             # depending on whether current_id was given as 'Manager.Value' type
             # or 'Integer':
