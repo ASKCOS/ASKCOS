@@ -56,18 +56,20 @@ class TreeBuilder:
 
         # Define method to check if all results processed
         if self.celery:
-            def waiting_for_results(is_ready):
+            def waiting_for_results():
                 # update
                 time.sleep(1)
-                self.pending_results = [res for (i, res) in enumerate(
-                    self.pending_results) if i not in is_ready]
-                return self.pending_results != []
+                return self.pending_results != [] or self.is_ready != []
         else:
-            def waiting_for_results(is_ready):
+            def waiting_for_results():
                 waiting = [expansion_queue.empty()
                            for expansion_queue in self.expansion_queues]
+                #print 'queues',waiting
+                #print 'results', self.results_queue.empty()
+                #print 'workers',self.idle
                 waiting.append(self.results_queue.empty())
                 waiting += self.idle
+                
                 return (not all(waiting))
 
         self.waiting_for_results = waiting_for_results
@@ -75,16 +77,18 @@ class TreeBuilder:
         # Define method to get a processed result.
         if self.celery:
             def get_ready_result():
-                is_ready = [i for (i, res) in enumerate(
+                #Update which processes are ready
+                self.is_ready = [i for (i, res) in enumerate(
                     self.pending_results) if res.ready()]
-                for i in is_ready:
+                
+                for i in self.is_ready:
                     (smiles, precursors) = self.pending_results[
                         i].get(timeout=0.2)
                     self.pending_results[i].forget()
                     _id = self.chem_to_id[smiles]
-                    yield (_id, smiles, precursors, is_ready)
+                    yield (_id, smiles, precursors)
                 self.pending_results = [res for (i, res) in enumerate(
-                    pending_results) if i not in is_ready]
+                    self.pending_results) if i not in self.is_ready]
         else:
             def get_ready_result():
                 while not self.results_queue.empty():
@@ -172,6 +176,7 @@ class TreeBuilder:
                     ))
         else:
             def expand(smiles, chem_id, depth):
+                #print('Coordinator put {} (ID {}) in queue queue {}'.format(smiles, chem_id, depth))
                 self.expansion_queues[depth].put((chem_id, smiles))
         self.expand = expand
 
@@ -193,7 +198,7 @@ class TreeBuilder:
             self.chem_to_id = {}
             self.buyable_leaves = set()
             self.current_id = 2
-
+            self.is_ready = []
             # specifically for celery
             self.pending_results = []
         else:
@@ -296,7 +301,7 @@ class TreeBuilder:
                     self.chem_to_id[mol] = chem_id
 
                     if ppg:
-                        #print('{} buyable!'.format(mol))
+                        print('{} buyable!'.format(mol))
                         if self.celery:
                             self.buyable_leaves.add(chem_id)
                         else:
@@ -369,21 +374,20 @@ class TreeBuilder:
     def coordinate(self):
         start_time = time.time()
         elapsed_time = time.time() - start_time
-        is_ready = []
         next = 1
-        while (elapsed_time < self.expansion_time) and self.waiting_for_results(is_ready):
+        while (elapsed_time < self.expansion_time) and self.waiting_for_results():
             if (int(elapsed_time)/10 == next):
                 next += 1
                 MyLogger.print_and_log(
                     'Worked for {}/{} s'.format(int(elapsed_time*10)/10.0, self.expansion_time), treebuilder_loc)
             try:
-                for (_id, smiles, precursors, is_ready) in self.get_ready_result():
+                for (_id, smiles, precursors) in self.get_ready_result():
                     children = self.get_children(precursors)
                     self.add_children(children, smiles, _id)
                 elapsed_time = time.time() - start_time
             except Exception:
                 elapsed_time = time.time() - start_time
-
+            
         self.stop()
 
     def build_tree(self, target):
@@ -477,7 +481,7 @@ class TreeBuilder:
 
             headNode indicates whether this is the first (head) node, in which case
             we should expand it even if it is itself buyable'''
-
+            #Copy list so each new branch has separate list.
             if depth == 0:
                 # Not allowing deeper - is this buyable?
                 if self.tree_dict[chem_id]['ppg']:
@@ -591,10 +595,12 @@ if __name__ == '__main__':
                             'id'], connect=gc.MONGO['connect'])
     TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL['database']][
         gc.RETRO_TRANSFORMS_CHIRAL['collection']]
-    celery = False
+    celery = True
     treedict = []
 
-    treeBuilder = TreeBuilder(celery=celery, mincount=25, mincount_chiral=10)
+    treeBuilder = TreeBuilder(celery=celery, mincount=100, mincount_chiral=50)
     # treeBuilder.build_tree('c1ccccc1C(=O)OCCN')
-    print treeBuilder.get_buyable_paths('CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3', max_depth=2, template_prioritization=gc.relevance,
-                                        precursor_prioritization=gc.scscore, nproc=16, expansion_time=300, max_trees=10, max_ppg=2)
+    print treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.relevance,
+                                        precursor_prioritization=gc.scscore, nproc=16, expansion_time=60, max_trees=500, max_ppg=10,
+                                        max_branching = 5)
+    print 'done'

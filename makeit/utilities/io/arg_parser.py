@@ -32,6 +32,7 @@ def setup_parser():
     nproc = 2
     celery = False
     template_count = 10000
+    parallel_tree = False
 
     # Set all arguments
     parser.add_argument('--TARGET', type=str,
@@ -84,7 +85,8 @@ def setup_parser():
                         help='Specify which method should be used to order templates. Default is {}'.format(template_prioritization))
     parser.add_argument('--precursor_prioritization', type=str, default=precursor_prioritization,
                         help='Specify which method should be used to order the found precursors. Default is {}'.format(precursor_prioritization))
-
+    parser.add_argument('--parallel_tree', type=bool, default=parallel_tree,
+                        help='Specify whether tree parallelization should be carried out in parallel. Default is{}'.format(parallel_tree))
     return parser
 
 

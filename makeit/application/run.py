@@ -24,7 +24,7 @@ class MAKEIT:
     def __init__(self, TARGET, expansion_time, max_depth, max_branching, max_trees, retro_mincount, retro_mincount_chiral,
                  synth_mincount, rank_threshold_inclusion, prob_threshold_inclusion, max_total_contexts, template_count,
                  max_ppg, output_dir, chiral, nproc, celery, context_recommender, forward_scoring_method,
-                 tree_scoring_method, context_prioritization, template_prioritization, precursor_prioritization):
+                 tree_scoring_method, context_prioritization, template_prioritization, precursor_prioritization, parallel_tree):
 
         self.TARGET = TARGET
         self.expansion_time = expansion_time
@@ -54,7 +54,8 @@ class MAKEIT:
         self.chiral = chiral
         self.known_bad_reactions = []
         self.template_count = template_count
-
+        self.parallel_tree = parallel_tree
+        
     def construct_buyable_trees(self):
 
         if self.celery:  # Call celery worker
@@ -107,14 +108,12 @@ class MAKEIT:
                 # Only use an nproc different from 1 if using the template base forward evaluation method. Otherwise
                 # evaluation is fast enough to do without additional
                 # parallelization
-                if len(trees) > 2:
-                    parallel = True
+                if len(trees) > 2 or self.parallel_tree:
                     nproc_t = 2
                     nproc = max(1, self.nproc/2)
                 else:
                     nproc_t = 1
                     nproc = self.nproc
-                    parallel = False
             else:
                 nproc_t = max(1, self.nproc)
                 nproc = 1
@@ -124,7 +123,7 @@ class MAKEIT:
                                                            forward_scoring_method=self.forward_scoring_method, tree_scoring_method=self.tree_scoring_method,
                                                            rank_threshold=self.rank_threshold_inclusion, prob_threshold=self.prob_threshold_inclusion,
                                                            mincount=self.synth_mincount, batch_size=500, n=self.max_total_contexts, nproc_t=nproc_t,
-                                                           nproc=nproc, parallel=parallel, template_count = self.template_count)
+                                                           nproc=nproc, parallel=self.parallel_tree, template_count = self.template_count)
         plausible_trees = []
         print evaluated_trees
         for tree in evaluated_trees:
@@ -166,7 +165,7 @@ def find_synthesis():
                     args.rank_threshold, args.prob_threshold, args.max_contexts, args.template_count, args.max_ppg,
                     args.output, args.chiral, args.nproc, args.celery, args.context_recommender,
                     args.forward_scoring, args.tree_scoring, args.context_prioritization,
-                    args.template_prioritization, args.precursor_prioritization)
+                    args.template_prioritization, args.precursor_prioritization, args.parallel_tree)
     MyLogger.initialize_logFile(makeit.ROOT, makeit.case_dir)
 
     tree_status, trees = makeit.construct_buyable_trees()
