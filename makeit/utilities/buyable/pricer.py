@@ -35,7 +35,7 @@ class Pricer:
         db = db_client[gc.CHEMICALS['database']]
         self.CHEMICAL_DB = db[gc.CHEMICALS['collection']]
     
-    def dump_to_file(self):
+    def dump_to_file(self , file_path = gc.pricer_data):
         '''
         Write the data from the online datbases to a local file
         '''
@@ -43,17 +43,17 @@ class Pricer:
             MyLogger.print_and_log("No database information to output to file.", pricer_loc, level = 3)
             return
         
-        with open(gc.pricer_data, 'wb') as file:
+        with open(file_path, 'wb') as file:
             pickle.dump(self.prices, file, gc.protocol)
             pickle.dump(self.prices_flat, file, gc.protocol)
             pickle.dump(self.prices_by_xrn, file, gc.protocol)
     
-    def load_from_file(self):
+    def load_from_file(self, file_path = gc.pricer_data):
         '''
         Load the data for the pricer from a locally stored file instead of from the online database.
         '''
-        if os.path.isfile(gc.pricer_data):
-            with open(gc.pricer_data, 'rb') as file:
+        if os.path.isfile(file_path):
+            with open(file_path, 'rb') as file:
                 self.prices = pickle.load(file)
                 self.prices_flat = pickle.load(file)
                 self.prices_by_xrn = pickle.load(file)  

@@ -75,7 +75,7 @@ class TemplateTransformer(object):
 
         self.template_prioritizer = template
 
-    def dump_to_file(self, retro, file_name, chrial=False):
+    def dump_to_file(self, retro, file_name, chrial=False, file_path=""):
         '''
         Write the template database to a file, of which the path in specified in the general configuration
         '''
@@ -83,6 +83,8 @@ class TemplateTransformer(object):
             self.load(chiral=chiral)
 
         if retro:
+            if file_path=="":
+                file_path = gc.retro_template_data
             if chiral:
                 pickle_templates = []
                 # reconstruct template list, but without chiral rxn object =>
@@ -106,30 +108,34 @@ class TemplateTransformer(object):
                                             })
             else:
                 pickle_templates = self.templates
-            file = open(os.path.join(gc.retro_template_data, file_name), "w+")
+            file = open(os.path.join(file_path, file_name), "w+")
 
             MyLogger.print_and_log('Wrote templates to {}'.format(
-                os.path.join(gc.retro_template_data, file_name)), transformer_loc)
+                os.path.join(file_path, file_name)), transformer_loc)
 
         else:
-            with open(os.path.join(gc.synth_template_data, file_name), 'w+') as file:
+            if file_path=="":
+                file_path = gc.synth_template_data
+            with open(os.path.join(file_path, file_name), 'w+') as file:
                 pickle.dump(self.templates, file, gc.protocol)
 
             MyLogger.print_and_log('Wrote templates to {}'.format(
-                os.path.join(gc.synth_template_data, file_name)), transformer_loc)
+                os.path.join(gc.file_path, file_name)), transformer_loc)
 
-    def load_from_file(self, retro, file_name, chiral=False, rxns=True):
+    def load_from_file(self, retro, file_name, chiral=False, rxns=True, file_path = ""):
         '''
         Read the template database from a previously saved file, of which the path is specified in the general
         configuration
         '''
-
+        
         MyLogger.print_and_log(
             'Loading templates from {}'.format(file_name), transformer_loc)
 
         if retro:
-            if os.path.isfile(os.path.join(gc.retro_template_data, file_name)):
-                with open(os.path.join(gc.retro_template_data, file_name), 'rb') as file:
+            if file_path == "":
+                file_path = gc.retro_template_data
+            if os.path.isfile(os.path.join(file_path, file_name)):
+                with open(os.path.join(file_path, file_name), 'rb') as file:
                     if chiral and rxns:
                         pickle_templates = pickle.load(file)
                         self.templates = []
@@ -148,8 +154,10 @@ class TemplateTransformer(object):
                 self.load(chiral=chiral)
 
         else:
-            if os.path.isfile(os.path.join(gc.synth_template_data, file_name)):
-                with open(os.path.join(gc.synth_template_data, file_name), 'rb') as file:
+            if file_path == "":
+                file_path = gc.synth_template_data
+            if os.path.isfile(os.path.join(file_path, file_name)):
+                with open(os.path.join(file_path, file_name), 'rb') as file:
                     self.templates = pickle.load(file)
             else:
                 MyLogger.print_and_log(
