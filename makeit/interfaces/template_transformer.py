@@ -120,7 +120,7 @@ class TemplateTransformer(object):
                 pickle.dump(self.templates, file, gc.protocol)
 
             MyLogger.print_and_log('Wrote templates to {}'.format(
-                os.path.join(gc.file_path, file_name)), transformer_loc)
+                os.path.join(file_path, file_name)), transformer_loc)
 
     def load_from_file(self, retro, file_name, chiral=False, rxns=True, file_path = ""):
         '''
