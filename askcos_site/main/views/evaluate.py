@@ -10,6 +10,7 @@ import time
 import numpy as np 
 import json
 import os
+import rdkit.Chem as Chem 
 
 # TODO: fix this Celery reference
 from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
@@ -54,8 +55,10 @@ def ajax_evaluate_rxnsmiles(request):
     # Run
     reactant_smiles = smiles.split('>>')[0]
     print('Running forward evaluator on {}'.format(reactant_smiles))
-    if necessary_reagent and contexts[0][2]:
-        reactant_smiles += contexts[0][2] # add rgt
+    if necessary_reagent:
+        print('Need reagent and reagent suggestion is: {}'.format(contexts[0][2]))
+    if necessary_reagent and contexts[0][2] and Chem.MolFromSmiles(contexts[0][2]):
+        reactant_smiles += '.{}'.format(contexts[0][2]) # add rgt
     
     res = evaluate.delay(reactant_smiles, products[0], contexts, 
         forward_scorer='Template_Based', mincount=synth_mincount, top_n=50,
