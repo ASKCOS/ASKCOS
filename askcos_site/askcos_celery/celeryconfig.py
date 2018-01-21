@@ -13,8 +13,9 @@ CELERY_RESULT_PERSEISTENT = False
 
 # Custom task queues - necessary to get priority for tree expansion! (RabbitMQ assumed)
 TASK_QUEUES = [
+    Queue('tb_c_worker', Exchange('tb_c_worker'), routing_key='tb_c_worker', queue_arguments={'x-max-priority':20}),
     Queue('tb_worker', Exchange('tb_worker'), routing_key='tb_worker', queue_arguments={'x-max-priority': 20}),
-    Queue('cr_worker', Exchange('cr_worker'), routing_key='cr_worker', queue_arguments={'x-max-priority': 20}),
+    
 ]
 CELERY_QUEUES = TASK_QUEUES
 
@@ -26,17 +27,15 @@ worker_prefetch_multiplier = 1
 
 # Task routes (to make sure workers are task-specific)
 TASK_ROUTES = {
-    'askcos_site.askcos_celery.treebuilder.worker.get_top_precursors': {'queue': 'tb_worker'},
-    'askcos_site.askcos_celery.treebuilder.worker.reserve_worker_pool': {'queue': 'tb_worker_reservable'},
-    'askcos_site.askcos_celery.treebuilder.coordinator.*': {'queue': 'tb_coordinator'},
-    'askcos_site.askcos_celery.forwardpredictor.worker.*': {'queue': 'fp_worker'},
-    'askcos_site.askcos_celery.forwardpredictor.coordinator.*': {'queue': 'fp_coordinator'}, 
-    'askcos_site.askcos_celery.contextrecommender.worker.*': {'queue': 'context_worker'},   
-    'askcos_site.askcos_celery.chiralretro.coordinator.*': {'queue': 'cr_coordinator'},
-    'askcos_site.askcos_celery.chiralretro.worker.get_chiral_precursor_batch': {'queue': 'cr_worker'},
-    'askcos_site.askcos_celery.chiralretro.worker.get_top_precursors': {'queue': 'cr_worker'},
-    'askcos_site.askcos_celery.chiralretro.worker.reserve_worker_pool': {'queue': 'cr_worker_reservable'},
-    'askcos_site.askcos_celery.tf_forwardpredictor.worker.*': {'queue': 'tffp_worker'},
+    'askcos_site.askcos_celery.treebuilder.tb_c_worker.get_top_precursors': {'queue': 'tb_c_worker'},
+    'askcos_site.askcos_celery.treebuilder.tb_c_worker.reserve_worker_pool': {'queue': 'tb_c_worker_reservable'},
+    'askcos_site.askcos_celery.treebuilder.tb_worker.get_top_precursors': {'queue': 'tb_worker'},
+    'askcos_site.askcos_celery.treebuilder.tb_worker.reserve_worker_pool': {'queue': 'tb_worker_reservable'},
+    'askcos_site.askcos_celery.treebuilder.tb_coordinator.*':{'queue': 'tb_coordinator'},
+    'askcos_site.askcos_celery.treeevaluator.tree_evaluation_coordinator.*':{'queue':'te_coordinator'},
+    'askcos_site.askcos_celery.treeevaluator.scoring_coordinator.*':{'queue':'sc_coordinator'},   
+    'askcos_site.askcos_celery.treeevaluator.forward_trans_worker.*': {'queue':'ft_worker'},
+    'askcos_site.askcos_celery.contextrecommender.cr_nn_worker.*': {'queue':'cr_nn_worker'},
+    'askcos_site.askcos_celery.contextrecommender.cr_coordinator.*':{'queue':'cr_coordinator'},
 }
 CELERY_ROUTES = TASK_ROUTES
-

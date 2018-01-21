@@ -12,8 +12,9 @@ import numpy as np
 import json
 import os
 
-from ...askcos_celery.contextrecommender.worker import get_context_recommendation
-from ...askcos_celery.forwardpredictor.coordinator import get_outcomes
+# TODO: fix this Celery reference
+from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
+from askcos_site.askcos_celery.treeevaluator.scoring_coordinator import evaluate
 
 from ..globals import PREDICTOR_FOOTNOTE, SOLVENT_DB
 from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
@@ -42,10 +43,11 @@ def synth_interactive(request, reactants='', reagents='', solvent='toluene',
     else:
         # Get suggested conditions
         smiles = '%s>>%s' % (reactants, product)
-        res = get_context_recommendation.delay(smiles, n=10)
+        res = get_context_recommendations.delay(smiles, n=1, context_recommender='Nearest_Neighbor')
         contexts = res.get(60)
         if contexts is None or len(contexts) == 0:
             raise ValueError('Context recommender was unable to get valid context(?)')
+        print(contexts)
         (T1, slvt1, rgt1, cat1, t1, y1) = contexts[0]
         slvt1 = trim_trailing_period(slvt1)
         rgt1 = trim_trailing_period(rgt1)
@@ -102,14 +104,14 @@ def ajax_start_synth(request):
     print('max return: {}'.format(maxreturn))
 
     startTime = time.time()
-    from askcos_site.askcos_celery.forwardpredictor.coordinator import get_outcomes
-    res = get_outcomes.delay(reactants, 
-        contexts=[(temperature, reagents, solvent)], 
-        mincount=mincount,
-        top_n=maxreturn)
-    outcomes = res.get(300)[0]
+    # context expected is (T1, slvt1, rgt1, cat1, t1, y1)
+    res = evaluate.delay(reactants, '',
+        contexts=[(temperature, solvent, reagents, '', -1, -1)], 
+        forward_scorer='Template_Based', top_n=maxreturn, return_all_outcomes=True)
+    outcomes = res.get(300)[0]['outcomes']
 
     print('Got top outcomes, length {}'.format(len(outcomes)))
+    print(outcomes)
     data['html_time'] = '{:.3f} seconds elapsed'.format(time.time() - startTime)
 
     if outcomes:

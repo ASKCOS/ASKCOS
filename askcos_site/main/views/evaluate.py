@@ -10,9 +10,11 @@ import time
 import numpy as np 
 import json
 import os
+import rdkit.Chem as Chem 
 
-from ...askcos_celery.contextrecommender.worker import get_context_recommendation
-from ...askcos_celery.forwardpredictor.coordinator import get_outcomes
+# TODO: fix this Celery reference
+from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
+from ...askcos_celery.treeevaluator.scoring_coordinator import evaluate
 
 from ..globals import DONE_SYNTH_PREDICTIONS
 from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
@@ -43,69 +45,61 @@ def ajax_evaluate_rxnsmiles(request):
         num_contexts = 1
     else:
         num_contexts = 10
-    res = get_context_recommendation.delay(smiles, n=num_contexts)
+    res = get_context_recommendations.delay(smiles, n=num_contexts, context_recommender='Nearest_Neighbor')
     contexts = res.get(60)
     print('Got context(s)')
     print(contexts)
     if contexts is None:
         raise ValueError('Context recommender was unable to get valid context(?)')
 
-    contexts_for_predictor = []
-    for (T1, slvt1, rgt1, cat1, t1, y1) in contexts:
-        slvt1 = trim_trailing_period(slvt1)
-        rgt1 = trim_trailing_period(rgt1)
-        cat1 = trim_trailing_period(cat1)
-        (rgt1, cat1, slvt1) = fix_rgt_cat_slvt(rgt1, cat1, slvt1)
-        contexts_for_predictor.append((T1, rgt1, slvt1))
-    print('Cleaned contexts')
-
     # Run
     reactant_smiles = smiles.split('>>')[0]
     print('Running forward evaluator on {}'.format(reactant_smiles))
-    if necessary_reagent and contexts_for_predictor[0][1]:
-        reactant_smiles += contexts_for_predictor[0][1] # add rgt
+    if necessary_reagent:
+        print('Need reagent and reagent suggestion is: {}'.format(contexts[0][2]))
+    if necessary_reagent and contexts[0][2] and Chem.MolFromSmiles(contexts[0][2]):
+        reactant_smiles += '.{}'.format(contexts[0][2]) # add rgt
     
-    res = get_outcomes.delay(reactant_smiles, contexts=contexts_for_predictor, mincount=synth_mincount, top_n=50)
+    res = evaluate.delay(reactant_smiles, products[0], contexts, 
+        forward_scorer='Template_Based', mincount=synth_mincount, top_n=50,
+        return_all_outcomes=True)
     all_outcomes = res.get(300)
+
+
     if all([len(outcome) == 0 for outcome in all_outcomes]):
         if not verbose:
             data['html'] = 'Could not get outcomes - recommended context(s) unparseable'
-            for i, (T, rgt, slvt) in enumerate(contexts_for_predictor):
+            for i, (T, slvt, rgt, cat, t, y) in enumerate(contexts):
                 data['html'] += '<br>{}) T={}, rgt={}, slvt={}'.format(i+1, T, rgt, slvt)
             data['html_color'] = str('#%02x%02x%02x' % (int(255), int(0), int(0)))
             return JsonResponse(data)
         else:
             # TODO: expand
             data['html'] = '<h3>Could not get outcomes - recommended context(s) unparseable</h3>\n<ol>\n'
-            for i, (T, rgt, slvt) in enumerate(contexts_for_predictor):
+            for i, (T, slvt, rgt, cat, t, y) in enumerate(contexts):
                 data['html'] += '<li>Temp: {} C<br>Reagents: {}<br>Solvent: {}</li>\n'.format(T, rgt, slvt)
             data['html'] += '</ol>'
             data['html_color'] = str('#%02x%02x%02x' % (int(255), int(0), int(0)))
             return JsonResponse(data)
-    plausible = [0. for i in range(len(all_outcomes))]
-    ranks = ['>50' for i in range(len(all_outcomes))]
-    major_prods = ['none found' for i in range(len(all_outcomes))]
-    major_probs = ['n/a' for i in range(len(all_outcomes))]
-    for i, outcomes in enumerate(all_outcomes):
-        if len(outcomes) != 0:
-            major_prods[i] = outcomes[0]['smiles']
-            major_probs[i] = outcomes[0]['prob']
-        for j, outcome in enumerate(outcomes):
-            if outcome['smiles'] == products[0]:
-                plausible[i] = float(outcome['prob'])
-                ranks[i] = j + 1
-                break
+    plausible = [outcome['target']['prob'] for outcome in all_outcomes]
+    print('All plausibilities: {}'.format(plausible))
+    ranks = [outcome['target']['rank'] for outcome in all_outcomes]
+    major_prods = [outcome['top_product']['smiles'] for outcome in all_outcomes]
+    major_probs = [outcome['top_product']['prob'] for outcome in all_outcomes]
+    
     best_context_i = np.argmax(plausible)
     plausible = plausible[best_context_i]
     rank = ranks[best_context_i]
-    best_context = contexts_for_predictor[best_context_i]
+    best_context = contexts[best_context_i]
     major_prod = major_prods[best_context_i]
     major_prob = major_probs[best_context_i]
 
     # Report
     print('Recommended context(s): {}'.format(best_context))
     print('Plausibility: {}'.format(plausible))
-    (T1, rgt1, slvt1) = best_context
+    print(all_outcomes[best_context_i])
+
+    (T1, slvt1, rgt1, cat1, t1, y1) = best_context
 
     if not verbose:
         if not rgt1: rgt1 = 'no '
@@ -125,7 +119,7 @@ def ajax_evaluate_rxnsmiles(request):
     else:
         if not rgt1: rgt1 = 'none'
         data['html'] = '<h3>Plausibility score: {} (rank {})</h3>'.format(plausible, rank)
-        data['html'] += '\n<br><u>Proposed conditions ({} tried)</u>\n'.format(len(contexts_for_predictor))
+        data['html'] += '\n<br><u>Proposed conditions ({} tried)</u>\n'.format(len(contexts))
         data['html'] += '<br>Temp: {} C<br>Reagents: {}<br>Solvent: {}\n'.format(T1, rgt1, slvt1)
         if rank != 1:
             data['html'] += '<br><br><u>Predicted major product (<i>p = {}</i>)</u>'.format(major_prob)
@@ -136,7 +130,7 @@ def ajax_evaluate_rxnsmiles(request):
         elif rank == 1:
             data['html'] += '\n<br><i>Nearest neighbor got {}% yield</i>'.format(y1)
 
-    plausible = plausible / 100.
+    # plausible = plausible / 100.
     B = 150.
     R = 255. - (plausible > 0.5) * (plausible - 0.5) * (255. - B) * 2.
     G = 255. - (plausible < 0.5) * (0.5 - plausible) * (255. - B) * 2.
