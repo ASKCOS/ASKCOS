@@ -5,5 +5,8 @@
 
 # Bad large data
 makeit/data/chemical_names_*
+makeit/data/context/fp256noFtr_NN10_BT.pickle
+makeit/data/context/flow_condition_data4
 test/*
 makeit/predict/output/*
+output/*

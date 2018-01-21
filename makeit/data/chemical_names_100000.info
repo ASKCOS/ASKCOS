@@ -1,9 +1,0 @@
-chemical_names_100000.json generated at UTC 2016-01-14 16:05:22.634153
-
-File details
-------------
-Found 100000 random chemicals from database satisfying the following criteria:
-- chemical['name'] == True
-
-Data list consists of entries:
-  str(name)
