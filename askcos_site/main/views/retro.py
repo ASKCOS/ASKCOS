@@ -42,6 +42,8 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             request.POST['template_prioritization'])
         context['form']['precursor_prioritization'] = str(
             request.POST['precursor_prioritization'])
+        if 'template_count' in request.POST:
+            context['form']['template_count'] = str(request.POST['template_count'])
 
         smiles = resolve_smiles(smiles)
         if smiles is None:
