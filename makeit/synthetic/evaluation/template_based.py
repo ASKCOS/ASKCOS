@@ -325,13 +325,19 @@ class TemplateNeuralNetScorer(Scorer):
 
         candidate_edits = []
         stiched_result = ForwardResult(smiles)
+        rct_temp = Chem.MolFromSmiles(smiles)
+        [a.ClearProp('molAtomMapNumber') for a in rct_temp.GetAtoms()]
+        split_smiles = Chem.MolToSmiles(rct_temp).split('.')
+        print('SPLIT SMILES FOR GET_CANDIDATE_EDITS: {}'.format(split_smiles))
         all_results = []
         is_ready = [i for (i, res) in enumerate(
             self.pending_results) if res.ready()]
         while self.waiting_for_results():
             try:
                 for result, is_ready in self.get_ready_result(is_ready):
-                    stiched_result.add_products(result.products)
+                    for product in result.products:
+                        if product.smiles not in split_smiles:
+                            stiched_result.add_product(product)
                     '''
                     products = result.get_products()
                     for product in products:
