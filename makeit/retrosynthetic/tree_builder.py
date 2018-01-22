@@ -38,6 +38,7 @@ class TreeBuilder:
             self.precursor_prioritization), treebuilder_loc)
         self.nproc = nproc
         self.chiral = chiral
+        self.max_cum_template_prob = 1
 
         if pricer:
             self.pricer = pricer
@@ -156,7 +157,8 @@ class TreeBuilder:
                         kwargs={'mincount': self.mincount,
                                 'max_branching': self.max_branching,
                                 'template_count': self.template_count,
-                                'mode': self.precursor_score_mode},
+                                'mode': self.precursor_score_mode,
+                                'max_cum_prob':self.max_cum_template_prob},
                         # Prioritize higher depths: Depth first search.
                         priority=int(depth),
                         queue=self.private_worker_queue,
@@ -168,7 +170,8 @@ class TreeBuilder:
                         kwargs={'mincount': self.mincount,
                                 'max_branching': self.max_branching,
                                 'template_count': self.template_count,
-                                'mode': self.precursor_score_mode},
+                                'mode': self.precursor_score_mode,
+                                'max_cum_prob':self.max_cum_template_prob},
                         # Prioritize higher depths: Depth first search.
                         priority=int(depth),
                         queue=self.private_worker_queue,
@@ -367,7 +370,8 @@ class TreeBuilder:
                     result = self.retroTransformer.get_outcomes(smiles, self.mincount, (self.precursor_prioritization,
                                                                                         self.template_prioritization),
                                                                 template_count=self.template_count, 
-                                                                mode = self.precursor_score_mode)
+                                                                mode = self.precursor_score_mode,
+                                                                max_cum_prob = self.max_cum_template_prob)
                     precursors = result.return_top(n=self.max_branching)
                     self.results_queue.put((_id, smiles, precursors))
                     #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
@@ -415,7 +419,8 @@ class TreeBuilder:
                 result = self.retroTransformer.get_outcomes(target, self.mincount, (self.precursor_prioritization,
                                                                                     self.template_prioritization),
                                                             template_count=self.template_count,
-                                                            mode = self.precursor_score_mode)
+                                                            mode = self.precursor_score_mode,
+                                                            max_cum_prob = self.max_cum_template_prob)
                 precursors = result.return_top(n=self.max_branching)
                 children = self.get_children(precursors)
                 self.add_children(children, target, 1)
@@ -443,7 +448,8 @@ class TreeBuilder:
 
     def get_buyable_paths(self, target, max_depth=3, max_branching=25, expansion_time=240, template_prioritization=None,
                           precursor_prioritization=None, nproc=1, mincount=25, chiral=True, max_trees=25, max_ppg=1e10,
-                          known_bad_reactions=[], forbidden_molecules=[], template_count=100, precursor_score_mode=gc.max):
+                          known_bad_reactions=[], forbidden_molecules=[], template_count=100, precursor_score_mode=gc.max,
+                          max_cum_template_prob = 1):
         '''Get viable synthesis trees using an iterative deepening depth-first search'''
 
         self.mincount = mincount
@@ -455,6 +461,7 @@ class TreeBuilder:
         self.precursor_score_mode = precursor_score_mode
         self.nproc = nproc
         self.template_count = template_count
+        self.max_cum_template_prob = max_cum_template_prob
         # Load new prices based op specified max price-per-gram
         self.pricer.load(max_ppg=max_ppg)
         # Override: if relevance method is used, chiral database must be used!

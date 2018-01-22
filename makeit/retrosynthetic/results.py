@@ -1,6 +1,6 @@
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
-import global_config as gc
+import makeit.global_config as gc
 
 class RetroResult:
     '''

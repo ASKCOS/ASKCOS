@@ -28,6 +28,7 @@ def setup_parser():
     max_ppg = 10
     min_trees_success = 5
     precursor_score_mode = gc.max
+    max_cum_template_prob = 1 
     output_dir = 'output'
     chiral = True
     nproc = 2
@@ -90,7 +91,8 @@ def setup_parser():
                         help='Specify whether tree parallelization should be carried out in parallel. Default is{}'.format(parallel_tree))
     parser.add_argument('--precursor_score_mode', type=str, default=precursor_score_mode,
                         help='Specify how the score of a list of precursors should be determined when using synthetic complexity. Default is {}.'.format(precursor_score_mode))
-     
+    parser.add_argument('--max_cum_template_prob', type=float, default = max_cum_template_prob,
+                        help='Specify the cumulative template probability cut-off. Default is {}'.format(max_cum_template_prob))
     return parser
 
 
