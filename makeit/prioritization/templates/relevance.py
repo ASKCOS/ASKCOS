@@ -24,6 +24,7 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         self.FP_rad = 2
         self.vars = []
         self.template_count = 100
+        self.max_cum_prob = 1
 
     def mol_to_fp(self, mol):
         if mol is None:
@@ -41,9 +42,14 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         # Templates should be sorted by popularity for indices to be correct!
         probs, top_ids = self.get_topk_from_smi(smi=target, k = min(self.template_count, len(templates)))
         top_templates = []
+        cum_score = 0
         for i, id in enumerate(top_ids):
             templates[id]['score'] = probs[i]
             top_templates.append(templates[id])
+            cum_score += probs[i]
+            #End loop if max cumulative score is exceeded
+            if cum_score >= self.max_cum_prob:
+                break
         return top_templates
 
     def load_model(self):

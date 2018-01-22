@@ -70,7 +70,7 @@ class RetroTransformer(TemplateTransformer):
             self.num_templates), retro_transformer_loc)
 
     def get_outcomes(self, smiles, mincount, prioritizers, start_at=-1, end_at=-1,
-                     singleonly=False, stop_if=False, template_count=10000):
+                     singleonly=False, stop_if=False, template_count=10000, max_cum_prob=1.0):
         '''
         Performs a one-step retrosynthesis given a SMILES string of a
         target molecule by applying each transformation template
@@ -85,6 +85,7 @@ class RetroTransformer(TemplateTransformer):
         self.get_precursor_prioritizers(precursor_prioritizer)
         self.get_template_prioritizers(template_prioritizer)
         self.template_prioritizer.set_max_templates(template_count)
+        self.template_prioritizer.set_max_cum_prob(max_cum_prob)
         # Define mol to operate on
         mol = Chem.MolFromSmiles(smiles)
         smiles = Chem.MolToSmiles(mol, isomericSmiles=True)  # to canonicalize
@@ -177,8 +178,8 @@ if __name__ == '__main__':
                             'id'], connect=gc.MONGO['connect'])
     TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL['database']][
         gc.RETRO_TRANSFORMS_CHIRAL['collection']]
-    t = RetroTransformer(mincount=100, mincount_chiral=50,
+    t = RetroTransformer(mincount=25, mincount_chiral=10,
                          TEMPLATE_DB=TEMPLATE_DB)
     t.load(chiral=True)
     print(t.get_outcomes('C1C(=O)OCC12CC(C)CC2', 100,
-                         (gc.heuristic, gc.popularity)).precursors)
+                         (gc.heuristic, gc.relevance), max_cum_prob = 0.99).precursors)

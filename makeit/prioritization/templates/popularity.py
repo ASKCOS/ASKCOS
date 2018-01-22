@@ -13,6 +13,7 @@ class PopularityTemplatePrioritizer(Prioritizer):
         self.sorted = False
         self.reordered_templates = None
         self.template_count = 1e9
+        self.max_cum_prob = 1
 
     def get_priority(self, input_tuple):
         (templates, target) = input_tuple

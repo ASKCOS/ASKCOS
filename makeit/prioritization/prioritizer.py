@@ -18,4 +18,6 @@ class Prioritizer(object):
     
     def set_max_templates(self, max):
         self.template_count = max
-    
+        
+    def set_max_cum_prob(self, max):
+        self.max_cum_prob = max
