@@ -10,24 +10,26 @@ class RetroResult:
     def __init__(self, target_smiles):
         self.target_smiles = target_smiles
         self.precursors = []
+        self.smiles_list_to_precursor = {}
 
     def add_precursor(self, precursor, prioritizer):
         '''
         Adds a precursor to the retrosynthesis result if it is a new and unique product
         '''
-        # Check if the precursor set is new or old
-        for old_precursor in self.precursors:
-            if precursor.smiles_list == old_precursor.smiles_list:
-                # Just need to add the fact that this template_id can make it
-                old_precursor.template_ids |= set(precursor.template_ids)
-                old_precursor.num_examples += precursor.num_examples
-                # Keep max score
-                if old_precursor.template_score < precursor.template_score:
-                    old_precursor.template_score = precursor.template_score
-                return
-        # New! Need to score and add to list
-        precursor.prioritize(prioritizer)
-        self.precursors.append(precursor)
+      
+        try:
+            index = self.smiles_list_to_precursor['.'.join(precursor.smiles_list)]
+        except KeyError:
+            #If neither has been encountered: add new product
+            precursor.prioritize(prioritizer)
+            self.precursors.append(precursor)
+            self.smiles_list_to_precursor['.'.join(precursor.smiles_list)] = len(self.precursors) - 1
+            return
+        
+        self.precursors[index].template_ids |= set(precursor.template_ids)
+        self.precursors[index].num_examples += precursor.num_examples
+        if self.precursors[index].template_score < precursor.template_score:
+            self.precursors[index].template_score = precursor.template_score
 
     def return_top(self, n=50):
         '''

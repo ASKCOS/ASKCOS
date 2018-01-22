@@ -11,21 +11,29 @@ class ForwardResult:
     def __init__(self, smiles):
         self.smiles = smiles 
         self.products = []
-
+        self.smiles_to_product = {}
+        self.smiles_list_to_product = {}
+        
     def add_product(self, product):
         '''
         Adds a product to the product set if it is a new product.
         Product type is ForwardProduct
         '''
         # Check if it is new or old
-        for old_product in self.products:
-            if product.smiles_list == old_product.smiles_list or product.smiles == old_product.smiles:
-                # Just add this template_id and score
-                old_product.template_ids += product.template_ids
-                old_product.num_examples += product.num_examples
+        try:
+            index = self.smiles_to_product[product.smiles]
+        except KeyError:
+            try:
+                index = self.smiles_list_to_product['.'.join(product.smiles_list)]
+            except KeyError:
+                #If neither has been encountered: add new product
+                self.products.append(product)
+                self.smiles_to_product[product.smiles] = len(self.products) - 1
+                self.smiles_list_to_product['.'.join(product.smiles_list)] = len(self.products) - 1
                 return
-        # New!
-        self.products.append(product)
+        
+        self.products[index].template_ids += product.template_ids
+        self.products[index].num_examples += product.num_examples
         
     def add_products(self, products):
         for product in products:
