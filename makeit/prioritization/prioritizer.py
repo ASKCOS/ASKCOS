@@ -16,3 +16,6 @@ class Prioritizer(object):
         '''
         raise NotImplementedError
     
+    def set_max_templates(self, max):
+        self.template_count = max
+    

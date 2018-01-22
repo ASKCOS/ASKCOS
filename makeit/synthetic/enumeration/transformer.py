@@ -57,8 +57,8 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
         if template_prioritization == gc.popularity:
             prioritized_templates = self.templates
         else:
-            prioritized_templates = self.template_prioritizer.get_priority(
-                (self.templates, smiles), template_count)
+            self.template_prioritizer.set_max_templates(template_count)
+            prioritized_templates = self.template_prioritizer.get_priority((self.templates, smiles))
         self.mincount = mincount
         self.start_at = start_at
         self.singleonly = singleonly

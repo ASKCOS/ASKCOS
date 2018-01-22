@@ -82,9 +82,9 @@ class RetroTransformer(TemplateTransformer):
             MyLogger.print_and_log(
                 'Template prioritizer and/or precursor prioritizer are missing. Exiting...', retro_transformer_loc, level=3)
         self.mincount = mincount
-        self.template_count = template_count
         self.get_precursor_prioritizers(precursor_prioritizer)
         self.get_template_prioritizers(template_prioritizer)
+        self.template_prioritizer.set_max_templates(template_count)
         # Define mol to operate on
         mol = Chem.MolFromSmiles(smiles)
         smiles = Chem.MolToSmiles(mol, isomericSmiles=True)  # to canonicalize
@@ -164,8 +164,7 @@ class RetroTransformer(TemplateTransformer):
         Generator to return only top templates. 
         First applies the template prioritization method and returns top of that list.
         '''
-        prioritized_templates = self.template_prioritizer.get_priority(
-            (self.templates, target), template_count=self.template_count)
+        prioritized_templates = self.template_prioritizer.get_priority((self.templates, target))
         for template in prioritized_templates:
             if template['count'] < self.mincount:
                 pass

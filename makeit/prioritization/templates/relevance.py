@@ -23,6 +23,7 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         self.FP_len = 2048
         self.FP_rad = 2
         self.vars = []
+        self.template_count = 100
 
     def mol_to_fp(self, mol):
         if mol is None:
@@ -35,11 +36,10 @@ class RelevanceTemplatePrioritizer(Prioritizer):
             return np.zeros((self.FP_len,), dtype=np.float32)
         return self.mol_to_fp(Chem.MolFromSmiles(smi))
 
-    def get_priority(self, input_tuple, **kwargs):
-        template_count = kwargs.pop('template_count', 100)
+    def get_priority(self, input_tuple):
         (templates, target) = input_tuple
         # Templates should be sorted by popularity for indices to be correct!
-        probs, top_ids = self.get_topk_from_smi(smi=target, k = min(template_count, len(templates)))
+        probs, top_ids = self.get_topk_from_smi(smi=target, k = min(self.template_count, len(templates)))
         top_templates = []
         for i, id in enumerate(top_ids):
             templates[id]['score'] = probs[i]
@@ -83,7 +83,6 @@ class RelevanceTemplatePrioritizer(Prioritizer):
 
     def sigmoid(x):
         return 1 / (1 + math.exp(-x))
-
 
 def softmax(x):
     e_x = np.exp(x - np.max(x))
