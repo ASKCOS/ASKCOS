@@ -45,7 +45,8 @@ def configure_worker(options={}, **kwargs):
 
 
 @shared_task
-def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=0, max_branching=20, template_count = 10000):
+def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=0, 
+                       max_branching=20, template_count = 10000, mode=gc.max):
     '''Get the precursors for a chemical defined by its SMILES
 
     smiles = SMILES of node to expand
@@ -61,7 +62,7 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
 
     global retroTransformer
     result = retroTransformer.get_outcomes(
-        smiles, mincount, (precursor_prioritizer, template_prioritizer), template_count = template_count)
+        smiles, mincount, (precursor_prioritizer, template_prioritizer), template_count = template_count, mode=mode)
     print(result)
     precursors = result.return_top(n=max_branching)
     return (smiles, precursors)
