@@ -70,7 +70,8 @@ class RetroTransformer(TemplateTransformer):
             self.num_templates), retro_transformer_loc)
 
     def get_outcomes(self, smiles, mincount, prioritizers, start_at=-1, end_at=-1,
-                     singleonly=False, stop_if=False, template_count=10000, max_cum_prob=1.0):
+                     singleonly=False, stop_if=False, template_count=10000, 
+                     max_cum_prob=1.0, mode=gc.max):
         '''
         Performs a one-step retrosynthesis given a SMILES string of a
         target molecule by applying each transformation template
@@ -96,7 +97,7 @@ class RetroTransformer(TemplateTransformer):
 
         for template in self.top_templates(smiles):
             for precursor in self.apply_one_template(mol, smiles, template, singleonly=singleonly, stop_if=stop_if):
-                result.add_precursor(precursor, self.precursor_prioritizer)
+                result.add_precursor(precursor, self.precursor_prioritizer, mode = mode)
 
         return result
 

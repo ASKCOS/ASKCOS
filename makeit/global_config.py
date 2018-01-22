@@ -18,6 +18,10 @@ all = 'All'
 # for precursors
 heuristic = 'Heuristic'
 scscore = 'SCScore'
+mean = 'Mean'
+geometric = 'Geometric'
+pow8 ='Power of 8'
+max = 'Maximum'
 # for templates
 popularity = 'Popularity'
 relevance = 'Relevance'

@@ -27,6 +27,7 @@ def setup_parser():
     max_contexts = 10
     max_ppg = 10
     min_trees_success = 5
+    precursor_score_mode = gc.max
     output_dir = 'output'
     chiral = True
     nproc = 2
@@ -87,6 +88,9 @@ def setup_parser():
                         help='Specify which method should be used to order the found precursors. Default is {}'.format(precursor_prioritization))
     parser.add_argument('--parallel_tree', type=bool, default=parallel_tree,
                         help='Specify whether tree parallelization should be carried out in parallel. Default is{}'.format(parallel_tree))
+    parser.add_argument('--precursor_score_mode', type=str, default=precursor_score_mode,
+                        help='Specify how the score of a list of precursors should be determined when using synthetic complexity. Default is {}.'.format(precursor_score_mode))
+     
     return parser
 
 

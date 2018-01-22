@@ -1,6 +1,6 @@
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
-
+import global_config as gc
 
 class RetroResult:
     '''
@@ -12,16 +12,15 @@ class RetroResult:
         self.precursors = []
         self.smiles_list_to_precursor = {}
 
-    def add_precursor(self, precursor, prioritizer):
+    def add_precursor(self, precursor, prioritizer, **kwargs):
         '''
         Adds a precursor to the retrosynthesis result if it is a new and unique product
         '''
-      
         try:
             index = self.smiles_list_to_precursor['.'.join(precursor.smiles_list)]
         except KeyError:
             #If neither has been encountered: add new product
-            precursor.prioritize(prioritizer)
+            precursor.prioritize(prioritizer, mode = kwargs.pop('mode', gc.max))
             self.precursors.append(precursor)
             self.smiles_list_to_precursor['.'.join(precursor.smiles_list)] = len(self.precursors) - 1
             return
@@ -70,9 +69,9 @@ class RetroPrecursor:
         self.template_score = template_score
         self.necessary_reagent = necessary_reagent
 
-    def prioritize(self, prioritizer):
+    def prioritize(self, prioritizer, mode = gc.max):
         '''
         Calculate the score of this step as the worst of all precursors,
         plus some penalty for a large necessary_reagent
         '''
-        self.retroscore = prioritizer.get_priority(self)
+        self.retroscore = prioritizer.get_priority(self, mode = mode)

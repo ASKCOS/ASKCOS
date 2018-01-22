@@ -24,7 +24,8 @@ class MAKEIT:
     def __init__(self, TARGET, expansion_time, max_depth, max_branching, max_trees, retro_mincount, retro_mincount_chiral,
                  synth_mincount, rank_threshold_inclusion, prob_threshold_inclusion, max_total_contexts, template_count,
                  max_ppg, output_dir, chiral, nproc, celery, context_recommender, forward_scoring_method,
-                 tree_scoring_method, context_prioritization, template_prioritization, precursor_prioritization, parallel_tree):
+                 tree_scoring_method, context_prioritization, template_prioritization, precursor_prioritization, 
+                 parallel_tree, precursor_score_mode):
 
         self.TARGET = TARGET
         self.expansion_time = expansion_time
@@ -43,6 +44,7 @@ class MAKEIT:
         self.rank_threshold_inclusion = rank_threshold_inclusion
         self.prob_threshold_inclusion = prob_threshold_inclusion
         self.max_total_contexts = max_total_contexts
+        self.precursor_score_mode = precursor_score_mode
         self.max_ppg = max_ppg
         self.mol = name_parser.name_to_molecule(TARGET)
         self.smiles = Chem.MolToSmiles(self.mol)
@@ -64,7 +66,8 @@ class MAKEIT:
                                                 kwargs={'mincount': self.retro_mincount, 'max_branching': self.max_branching,
                                                         'max_depth': self.max_depth, 'max_ppg': self.max_ppg, 'max_time': self.expansion_time,
                                                         'max_trees': self.max_trees, 'known_bad_reactions': self.known_bad_reactions,
-                                                        'chiral': self.chiral, 'template_count':self.template_count})
+                                                        'chiral': self.chiral, 'template_count':self.template_count,
+                                                        'precursor_score_mode':self.precursor_score_mode})
 
             while not res.ready():
                 if int(time.time() - working) % 10 == 0:
@@ -80,7 +83,7 @@ class MAKEIT:
                                                           max_depth=self.max_depth, max_branching=self.max_branching, max_ppg=self.max_ppg,
                                                           mincount=self.retro_mincount, chiral=self.chiral, max_trees=self.max_trees,
                                                           known_bad_reactions=self.known_bad_reactions, expansion_time=self.expansion_time,
-                                                          template_count = self.template_count)
+                                                          template_count = self.template_count, precursor_score_mode=self.precursor_score_mode)
 
         return buyable_trees
 

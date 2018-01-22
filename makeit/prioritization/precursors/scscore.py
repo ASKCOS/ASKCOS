@@ -87,6 +87,7 @@ class SCScorePrecursorPrioritizer(Prioritizer):
         return x
 
     def get_priority(self, retroProduct, **kwargs):
+        mode = kwargs.pop('mode', gc.max)
         if not self._loaded:
             self.load_model()
 
@@ -94,17 +95,22 @@ class SCScorePrecursorPrioritizer(Prioritizer):
             scores = []
             for smiles in retroProduct.smiles_list:
                 scores.append(self.get_score_from_smiles(smiles))
-            return -self.merge_scores(scores)
+            return -self.merge_scores(scores, mode = mode)
         else:
             return -self.get_score_from_smiles(retroProduct)
         if not retroProduct:
             return -inf
 
-    def merge_scores(self, list_of_scores, mode='max'):
-        if mode == 'mean':
+    def merge_scores(self, list_of_scores, mode=gc.max):
+        if mode == gc.mean:
             return np.mean(list_of_scores)
-        elif mode == 'geometric':
+        elif mode == gc.geometric:
             return np.power(np.prod(list_of_scores), 1.0/len(list_of_scores))
+        elif mode == gc.pow8:
+            pow8 = []
+            for score in list_of_scores:
+                pow8.append(8**score)
+            return np.sum(pow8)
         else:
             return np.max(list_of_scores)
 
