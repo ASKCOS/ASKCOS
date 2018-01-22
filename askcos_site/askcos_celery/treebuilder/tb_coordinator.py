@@ -20,6 +20,7 @@ from celery.exceptions import Terminated
 import time
 from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors, reserve_worker_pool, unreserve_worker_pool
 from rdkit import RDLogger
+import makeit.global_config as gc
 from makeit.utilities.buyable.pricer import Pricer
 from makeit.retrosynthetic.tree_builder import TreeBuilder
 from makeit.synthetic.evaluation.evaluator import Evaluator
@@ -62,7 +63,7 @@ def configure_coordinator(options={}, **kwargs):
 def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=20,
                       max_depth=3, max_ppg=1e8, max_time=60, max_trees=25, reporting_freq=5, known_bad_reactions=[],
                       return_d1_if_no_trees=False, chiral=True, template_count=1e9, forbidden_molecules=[],
-                      precursor_score_mode=gc.max):
+                      precursor_score_mode=gc.max, max_cum_template_prob=1):
     '''Get a set of buyable trees for a target compound.
 
     mincount = minimum template popularity
@@ -86,7 +87,7 @@ def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritiz
                                            template_prioritization=template_prioritization, precursor_prioritization=precursor_prioritization,
                                            mincount=mincount, chiral=chiral, max_trees=max_trees, max_ppg=max_ppg, known_bad_reactions=known_bad_reactions,
                                            template_count=template_count, forbidden_molecules=forbidden_molecules,
-                                           precursor_score_mode=precursor_score_mode)
+                                           precursor_score_mode=precursor_score_mode,max_cum_template_prob=max_cum_template_prob)
     print('Task completed, returning results.')
     return result
 @shared_task
