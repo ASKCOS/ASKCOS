@@ -59,6 +59,8 @@ def resolve_smiles(smiles):
 def get_name_from_smiles(smiles):
     try:
         names = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/names'.format(smiles)).read()
+        if '&lt;!DOCTYPE html&gt;' in names:
+            return smiles
         return names.split('\n')[0]
     except urllib2.HTTPError:
         return smiles
