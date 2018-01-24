@@ -9,6 +9,7 @@ class TFFP():
     def __init__(self):
         froot = os.path.dirname(__file__)
         self.finder = CoreFinder(hidden_size=300, depth=3, batch_size=1)
+        print(os.path.join(froot, 'CoreFinder', 'uspto-300-3'))
         self.finder.load_model(os.path.join(froot, 'CoreFinder', 'uspto-300-3'))
         self.ranker = CandRanker(hidden_size=320, depth=3, TOPK=100)
         self.ranker.load_model(os.path.join(froot, 'CandRanker', 'uspto-320-3'))

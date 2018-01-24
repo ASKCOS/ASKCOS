@@ -87,8 +87,8 @@ class CandRanker(object):
                 outcomes.append({
                     'rank': i + 1,
                     'smiles': cand_smiles[i],
-                    'score': '{:.2f}'.format(cand_scores[i]),
-                    'prob': '{:.4f}'.format(cand_probs[i]*100.),
+                    'score': cand_scores[i],
+                    'prob': cand_probs[i],
                 })
         else:
             for i in range(min(len(cand_smiles), top_n)):

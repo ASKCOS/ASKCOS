@@ -9,7 +9,7 @@ def gated_convnet(graph_inputs, batch_size=64, hidden_size=300, depth=3, res_blo
     for i in xrange(depth):
         fatom_nei = tf.gather_nd(atom_features, atom_graph)
         fbond_nei = tf.gather_nd(input_bond, bond_graph)
-        f_nei = tf.concat(3, [fatom_nei, fbond_nei])
+        f_nei = tf.concat([fatom_nei, fbond_nei], 3)
         h_nei = linearND(f_nei, hidden_size, "nei_hidden_%d" % i)
         g_nei = tf.nn.sigmoid(linearND(f_nei, hidden_size, "nei_gate_%d" % i))
         f_nei = h_nei * g_nei
@@ -71,10 +71,10 @@ def rcnn_wl_last(graph_inputs, batch_size, hidden_size, depth, training=True):
             f_nei = tf.reduce_sum(h_nei * mask_nei, -2)
             f_self = linearND(atom_features, hidden_size, "self_atom", init_bias=None)
             layers.append(f_nei * f_self * node_mask)
-            l_nei = tf.concat(3, [fatom_nei, fbond_nei])
+            l_nei = tf.concat([fatom_nei, fbond_nei], 3)
             nei_label = tf.nn.relu(linearND(l_nei, hidden_size, "label_U2"))
             nei_label = tf.reduce_sum(nei_label * mask_nei, -2) 
-            new_label = tf.concat(2, [atom_features, nei_label])
+            new_label = tf.concat([atom_features, nei_label], 2)
             new_label = linearND(new_label, hidden_size, "label_U1")
             atom_features = tf.nn.relu(new_label)
     #kernels = tf.concat(1, layers)

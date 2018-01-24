@@ -78,7 +78,7 @@ def linearND(input_, output_size, scope, reuse=False, init_bias=0.0):
     with tf.variable_scope(scope, reuse=reuse):
         W = tf.get_variable("Matrix", [shape[-1], output_size], tf.float32, tf.random_normal_initializer(stddev=stddev))
     X_shape = tf.gather(tf.shape(input_), range(ndim-1))
-    target_shape = tf.concat(0, [X_shape, [output_size]])
+    target_shape = tf.concat([X_shape, [output_size]], 0)
     exp_input = tf.reshape(input_, [-1, shape[-1]])
     if init_bias is None:
         res = tf.matmul(exp_input, W)
