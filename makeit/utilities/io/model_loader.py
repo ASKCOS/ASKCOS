@@ -7,6 +7,7 @@ from makeit.synthetic.context.nearestneighbor import NNContextRecommender
 from makeit.synthetic.enumeration.transformer import ForwardTransformer
 from makeit.retrosynthetic.transformer import RetroTransformer
 from makeit.synthetic.evaluation.template_based import TemplateNeuralNetScorer
+from makeit.synthetic.evaluation.template_free import TemplateFreeNeuralNetScorer
 import sys
 model_loader_loc = 'model_loader'
 
@@ -147,9 +148,9 @@ def load_templatebased(mincount=25, celery=False, worker_no = 0):
     return scorer
 
 
-def load_templatefree(worker_no = 0):
+def load_templatefree():
     # Still has to be implemented
-    return None
+    return TemplateFreeNeuralNetScorer()
 
 
 def load_Context_Recommender(context_recommender, max_contexts=10):

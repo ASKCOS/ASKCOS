@@ -15,7 +15,9 @@ class TFFP():
         self.ranker.load_model(os.path.join(froot, 'CandRanker', 'uspto-320-3'))
 
     def predict(self, smi, top_n=25, num_core=8):
-        m = Chem.MolFromSmiles('CCCO.CCCBr')
+        m = Chem.MolFromSmiles(smi)
+        if not m:
+            raise ValueError('Could not parse molecule for TFFP! {}'.format(smi))
         [a.SetIntProp('molAtomMapNumber', i+1) for (i, a) in enumerate(m.GetAtoms())]
         s = Chem.MolToSmiles(m)
         rcores = self.finder.predict([s], num_core=num_core)[0]

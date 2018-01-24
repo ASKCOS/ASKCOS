@@ -1,6 +1,6 @@
 import tensorflow as tf
-from mol_graph import max_nb
-from utils.nn import *
+from .mol_graph import max_nb
+from ..utils.nn import *
 
 def rcnn_wl_last(graph_inputs, hidden_size, depth, training=True):
     input_atom, input_bond, atom_graph, bond_graph, num_nbs = graph_inputs

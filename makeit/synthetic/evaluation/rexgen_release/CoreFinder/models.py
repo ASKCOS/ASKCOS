@@ -1,6 +1,6 @@
 import tensorflow as tf
-from mol_graph import max_nb
-from utils.nn import *
+from .mol_graph import max_nb
+from ..utils.nn import *
 
 def gated_convnet(graph_inputs, batch_size=64, hidden_size=300, depth=3, res_block=2):
     input_atom, input_bond, atom_graph, bond_graph, num_nbs, node_mask = graph_inputs
