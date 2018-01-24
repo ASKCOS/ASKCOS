@@ -86,7 +86,7 @@ class Evaluator():
                             }
                     if not found_target:
                         MyLogger.print_and_log(
-                            'Used template set did not find target in outcomes! Returning 0 as score.', evaluator_loc, level=2)
+                            'Target not found in outcomes! Returning 0 as score.', evaluator_loc, level=2)
                         MyLogger.print_and_log(
                             'The expected outcome of {} was {} ({})'.format(reactant_smiles, evaluation_result['top_product']['smiles'], 
                                 evaluation_result['top_product']['prob']), evaluator_loc, level=2)

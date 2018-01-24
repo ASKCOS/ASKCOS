@@ -77,8 +77,8 @@ class TemplateFreeNeuralNetScorer(Scorer):
                         'template_ids': [],
                         'num_examples': 0,
                     },
-                    'score': outcome['score'],
-                    'prob': outcome['prob']
+                    'score': float(outcome['score']),
+                    'prob': float(outcome['prob'])
                 }
 
         # Renormalize and re-rank

@@ -213,15 +213,17 @@ class TreeEvaluator():
                 ###############################################################
                 else:
 #                   # TODO: better way of deciding if context recommendation is needed
-                    if gc.forward_scoring_needs_context[forward_scoring_method]:
+                    contexts = None
+                    if gc.forward_scoring_needs_context_necessary_reagent[forward_scoring_method]:
                         if not self._loaded_context_recommender:
                             self.load_context_recommender()
                         if necessary_reagent:
                             contexts = self.get_contexts(reaction_smiles, 1)
-                            reactants.extend(contexts[0][2].split('.')) # add reagents
-                        else:
+                            if contexts is not None and len(contexts) > 0 and len(contexts[0]) >= 3:
+                                reactants.extend(contexts[0][2].split('.')) # add reagents
+                        elif gc.forward_scoring_needs_context[forward_scoring_method]:
                             contexts = self.get_contexts(reaction_smiles, n)
-                    else:
+                    if not contexts:
                         contexts = ['n/a']
                     evaluation = self.evaluate_reaction(
                         '.'.join(reactants), target, contexts, worker_no = worker_no)

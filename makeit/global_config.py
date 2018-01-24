@@ -42,6 +42,11 @@ templatefree = 'Template_Free'
 templatebased = 'Template_Based'
 forward_scoring_needs_context = {
     'Fast_Filter': False,
+    'Template_Free': False,
+    'Template_Based': True,
+}
+forward_scoring_needs_context_necessary_reagent = {
+    'Fast_Filter': False,
     'Template_Free': True,
     'Template_Based': True,
 }
