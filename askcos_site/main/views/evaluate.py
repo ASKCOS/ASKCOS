@@ -11,6 +11,7 @@ import numpy as np
 import json
 import os
 import rdkit.Chem as Chem 
+import makeit.global_config as makeit_gc
 
 # TODO: fix this Celery reference
 from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
@@ -32,7 +33,7 @@ def ajax_evaluate_rxnsmiles(request):
     verbose = json.loads(request.GET.get('verbose', 'false'))
     synth_mincount = int(request.GET.get('synth_mincount', 0))
     necessary_reagent = request.GET.get('necessary_reagent', '')
-    forward_scorer = request.GET.get('forward_scorer', 'Template_Based')
+    forward_scorer = request.GET.get('forward_scorer', 'Template_Free')
     if necessary_reagent == 'false':
         necessary_reagent = ''
     if '{}-{}'.format(smiles, synth_mincount) in DONE_SYNTH_PREDICTIONS:
@@ -42,16 +43,23 @@ def ajax_evaluate_rxnsmiles(request):
     products = smiles.split('>>')[1].split('.')
     print('...trying to get predicted context')
 
-    if necessary_reagent:
+    if necessary_reagent and makeit_gc.forward_scoring_needs_context_necessary_reagent[forward_scorer]:
         num_contexts = 1
-    else:
+    elif makeit_gc.forward_scoring_needs_context[forward_scorer]:
         num_contexts = 10
-    res = get_context_recommendations.delay(smiles, n=num_contexts, context_recommender='Nearest_Neighbor')
-    contexts = res.get(60)
-    print('Got context(s)')
-    print(contexts)
-    if contexts is None:
-        raise ValueError('Context recommender was unable to get valid context(?)')
+    else:
+        num_contexts = 0
+
+    if num_contexts:
+        res = get_context_recommendations.delay(smiles, n=num_contexts, context_recommender='Nearest_Neighbor')
+        contexts = res.get(60)
+        print('Got context(s)')
+        print(contexts)
+        if contexts is None:
+            raise ValueError('Context recommender was unable to get valid context(?)')
+    else:
+        contexts = ['n/a']
+        print('Did not need a context')
 
     # Run
     reactant_smiles = smiles.split('>>')[0]
@@ -100,28 +108,33 @@ def ajax_evaluate_rxnsmiles(request):
     print('Plausibility: {}'.format(plausible))
     print(all_outcomes[best_context_i])
 
-    (T1, slvt1, rgt1, cat1, t1, y1) = best_context
+    if num_contexts:
+        (T1, slvt1, rgt1, cat1, t1, y1) = best_context
 
     if not verbose:
-        if not rgt1: rgt1 = 'no '
+        
         data['html'] = 'Plausibility score: {} (rank {})'.format(plausible, rank)
-        data['html'] += '<br><br><u>Top conditions</u>'
-        data['html'] += '<br>{} C'.format(T1)
-        data['html'] += '<br>{} solvent'.format(slvt1)
-        data['html'] += '<br>{} reagents'.format(rgt1)
-        data['html'] += '<br>nearest-neighbor got {}% yield'.format(y1)
+        if num_contexts:
+            if not rgt1: rgt1 = 'no '
+            data['html'] += '<br><br><u>Top conditions</u>'
+            data['html'] += '<br>{} C'.format(T1)
+            data['html'] += '<br>{} solvent'.format(slvt1)
+            data['html'] += '<br>{} reagents'.format(rgt1)
+            data['html'] += '<br>nearest-neighbor got {}% yield'.format(y1)
         if rank != 1:
             data['html'] += '<br>Predicted major product with p = {}'.format(major_prob)
             data['html'] += '<br>{}'.format(major_prod)
             if major_prod != 'none found':
                 url = reverse('draw_smiles', kwargs={'smiles':major_prod})
                 data['html'] += '<br><img src="' + url + '">'
-        data['html'] += '<br>(calc. used synth_mincount {})'.format(synth_mincount)
+        #data['html'] += '<br>(calc. used synth_mincount {})'.format(synth_mincount)
     else:
-        if not rgt1: rgt1 = 'none'
+        
         data['html'] = '<h3>Plausibility score: {} (rank {})</h3>'.format(plausible, rank)
-        data['html'] += '\n<br><u>Proposed conditions ({} tried)</u>\n'.format(len(contexts))
-        data['html'] += '<br>Temp: {} C<br>Reagents: {}<br>Solvent: {}\n'.format(T1, rgt1, slvt1)
+        if num_contexts:
+            if not rgt1: rgt1 = 'none'
+            data['html'] += '\n<br><u>Proposed conditions ({} tried)</u>\n'.format(len(contexts))
+            data['html'] += '<br>Temp: {} C<br>Reagents: {}<br>Solvent: {}\n'.format(T1, rgt1, slvt1)
         if rank != 1:
             data['html'] += '<br><br><u>Predicted major product (<i>p = {}</i>)</u>'.format(major_prob)
             data['html'] += '\n<br>{}'.format(major_prod)
@@ -138,5 +151,5 @@ def ajax_evaluate_rxnsmiles(request):
     data['html_color'] = str('#%02x%02x%02x' % (int(R), int(G), int(B)))
     
     # Save response
-    DONE_SYNTH_PREDICTIONS['{}-{}'.format(smiles, synth_mincount)] = data
+    DONE_SYNTH_PREDICTIONS['{}-{}-{}'.format(smiles, forward_scorer, synth_mincount)] = data
     return JsonResponse(data)

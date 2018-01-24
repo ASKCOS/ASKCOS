@@ -172,6 +172,7 @@ def retro_interactive(request, target=None):
     context['template_count_default'] = 100
     context['template_prioritization'] = 'Relevance'
     context['precursor_prioritization'] = 'Heuristic'
+    context['forward_scorer'] = 'Template_Free'
 
     if target is not None:
         context['target_mol'] = target
