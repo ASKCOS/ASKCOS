@@ -40,6 +40,11 @@ network = 'Neural_Network'
 fastfilter = 'Fast_Filter'
 templatefree = 'Template_Free'
 templatebased = 'Template_Based'
+forward_scoring_needs_context = {
+    'Fast_Filter': False,
+    'Template_Free': False,
+    'Template_Based': True,
+}
 
 #Set which modules should be used:
 context_module = nearest_neighbor
