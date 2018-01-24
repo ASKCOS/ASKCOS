@@ -5,6 +5,7 @@ from rdkit.Chem import AllChem
 import cPickle as pickle
 import numpy as np
 import random
+from collections import deque
 # from sklearn.neighbors import NearestNeighbors as NN
 from sklearn.externals import joblib
 import makeit.utilities.strings as strings
@@ -17,7 +18,7 @@ class NNContextRecommender(ContextRecommender):
     """Reaction condition predictor based on Nearest Neighbor method"""
 
     def __init__(self, max_contexts = 10, singleSlvt=True, with_smiles=True, done = None, REACTION_DB = None,
-                 CHEMICAL_DB=None, INSTANCE_DB= None):
+                 CHEMICAL_DB=None, INSTANCE_DB= None, cachelength=100):
         """
         :param singleSlvt:
         :param with_smiles:
@@ -35,6 +36,8 @@ class NNContextRecommender(ContextRecommender):
         self.REACTION_DB = REACTION_DB
         self.CHEMICAL_DB = CHEMICAL_DB
         self.INSTANCE_DB = INSTANCE_DB
+        self.cache = {}
+        self.cache_q = deque([], maxlen=cachelength)
     
     def load(self, model_path = "", info_path = ""):
         self.load_databases()
@@ -106,6 +109,9 @@ class NNContextRecommender(ContextRecommender):
             self.load_databases()
     
         try:
+            if rxn in self.cache:
+                return self.cache[rxn]
+
             rxn_fp = fp.create_rxn_Morgan2FP(rxn, fpsize=256, useFeatures=True)
             dists, ids = self.nnModel.kneighbors(rxn_fp)  # (1L, 10L)
             # # print info of neighbors
@@ -113,7 +119,16 @@ class NNContextRecommender(ContextRecommender):
             # for i, dist in enumerate(dists[0]):
             #     print('{}\t{}\t{}'.format(i, self.rxn_ids[ids[0][i]], dist))
             
-            return self.n_rxn_condition(n, dists=dists[0], idx=ids[0])
+            conditions = self.n_rxn_condition(n, dists=dists[0], idx=ids[0])
+
+            # Save in cache
+            if len(self.cache_q) == self.cache_q.maxlen:
+                rxn_to_remove = self.cache_q.pop()
+                del self.cache[rxn_to_remove]
+            self.cache_q.appendleft(rxn)
+            self.cache[rxn] = conditions
+
+
         except Exception as e:
 
             MyLogger.print_and_log('Failed for reaction {} because {}. Returning None.'.format(rxn,e), contextRecommender_loc, level=2)
