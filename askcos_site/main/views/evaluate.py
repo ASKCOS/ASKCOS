@@ -32,6 +32,7 @@ def ajax_evaluate_rxnsmiles(request):
     verbose = json.loads(request.GET.get('verbose', 'false'))
     synth_mincount = int(request.GET.get('synth_mincount', 0))
     necessary_reagent = request.GET.get('necessary_reagent', '')
+    forward_scorer = request.GET.get('forward_scorer', 'Template_Based')
     if necessary_reagent == 'false':
         necessary_reagent = ''
     if '{}-{}'.format(smiles, synth_mincount) in DONE_SYNTH_PREDICTIONS:
@@ -61,7 +62,7 @@ def ajax_evaluate_rxnsmiles(request):
         reactant_smiles += '.{}'.format(contexts[0][2]) # add rgt
     
     res = evaluate.delay(reactant_smiles, products[0], contexts, 
-        forward_scorer='Template_Based', mincount=synth_mincount, top_n=50,
+        forward_scorer=forward_scorer, mincount=synth_mincount, top_n=50,
         return_all_outcomes=True)
     all_outcomes = res.get(300)
 
