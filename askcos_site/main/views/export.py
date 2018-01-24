@@ -11,7 +11,8 @@ import os
 import rdkit.Chem as Chem 
 import urllib2
 
-from ...askcos_celery.contextrecommender.worker import get_context_recommendation
+from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
+from ..globals import SYNTH_FOOTNOTE
 
 from ..utils import get_name_from_smiles
 from .users import can_control_robot
@@ -23,6 +24,7 @@ def export_synth_results(request):
     
     synth_data = request.session['last_synth_interactive']
     txt = '%s\r\n' % SYNTH_FOOTNOTE
+    txt += 'Forward prediction approach: %s\r\n' % synth_data['forward_scorer']
     txt += 'Reactants: %s\r\n' % synth_data['reactants']
     txt += 'Reagents: %s\r\n' % synth_data['reagents']
     txt += 'Temperature: %s\r\n' % synth_data['temperature']
@@ -30,7 +32,7 @@ def export_synth_results(request):
     txt += '\r\n'
     txt += '%s\t%s\t%s\t%s\r\n' % ('Rank', 'SMILES', 'Probability', 'Score')
     for outcome in synth_data['outcomes']:
-        txt += '%s\t%s\t%s\t%s\r\n' % (outcome['rank'], outcome['smiles'], outcome['prob'], outcome['score'])
+        txt += '%s\t%s\t%s\t%s\r\n' % (outcome['rank'], outcome['outcome']['smiles'], outcome['prob'], outcome['score'])
     response = HttpResponse(txt, content_type='text/csv')
     response['Content-Disposition'] = 'attachment;filename=export.csv'
     return response
@@ -78,7 +80,7 @@ def export_retro_results(request, _id=1):
             this_bay['necessary_reagent'] = rxn['necessary_reagent']
             
             # Get context recommendations (just one for now, no forward evaluator)
-            res = get_context_recommendation.delay(rxn['smiles'], n=10)
+            res = get_context_recommendations.delay(rxn['smiles'], n=10)
             contexts = res.get(60)
             if not contexts:
                 # use default conditions
@@ -87,7 +89,10 @@ def export_retro_results(request, _id=1):
                 this_bay['context_failed'] = True
             else:
                 (T1, slvt1, rgt1, cat1, t1, y1) = contexts[0]
-                slvt1_name = get_name_from_smiles(slvt1)
+                if slvt1:
+                    slvt1_name = get_name_from_smiles(slvt1)
+                else:
+                    slvt1_name = 'Neat'
                 this_bay['context_failed'] = False
             this_bay['temperature'] = T1
             this_bay['reaction_solvent_smiles'] = slvt1
