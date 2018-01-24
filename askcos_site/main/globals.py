@@ -164,7 +164,8 @@ print('Loaded known prices')
 TransformerOnlyKnown = None 
 
 
-PREDICTOR_FOOTNOTE = 'Results generated using <= {} forward synthetic templates \
+PREDICTOR_FOOTNOTE = 'When using the template-based predictor, results are \
+generated using <= {} forward synthetic templates \
 (mincount >= {}) from {}/{}, scored by a trained machine learning model: '.format(
     SynthTransformer.num_templates,  settings.SYNTH_TRANSFORMS['mincount'], 
     settings.SYNTH_TRANSFORMS['database'], 
