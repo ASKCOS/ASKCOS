@@ -22,7 +22,7 @@ from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
 
 @login_required
 def synth_interactive(request, reactants='', reagents='', solvent='toluene', 
-        temperature='20', mincount='25', product=None):
+        temperature='20', mincount='25', product=None, forward_scorer='Template_Based'):
     '''Builds an interactive forward synthesis page'''
 
     context = {} 
@@ -60,6 +60,7 @@ def synth_interactive(request, reactants='', reagents='', solvent='toluene',
         context['reagents'] = rgt1
         context['temperature'] = T1 
 
+    context['forward_scorer'] = 'Template_Based'
     context['mincount'] = mincount if mincount != '' else settings.SYNTH_TRANSFORMS['mincount']
     return render(request, 'synth_interactive.html', context)
 
@@ -95,6 +96,7 @@ def ajax_start_synth(request):
     reagents = request.GET.get('reagents', None)
     mincount = int(request.GET.get('mincount', 25))
     maxreturn = int(request.GET.get('maxreturn', 100))
+    forward_scorer = request.GET.get('forward_scorer', 'Template_Based')
     print('Conditions for forward synthesis:')
     print('reactants: {}'.format(reactants))
     print('solvent: {}'.format(solvent))
@@ -102,16 +104,17 @@ def ajax_start_synth(request):
     print('reagents: {}'.format(reagents))
     print('mincount: {}'.format(mincount))
     print('max return: {}'.format(maxreturn))
+    print('forward scorer: {}'.format(forward_scorer))
 
     startTime = time.time()
     # context expected is (T1, slvt1, rgt1, cat1, t1, y1)
     res = evaluate.delay(reactants, '',
         contexts=[(temperature, solvent, reagents, '', -1, -1)], 
-        forward_scorer='Template_Based', top_n=maxreturn, return_all_outcomes=True)
+        forward_scorer=forward_scorer, top_n=maxreturn, return_all_outcomes=True)
     outcomes = res.get(300)[0]['outcomes']
 
     print('Got top outcomes, length {}'.format(len(outcomes)))
-    print(outcomes)
+    #print(outcomes)
     data['html_time'] = '{:.3f} seconds elapsed'.format(time.time() - startTime)
 
     if outcomes:
@@ -124,7 +127,7 @@ def ajax_start_synth(request):
     # Save in session in case used wants to print
     request.session['last_synth_interactive'] = {'reactants': reactants, 
         'temperature': temperature, 'reagents': reagents, 'solvent': solvent,
-        'mincount': mincount, 'outcomes': outcomes}
+        'mincount': mincount, 'outcomes': outcomes, 'forward_scorer': forward_scorer}
 
     return JsonResponse(data)
 
