@@ -306,7 +306,10 @@ class TemplateNeuralNetScorer(Scorer):
                 # Convert to outcome dict, canonicalizing by SMILES
                 outcome_dict = {}
                 for i, outcome in enumerate(this_outcome):
-                    outcome_smiles = outcome[0].smiles if not self.celery else outcome[0]['smiles']
+                    try:
+                        outcome_smiles = outcome[0].smiles
+                    except AttributeError:
+                        outcome_smiles = outcome[0]['smiles']
                     if outcome_smiles not in outcome_dict:
                         outcome_dict[outcome_smiles] = {
                             'rank': i + 1,
