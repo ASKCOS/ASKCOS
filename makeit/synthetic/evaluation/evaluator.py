@@ -88,7 +88,8 @@ class Evaluator():
                         MyLogger.print_and_log(
                             'Used template set did not find target in outcomes! Returning 0 as score.', evaluator_loc, level=2)
                         MyLogger.print_and_log(
-                            'The expected outcome of {} was [}'.format(reactant_smiles, evaluation_result['top_product']['smiles']), evaluator_loc, level=2)
+                            'The expected outcome of {} was {} ({})'.format(reactant_smiles, evaluation_result['top_product']['smiles'], 
+                                evaluation_result['top_product']['prob']), evaluator_loc, level=2)
                         evaluation_result['target'] = {
                             'smiles': target,
                             'template_ids': [],

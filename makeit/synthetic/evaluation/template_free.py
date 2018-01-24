@@ -21,7 +21,7 @@ from makeit.utilities.io.logging import MyLogger
 from makeit.utilities.reactants import clean_reactant_mapping
 from askcos_site.askcos_celery.treeevaluator.forward_trans_worker import get_outcomes, template_count
 from operator import itemgetter
-template_nn_scorer_loc = 'template_based'
+template_free_scorer_loc = 'template_based'
 
 
 class TemplateFreeNeuralNetScorer(Scorer):
@@ -42,21 +42,55 @@ class TemplateFreeNeuralNetScorer(Scorer):
                 'prob': 0,
                 }]]
          
-        outcomes_to_ret = []
+        outcomes_to_ret = {}
+        reactants_smiles_split = reactants_smiles.split('.')
         for outcome in outcomes:
-            outcomes_to_ret.append({ \
-                'rank': outcome['rank'],
-                'outcome': {
-                    'smiles': max(outcome['smiles'].split('.'), key=len),
-                    'smiles_full': outcome['smiles'],
-                    'template_ids': [],
-                    'num_examples': 0,
-                },
-                'score': outcome['score'],
-                'prob': outcome['prob']})
+
+            # Remove fragments that are unreacted
+            smiles_list = set(outcome['smiles'].split('.'))
+            for reactants_smiles_part in reactants_smiles_split:
+                if reactants_smiles_part in smiles_list:
+                    smiles_list.remove(reactants_smiles_part)
+            if not smiles_list:
+                continue # no reaction?
+
+            # Canonicalize
+            mol = Chem.MolFromSmiles('.'.join(smiles_list))
+            if not mol:
+                MyLogger.print_and_log('Template free evaluator could not reparse product {}'.format('.'.join(smiles_list)), 
+                    template_free_scorer_loc, 1)
+                continue
+            smiles_list = Chem.MolToSmiles(mol).split('.')
+            smiles = max(smiles_list, key=len) # NOTE: this is not great...byproducts may be longer
+
+            if smiles in outcomes_to_ret:
+                outcomes_to_ret[smiles]['rank'] = min(outcomes_to_ret[smiles]['rank'], outcome['rank'])
+                outcomes_to_ret[smiles]['score'] = max(outcomes_to_ret[smiles]['score'], outcome['score'])
+                outcomes_to_ret[smiles]['prob'] += outcome['prob']
+            else:
+                # Append outcome information
+                outcomes_to_ret[smiles] = {
+                    'rank': outcome['rank'],
+                    'outcome': {
+                        'smiles': smiles,
+                        # 'smiles_list': smiles_list,
+                        'template_ids': [],
+                        'num_examples': 0,
+                    },
+                    'score': outcome['score'],
+                    'prob': outcome['prob']
+                }
+
+        # Renormalize and re-rank
+        outcomes = sorted(outcomes_to_ret.values(), key=lambda x: x['prob'], reverse=True)
+        total_prob = sum([outcome['prob'] for outcome in outcomes])
+        for i, outcome in enumerate(outcomes):
+            outcomes[i]['rank'] = i + 1
+            outcomes[i]['prob'] = outcome['prob'] / total_prob
+
 
         # Return in lists as if we received a list of contexts
-        return [outcomes_to_ret]
+        return [outcomes]
                 
 
 if __name__ == '__main__':

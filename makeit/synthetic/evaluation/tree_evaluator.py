@@ -29,23 +29,9 @@ class TreeEvaluator():
         self.rank_threshold = rank_inclusion
         self.prob_threshold = prob_inclusion
         self.recommender = context_recommender
+        self.max_contexts = max_contexts
+        self._loaded_context_recommender = False
 
-        if not self.celery:
-            self.context_recommender = model_loader.load_Context_Recommender(
-                context_recommender, max_contexts=max_contexts)
-
-        if self.celery:
-            def get_contexts(rxn, n):
-                res = get_context_recommendations.apply_async(args=(rxn,),
-                                                              kwargs={'n': n, 'singleSlvt': self.single_solv,
-                                                                      'with_smiles': self.with_smiles,
-                                                                      'context_recommender': self.recommender})
-                return res.get(120)
-        else:
-            def get_contexts(rxn, n):
-                return self.context_recommender.get_n_conditions(rxn, n=n, singleSlvt=self.single_solv, with_smiles=self.with_smiles)
-
-        self.get_contexts = get_contexts
 
         if self.celery:
             def evaluate_reaction(reactant_smiles, target, contexts, worker_no = 0):
@@ -61,6 +47,25 @@ class TreeEvaluator():
                                                template_count = self.template_count)
 
         self.evaluate_reaction = evaluate_reaction
+
+    def load_context_recommender(self):
+        if not self.celery:
+            self.context_recommender = model_loader.load_Context_Recommender(
+                self.recommender, max_contexts=self.max_contexts)
+
+        if self.celery:
+            def get_contexts(rxn, n):
+                res = get_context_recommendations.apply_async(args=(rxn,),
+                                                              kwargs={'n': n, 'singleSlvt': self.single_solv,
+                                                                      'with_smiles': self.with_smiles,
+                                                                      'context_recommender': self.recommender})
+                return res.get(120)
+        else:
+            def get_contexts(rxn, n):
+                return self.context_recommender.get_n_conditions(rxn, n=n, singleSlvt=self.single_solv, with_smiles=self.with_smiles)
+
+        self.get_contexts = get_contexts
+        self._loaded_context_recommender = True
 
     def get_context_prioritizer(self, context_method):
         if context_method == gc.probability:
@@ -107,36 +112,6 @@ class TreeEvaluator():
                 'Specified tree scoring method is not implemented. Returning product', treeEvaluator_loc, level=2)
             return template_score * forward_score
 
-    def work(self, i):
-        while True:
-            # If done, stop
-            if self.done.value:
-                MyLogger.print_and_log(
-                    'Worker {} saw done signal, terminating'.format(i), treeEvaluator_loc)
-                break
-            # If paused, wait and check again
-            if self.paused.value:
-                #print('Worker {} saw pause signal, sleeping for 1 second'.format(i))
-                time.sleep(1)
-                continue
-            # Grab something off the queue
-            try:
-                tree = self.evaluation_queue.get(timeout=0.5)  # short timeout
-                self.idle[i] = False
-                plausible, score = self.evaluate_tree(tree, context_recommender='', context_scoring_method='',
-                                                      forward_scoring_method='', tree_scoring_method='',
-                                                      rank_threshold=5, prob_threshold=0.2, is_target=False,
-                                                      mincount=25, nproc=1, batch_size=500, n=10, worker_no = i,
-                                                      template_count = self.template_count)
-                self.results_queue.put([tree, plausible, score])
-                #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
-            except VanillaQueue.Empty:
-                #print('Queue {} empty for worker {}'.format(j, i))
-                pass
-            except Exception as e:
-                print e
-            self.idle[i] = True
-
     def evaluate_trees(self, tree_list, context_recommender='', context_scoring_method='', forward_scoring_method='',
                        tree_scoring_method='', rank_threshold=5, prob_threshold=0.2, mincount=25, nproc=1,
                        batch_size=500, n=10, nproc_t=1, parallel=False, template_count = 10000):
@@ -154,10 +129,45 @@ class TreeEvaluator():
         
         if not parallel:
             for tree in tree_list:
-                self.scored_trees.append(self.evaluate_tree(tree, context_recommender, context_scoring_method, forward_scoring_method, tree_scoring_method,
-                                                            rank_threshold, prob_threshold, mincount, nproc, batch_size, n, is_target=True,
-                                                            template_count = template_count))
+                self.scored_trees.append(self.evaluate_tree(tree, context_recommender=context_recommender, context_scoring_method=context_scoring_method,
+                                                      forward_scoring_method=forward_scoring_method, tree_scoring_method=tree_scoring_method,
+                                                      rank_threshold=rank_threshold, prob_threshold=prob_threshold, is_target=True,
+                                                      mincount=mincount, nproc=1, batch_size=batch_size, n=n,
+                                                      template_count=template_count))
         else:
+            def work(self, i):
+                while True:
+            # If done, stop
+                    if self.done.value:
+                        MyLogger.print_and_log(
+                            'Worker {} saw done signal, terminating'.format(i), treeEvaluator_loc)
+                        break
+            # If paused, wait and check again
+                    if self.paused.value:
+                    #print('Worker {} saw pause signal, sleeping for 1 second'.format(i))
+                        time.sleep(1)
+                        continue
+            # Grab something off the queue
+                    try:
+                        tree = self.evaluation_queue.get(timeout=0.5)  # short timeout
+                        self.idle[i] = False
+                        plausible, score = self.evaluate_tree(tree, context_recommender=context_recommender, context_scoring_method=context_scoring_method,
+                                                      forward_scoring_method=forward_scoring_method, tree_scoring_method=tree_scoring_method,
+                                                      rank_threshold=rank_threshold, prob_threshold=prob_threshold, is_target=True,
+                                                      mincount=mincount, nproc=1, batch_size=batch_size, n=n, worker_no=i,
+                                                      template_count=template_count)
+                        self.results_queue.put([tree, plausible, score])
+                #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
+                    except VanillaQueue.Empty:
+                #print('Quee {} empty for worker {}'.format(j, i))
+                        pass
+                    except Exception as e:
+                        print e
+                    self.idle[i] = True
+            self.work = work
+
+
+
             self.spin_up_workers(nproc_t)
             self.populate_queue(tree_list)
             self.get_scored_trees()
@@ -166,7 +176,7 @@ class TreeEvaluator():
 
     def evaluate_tree(self, tree, context_recommender='', context_scoring_method='', forward_scoring_method='',
                       tree_scoring_method='', rank_threshold=5, prob_threshold=0.2, mincount=25, nproc=1,
-                      batch_size=500, n=10, is_target=False, reset=False , worker_no = 0, template_count = 10000):
+                      batch_size=500, n=10, is_target=False, reset=False , worker_no=0, template_count=10000):
         if is_target and reset:
             self.reset()
             self.get_context_prioritizer(context_scoring_method)
@@ -202,11 +212,17 @@ class TreeEvaluator():
                 # Otherwise create data
                 ###############################################################
                 else:
-                    if necessary_reagent:
-                        contexts = self.get_contexts(reaction_smiles, 1)
-                        reactants.extend(contexts[0][2].split('.')) # add reagents
+#                   # TODO: better way of deciding if context recommendation is needed
+                    if gc.forward_scoring_needs_context[forward_scoring_method]:
+                        if not self._loaded_context_recommender:
+                            self.load_context_recommender()
+                        if necessary_reagent:
+                            contexts = self.get_contexts(reaction_smiles, 1)
+                            reactants.extend(contexts[0][2].split('.')) # add reagents
+                        else:
+                            contexts = self.get_contexts(reaction_smiles, n)
                     else:
-                        contexts = self.get_contexts(reaction_smiles, n)
+                        contexts = ['n/a']
                     evaluation = self.evaluate_reaction(
                         '.'.join(reactants), target, contexts, worker_no = worker_no)
                     self.evaluation_dict[reaction_smiles] = evaluation
@@ -229,7 +245,13 @@ class TreeEvaluator():
                 print reaction_smiles, plausible
                 all_children_plausible = True
                 for child in reaction['children']:
-                    child_plausible, score_child = self.evaluate_tree(child)
+                    # TODO: pproperly pass arguments to next evaluate_tree call
+                    child_plausible, score_child = self.evaluate_tree(child, 
+                        context_recommender=context_recommender, context_scoring_method=context_scoring_method, 
+                        forward_scoring_method=forward_scoring_method, tree_scoring_method=tree_scoring_method,
+                        rank_threshold=rank_threshold, prob_threshold=prob_threshold, mincount=mincount, 
+                        nproc=nproc, batch_size=batch_size, n=n, is_target=False, reset=False, worker_no=worker_no,
+                        template_count=template_count)
                     score *= score_child
                     if not child_plausible:
                         all_children_plausible = False

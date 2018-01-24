@@ -102,7 +102,7 @@ class MAKEIT:
                                                                     'mincount': self.synth_mincount,
                                                                     'batch_size': 500, 'n': self.max_total_contexts,
                                                                     'template_count':self.template_count,
-                                                                    'max_cum_template_prob':max_cum_template_prob})
+                                                                    })
             while not res.ready():
                 if int(time.time() - working) % 10 == 0:
                     MyLogger.print_and_log('Evaluating trees...', makeit_loc)
@@ -131,7 +131,7 @@ class MAKEIT:
                                                            rank_threshold=self.rank_threshold_inclusion, prob_threshold=self.prob_threshold_inclusion,
                                                            mincount=self.synth_mincount, batch_size=500, n=self.max_total_contexts, nproc_t=nproc_t,
                                                            nproc=nproc, parallel=self.parallel_tree, template_count = self.template_count,
-                                                           max_cum_template_prob=self.max_cum_template_prob)
+                                                           )
         plausible_trees = []
         print evaluated_trees
         for tree in evaluated_trees:
