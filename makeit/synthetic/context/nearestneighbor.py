@@ -110,7 +110,7 @@ class NNContextRecommender(ContextRecommender):
     
         try:
             if rxn in self.cache:
-                return self.cache[rxn]
+                return self.cache[rxn][:n]
 
             rxn_fp = fp.create_rxn_Morgan2FP(rxn, fpsize=256, useFeatures=True)
             dists, ids = self.nnModel.kneighbors(rxn_fp)  # (1L, 10L)
@@ -119,7 +119,8 @@ class NNContextRecommender(ContextRecommender):
             # for i, dist in enumerate(dists[0]):
             #     print('{}\t{}\t{}'.format(i, self.rxn_ids[ids[0][i]], dist))
             
-            conditions = self.n_rxn_condition(n, dists=dists[0], idx=ids[0])
+            # Grab as many contexts as allowed for caching
+            conditions = self.n_rxn_condition(self.max_total_context, dists=dists[0], idx=ids[0])
 
             # Save in cache
             if len(self.cache_q) == self.cache_q.maxlen:
@@ -127,6 +128,7 @@ class NNContextRecommender(ContextRecommender):
                 del self.cache[rxn_to_remove]
             self.cache_q.appendleft(rxn)
             self.cache[rxn] = conditions
+            return conditions[:n]
 
 
         except Exception as e:

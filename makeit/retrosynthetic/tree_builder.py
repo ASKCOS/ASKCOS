@@ -415,19 +415,19 @@ class TreeBuilder:
             }
             self.chem_to_id[target] = 1
 
-            if self.max_depth == 1:
-                result = self.retroTransformer.get_outcomes(target, self.mincount, (self.precursor_prioritization,
-                                                                                    self.template_prioritization),
-                                                            template_count=self.template_count,
-                                                            mode = self.precursor_score_mode,
-                                                            max_cum_prob = self.max_cum_template_prob)
-                precursors = result.return_top(n=self.max_branching)
-                children = self.get_children(precursors)
-                self.add_children(children, target, 1)
-            else:
-                self.prepare()
-                self.set_initial_target(target)
-                self.coordinate()
+            # if self.max_depth == 1:
+            #     result = self.retroTransformer.get_outcomes(target, self.mincount, (self.precursor_prioritization,
+            #                                                                         self.template_prioritization),
+            #                                                 template_count=self.template_count,
+            #                                                 mode = self.precursor_score_mode,
+            #                                                 max_cum_prob = self.max_cum_template_prob)
+            #     precursors = result.return_top(n=self.max_branching)
+            #     children = self.get_children(precursors)
+            #     self.add_children(children, target, 1)
+            # else:
+            self.prepare()
+            self.set_initial_target(target)
+            self.coordinate()
 
     def tree_status(self):
         '''Summarize size of tree after expansion'''
@@ -490,7 +490,7 @@ class TreeBuilder:
         # generate trees
         self.build_tree(target)
         def IDDFS():
-            for depth in range(self.max_depth):
+            for depth in range(self.max_depth+1):
                 for path in DLS_chem(1, depth, headNode=True):
                     yield chem_dict(1, self.tree_dict[1]['smiles'], self.tree_dict[1]['ppg'], children=path)
 
