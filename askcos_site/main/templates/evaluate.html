@@ -50,6 +50,7 @@ $("#get_plausibility").click(function () {
 			smiles: $("#rxn_smiles").val(),
 			necessary_reagent: $("#necessary_reagent").is(":checked"),
 			verbose: true,
+			forward_scorer: $("#id_forward_scorer").val(),
 		},
 		dataType: 'json',
 		success: function (data) {
@@ -88,6 +89,17 @@ $(document).ready(function() {
 <!-- Placeholder for rendering image after a SMILES string is entered -->
 <tr id="rxn_mol_wrapper" style="display:none"><td colspan="2" id="rxn_image"></td></tr>
 <tr id="rxn_smiles_wrapper" style="display:none"><td colspan="2" id="rxn_smiles"></td></tr>
+
+
+
+<tr><th style="vertical-align:text-top;">Prediction approach: <a href="#" data-toggle="tooltip" title="How would you like to try to predict the outcome of this reaction? There is the classic template-based approach, which is somewhat context-dependent, but can be slow (5-45 seconds). There is also the template-free approach, which can allow for inventive chemistry and tends to be more accurate overall, but is not sensitive to context. It is very fast."><span class="glyphicon glyphicon-info-sign"></span></a></th>
+    <td>
+        <select id="id_forward_scorer" name="forward_scorer" onchange="showFields(this.options[this.selectedIndex].value)">
+            <option value="Template_Based" {% if forward_scorer == 'Template_Based' %}selected{% endif %}>Template-based</option>
+            <option value="Template_Free" {% if forward_scorer == 'Template_Free' %}selected{% endif %}>Template-free</option>
+        </select>
+    </td>
+</tr>
 
 <tr id="controls_wrapper" style="display:none">
 <td>

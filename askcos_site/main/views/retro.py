@@ -21,6 +21,8 @@ from .users import can_control_robot
 from ..forms import SmilesInputForm
 from ..models import BlacklistedReactions
 
+from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors as get_top_precursors_c
+from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors
 
 @login_required
 def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
@@ -34,9 +36,8 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
     context['form']['template_prioritization'] = 'Relevance'
     context['form']['precursor_prioritization'] = 'Heuristic'
     context['form']['template_count'] = '100'
-    print(request.method)
     if request.method == 'POST':
-        print(context['form'])
+        print(request)
         smiles = str(request.POST['smiles'])  # not great...
         context['form']['template_prioritization'] = str(
             request.POST['template_prioritization'])
@@ -70,6 +71,8 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         context['form']['smiles'] = smiles
         template_prioritization = context['form']['template_prioritization']
         precursor_prioritization = context['form']['precursor_prioritization']
+
+
         try:
             template_count = int(context['form']['template_count'])
             if (template_count < 1):
@@ -78,6 +81,9 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             context['err'] = 'Invalid template count specified!'
             return render(request, 'retro.html', context)
 
+        if template_prioritization == 'Popularity':
+            template_count = 1e9
+            
         print('Retro expansion conditions:')
         print(smiles)
         print(template_prioritization)
@@ -85,8 +91,8 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
 
         startTime = time.time()
         if chiral:
-            from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors
-            res = get_top_precursors.delay(
+            
+            res = get_top_precursors_c.delay(
                 smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=max_n,
                 template_count=template_count)
             (smiles, precursors) = res.get(300)
@@ -94,7 +100,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             context['precursors'] = precursors
             context['footnote'] = RETRO_CHIRAL_FOOTNOTE
         else:
-            from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors
+            
             # Use apply_async so we can force high priority
             res = get_top_precursors.delay(smiles, template_prioritization, precursor_prioritization,
                 mincount=0, max_branching=max_n, template_count=template_count)
