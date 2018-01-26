@@ -53,6 +53,7 @@ def configure_coordinator(options={}, **kwargs):
     # Prices
     print('Loading prices...')
     pricer = Pricer(CHEMICALS=CHEMICAL_DB, BUYABLES=BUYABLE_DB)
+    pricer.load(max_ppg=1e10)
     print('Loaded known prices')
     treeBuilder = TreeBuilder(celery=True, pricer=pricer)
 

@@ -20,16 +20,16 @@ celery amqp queue.purge cr_nn_worker
 celery -A askcos_site worker -c 6 -Q tb_worker,tb_worker_reservable -n "tb_worker_pool1@$(hostname)" --maxtasksperchild 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
 
 # Chiral retro transformers
-celery -A askcos_site worker -c 6 -Q tb_c_worker,tb_c_worker_reservable -n "tb_c_worker_pool1@$(hostname)" --maxtasksperchild 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
-celery -A askcos_site worker -c 6 -Q tb_c_worker,tb_c_worker_reservable -n "tb_c_worker_pool2@$(hostname)" --maxtasksperchild 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
-celery -A askcos_site worker -c 6 -Q tb_c_worker,tb_c_worker_reservable -n "tb_c_worker_pool3@$(hostname)" --maxtasksperchild 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
+celery -A askcos_site worker -c 8 -Q tb_c_worker,tb_c_worker_reservable -n "tb_c_worker_pool1@$(hostname)" --maxtasksperchild 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
+celery -A askcos_site worker -c 8 -Q tb_c_worker,tb_c_worker_reservable -n "tb_c_worker_pool2@$(hostname)" --maxtasksperchild 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
+celery -A askcos_site worker -c 8 -Q tb_c_worker,tb_c_worker_reservable -n "tb_c_worker_pool3@$(hostname)" --maxtasksperchild 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
 celery -A askcos_site worker -c 3 -Q tb_c_worker -n "tb_c_worker@$(hostname)" --maxtasksperchild 10000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
 
 # Tree builder coordinator
-celery -A askcos_site worker -c 2 -Q tb_coordinator -n "tb_coordinator@$(hostname)"  --logfile=celery_logs/%p.log &
+celery -A askcos_site worker -c 3 -Q tb_coordinator -n "tb_coordinator@$(hostname)"  --logfile=celery_logs/%p.log &
 
 # Tree evaluator coordinator
-# celery -A askcos_site worker -c 2 -Q te_coordinator -n "te_coordinator@$(hostname)"  --logfile=celery_logs/%p.log &
+celery -A askcos_site worker -c 2 -Q te_coordinator -n "te_coordinator@$(hostname)"  --logfile=celery_logs/%p.log &
 
 # Scoring coordinator
 celery -A askcos_site worker -c 2 -Q sc_coordinator -n "sc_coordinator@$(hostname)"  --logfile=celery_logs/%p.log &
