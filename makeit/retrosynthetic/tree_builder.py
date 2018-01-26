@@ -44,6 +44,7 @@ class TreeBuilder:
             self.pricer = pricer
         else:
             self.pricer = Pricer()
+            self.pricer.load(max_ppg=1e10)
 
         self.reset()
 
@@ -97,10 +98,13 @@ class TreeBuilder:
         # Define method to start up parallelization.
         if self.celery:
             def prepare():
-                if self.chiral:
-                    self.private_worker_queue = tb_c_worker.reserve_worker_pool.delay().get(timeout=5)
-                else:
-                    self.private_worker_queue = tb_worker.reserve_worker_pool.delay().get(timeout=5)
+                try:
+                    if self.chiral:
+                        self.private_worker_queue = tb_c_worker.reserve_worker_pool.delay().get(timeout=5)
+                    else:
+                        self.private_worker_queue = tb_worker.reserve_worker_pool.delay().get(timeout=5)
+                except Exception as e:
+                    raise IOError('Did not find an available pool of workers! Try again later ({})'.format(e))
         else:
             def prepare():
                 MyLogger.print_and_log('Tree builder spinning off {} child processes'.format(
@@ -311,7 +315,7 @@ class TreeBuilder:
                     }
                     self.chem_to_id[mol] = chem_id
 
-                    if ppg:
+                    if ppg and (ppg <= self.max_ppg):
                         #print('{} buyable!'.format(mol))
                         if self.celery:
                             self.buyable_leaves.add(chem_id)
@@ -462,8 +466,8 @@ class TreeBuilder:
         self.nproc = nproc
         self.template_count = template_count
         self.max_cum_template_prob = max_cum_template_prob
-        # Load new prices based op specified max price-per-gram
-        self.pricer.load(max_ppg=max_ppg)
+        self.max_ppg = max_ppg
+
         # Override: if relevance method is used, chiral database must be used!
         if chiral or template_prioritization == gc.relevance:
             self.chiral = True
@@ -571,6 +575,27 @@ class TreeBuilder:
                                           'smiles'], self.tree_dict[chem_id2]['ppg'], children=path2),
                             ]
 
+            # I am ashamed
+            elif len(generators) == 4:
+                chem_id0 = self.tree_dict[rxn_id]['rcts'][0]
+                chem_id1 = self.tree_dict[rxn_id]['rcts'][1]
+                chem_id2 = self.tree_dict[rxn_id]['rcts'][2]
+                chem_id3 = self.tree_dict[rxn_id]['rcts'][3]
+                for path0 in generators[0]:
+                    for path1 in generators[1]:
+                        for path2 in generators[2]:
+                            for path3 in generators[3]:
+                                yield [
+                                    chem_dict(chem_id0, self.tree_dict[chem_id0][
+                                              'smiles'], self.tree_dict[chem_id0]['ppg'], children=path0),
+                                    chem_dict(chem_id1, self.tree_dict[chem_id1][
+                                              'smiles'], self.tree_dict[chem_id1]['ppg'], children=path1),
+                                    chem_dict(chem_id2, self.tree_dict[chem_id2][
+                                              'smiles'], self.tree_dict[chem_id2]['ppg'], children=path2),
+                                    chem_dict(chem_id3, self.tree_dict[chem_id3][
+                                              'smiles'], self.tree_dict[chem_id3]['ppg'], children=path3)
+                                ]
+
             else:
                 print('Too many reactants! Only have cases 1-3 programmed')
                 raise ValueError(
@@ -603,7 +628,10 @@ class TreeBuilder:
                     max_trees), treebuilder_loc)
                 break
 
-        return (self.tree_status(), trees)
+        tree_status = self.tree_status()
+        if self.celery:
+            self.reset() # free up memory, don't hold tree
+        return (tree_status, trees)
 
 if __name__ == '__main__':
 
