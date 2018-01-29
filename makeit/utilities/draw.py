@@ -32,6 +32,12 @@ def defaultDrawOptions():
     opts.noCarbonSymbols = True
     opts.selectColor = (1, 0, 0)
     opts.wedgeBonds = True
+    
+    opts.elemDict = defaultdict(lambda: (0, 0, 0))
+    opts.dotsPerAngstrom = 20
+    opts.bondLineWidth = 1.5
+    atomLabelFontFace = 'arial'
+
     return opts
 
 
@@ -50,7 +56,7 @@ def MolToImage(mol, max_size=(1000, 1000), kekulize=True, options=None,
     if not options:
         options = defaultDrawOptions()
     if mol == '->':
-        subImgSize = (160, 160)
+        subImgSize = (100, 100)
         img, canvas = Draw._createCanvas(subImgSize)
         p0 = (10, subImgSize[1]//2)
         p1 = (subImgSize[0]-10, subImgSize[1]//2)
@@ -63,12 +69,9 @@ def MolToImage(mol, max_size=(1000, 1000), kekulize=True, options=None,
             canvas.flush()
         else:
             canvas.save()
-        return img
-    elif mol is not None:
-        return Draw.MolToImage(mol, size=max_size, kekulize=kekulize, options=options,
-                               canvas=canvas, **kwargs)
-    else:  # retro arrow or error
-        subImgSize = (160, 160)
+        return img        
+    elif mol == '<-':  # retro arrow or error
+        subImgSize = (100, 100)
         (a, b) = subImgSize
         img, canvas = Draw._createCanvas(subImgSize)
         canvas.addCanvasLine((10, b//2-7), (a-17, b//2-7),
@@ -84,6 +87,9 @@ def MolToImage(mol, max_size=(1000, 1000), kekulize=True, options=None,
         else:
             canvas.save()
         return img
+    elif mol is not None:
+        return Draw.MolToImage(mol, size=max_size, kekulize=kekulize, options=options,
+                               canvas=canvas, **kwargs)
 
 
 def TrimImgByWhite(img, padding=0):
@@ -101,8 +107,9 @@ def TrimImgByWhite(img, padding=0):
     xs, ys = np.nonzero(has_content)
 
     # Crop down
-    x_range = max([min(xs) - 5, 0]), min([max(xs) + 5, as_array.shape[0]])
-    y_range = max([min(ys) - 5, 0]), min([max(ys) + 5, as_array.shape[1]])
+    margin = 5
+    x_range = max([min(xs) - margin, 0]), min([max(xs) + margin, as_array.shape[0]])
+    y_range = max([min(ys) - margin, 0]), min([max(ys) + margin, as_array.shape[1]])
     as_array_cropped = as_array[
         x_range[0]:x_range[1], y_range[0]:y_range[1], 0:3]
 
@@ -187,7 +194,7 @@ def ReactionToImage(rxn, dummyAtoms=False, kekulize=True, options=None, **kwargs
 
     # Generate images for all molecules/arrow
     imgs = [TrimImgByWhite(MolToImage(
-        mol, kekulize=kekulize, options=options), padding=15) for mol in mols]
+        mol, kekulize=kekulize, options=options), padding=10) for mol in mols]
 
     # Combine
     return StitchPILsHorizontally(imgs)
@@ -218,7 +225,7 @@ def ReactionStringToImage(rxn_string, strip=True, update=True, options=None,
 
     # Generate images
     imgs = [TrimImgByWhite(MolToImage(
-        mol, kekulize=True, options=options), padding=15) for mol in mols]
+        mol, kekulize=True, options=options), padding=10) for mol in mols]
 
     # Combine
     return StitchPILsHorizontally(imgs)
@@ -252,7 +259,7 @@ def MolsSmilesToImage(smiles, options=None, **kwargs):
     mols = mols_from_smiles_list(smiles.split('.'))
     # Generate images
     imgs = [TrimImgByWhite(MolToImage(
-        mol, kekulize=True, options=options), padding=15) for mol in mols]
+        mol, kekulize=True, options=options), padding=10) for mol in mols]
     # Combine
     return StitchPILsHorizontally(imgs)
 
@@ -260,12 +267,15 @@ def MolsSmilesToImage(smiles, options=None, **kwargs):
 if __name__ == '__main__':
 
     # Simple test cases
-    rxn_string = '[Na+].[CH3:2][C:3](=[O:5])[O-].[CH3:6][c:7]1[cH:12][cH:11][cH:10][cH:9][cH:8]1>>CN3[C@H]1CC[C@@H]3C[C@@H](C1)OC(=O)C(CO)c2ccccc2.[c:7]1([CH3:6])[c:12]([C:3]([c:2]2[cH:11][cH:12][cH:7][cH:8][c:9]2[CH3:10])=[O:5])[cH:11][cH:10][cH:9][cH:8]1'
-    rxn = AllChem.ReactionFromSmarts(rxn_string)
-    rxn_image = ReactionToImage(rxn)
-    rxn_image.save('test_rxn.png')
+    rxn_string = 'Fc1ccc(C2(Cn3cncn3)CO2)c(F)c1.c1nc[nH]n1.Cl.O=C([O-])O.[Na+]>>OC(Cn1cncn1)(Cn1cncn1)c1ccc(F)cc1F'
+    # rxn = AllChem.ReactionFromSmarts(rxn_string)
+    # rxn_image = ReactionToImage(rxn)
+    # rxn_image.save('test_rxn.png')
     rxn_image_string = ReactionStringToImage(rxn_string, strip=True)
-    rxn_image_string.save('test_rxn_string.png')
+    rxn_image_string.save('draw_test_rxn_string.png')
+    rxn_image_string = ReactionStringToImage(rxn_string, strip=True, retro=True)
+    rxn_image_string.save('draw_retro_test_rxn_string.png')
+
     tform = '([O;H0:3]=[C;H0:4](-[C:5])-[NH:2]-[C:1])>>([C:1]-[NH2:2]).([OH:3]-[C;H0:4](=O)-[C:5])'
     img = TransformStringToImage(tform)
-    img.save('transform.png')
+    img.save('draw_transform.png')
