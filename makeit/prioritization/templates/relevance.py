@@ -121,8 +121,10 @@ class RelevanceTemplatePrioritizer(Prioritizer):
 
     def get_priority(self, input_tuple, **kwargs):
         (templates, target) = input_tuple
+        template_count = kwargs.get('template_count', 100)
+        max_cum_prob = kwargs.get('max_cum_prob', 0.995)
         # Templates should be sorted by popularity for indices to be correct!
-        probs, top_ids = self.get_topk_from_smi(smi=target, k = min(self.template_count, len(templates)))
+        probs, top_ids = self.get_topk_from_smi(smi=target, k = min(template_count, len(templates)))
         top_templates = []
         cum_score = 0
         for i, id in enumerate(top_ids):
@@ -130,7 +132,7 @@ class RelevanceTemplatePrioritizer(Prioritizer):
             top_templates.append(templates[id])
             cum_score += probs[i]
             #End loop if max cumulative score is exceeded
-            if cum_score >= self.max_cum_prob:
+            if cum_score >= max_cum_prob:
                 break
         return top_templates
 

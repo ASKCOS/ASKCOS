@@ -17,7 +17,7 @@ class PopularityTemplatePrioritizer(Prioritizer):
 
     def get_priority(self, input_tuple, **kwargs):
         (templates, target) = input_tuple
-        return self.reorder(templates)[:min(len(templates), self.template_count)]
+        return self.reorder(templates)[:min(len(templates), kwargs.get('template_count', 1e10))]
 
     def reorder(self, templates):
         '''
