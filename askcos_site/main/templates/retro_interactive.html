@@ -163,6 +163,34 @@ $('#results').on('click', '.blacklistrxn', function () {
         });
     };
 });
+$('#results').on('click', '.blacklistchem', function () {
+    console.log('trying to blacklist a chemical');
+    var smiles = $(this).attr("smiles");
+    console.log(smiles);
+    var desc = prompt("Please enter a reason (for your records only)", "no reason");
+    if (desc) {
+        var now = Date.now();
+        var datetime = now.toString('MMMM dd, yyyy, hh:mm:ss tt');
+        $.ajax({
+            type: 'POST',
+            url: '/ajax/user_blacklist_chemical/',
+            data: {
+                smiles: smiles,
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+                desc: desc,
+                datetime: datetime,
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.err) {
+                    alert(data.err);
+                } else {
+                    alert('Blacklisted chemical "' + smiles + '" at ' + datetime);
+                }
+            }
+        });
+    };
+});
 // On load, if entries defined, switch it out
 $(document).ready(function() {
     if ("{{target_mol}}" != "") {

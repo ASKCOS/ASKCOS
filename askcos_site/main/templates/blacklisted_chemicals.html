@@ -1,24 +1,24 @@
 {% extends "base.html" %}
 
-{% block title %}Blacklisted Reactions{% endblock %}
+{% block title %}Blacklisted Chemicals{% endblock %}
 {% block page_title %}Your blacklisted reactions{% endblock %}
 
 {% block extrahead %}{% endblock %}
 
 {% block navbar_items %}
-<a href="{% url 'user_blacklisted_reactions' %}">Blacklisted</a>
+<a href="{% url 'user_blacklisted_chemicals' %}">Blacklisted</a>
 {% endblock %}
 
 {% block sidebar_items %}{% endblock %}
 
 {% block javascript %}
 <script>
-$('#blacklisted_reactions').on('click', '.toggle_activation', function () {
+$('#blacklisted_chemicals').on('click', '.toggle_activation', function () {
     var block = $(this);
     if (block.html() === "True") {
     	console.log('trying to deactivate');
     	$.ajax({
-	        url: '/ajax/user_deactivate_reaction/',
+	        url: '/ajax/user_deactivate_chemical/',
 	        data: {
 	            id: block.attr("id"),
 	        },
@@ -34,7 +34,7 @@ $('#blacklisted_reactions').on('click', '.toggle_activation', function () {
     } else {
     	console.log('trying to reactivate');
     	$.ajax({
-	        url: '/ajax/user_activate_reaction/',
+	        url: '/ajax/user_activate_chemical/',
 	        data: {
 	            id: block.attr("id"),
 	        },
@@ -55,22 +55,22 @@ $('#blacklisted_reactions').on('click', '.toggle_activation', function () {
 
 {% block page_body %}
 
-{% if blacklisted_reactions %}
-<table class="table" id="blacklisted_reactions">
+{% if blacklisted_chemicals %}
+<table class="table" id="blacklisted_chemicals">
 <tr>
 	<th width="10%">Active</th>
 	<th width="15%">Created</th>
-	<th width="50%">Reaction</th>
+	<th width="50%">Chemical</th>
 	<th width="20%">Description</th>
     <th width="5%">Delete</th>
 </th>
-{% for blacklisted_reaction in blacklisted_reactions %}
+{% for blacklisted_chemical in blacklisted_chemicals %}
 <tr>
-	<td class="pseudolink toggle_activation" id="{{ blacklisted_reaction.id }}">{{ blacklisted_reaction.active }}</td>
-	<td>{{ blacklisted_reaction.created }}</td>
-	<td><div style="overflow-x:auto"><img src="" data-async-load="{% url 'draw_reaction' blacklisted_reaction.smiles %}" alt="{{ blacklisted_reaction.smiles }}" max-width="100%"></div></td>
-	<td>{{ blacklisted_reaction.description }}</td>
-    <td><a href="{% url 'user_blacklisted_reactions_del' blacklisted_reaction.id %}" onclick="return confirm('Are you sure you want to delete this blacklisted reaction? You can always deactivate it temporarily.');">X</a></td>
+	<td class="pseudolink toggle_activation" id="{{ blacklisted_chemical.id }}">{{ blacklisted_chemical.active }}</td>
+	<td>{{ blacklisted_chemical.created }}</td>
+	<td><div style="overflow-x:auto"><img src="" data-async-load="{% url 'draw_smiles' blacklisted_chemical.smiles %}" alt="{{ blacklisted_chemical.smiles }}" max-width="100%"></div></td>
+	<td>{{ blacklisted_chemical.description }}</td>
+    <td><a href="{% url 'user_blacklisted_chemicals_del' blacklisted_chemical.id %}" onclick="return confirm('Are you sure you want to delete this blacklisted chemical? You can always deactivate it temporarily.');">X</a></td>
 </th>
 {% endfor %}
 </table>

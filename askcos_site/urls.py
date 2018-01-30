@@ -88,9 +88,16 @@ urlpatterns += [
     url(ur'^saved/delete/id=(?P<_id>.+)$', main.views.user_saved_results_del, name='user_saved_results_del'),
 
     # Blacklisted reactions
-    url(r'^blacklisted/$', main.views.user_blacklisted_reactions, name='user_blacklisted_reactions'),
+    url(r'^blacklisted/reactions/$', main.views.user_blacklisted_reactions, name='user_blacklisted_reactions'),
     url(ur'^ajax/user_blacklist_reaction/$', main.views.ajax_user_blacklist_reaction, name='ajax_user_blacklist_reaction'),
-    url(ur'^blacklisted/delete/id=(?P<_id>.+)$', main.views.user_blacklisted_reactions_del, name='user_blacklisted_reactions_del'),
+    url(ur'^blacklisted/reactions/delete/id=(?P<_id>.+)$', main.views.user_blacklisted_reactions_del, name='user_blacklisted_reactions_del'),
     url(ur'^ajax/user_deactivate_reaction/$', main.views.ajax_user_deactivate_reaction, name='ajax_user_deactivate_reaction'),
     url(ur'^ajax/user_activate_reaction/$', main.views.ajax_user_activate_reaction, name='ajax_user_activate_reaction'),
+
+    # Blacklisted chemicals
+    url(r'^blacklisted/chemicals/$', main.views.user_blacklisted_chemicals, name='user_blacklisted_chemicals'),
+    url(ur'^ajax/user_blacklist_chemical/$', main.views.ajax_user_blacklist_chemical, name='ajax_user_blacklist_chemical'),
+    url(ur'^blacklisted/chemicals/delete/id=(?P<_id>.+)$', main.views.user_blacklisted_chemicals_del, name='user_blacklisted_chemicals_del'),
+    url(ur'^ajax/user_deactivate_chemical/$', main.views.ajax_user_deactivate_chemical, name='ajax_user_deactivate_chemical'),
+    url(ur'^ajax/user_activate_chemical/$', main.views.ajax_user_activate_chemical, name='ajax_user_activate_chemical'),
 ]
