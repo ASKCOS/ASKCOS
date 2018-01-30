@@ -2,8 +2,8 @@
 <h3 style="display:inline">Option {{ forloop.counter }}</h3>
 {% if can_control_robot %}<a target="_blank" href="{% url 'export_retro_results' forloop.counter %}">send</a>  {% endif %}
 <a data-toggle="collapse" href="#tree{{ forloop.counter}}">
-    <span class="if-collapsed">show</span>
-    <span class="if-not-collapsed">hide</span>
+    <span class="if-collapsed" onClick="$('#tree{{ forloop.counter }}').show();">show</span>
+    <span class="if-not-collapsed" onClick="$('#tree{{ forloop.counter }}').hide();">hide</span>
 </a>
 <div class="tree in" id="tree{{ forloop.counter }}">
 	<ul>

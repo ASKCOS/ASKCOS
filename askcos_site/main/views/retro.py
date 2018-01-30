@@ -19,7 +19,7 @@ from ..utils import ajax_error_wrapper, resolve_smiles
 from .price import price_smiles_func
 from .users import can_control_robot
 from ..forms import SmilesInputForm
-from ..models import BlacklistedReactions
+from ..models import BlacklistedReactions, BlacklistedChemicals
 
 from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors as get_top_precursors_c
 from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors
@@ -226,8 +226,9 @@ def ajax_start_retro_celery(request):
 
     blacklisted_reactions = list(set(
         [x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))
-    forbidden_molecules = []
-    
+    forbidden_molecules = list(set(
+        [x.smiles for x in BlacklistedChemicals.objects.filter(user=request.user, active=True)]))
+
     from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
     res = get_buyable_paths.delay(smiles, template_prioritization, precursor_prioritization,
                                   mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth,
@@ -241,8 +242,8 @@ def ajax_start_retro_celery(request):
     # print(trees)
 
     (num_chemicals, num_reactions, at_depth) = tree_status
-    data['html_stats'] = 'After expanding (with {} banned reactions), {} total chemicals and {} total reactions'.format(
-        len(blacklisted_reactions), num_chemicals, num_reactions)
+    data['html_stats'] = 'After expanding (with {} banned reactions, {} banned chemicals), {} total chemicals and {} total reactions'.format(
+        len(blacklisted_reactions), len(forbidden_molecules), num_chemicals, num_reactions)
     for (depth, count) in sorted(at_depth.iteritems(), key=lambda x: x[0]):
         label = 'Could not format label...?'
         if int(float(depth)) == float(depth):

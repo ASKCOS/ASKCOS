@@ -134,6 +134,14 @@ $('#results').on('click', '.hiderxn', function () {
     targetid = $(this).attr("targetid");
     console.log(targetid);
     $(".rxnbox" + targetid).closest('.tree').hide();
+    $(".rxnbox" + targetid).closest('.tree').collapse('hide');
+});
+$('#results').on('click', '.hidechem', function () {
+    console.log('trying to hide a rxn');
+    targetid = $(this).attr("targetid");
+    console.log(targetid);
+    $(".chembox" + targetid).closest('.tree').hide();
+    $(".chembox" + targetid).closest('.tree').collapse('hide');
 });
 $('#results').on('click', '.blacklistrxn', function () {
     console.log('trying to blacklist a reaction');

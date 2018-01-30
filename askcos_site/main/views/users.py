@@ -10,7 +10,7 @@ from bson.objectid import ObjectId
 from datetime import datetime
 import os
 
-from ..models import SavedResults, BlacklistedReactions
+from ..models import SavedResults, BlacklistedReactions, BlacklistedChemicals
 
 can_control_robot = lambda request: request.user.get_username() in ['ccoley']
 
@@ -135,6 +135,60 @@ def ajax_user_activate_reaction(request):
 def ajax_user_deactivate_reaction(request):
     _id = request.GET.get('id', -1)
     obj = BlacklistedReactions.objects.filter(user=request.user, id=_id)
+    if len(obj) == 1:
+        obj[0].active = False 
+        obj[0].save()
+        return JsonResponse({'err': False})
+    return JsonResponse({'err': 'Could not deactivate?'})
+
+
+
+
+@login_required
+def user_blacklisted_chemicals(request, err=None):
+    blacklisted_chemicals = BlacklistedChemicals.objects.filter(user=request.user)
+    return render(request, 'blacklisted_chemicals.html', {'blacklisted_chemicals':blacklisted_chemicals, 'err': err})
+
+@login_required
+def user_blacklisted_chemicals_del(request, _id=-1):
+    obj = BlacklistedChemicals.objects.filter(user=request.user, id=_id)
+    if len(obj) == 1:
+        obj[0].delete()
+    return user_blacklisted_chemicals(request, err=None)
+
+@login_required
+def ajax_user_blacklist_chemical(request):
+    smiles = request.POST.get('smiles', None)
+    desc = request.POST.get('desc', 'no description')
+    dt   = request.POST.get('datetime', datetime.utcnow().strftime('%B %d, %Y %H:%M:%S %p UTC'))
+    if smiles is None:
+        print('Got None smiles')
+        data = {'err': 'Could not get chemical SMILES to save'}
+        return JsonResponse(data)
+    print('Got request to block a chemical')
+    obj = BlacklistedChemicals.objects.create(user=request.user, 
+        description=desc,
+        dt=dt,
+        created=datetime.now(),
+        smiles=smiles,
+        active=True)
+    print('Created blacklisted chemical object {}'.format(obj.id))
+    return JsonResponse({'err': False})
+
+@login_required 
+def ajax_user_activate_chemical(request):
+    _id = request.GET.get('id', -1)
+    obj = BlacklistedChemicals.objects.filter(user=request.user, id=_id)
+    if len(obj) == 1:
+        obj[0].active = True 
+        obj[0].save()
+        return JsonResponse({'err': False})
+    return JsonResponse({'err': 'Could not activate?'})
+
+@login_required 
+def ajax_user_deactivate_chemical(request):
+    _id = request.GET.get('id', -1)
+    obj = BlacklistedChemicals.objects.filter(user=request.user, id=_id)
     if len(obj) == 1:
         obj[0].active = False 
         obj[0].save()

@@ -2,12 +2,12 @@
 
 {% if target.is_chemical %}
 
-<div id="{{ target.id }}" class="chem">
+<div id="{{ target.id }}" class="chem chembox{{ target.id }}">
 <a class="treetooltip treebox" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
 <img src="" data-async-load="{% url 'draw_smiles' target.smiles %}" alt="{{ target.smiles }}" width="75%">
 <div>
 	<center>
-        <span class="blacklistchem pseudolink" style="padding-right:5px; float:right; font-size:smaller" smiles="{{ target.smiles }}">blacklist</span></span><br>
+        <span class="hidechem" targetid="{{ target.id }}"><span class="pseudolink" style="float:right; font-size:smaller">hide all</span></span><span class="blacklistchem pseudolink" style="padding-right:5px; float:right; font-size:smaller" smiles="{{ target.smiles }}">blacklist</span></span><br>
 		<font class="smiles">{{ target.smiles }}</font>
         {% if target.score %}<br>score: {{ target.score }}{% endif %}
 		{% if target.ppg %}<br>${{ target.ppg }}/g{% endif %}
