@@ -3,6 +3,7 @@ import makeit.global_config as gc
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 from makeit.prioritization.precursors.heuristic import HeuristicPrecursorPrioritizer
+from makeit.prioritization.precursors.mincost import MinCostPrecursorPrioritizer
 from makeit.prioritization.precursors.scscore import SCScorePrecursorPrioritizer
 from makeit.prioritization.templates.popularity import PopularityTemplatePrioritizer
 from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
@@ -43,6 +44,8 @@ class TemplateTransformer(object):
                 precursor = HeuristicPrecursorPrioritizer()
             elif precursor_prioritizer == gc.scscore:
                 precursor = SCScorePrecursorPrioritizer()
+            elif precursor_prioritizer == gc.mincost:
+                precursor = MinCostPrecursorPrioritizer()
             elif precursor_prioritizer == gc.natural:
                 precursor = DefaultPrioritizer()
             else:
@@ -75,7 +78,7 @@ class TemplateTransformer(object):
 
         self.template_prioritizer = template
 
-    def dump_to_file(self, retro, file_name, chrial=False, file_path=""):
+    def dump_to_file(self, retro, file_name, chiral=False, file_path=""):
         '''
         Write the template database to a file, of which the path in specified in the general configuration
         '''
@@ -108,7 +111,8 @@ class TemplateTransformer(object):
                                             })
             else:
                 pickle_templates = self.templates
-            file = open(os.path.join(file_path, file_name), "w+")
+            with open(os.path.join(file_path, file_name), 'w+') as file:
+                pickle.dump(pickle_templates, file, gc.protocol)
 
             MyLogger.print_and_log('Wrote templates to {}'.format(
                 os.path.join(file_path, file_name)), transformer_loc)

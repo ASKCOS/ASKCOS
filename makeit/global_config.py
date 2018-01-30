@@ -18,6 +18,7 @@ all = 'All'
 # for precursors
 heuristic = 'Heuristic'
 scscore = 'SCScore'
+mincost = 'MinCost'
 mean = 'Mean'
 geometric = 'Geometric'
 pow8 ='Power of 8'
@@ -146,6 +147,10 @@ SCScore_Prioritiaztion = {
     'trained_model_path_1024bool': os.path.join(prioritization_data, 'scscore', 'model_1024bool.pickle'),
     'trained_model_path_2048bool': os.path.join(prioritization_data, 'scscore', 'model_2048bool.pickle'),
     'trained_model_path_1024uint8': os.path.join(prioritization_data, 'scscore', 'model_1024uint8.pickle')}
+
+MinCost_Prioritiaztion = {
+    'trained_model_path': os.path.join(prioritization_data, 'mincost', 'model.hdf5')
+    }
 
 CONTEXT_REC = {
     'info_path': os.path.join(data_path,'context', 'RxnID_infoFull.txt'),
