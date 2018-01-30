@@ -506,11 +506,11 @@ class TreeBuilder:
             #Copy list so each new branch has separate list.
             if depth == 0:
                 # Not allowing deeper - is this buyable?
-                if self.tree_dict[chem_id]['ppg']:
+                if self.tree_dict[chem_id]['ppg'] and (self.tree_dict[chem_id]['ppg'] <= self.max_ppg):
                     yield []  # viable node, calling function doesn't need children
             else:
                 # Do we need to go deeper?
-                if self.tree_dict[chem_id]['ppg'] and not headNode:
+                if self.tree_dict[chem_id]['ppg'] and (self.tree_dict[chem_id]['ppg'] <= self.max_ppg) and not headNode:
                     yield []  # Nope, this is a viable node
                 else:
                     # Try going deeper via DLS_rxn function
@@ -597,9 +597,9 @@ class TreeBuilder:
                                 ]
 
             else:
-                print('Too many reactants! Only have cases 1-3 programmed')
+                print('Too many reactants! Only have cases 1-4 programmed')
                 raise ValueError(
-                    'Too many reactants! Only have cases 1-3 programmed')
+                    'Too many reactants! Only have cases 1-4 programmed')
 
         # Generate paths
 
