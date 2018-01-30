@@ -16,9 +16,11 @@
 <script>
 function showFields(name) {
     if (name=='Relevance') {
-        document.getElementById('RelevanceSettings').innerHTML = 'Num. templates: <input name="template_count" maxlength="6" size="6" type="text" value="{{ form.template_count }}">';
+        $('#RelevanceSettings1').show();
+        $('#RelevanceSettings2').show();
     } else {
-        document.getElementById('RelevanceSettings').innerHTML = '';
+        $('#RelevanceSettings1').hide();
+        $('#RelevanceSettings2').hide();
     }
 }
 window.onload = function() {
@@ -49,7 +51,12 @@ window.onload = function() {
                 <option value="Relevance"  {% if form.template_prioritization == 'Relevance' %}selected{% endif %}>Apply relevant templates</option>
             </select>
         </td>
-        <td id="RelevanceSettings"></td>
+    </th>
+    <tr><th></th>
+        <td id="RelevanceSettings1">Num. templates: <input name="template_count" maxlength="6" size="6" type="text" value="{{ form.template_count }}"></td>
+    </tr>
+    <tr><th></th>
+        <td id="RelevanceSettings2">Max. cum. prob.: <input name="max_cum_prob" maxlength="6" size="6" type="text" value="{{ form.max_cum_prob }}"></td>
     </tr>
     <tr>
         <th>Precursor scoring:</td>
@@ -102,6 +109,7 @@ window.onload = function() {
                 <th><font class="smiles"><center>Precursor(s)</center></font></th>
                 <th>Score</th>
                 <th># Examples</th>
+                {% if form.template_prioritization == 'Relevance' %}<th>Max template relevance</th>{% endif %}
             </tr>
         </thead>
         <tbody>
@@ -139,6 +147,7 @@ window.onload = function() {
             </td>
             <td>{{ precursor.score }}</td>
             <td>{{ precursor.num_examples }}</td>
+            {% if form.template_prioritization == 'Relevance' %}<td>{{ precursor.template_score|floatformat:5 }}</td>{% endif %}
         </tr>
         {% endfor %}
         </tbody>

@@ -114,3 +114,31 @@ def rxid_target(request, rxid):
     context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
 
     return render(request, 'rxid.html', context)
+
+# @login_required
+# def chemical_history(smiles, **kwargs):
+#     return chemhistorian.lookup_smiles(smiles, **kwargs)
+
+# @login_required
+# def reaction_history(smiles,**kwargs):
+#     return reactionhistorian.lookup_smiles(smiles, **kwargs)
+
+# @login_required
+# def chemical_history_check(request, smiles, **kwargs):
+#     response = HttpResponse(content_type = 'text/plain')
+#     info = chemhistorian.lookup_smiles(smiles, **kwargs)
+#     if info['as_reactant'] or info['as_product']:
+#         response.write('{}/{} occurrences as reactant/product'.format(info['as_reactant'], info['as_product']))
+#     else:
+#         response.write('new chemical')
+#     return response
+
+# @login_required
+# def reaction_history_check(request, smiles, **kwargs):
+#     response = HttpResponse(content_type = 'text/plain')
+#     info = reactionhistorian.lookup_smiles(smiles, **kwargs)
+#     if info['count']:
+#         response.write('{} exact matches'.format(info['count']))
+#     else:
+#         response.write('new reaction')
+#     return response

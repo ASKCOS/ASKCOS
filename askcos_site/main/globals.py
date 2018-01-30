@@ -177,3 +177,15 @@ DONE_SYNTH_PREDICTIONS = {}
 TEMPLATE_BACKUPS = []
 for (dbname, collname) in settings.TEMPLATE_BACKUPS:
     TEMPLATE_BACKUPS.append(db_client[dbname][collname])
+
+
+# Historian
+# from makeit.utilities.historian.reactions import ReactionHistorian
+# reactionhistorian = ReactionHistorian()
+# reactionhistorian.load_from_file()
+reactionhistorian = None
+
+# from makeit.utilities.historian.chemicals import ChemHistorian
+# chemhistorian = ChemHistorian()
+# chemhistorian.load_from_file()
+chemhistorian = None

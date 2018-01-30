@@ -15,11 +15,10 @@
 <script>
 function showFields(name) {
     if (name=='Relevance') {
-        $("#retro_relevance_num_templates").show();
-        $("#retro_relevance_num_templates2").show();
+        $(".retro_relevance_settings").show();
     } else {
-        $("#retro_relevance_num_templates").hide();
-        $("#retro_relevance_num_templates2").hide();    }
+        $(".retro_relevance_settings").hide();
+    }
 }
 function showFieldsEvaluation(name) {
     if (name=='Template_Based') {
@@ -84,6 +83,7 @@ $("#start_retro").click(function () {
                 template_prioritization: $("#id_template_prioritzation").val(),
                 precursor_prioritization: $("#id_precursor_prioritization").val(),
                 template_count: $("#template_count").val(),
+                max_cum_prob: $("#max_cum_prob").val(),
                 max_ppg: $("#max_ppg").val(),
                 chiral: $("#chiral").is(":checked"),
             },
@@ -249,11 +249,11 @@ $(document).ready(function() {
     </td>
 </tr>
 <tr><th></th>
-    <td id='retro_relevance_num_templates'>
+    <td class='retro_relevance_settings'>
         Num. templates: <a href="#" data-toggle="tooltip" title="Maximum number of tempaltes to apply using the relevance prioritizer. The fewer that are chosen, the faster the expansion can be."><span class="glyphicon glyphicon-info-sign"></span></a>
     </td>
    
-    <td id='retro_relevance_num_templates2'><input id="template_count" maxlength="6" size="6" type="text" value="{{ template_count_default }}"></td>
+    <td class='retro_relevance_settings'><input id="template_count" maxlength="6" size="6" type="text" value="{{ template_count_default }}"></td>
 
     <td id="synth_mincount_control" style="display:none">
         Min. synth template count: <a href="#" data-toggle="tooltip" title="What is the minimum template popularity you would like to use during the forward enumeration when evaluating suggested reactions? This setting does not affect the tree builder directly, but will affect any subsequent evaluations that you request (i.e., by clicking on the reaction nodes in the trees)."><span class="glyphicon-info-signyphicon glyphicon-info-sign"></span></a>
@@ -261,6 +261,12 @@ $(document).ready(function() {
 
     <td id="synth_mincount_control2"><input type="number" id="synth_mincount" style="width: 5em" min="0" value="25">
     </td>
+</tr>
+<tr><th></th>  
+    <td class='retro_relevance_settings'>
+        Max cum. prob: <a href="#" data-toggle="tooltip" title="The relevance prioritizer assigns a proability to each template based on the current target (product) molecule. Templates are applied in decreasing relevance. What is the maximum cumulative probability you would like to reach before tempaltes are no longer applied?"><span class="glyphicon glyphicon-info-sign"></span></a>
+    </td>
+    <td class='retro_relevance_settings'><input id="max_cum_prob" maxlength="6" size="6" type="text" value="{{ max_cum_prob_default }}"></td>
 </tr>
 </tbody>
 

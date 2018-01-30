@@ -58,6 +58,10 @@ urlpatterns += [
     # Reaction examination
     url(r'^reaxys/rxid=(?P<rxid>.+)$', main.views.rxid_target, name='rxid_target'),
 
+    # Historians
+    # url(ur'^history/chemicals/(?P<smiles>.+)$', main.views.chemical_history_check, name='chemical_history'),
+    # url(ur'^history/reactions/(?P<smiles>.+)$', main.views.reaction_history_check, name='reaction_history'),
+
     # Pricing
     url(ur'^price/$', main.views.pricing, name='pricing'),
     url(ur'^ajax/price_smiles/$', main.views.ajax_price_smiles, name='ajax_price_smiles'),

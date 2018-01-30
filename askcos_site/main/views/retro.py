@@ -33,18 +33,26 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
 
     # Set default inputs
     context['form'] = {}
-    context['form']['template_prioritization'] = 'Relevance'
-    context['form']['precursor_prioritization'] = 'Heuristic'
-    context['form']['template_count'] = '100'
+    context['form']['template_prioritization'] = request.session.get('template_prioritization', 'Relevance')
+    context['form']['precursor_prioritization'] = request.session.get('precursor_prioritization', 'Heuristic')
+    context['form']['template_count'] = request.session.get('template_count', '100')
+    context['form']['max_cum_prob'] = request.session.get('max_cum_prob', '0.995')
+    print(request)
     if request.method == 'POST':
         print(request)
         smiles = str(request.POST['smiles'])  # not great...
         context['form']['template_prioritization'] = str(
             request.POST['template_prioritization'])
+        request.session['template_prioritization'] = context['form']['template_prioritization']
         context['form']['precursor_prioritization'] = str(
             request.POST['precursor_prioritization'])
+        request.session['precursor_prioritization'] = context['form']['precursor_prioritization']
         if 'template_count' in request.POST:
             context['form']['template_count'] = str(request.POST['template_count'])
+            request.session['template_count'] = context['form']['template_count']
+        if 'max_cum_prob' in request.POST:
+            context['form']['max_cum_prob'] = str(request.POST['max_cum_prob'])
+            request.session['max_cum_prob'] = context['form']['max_cum_prob']
 
         smiles = resolve_smiles(smiles)
         if smiles is None:
@@ -81,6 +89,14 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             context['err'] = 'Invalid template count specified!'
             return render(request, 'retro.html', context)
 
+        try:
+            max_cum_prob = float(context['form']['max_cum_prob'])
+            if (max_cum_prob <= 0):
+                raise ValueError
+        except ValueError:
+            context['err'] = 'Invalid maximum cumulative probability specified!'
+            return render(request, 'retro.html', context)
+
         if template_prioritization == 'Popularity':
             template_count = 1e9
 
@@ -88,13 +104,15 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         print(smiles)
         print(template_prioritization)
         print(precursor_prioritization)
+        print(template_count)
+        print(max_cum_prob)
 
         startTime = time.time()
         if chiral:
             
             res = get_top_precursors_c.delay(
                 smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=max_n,
-                template_count=template_count)
+                template_count=template_count, max_cum_prob=max_cum_prob)
             (smiles, precursors) = res.get(300)
             # allow up to 5 minutes...can be pretty slow
             context['precursors'] = precursors
@@ -103,7 +121,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             
             # Use apply_async so we can force high priority
             res = get_top_precursors.delay(smiles, template_prioritization, precursor_prioritization,
-                mincount=0, max_branching=max_n, template_count=template_count)
+                mincount=0, max_branching=max_n, template_count=template_count, max_cum_prob=max_cum_prob)
             context['precursors'] = res.get(120)
             context['footnote'] = RETRO_FOOTNOTE
         context['time'] = '%0.3f' % (time.time() - startTime)
@@ -122,7 +140,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
                 ppg = price_smiles_func(smiles)
                 context['precursors'][i]['mols'].append({
                     'smiles': smiles,
-                    'ppg': '${}/g'.format(ppg) if ppg else 'cannot buy'
+                    'ppg': '${}/g'.format(ppg) if ppg else 'cannot buy',
                 })
 
     else:
@@ -177,6 +195,7 @@ def retro_interactive(request, target=None):
     context['max_ppg_default'] = 100
     context['template_count_default'] = 100
     context['template_prioritization'] = 'Relevance'
+    context['max_cum_prob_default'] = 0.995
     context['precursor_prioritization'] = 'Heuristic'
     context['forward_scorer'] = 'Template_Free'
 
@@ -203,15 +222,19 @@ def ajax_start_retro_celery(request):
     template_prioritization = request.GET.get(
         'template_prioritization', 'Relevance')
     template_count = int(request.GET.get('template_count', '100'))
+    max_cum_prob = float(request.GET.get('max_cum_prob', '0.995'))
 
     blacklisted_reactions = list(set(
         [x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))
-
+    forbidden_molecules = []
+    
     from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
     res = get_buyable_paths.delay(smiles, template_prioritization, precursor_prioritization,
                                   mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth,
                                   max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5, 
-                                  chiral=chiral, known_bad_reactions=blacklisted_reactions)
+                                  chiral=chiral, known_bad_reactions=blacklisted_reactions,
+                                  forbidden_molecules=forbidden_molecules,
+                                  max_cum_template_prob=max_cum_prob, template_count=template_count)
     (tree_status, trees) = res.get(expansion_time * 3)
     print('Tree building {} for user {} ({} forbidden reactions)'.format(
         smiles, request.user, len(blacklisted_reactions)))
