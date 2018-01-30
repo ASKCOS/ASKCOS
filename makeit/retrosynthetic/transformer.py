@@ -15,6 +15,7 @@ from makeit.utilities.reactants import clean_reactant_mapping
 from makeit.retrosynthetic.results import RetroResult, RetroPrecursor
 from makeit.interfaces.template_transformer import TemplateTransformer
 from makeit.prioritization.precursors.heuristic import HeuristicPrecursorPrioritizer
+from makeit.prioritization.precursors.mincost import MinCostPrecursorPrioritizer
 from makeit.prioritization.precursors.scscore import SCScorePrecursorPrioritizer
 from makeit.prioritization.templates.popularity import PopularityTemplatePrioritizer
 from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
