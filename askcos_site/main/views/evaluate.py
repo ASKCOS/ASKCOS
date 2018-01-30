@@ -20,7 +20,7 @@ from ...askcos_celery.treeevaluator.scoring_coordinator import evaluate
 from ..globals import DONE_SYNTH_PREDICTIONS
 from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
     trim_trailing_period
-
+    
 @login_required
 def evaluate_rxnsmiles(request):
     return render(request, 'evaluate.html', {})
@@ -141,7 +141,7 @@ def ajax_evaluate_rxnsmiles(request):
             if major_prod != 'none found':
                 url = reverse('draw_smiles', kwargs={'smiles':major_prod})
                 data['html'] += '<br><img src="' + url + '">'
-        elif rank == 1:
+        elif rank == 1 and num_contexts:
             data['html'] += '\n<br><i>Nearest neighbor got {}% yield</i>'.format(y1)
 
     # plausible = plausible / 100.
