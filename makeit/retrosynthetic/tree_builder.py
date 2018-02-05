@@ -504,6 +504,7 @@ class TreeBuilder:
             headNode indicates whether this is the first (head) node, in which case
             we should expand it even if it is itself buyable'''
             #Copy list so each new branch has separate list.
+
             if depth == 0:
                 # Not allowing deeper - is this buyable?
                 if self.tree_dict[chem_id]['ppg'] and (self.tree_dict[chem_id]['ppg'] <= self.max_ppg):
@@ -534,6 +535,11 @@ class TreeBuilder:
             # Define generators for each reactant node - decrement the depth!
             generators = [DLS_chem(chem_id, depth - 1)
                           for chem_id in self.tree_dict[rxn_id]['rcts']]
+            
+            # Actually - need to change generators to have the actual lists
+            # otherwise the nested for loops don't work!
+            for i in range(len(generators)):
+                generators[i] = [x for x in generators[i]]
 
             # Only one reactant? easy!
             if len(generators) == 1:
@@ -612,11 +618,10 @@ class TreeBuilder:
             hashkey = hashlib.sha1(json.dumps(
                 tree, sort_keys=True)).hexdigest()
 
-            # print(tree)
             # print(hashkey)
 
             if hashkey in done_trees:
-                #print('Found duplicate!')
+                print('Found duplicate tree...')
                 continue
 
             done_trees.add(hashkey)
