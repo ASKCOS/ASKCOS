@@ -55,11 +55,11 @@ class RelevanceTemplatePrioritizer(Prioritizer):
                 config.gpu_options.allow_growth = True
                 self.session = tf.Session(config=config)
                 self.input_mol = tf.placeholder(tf.float32, [self.batch_size, self.FP_len])
-                self.mol_hiddens = tf.nn.relu(linearND(self.input_mol, hidden_size, scope="encoder0", reuse=tf.AUTO_REUSE))
+                self.mol_hiddens = tf.nn.relu(linearND(self.input_mol, hidden_size, scope="encoder0", reuse=None))
                 for d in xrange(1, depth):
-                    self.mol_hiddens = tf.nn.relu(linearND(self.mol_hiddens, hidden_size, scope="encoder%i"%d, reuse=tf.AUTO_REUSE))
+                    self.mol_hiddens = tf.nn.relu(linearND(self.mol_hiddens, hidden_size, scope="encoder%i"%d, reuse=None))
 
-                self.score = linearND(self.mol_hiddens, output_size, scope="output", reuse=tf.AUTO_REUSE)
+                self.score = linearND(self.mol_hiddens, output_size, scope="output", reuse=None)
                 _, self.topk = tf.nn.top_k(self.score, k=self.NK)
 
                 tf.global_variables_initializer().run(session=self.session)
