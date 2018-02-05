@@ -93,8 +93,9 @@ class Pricer:
 
         buyable_dict = {}
         # First pull buyables source (smaller)
-        for buyable_doc in self.BUYABLE_DB.find({}, ['ppg', 'smiles', 'smiles_flat'],
-                                                no_cursor_timeout=True):
+        for buyable_doc in self.BUYABLE_DB.find({'source': {'$ne': 'LN'}}, 
+                        ['ppg', 'smiles', 'smiles_flat'],
+                        no_cursor_timeout=True):
             # smiles = buyable_doc['smiles']
             # smiles_flat = buyable_doc['smiles_flat']
 
