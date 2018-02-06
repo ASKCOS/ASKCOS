@@ -1,6 +1,6 @@
 import makeit.global_config as gc
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import AllChem, DataStructs
 import numpy as np
 from makeit.utilities.io.logging import MyLogger
 from makeit.utilities.parsing import check_smiles
@@ -36,6 +36,40 @@ def create_rxn_Morgan2FP(rxn_smiles, fpsize=gc.fingerprint_bits, useFeatures=Tru
     if pfp is not None and rfp is not None:
         pfp -= rfp
     return pfp.reshape(1,len(pfp))
+
+def create_rxn_Morgan2FP_separately(rsmi, psmi, rxnfpsize = gc.fingerprint_bits, pfpsize=gc.fingerprint_bits, useFeatures= False,calculate_rfp = True):
+    #Similar as the above function but takes smiles separately and returns pfp and rfp separately
+
+    rsmi = rsmi.encode('utf-8')
+    psmi = psmi.encode('utf-8')
+    try:
+        mol = Chem.MolFromSmiles(rsmi)
+    except Exception as e:
+        print(e)
+        return
+    try:
+        fp_bit = AllChem.GetMorganFingerprintAsBitVect(mol=mol, radius=2, nBits = rxnfpsize, useFeatures=useFeatures, useChirality = True)
+        fp = np.empty(rxnfpsize,dtype = 'float32')
+        DataStructs.ConvertToNumpyArray(fp_bit,fp)
+    except Exception as e:
+        print("Cannot build reactant fp due to {}".format(e))
+        return
+    rfp = fp
+    
+    try:
+        mol = Chem.MolFromSmiles(psmi)
+    except Exception as e:
+        return
+    try:
+        fp_bit = AllChem.GetMorganFingerprintAsBitVect(mol=mol, radius=2, nBits = pfpsize, useFeatures=useFeatures, useChirality = True)
+        fp = np.empty(pfpsize,dtype = 'float32')
+        DataStructs.ConvertToNumpyArray(fp_bit,fp)
+    except Exception as e:
+        print("Cannot build product fp due to {}".format(e))
+        return
+    pfp = fp
+    return [pfp, rfp]
+
 
 def get_condition_input_from_smiles(conditions_smiles , split = False, s_fp = 256, r_fp = 256, c_fp = 256):
     '''

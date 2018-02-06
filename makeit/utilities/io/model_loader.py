@@ -4,6 +4,7 @@ from pymongo import MongoClient
 from logging import MyLogger
 from makeit.utilities.buyable.pricer import Pricer
 from makeit.synthetic.context.nearestneighbor import NNContextRecommender
+from makeit.synthetic.context.Neural_Network_Context_Recommender import NeuralNetContextRecommender
 from makeit.synthetic.enumeration.transformer import ForwardTransformer
 from makeit.retrosynthetic.transformer import RetroTransformer
 from makeit.synthetic.evaluation.template_based import TemplateNeuralNetScorer
@@ -163,6 +164,10 @@ def load_Context_Recommender(context_recommender, max_contexts=10):
         recommender = NNContextRecommender(max_contexts=max_contexts)
         recommender.load(model_path=gc.CONTEXT_REC[
                          'model_path'], info_path=gc.CONTEXT_REC['info_path'])
+    elif context_recommender == gc.neural_network:
+        recommender = NeuralNetContextRecommender(max_contexts=max_contexts)
+        recommender.load(model_path=gc.NEURALNET_CONTEXT_REC['model_path'], info_path=gc.NEURALNET_CONTEXT_REC[
+                       'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path'])
     else:
         raise NotImplementedError
     MyLogger.print_and_log('Context recommender loaded.', model_loader_loc)

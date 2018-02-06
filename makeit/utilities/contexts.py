@@ -42,7 +42,7 @@ def trim_trailing_period(txt):
 
 def context_to_edit(context, solvent_name_to_smiles, solvent_smiles_to_params):
     
-    (T, reagents, solvent) = context
+    (T, reagents_str, solvent) = context
     # Temperature is easy
     try:
         T = float(T)
@@ -62,13 +62,13 @@ def context_to_edit(context, solvent_name_to_smiles, solvent_smiles_to_params):
             doc = solvent_smiles_to_params[solvent_name_to_smiles[solvent]]
         except KeyError:
             MyLogger.print_and_log('Could not parse solvent {}'.format(solvent), contexts_loc)
-            return None
+            doc = solvent_smiles_to_params[solvent_name_to_smiles['default']]
     solvent_vec = [doc['c'], doc['e'], doc['s'], doc['a'], doc['b'], doc['v']]
 
     # Unreacting reagents
-    reagents = [Chem.MolFromSmiles(reagent) for reagent in reagents.split('.')]
+    reagents = [Chem.MolFromSmiles(reagent) for reagent in reagents_str.split('.')]
     if None in reagents:
-        MyLogger.print_and_log('Could not parse all reagents!', contexts_loc)
+        MyLogger.print_and_log('Could not parse all reagents!{}'.format(reagents_str), contexts_loc)
         return None
     reagent_fp = np.zeros((1, 256))
     for reagent in reagents:

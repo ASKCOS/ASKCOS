@@ -34,6 +34,7 @@ rank = 'Rank'
 
 #For context recommendation
 nearest_neighbor = 'Nearest_Neighbor'
+neural_network = 'Neural_Network'
 #For transformations
 template = 'Template'
 network = 'Neural_Network'
@@ -156,6 +157,13 @@ CONTEXT_REC = {
     'info_path': os.path.join(data_path,'context', 'RxnID_infoFull.txt'),
     'model_path': os.path.join(data_path,'context', 'fp256noFtr_NN10_BT.pickle'),
     'model_dir': data_path,
+    'database': database,
+}
+
+NEURALNET_CONTEXT_REC = {
+    'info_path': os.path.join(data_path,'context', 'NeuralNet_Cont_Model/'),
+    'model_path': os.path.join(data_path,'context', 'NeuralNet_Cont_Model', 'model.json'),
+    'weights_path': os.path.join(data_path,'context', 'NeuralNet_Cont_Model', 'weights.h5'),
     'database': database,
 }
 
