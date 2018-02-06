@@ -262,7 +262,18 @@ class TemplateNeuralNetScorer(Scorer):
                 self.expansion_queue = Queue()
 
         mol = Chem.MolFromSmiles(reactants_smiles)
+        if mol is None: 
+            MyLogger.print_and_log('Reactants smiles not parsible: {}'.format(
+                    reactants_smiles), template_nn_scorer_loc, level=1)
+            return [[{
+                        'rank': 1,
+                        'outcome': '',
+                        'score': 0,
+                        'prob': 0,
+                        }]]
+
         clean_reactant_mapping(mol)
+
         reactants_smiles = Chem.MolToSmiles(mol)
         with allow_join_result():
             self.template_prioritization = kwargs.pop('template_prioritization', gc.popularity)
@@ -291,9 +302,17 @@ class TemplateNeuralNetScorer(Scorer):
                                          'score': 0.0,
                                          'prob': 0.0,
                                          })
+                    continue
                 prediction_context = context_cleaner.clean_context(context)
                 context_tensor = context_cleaner.context_to_edit(
                     prediction_context, self.solvent_name_to_smiles, self.solvent_smiles_to_params)
+                if not context_tensor: 
+                    all_outcomes.append({'rank': 0.0,
+                                         'outcome': None,
+                                         'score': 0.0,
+                                         'prob': 0.0,
+                                         })
+                    continue
                 scores = self.model.predict(candidate_tensor + context_tensor)
                 probs = scores
 

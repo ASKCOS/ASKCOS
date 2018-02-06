@@ -219,10 +219,12 @@ class TreeEvaluator():
                             self.load_context_recommender()
                         if necessary_reagent:
                             contexts = self.get_contexts(reaction_smiles, 1)
-                            if contexts is not None and len(contexts) > 0 and len(contexts[0]) >= 3:
+                            if contexts is not None and len(contexts) > 0 and len(contexts[0]) >= 3 and contexts[0][2]:
                                 reactants.extend(contexts[0][2].split('.')) # add reagents
                         elif gc.forward_scoring_needs_context[forward_scoring_method]:
                             contexts = self.get_contexts(reaction_smiles, n)
+                        elif self.recommender != gc.nearest_neighbor:#the not using the nearest neighbor model:
+                            contexts = self.get_contexts(reaction_smiles, 1)
                     if not contexts:
                         contexts = ['n/a']
                     evaluation = self.evaluate_reaction(
