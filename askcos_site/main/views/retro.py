@@ -23,6 +23,7 @@ from ..models import BlacklistedReactions, BlacklistedChemicals
 
 from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors as get_top_precursors_c
 from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors
+from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
 
 @login_required
 def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
@@ -229,7 +230,9 @@ def ajax_start_retro_celery(request):
     forbidden_molecules = list(set(
         [x.smiles for x in BlacklistedChemicals.objects.filter(user=request.user, active=True)]))
 
-    from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
+    if template_prioritization == 'Popularity':
+            template_count = 1e9
+            
     res = get_buyable_paths.delay(smiles, template_prioritization, precursor_prioritization,
                                   mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth,
                                   max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5, 
