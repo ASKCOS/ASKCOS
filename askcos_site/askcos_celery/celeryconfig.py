@@ -36,6 +36,7 @@ TASK_ROUTES = {
     'askcos_site.askcos_celery.treeevaluator.scoring_coordinator.*':{'queue':'sc_coordinator'},   
     'askcos_site.askcos_celery.treeevaluator.forward_trans_worker.*': {'queue':'ft_worker'},
     'askcos_site.askcos_celery.contextrecommender.cr_nn_worker.*': {'queue':'cr_nn_worker'},
+    'askcos_site.askcos_celery.contextrecommender.cr_network_worker.*': {'queue':'cr_network_worker'},
     'askcos_site.askcos_celery.contextrecommender.cr_coordinator.*':{'queue':'cr_coordinator'},
 }
 CELERY_ROUTES = TASK_ROUTES

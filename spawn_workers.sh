@@ -44,7 +44,9 @@ celery -A askcos_site worker -c 6 -Q ft_worker -n "ft_worker@$(hostname)" --max-
 celery -A askcos_site worker -c 2 -Q cr_coordinator -n "cr_coordinator@$(hostname)" --max-tasks-per-child 50000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
 
 # Context recommender nearest-neighbor worker
-celery -A askcos_site worker -c 2 -Q cr_nn_worker -n "cr_nn_worker@$(hostname)" --max-tasks-per-child 50000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
+celery -A askcos_site worker -c 2 -Q cr_nn_worker -n "cr_nn_worker@$(hostname)" --max-tasks-per-child 1000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
+# Context recommender neural network worker
+celery -A askcos_site worker -c 2 -Q cr_network_worker -n "cr_network_worker@$(hostname)" --max-tasks-per-child 1000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
 
 
 source deactivate

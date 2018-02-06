@@ -3,7 +3,8 @@ from celery import shared_task
 from celery.signals import celeryd_init
 from celery.result import allow_join_result
 from makeit.synthetic.context.nearestneighbor import NNContextRecommender
-from askcos_site.askcos_celery.contextrecommender.cr_nn_worker import get_n_conditions
+from askcos_site.askcos_celery.contextrecommender.cr_nn_worker import get_n_conditions as neighbor_get_n_conditions
+from askcos_site.askcos_celery.contextrecommender.cr_network_worker import get_n_conditions as network_get_n_conditions
 import makeit.global_config as gc
 CORRESPONDING_QUEUE = 'cr_coordinator'
 import time
@@ -20,24 +21,25 @@ def configure_worker(options={}, **kwargs):
 
 
 @shared_task
-def get_context_recommendations(rxn, n=10, singleSlvt=True, with_smiles=True, context_recommender=gc.nearest_neighbor):
+def get_context_recommendations(*args, **kwargs):
     '''Retrieve a context recommendation given the reaction to attempt.
 
     rxn = [reacants, products], where each is a list of SMILES
     n = number of contexts to return'''
 
-    global NN_PREDICTOR
+    context_recommender = kwargs.pop('context_recommender', gc.nearest_neighbor)
 
-    print('Context context_recommender worker got a request for rxn {} and n {}'.format(
-        rxn, n))
+    print('Context context_recommender worker got a request: {}, {}'.format(args, kwargs))
     with allow_join_result():
         if context_recommender == gc.nearest_neighbor:
-            res = get_n_conditions.delay(
-                rxn, n=10, singleSlvt=True, with_smiles=True)
+            res = neighbor_get_n_conditions.delay(*args, **kwargs)
+            return res.get()
+        elif context_recommender == gc.neural_network:
+            res = network_get_n_conditions.delay(*args, **kwargs)
             return res.get()
         else:
             raise NotImplementedError
         
 @shared_task
 def get_recommender_types():
-    return [gc.nearest_neighbor,]
+    return [gc.nearest_neighbor,gc.neural_network]
