@@ -50,6 +50,7 @@ urlpatterns += [
 
     # Interactive forward prediction
     url(ur'^synth_interactive/$', main.views.synth_interactive, name='synth_interactive'),
+    url(ur'^synth_interactive/reactants=(?P<reactants>.+)&reagents=(?P<reagents>.*)&solvent=(?P<solvent>.*)&temperature=(?P<temperature>.*)$', main.views.synth_interactive, name='synth_interactive_contextspec'),
     url(ur'^synth_interactive/reactants=(?P<reactants>.+)&product=(?P<product>.+)$', main.views.synth_interactive, name='synth_interactive_target2'),
     url(ur'^synth_interactive/reactants=(?P<reactants>.+)$', main.views.synth_interactive, name='synth_interactive_target'),
     url(ur'^synth_interactive/smiles=(?P<smiles>.+)$', main.views.synth_interactive_smiles, name='synth_interactive_target_smiles'),

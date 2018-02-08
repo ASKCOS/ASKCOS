@@ -44,7 +44,8 @@ def ajax_context_rxnsmiles(request):
 
     if contexts:
         data['html'] = render_to_string('context_recs_only.html', 
-            {'contexts': [context_to_dict(x) for x in contexts]})
+            {'contexts': [context_to_dict(x) for x in contexts],
+             'reactants': '.'.join(reactants)})
     else:
         data['html'] = 'No recommendations found? That is weird...'
 
@@ -54,8 +55,9 @@ def context_to_dict(context):
     (T1, slvt1, rgt1, cat1, t1, y1) = context
     return {
         'temperature': T1,
-        'solvents': slvt1,
+        'solvents': slvt1 if slvt1 != '.' else '',
         'reagents': rgt1,
+        'reagents_combined': '.'.join(rgt1.split('.') + cat1.split('.')),
         'catalysts': cat1,
         'time': t1,
         'yield': y1,

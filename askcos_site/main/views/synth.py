@@ -39,6 +39,17 @@ def synth_interactive(request, reactants='', reagents='', solvent='default',
     if product is None:    
         context['reagents'] = reagents
         context['solventselected'] = solvent
+        # auto-select new solvent if possible
+        matched = False 
+        if '.' in solvent:
+            solvent = solvent.split('.')[0]
+        for solvent_choice in solvent_choices:
+            if solvent == solvent_choice['smiles'] or solvent == solvent_choice['name']:
+                matched = True 
+                context['solventselected'] = solvent_choice['name']
+        if not matched and solvent:
+            context['warn'] = 'Could not pre-populate solvent field: no Abraham params found for {}'.format(solvent)
+
         context['temperature'] = temperature
     else:
         # Get suggested conditions
