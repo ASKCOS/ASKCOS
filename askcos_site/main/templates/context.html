@@ -6,7 +6,7 @@
 {% block extrahead %}{% endblock %}
 
 {% block navbar_items %}
-<a href="{% url 'evaluate_rxnsmiles' %}">Context</a>
+<a href="{% url 'context_rxnsmiles' %}">Context</a>
 {% endblock %}
 
 {% block sidebar_items %}{% endblock %}
@@ -61,7 +61,7 @@ $("#get_contexts").click(function () {
 		}
 	});
 });
-// On load, if entries defined, switch it out
+// On load, if entries defined, switch it out and trigger recommender
 $(document).ready(function() {
 	if ("{{reactants}}" != "") {
 		$("#reactants").val("{{reactants}}");
@@ -69,7 +69,13 @@ $(document).ready(function() {
 	}
 	if ("{{product}}" != "") {
 		$("#product").val("{{product}}");
-		$("#product").trigger("product");
+		$("#product").trigger("change");
+	}
+	if (("{{reactants}}" != "") && ("{{product}}" != "")) {
+		$("#rxn_smiles").val("{{ reactants }}>>{{ product }}");
+		setTimeout(function() {
+			$("#get_contexts").trigger('click');
+		}, 10); 
 	}
 });
 </script>

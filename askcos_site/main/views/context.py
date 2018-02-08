@@ -19,8 +19,17 @@ from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
     trim_trailing_period
 
 @login_required
-def context_rxnsmiles(request):
-    return render(request, 'context.html', {})
+def context_rxnsmiles(request, smiles=None, reactants=None, product=None):
+    context = {}
+    if smiles is not None:
+        context['reactants'] = smiles.split('>')[0]
+        context['product'] = smiles.split('>')[-1]
+    else:
+        if reactants is not None:
+            context['reactants'] = reactants
+        if product is not None:
+            context['product'] = product
+    return render(request, 'context.html', context)
 
 @ajax_error_wrapper
 def ajax_context_rxnsmiles(request):
@@ -62,3 +71,13 @@ def context_to_dict(context):
         'time': t1,
         'yield': y1,
     }
+
+@login_required
+def context_rxnsmiles_target(request, smiles):
+    '''Synth interactive initialized w/ reaction smiles'''
+    return context_rxnsmiles(request, reactants=smiles.split('>')[0], product=smiles.split('>')[-1])
+
+@login_required
+def context_rxnsmiles_target2(request, reactants, product):
+    '''Synth interactive initialized w/ reaction smiles'''
+    return context_rxnsmiles(request, reactants=reactants, product=product)

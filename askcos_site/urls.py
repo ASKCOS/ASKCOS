@@ -46,6 +46,8 @@ urlpatterns += [
 
     # Context
     url(ur'^context/$', main.views.context_rxnsmiles, name='context_rxnsmiles'),
+    url(ur'^context/reactants=(?P<reactants>.+)&product=(?P<product>.+)$', main.views.context_rxnsmiles_target2, name='context_rxnsmiles_target2'),
+    url(ur'^context/smiles=(?P<smiles>.+)$', main.views.context_rxnsmiles_target, name='context_rxnsmiles_target'),
     url(ur'^ajax/context_rxnsmiles/$', main.views.ajax_context_rxnsmiles, name='ajax_context_rxnsmiles'),
 
     # Interactive forward prediction
