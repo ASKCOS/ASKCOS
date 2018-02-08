@@ -301,7 +301,7 @@ class NeuralNetContextRecommender(ContextRecommender):
                             ## esle ouptupt format compatible with the overall framework
                             else:
                                 context_combos.append(
-                                    [T_pred[0][0][0], '.'.join(slv_name), '.'.join(rgt_name), '.'.join(cat_name), np.nan, np.nan])
+                                    [float(T_pred[0][0][0]), '.'.join(slv_name), '.'.join(rgt_name), '.'.join(cat_name), np.nan, np.nan])
                             context_combo_scores.append(
                                 c1_sc*s1_sc*s2_sc*r1_sc*r2_sc)
             context_ranks = num_combos+1 - stats.rankdata(context_combo_scores)
