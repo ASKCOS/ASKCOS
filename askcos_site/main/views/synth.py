@@ -21,7 +21,7 @@ from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
     trim_trailing_period
 
 @login_required
-def synth_interactive(request, reactants='', reagents='', solvent='toluene', 
+def synth_interactive(request, reactants='', reagents='', solvent='default', 
         temperature='20', mincount='25', product=None, forward_scorer='Template_Based'):
     '''Builds an interactive forward synthesis page'''
 
@@ -43,7 +43,7 @@ def synth_interactive(request, reactants='', reagents='', solvent='toluene',
     else:
         # Get suggested conditions
         smiles = '%s>>%s' % (reactants, product)
-        res = get_context_recommendations.delay(smiles, n=1, context_recommender='Nearest_Neighbor')
+        res = get_context_recommendations.delay(smiles, n=1, context_recommender='Neural_Network')
         contexts = res.get(60)
         if contexts is None or len(contexts) == 0:
             raise ValueError('Context recommender was unable to get valid context(?)')

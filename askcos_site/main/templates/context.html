@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Reaction Evaluator{% endblock %}
-{% block page_title %}Reaction Evaluator<span id="status"></span>{% endblock %}
+{% block title %}Context Recommendation{% endblock %}
+{% block page_title %}Context Recommendation<span id="status"></span>{% endblock %}
 
 {% block extrahead %}{% endblock %}
 
 {% block navbar_items %}
-<a href="{% url 'evaluate_rxnsmiles' %}">Evaluator</a>
+<a href="{% url 'evaluate_rxnsmiles' %}">Context</a>
 {% endblock %}
 
 {% block sidebar_items %}{% endblock %}
@@ -42,15 +42,12 @@ $("#reactants, #product").change(function () {
 	});
 
 });
-$("#get_plausibility").click(function () {
-	console.log('starting synth');
+$("#get_contexts").click(function () {
+	console.log('starting to get recs');
 	$.ajax({
-		url: '/ajax/evaluate_rxnsmiles/',
+		url: '/ajax/context_rxnsmiles/',
 		data: {
 			smiles: $("#rxn_smiles").val(),
-			necessary_reagent: $("#necessary_reagent").is(":checked"),
-			verbose: true,
-			forward_scorer: $("#id_forward_scorer").val(),
 			context_recommender: $("#id_context_recommender").val(),
 		},
 		dataType: 'json',
@@ -91,32 +88,19 @@ $(document).ready(function() {
 <tr id="rxn_mol_wrapper" style="display:none"><td colspan="2" id="rxn_image"></td></tr>
 <tr id="rxn_smiles_wrapper" style="display:none"><td colspan="2" id="rxn_smiles"></td></tr>
 
-
-
-<tr><th style="vertical-align:text-top;">Prediction approach: <a href="#" data-toggle="tooltip" title="How would you like to try to predict the outcome of this reaction? There is the classic template-based approach, which is somewhat context-dependent, but can be slow (5-45 seconds). There is also the template-free approach, which can allow for inventive chemistry and tends to be more accurate overall, but is not sensitive to context. It is very fast."><span class="glyphicon glyphicon-info-sign"></span></a></th>
-    <td>
-        <select id="id_forward_scorer" name="forward_scorer" onchange="showFields(this.options[this.selectedIndex].value)">
-            <option value="Template_Based" {% if forward_scorer == 'Template_Based' %}selected{% endif %}>Template-based</option>
-            <option value="Template_Free" {% if forward_scorer == 'Template_Free' %}selected{% endif %}>Template-free</option>
-        </select>
-    </td>
-</tr>
 <tr>
     <th style="vertical-align:text-top;">Context recommender: <a href="#" data-toggle="tooltip" title="Which version of the context recommender would you like to use? The nearest neighbor model is probably strictly worse than the neural network model at this point...both in terms of speed and accuracy"><span class="glyphicon glyphicon-info-sign"></span></a></th>
     <td>
         <select id="id_context_recommender" name="context_recommender">
-            <option value="Neural_Network" {% if context_recommender == 'Neural_Network' %}selected{% endif %}>Neural Network</option>
-            <option value="Nearest_Neighbor"  {% if context_recommender == 'Nearest_Neighbor' %}selected{% endif %}>Nearest Neighbor</option>
+            <option value="Neural_Network" {% if form.context_recommender == 'Neural_Network' %}selected{% endif %}>Neural Network</option>
+            <option value="Nearest_Neighbor"  {% if form.context_recommender == 'Nearest_Neighbor' %}selected{% endif %}>Nearest Neighbor</option>
         </select>
     </td>
 </tr>
 
 <tr id="controls_wrapper" style="display:none">
 <td>
-	<button type="button" style="width:100%" id="get_plausibility">Evaluate</button>
-</td>
-<td>
-    <input type="checkbox" id="necessary_reagent"> Reagent(s) should contribute heavy atoms<br>
+	<button type="button" style="width:100%" id="get_contexts">Get Context Recommendations</button>
 </td>
 </tr>
 

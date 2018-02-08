@@ -41,7 +41,7 @@ def configure_worker(options={}, **kwargs):
 
 
 @shared_task
-def get_n_conditions(rxn, n=10, singleSlvt=True, with_smiles=True):
+def get_n_conditions(*args, **kwargs):
     '''Retrieve a context recommendation given the reaction to attempt.
 
     rxn = [reacants, products], where each is a list of SMILES
@@ -49,10 +49,8 @@ def get_n_conditions(rxn, n=10, singleSlvt=True, with_smiles=True):
 
     global NN_PREDICTOR
 
-    print('Context recommender worker got a request for rxn {} and n {}'.format(
-        rxn, n))
+    print('Context recommender worker got a request: {} {}'.format(args, kwargs))
 
-    res = recommender.get_n_conditions(
-        rxn, n=n, singleSlvt=singleSlvt, with_smiles=with_smiles)
+    res = recommender.get_n_conditions(*args, **kwargs)
     print('Task completed, returning results.')
     return res

@@ -1,0 +1,45 @@
+<table class="table table-nonfluid borderless">
+{% for context in contexts %}
+<thead>
+	<th><br>Recommendation {{ forloop.counter }}</th>
+	<td></td>
+</thead>
+<tbody>
+<tr>
+	<td>Reagent(s): </td>
+	{% if context.reagents %}
+	<td width="70%" colspan=7><div style="overflow-x:auto; width=100%"><img src="" data-async-load="{% url 'draw_smiles' context.reagents %}" alt="{{ context.reagents }}" max-width="100%"></div></td>
+	{% else %}
+	<td>none</td>
+	{% endif %}
+
+</tr>
+<tr>
+	<td>Catalyst(s): </td>
+	{% if context.catalysts %}
+	<td width="70%" colspan=7><div style="overflow-x:auto; width=100%"><img src="" data-async-load="{% url 'draw_smiles' context.catalysts %}" alt="{{ context.catalysts }}" max-width="100%"></div></td>
+	{% else %}
+	<td>none</td>
+	{% endif %}
+
+</tr>
+<tr>
+	<td>Solvent(s): </td>
+	{% if context.solvents and context.solvents != '.' %}
+	<td width="70%" colspan=7><div style="overflow-x:auto; width=100%"><img src="" data-async-load="{% url 'draw_smiles' context.solvents %}" alt="{{ context.smiles }}" max-width="100%"></div></td>
+	{% else %}
+	<td>neat</td>
+	{% endif %}
+
+</tr>
+<tr>
+	<td>Temperature: </td>
+	{% if context.temperature and context.temperature != -1 %}
+	<td>{{ context.temperature|floatformat:.1 }} Celsius</td>
+	{% else %}
+	<td>unknown</td>
+	{% endif %}
+</tr>
+</tbody>
+{% endfor %}
+</table>

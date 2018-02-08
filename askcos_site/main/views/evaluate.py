@@ -17,10 +17,9 @@ import makeit.global_config as makeit_gc
 from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
 from ...askcos_celery.treeevaluator.scoring_coordinator import evaluate
 
-from ..globals import DONE_SYNTH_PREDICTIONS
 from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
     trim_trailing_period
-    
+
 @login_required
 def evaluate_rxnsmiles(request):
     return render(request, 'evaluate.html', {})
@@ -34,11 +33,11 @@ def ajax_evaluate_rxnsmiles(request):
     synth_mincount = int(request.GET.get('synth_mincount', 0))
     necessary_reagent = request.GET.get('necessary_reagent', '')
     forward_scorer = request.GET.get('forward_scorer', 'Template_Free')
+    context_recommender = request.GET.get('context_recommender', 'Neural_Network')
+
     if necessary_reagent == 'false':
         necessary_reagent = ''
-    if '{}-{}'.format(smiles, synth_mincount) in DONE_SYNTH_PREDICTIONS:
-        data = DONE_SYNTH_PREDICTIONS['{}-{}'.format(smiles, synth_mincount)]
-        return JsonResponse(data)
+
     reactants = smiles.split('>>')[0].split('.')
     products = smiles.split('>>')[1].split('.')
     print('...trying to get predicted context')
@@ -51,7 +50,8 @@ def ajax_evaluate_rxnsmiles(request):
         num_contexts = 0
 
     if num_contexts:
-        res = get_context_recommendations.delay(smiles, n=num_contexts, context_recommender='Nearest_Neighbor')
+        res = get_context_recommendations.delay(smiles, n=num_contexts, 
+            context_recommender=context_recommender)
         contexts = res.get(60)
         print('Got context(s)')
         print(contexts)
@@ -106,7 +106,7 @@ def ajax_evaluate_rxnsmiles(request):
     # Report
     print('Recommended context(s): {}'.format(best_context))
     print('Plausibility: {}'.format(plausible))
-    print(all_outcomes[best_context_i])
+    # print(all_outcomes[best_context_i])
 
     if num_contexts:
         (T1, slvt1, rgt1, cat1, t1, y1) = best_context
@@ -150,6 +150,4 @@ def ajax_evaluate_rxnsmiles(request):
     G = 255. - (plausible < 0.5) * (0.5 - plausible) * (255. - B) * 2.
     data['html_color'] = str('#%02x%02x%02x' % (int(R), int(G), int(B)))
     
-    # Save response
-    DONE_SYNTH_PREDICTIONS['{}-{}-{}'.format(smiles, forward_scorer, synth_mincount)] = data
     return JsonResponse(data)

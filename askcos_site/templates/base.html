@@ -46,6 +46,14 @@
             </div></a>
         </li>
 
+        <li {% if '/context/' in request.path %}class="active"{% endif %}>
+            <a href="{% url 'context_rxnsmiles' %}">
+            <div class="biglink">Context Recommendation</div>
+            <div class="linkdesc" style="display:none">
+                Get ideas for reaction conditions for an attempted transformation
+            </div></a>
+        </li>
+
         <li {% if '/synth_interactive/' in request.path %}class="active"{% endif %}>
             <a href="{% url 'synth_interactive' %}">
             <div class="biglink">Forward Prediction</div>

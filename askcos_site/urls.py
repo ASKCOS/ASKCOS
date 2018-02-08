@@ -44,6 +44,10 @@ urlpatterns += [
     url(ur'^evaluate/$', main.views.evaluate_rxnsmiles, name='evaluate_rxnsmiles'),
     url(ur'^ajax/evaluate_rxnsmiles/$', main.views.ajax_evaluate_rxnsmiles, name='ajax_evaluate_rxnsmiles'),
 
+    # Context
+    url(ur'^context/$', main.views.context_rxnsmiles, name='context_rxnsmiles'),
+    url(ur'^ajax/context_rxnsmiles/$', main.views.ajax_context_rxnsmiles, name='ajax_context_rxnsmiles'),
+
     # Interactive forward prediction
     url(ur'^synth_interactive/$', main.views.synth_interactive, name='synth_interactive'),
     url(ur'^synth_interactive/reactants=(?P<reactants>.+)&product=(?P<product>.+)$', main.views.synth_interactive, name='synth_interactive_target2'),
