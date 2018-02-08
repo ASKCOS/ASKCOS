@@ -47,8 +47,7 @@ def get_n_conditions(*args, **kwargs):
     rxn = [reacants, products], where each is a list of SMILES
     n = number of contexts to return'''
 
-    print('Context recommender worker got a request for rxn {} and n {}'.format(
-        rxn, n))
+    print('Context recommender worker got a request: {}, {}'.format(args, kwargs))
 
     res = recommender.get_n_conditions(*args, **kwargs)
     print('Task completed, returning results.')
