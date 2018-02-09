@@ -59,10 +59,23 @@ class ReactionHistorian:
         MyLogger.print_and_log(
                 "Saved to {}".format(file_path), historian_loc, level=1)
 
-    def load_from_file(self, file_path=gc.reactionhistorian_data):
+    def load_from_file(self, file_path=gc.reactionhistorian_data, testing=False):
         '''
         Load the data for the pricer from a locally stored file instead of from the online database.
         '''
+
+        if testing:
+            self.occurrences = defaultdict(lambda: [0, []], {
+                    'CCO>>CCBr': [2, ['rxn1', 'rxn2']],
+                    'CCCCC>>CCC=CC': [1, ['rxn3']],
+                })
+            self.occurrences_flat = defaultdict(lambda: [0, []], {
+                    'CCO>>CCBr': [2, ['rxn1', 'rxn2']],
+                    'CCCCC>>CCC=CC': [1, ['rxn3']],
+                })
+            return
+
+
         if os.path.isfile(file_path):
             with open(file_path, 'rb') as file:
                 self.occurrences = defaultdict(lambda: [0, []], pickle.load(file))
