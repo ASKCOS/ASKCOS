@@ -127,10 +127,10 @@ class TreeBuilder:
                     from askcos_site.celery import app
                     amqp = celery.bin.amqp.amqp(app=app)
                     amqp.run('queue.purge', self.private_worker_queue)
-                if self.chiral:
+                if self.chiral and self.private_worker_queue:
                     released = tb_c_worker.unreserve_worker_pool.apply_async(
                         queue=self.private_worker_queue, retry=True).get()
-                else:
+                elif self.private_worker_queue:
                     released = tb_worker.unreserve_worker_pool.apply_async(
                         queue=self.private_worker_queue, retry=True).get()
                 self.running = False
@@ -207,6 +207,7 @@ class TreeBuilder:
             self.is_ready = []
             # specifically for celery
             self.pending_results = []
+            self.private_worker_queue = None
         else:
             # general parameters in python multiprocessing format
             self.manager = Manager()
@@ -405,33 +406,36 @@ class TreeBuilder:
             except Exception:
                 elapsed_time = time.time() - start_time
             
-        self.stop()
 
     def build_tree(self, target):
         self.running = True
         with allow_join_result():
-            self.tree_dict[1] = {
-                'smiles': target,
-                'prod_of': [],
-                'rct_of': [],
-                'depth': 0,
-                'ppg': self.pricer.lookup_smiles(target),
-            }
-            self.chem_to_id[target] = 1
+            try:
+                self.tree_dict[1] = {
+                    'smiles': target,
+                    'prod_of': [],
+                    'rct_of': [],
+                    'depth': 0,
+                    'ppg': self.pricer.lookup_smiles(target),
+                }
+                self.chem_to_id[target] = 1
 
-            # if self.max_depth == 1:
-            #     result = self.retroTransformer.get_outcomes(target, self.mincount, (self.precursor_prioritization,
-            #                                                                         self.template_prioritization),
-            #                                                 template_count=self.template_count,
-            #                                                 mode = self.precursor_score_mode,
-            #                                                 max_cum_prob = self.max_cum_template_prob)
-            #     precursors = result.return_top(n=self.max_branching)
-            #     children = self.get_children(precursors)
-            #     self.add_children(children, target, 1)
-            # else:
-            self.prepare()
-            self.set_initial_target(target)
-            self.coordinate()
+                # if self.max_depth == 1:
+                #     result = self.retroTransformer.get_outcomes(target, self.mincount, (self.precursor_prioritization,
+                #                                                                         self.template_prioritization),
+                #                                                 template_count=self.template_count,
+                #                                                 mode = self.precursor_score_mode,
+                #                                                 max_cum_prob = self.max_cum_template_prob)
+                #     precursors = result.return_top(n=self.max_branching)
+                #     children = self.get_children(precursors)
+                #     self.add_children(children, target, 1)
+                # else:
+                self.prepare()
+                self.set_initial_target(target)
+                self.coordinate()
+
+            finally: # make sure stop is graceful
+                self.stop()
 
     def tree_status(self):
         '''Summarize size of tree after expansion'''
