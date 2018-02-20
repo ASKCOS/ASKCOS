@@ -66,7 +66,7 @@ def context_to_dict(context):
         'temperature': T1,
         'solvents': slvt1 if slvt1 != '.' else '',
         'reagents': rgt1,
-        'reagents_combined': '.'.join(rgt1.split('.') + cat1.split('.')),
+        'reagents_combined': '.'.join([x for x in rgt1.split('.') + cat1.split('.') if x]),
         'catalysts': cat1,
         'time': t1,
         'yield': y1,
