@@ -7,6 +7,7 @@ from django.conf import settings
 import django.contrib.auth.views
 from pymongo.message import bson
 from bson.objectid import ObjectId
+from collections import defaultdict
 import time
 import numpy as np
 import json
@@ -224,6 +225,11 @@ def ajax_start_retro_celery(request):
         'template_prioritization', 'Relevance')
     template_count = int(request.GET.get('template_count', '100'))
     max_cum_prob = float(request.GET.get('max_cum_prob', '0.995'))
+    chemical_property_logic = str(request.GET.get('chemical_property_logic', 'none'))
+    max_chemprop_c = int(request.GET.get('max_chemprop_c', '0'))
+    max_chemprop_n = int(request.GET.get('max_chemprop_n', '0'))
+    max_chemprop_o = int(request.GET.get('max_chemprop_o', '0'))
+    max_chemprop_h = int(request.GET.get('max_chemprop_h', '0'))
 
     blacklisted_reactions = list(set(
         [x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))
@@ -232,16 +238,28 @@ def ajax_start_retro_celery(request):
 
     if template_prioritization == 'Popularity':
             template_count = 1e9
-            
+
+    default_val = 1e9 if chemical_property_logic == 'and' else 0
+    max_natom_dict = defaultdict(lambda: default_val, {
+        'logic': chemical_property_logic,
+        'C': max_chemprop_c,
+        'N': max_chemprop_n,
+        'O': max_chemprop_o,
+        'H': max_chemprop_h,
+    })
+    print('Tree building {} for user {} ({} forbidden reactions)'.format(
+        smiles, request.user, len(blacklisted_reactions)))
+    print('Using chemical property logic: {}'.format(max_natom_dict))
+
     res = get_buyable_paths.delay(smiles, template_prioritization, precursor_prioritization,
                                   mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth,
                                   max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5, 
                                   chiral=chiral, known_bad_reactions=blacklisted_reactions,
                                   forbidden_molecules=forbidden_molecules,
-                                  max_cum_template_prob=max_cum_prob, template_count=template_count)
+                                  max_cum_template_prob=max_cum_prob, template_count=template_count,
+                                  max_natom_dict=max_natom_dict)
     (tree_status, trees) = res.get(expansion_time * 3)
-    print('Tree building {} for user {} ({} forbidden reactions)'.format(
-        smiles, request.user, len(blacklisted_reactions)))
+    
     # print(trees)
 
     (num_chemicals, num_reactions, at_depth) = tree_status

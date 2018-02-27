@@ -14,6 +14,7 @@ from django.conf import settings
 from celery import shared_task
 from celery.signals import celeryd_init
 from pymongo import MongoClient
+from collections import defaultdict
 from celery.result import allow_join_result
 # NOTE: allow_join_result is only because the treebuilder worker is separate
 from celery.exceptions import Terminated
@@ -64,7 +65,7 @@ def configure_coordinator(options={}, **kwargs):
 def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=20,
                       max_depth=3, max_ppg=1e8, max_time=60, max_trees=25, reporting_freq=5, known_bad_reactions=[],
                       return_d1_if_no_trees=False, chiral=True, template_count=1e9, forbidden_molecules=[],
-                      precursor_score_mode=gc.max, max_cum_template_prob=1):
+                      precursor_score_mode=gc.max, max_cum_template_prob=1, max_natom_dict=defaultdict(lambda: 1e9, {'logic': None})):
     '''Get a set of buyable trees for a target compound.
 
     mincount = minimum template popularity
@@ -88,7 +89,8 @@ def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritiz
                                            template_prioritization=template_prioritization, precursor_prioritization=precursor_prioritization,
                                            mincount=mincount, chiral=chiral, max_trees=max_trees, max_ppg=max_ppg, known_bad_reactions=known_bad_reactions,
                                            template_count=template_count, forbidden_molecules=forbidden_molecules,
-                                           precursor_score_mode=precursor_score_mode,max_cum_template_prob=max_cum_template_prob)
+                                           precursor_score_mode=precursor_score_mode,max_cum_template_prob=max_cum_template_prob,
+                                           max_natom_dict=max_natom_dict)
     print('Task completed, returning results.')
     return result
 @shared_task
