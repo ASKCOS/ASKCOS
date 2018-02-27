@@ -4,6 +4,8 @@ from multiprocessing import Process, Manager, Queue
 import Queue as VanillaQueue
 import time
 import sys
+from collections import defaultdict
+import rdkit.Chem as Chem 
 from makeit.retrosynthetic.transformer import RetroTransformer
 from makeit.utilities.buyable.pricer import Pricer
 from makeit.utilities.io.logging import MyLogger
@@ -68,7 +70,7 @@ class TreeBuilder:
                            for expansion_queue in self.expansion_queues]
                 waiting.append(self.results_queue.empty())
                 waiting += self.idle
-                
+
                 return (not all(waiting))
 
         self.waiting_for_results = waiting_for_results
@@ -76,10 +78,10 @@ class TreeBuilder:
         # Define method to get a processed result.
         if self.celery:
             def get_ready_result():
-                #Update which processes are ready
+                # Update which processes are ready
                 self.is_ready = [i for (i, res) in enumerate(
                     self.pending_results) if res.ready()]
-                
+
                 for i in self.is_ready:
                     (smiles, precursors) = self.pending_results[
                         i].get(timeout=0.2)
@@ -100,11 +102,15 @@ class TreeBuilder:
             def prepare():
                 try:
                     if self.chiral:
-                        self.private_worker_queue = tb_c_worker.reserve_worker_pool.delay().get(timeout=5)
+                        request = tb_c_worker.reserve_worker_pool.delay()
+                        self.private_worker_queue = request.get(timeout=10)
                     else:
-                        self.private_worker_queue = tb_worker.reserve_worker_pool.delay().get(timeout=5)
+                        request = tb_worker.reserve_worker_pool.delay()
+                        self.private_worker_queue = request.get(timeout=10)
                 except Exception as e:
-                    raise IOError('Did not find an available pool of workers! Try again later ({})'.format(e))
+                    request.revoke()
+                    raise IOError(
+                        'Did not find an available pool of workers! Try again later ({})'.format(e))
         else:
             def prepare():
                 MyLogger.print_and_log('Tree builder spinning off {} child processes'.format(
@@ -162,7 +168,7 @@ class TreeBuilder:
                                 'max_branching': self.max_branching,
                                 'template_count': self.template_count,
                                 'mode': self.precursor_score_mode,
-                                'max_cum_prob':self.max_cum_template_prob},
+                                'max_cum_prob': self.max_cum_template_prob},
                         # Prioritize higher depths: Depth first search.
                         priority=int(depth),
                         queue=self.private_worker_queue,
@@ -175,7 +181,7 @@ class TreeBuilder:
                                 'max_branching': self.max_branching,
                                 'template_count': self.template_count,
                                 'mode': self.precursor_score_mode,
-                                'max_cum_prob':self.max_cum_template_prob},
+                                'max_cum_prob': self.max_cum_template_prob},
                         # Prioritize higher depths: Depth first search.
                         priority=int(depth),
                         queue=self.private_worker_queue,
@@ -261,19 +267,18 @@ class TreeBuilder:
             rxn_smiles = '.'.join(sorted(mols)) + '>>' + smiles
             if rxn_smiles in self.known_bad_reactions:
                 continue
-            
+
             # What should be excluded?
             skip_this = False
             for mol in mols:
                 # Exclude banned molecules too
                 if mol in self.forbidden_molecules:
-                    skip_this = True 
+                    skip_this = True
                 # Exclude reactions where the reactant is the target
                 if mol == self.tree_dict[1]['smiles']:
-                    skip_this = True 
+                    skip_this = True
             if skip_this:
                 continue
-
 
             # depending on whether current_id was given as 'Manager.Value' type
             # or 'Integer':
@@ -316,15 +321,16 @@ class TreeBuilder:
                     }
                     self.chem_to_id[mol] = chem_id
 
-                    if ppg and (ppg <= self.max_ppg):
+                    # Check stop criterion
+                    if self.is_a_leaf_node(mol, ppg):
                         #print('{} buyable!'.format(mol))
                         if self.celery:
                             self.buyable_leaves.add(chem_id)
                         else:
                             self.buyable_leaves.append(chem_id)
+
                     else:
                         # Add to queue to get expanded
-
                         if parent_chem_doc['depth'] >= self.max_depth - 1:
                             if gc.DEBUG:
                                 MyLogger.print_and_log('Reached maximum depth, so will not expand around {}'.format(
@@ -343,12 +349,14 @@ class TreeBuilder:
 
                 # Save ID
                 chem_ids.append(chem_id)
+                if rxn_id == 16: print('saved chem_id {} to list of rcts'.format(chem_id))
 
             # Record by overwriting the whole dict value
             rxn['rcts'] = chem_ids
             rxn['prod'] = unique_id
             rxn['depth'] = parent_chem_doc['depth'] + 0.5
             self.tree_dict[rxn_id] = rxn
+
         # Overwrite dictionary entry for the parent
         parent_chem_doc['prod_of'] = parent_chem_prod_of
         self.tree_dict[unique_id] = parent_chem_doc
@@ -374,9 +382,9 @@ class TreeBuilder:
                     #print('Worker {} grabbed {} (ID {}) to expand from queue {}'.format(i, smiles, _id, j))
                     result = self.retroTransformer.get_outcomes(smiles, self.mincount, (self.precursor_prioritization,
                                                                                         self.template_prioritization),
-                                                                template_count=self.template_count, 
-                                                                mode = self.precursor_score_mode,
-                                                                max_cum_prob = self.max_cum_template_prob)
+                                                                template_count=self.template_count,
+                                                                mode=self.precursor_score_mode,
+                                                                max_cum_prob=self.max_cum_template_prob)
                     precursors = result.return_top(n=self.max_branching)
                     self.results_queue.put((_id, smiles, precursors))
                     #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
@@ -403,9 +411,9 @@ class TreeBuilder:
                     children = self.get_children(precursors)
                     self.add_children(children, smiles, _id)
                 elapsed_time = time.time() - start_time
-            except Exception:
+            except Exception as e:
                 elapsed_time = time.time() - start_time
-            
+                print('##ERROR#: {}'.format(e))
 
     def build_tree(self, target):
         self.running = True
@@ -418,6 +426,14 @@ class TreeBuilder:
                     'depth': 0,
                     'ppg': self.pricer.lookup_smiles(target),
                 }
+
+                if self.is_a_leaf_node(target, self.tree_dict[1]['ppg']):
+                    #print('{} buyable!'.format(mol))
+                    if self.celery:
+                        self.buyable_leaves.add(1)
+                    else:
+                        self.buyable_leaves.append(1)
+
                 self.chem_to_id[target] = 1
 
                 # if self.max_depth == 1:
@@ -434,7 +450,7 @@ class TreeBuilder:
                 self.set_initial_target(target)
                 self.coordinate()
 
-            finally: # make sure stop is graceful
+            finally:  # make sure stop is graceful
                 self.stop()
 
     def tree_status(self):
@@ -457,7 +473,7 @@ class TreeBuilder:
     def get_buyable_paths(self, target, max_depth=3, max_branching=25, expansion_time=240, template_prioritization=None,
                           precursor_prioritization=None, nproc=1, mincount=25, chiral=True, max_trees=25, max_ppg=1e10,
                           known_bad_reactions=[], forbidden_molecules=[], template_count=100, precursor_score_mode=gc.max,
-                          max_cum_template_prob = 1):
+                          max_cum_template_prob=1, max_natom_dict=defaultdict(lambda: 1e9, {'logic': None})):
         '''Get viable synthesis trees using an iterative deepening depth-first search'''
 
         self.mincount = mincount
@@ -471,6 +487,28 @@ class TreeBuilder:
         self.template_count = template_count
         self.max_cum_template_prob = max_cum_template_prob
         self.max_ppg = max_ppg
+
+        MyLogger.print_and_log('Starting to expand {} using max_natom_dict {}'.format(target, max_natom_dict), treebuilder_loc, level=2)
+
+        # Define stop criterion
+        def is_a_leaf_node(smiles, ppg):
+            if max_natom_dict['logic'] in [None, 'none']:
+                return ppg and (ppg <= max_ppg)
+            elif max_natom_dict['logic'] == 'or' and ppg and (ppg <= self.max_ppg):
+                return True
+            elif max_natom_dict['logic'] == 'and' and not (ppg and (ppg <= self.max_ppg)):
+                return False 
+            # Get structural properties
+            natom_dict = defaultdict(lambda: 0)
+            mol = Chem.MolFromSmiles(smiles)
+            if not mol:
+                return False
+            for a in mol.GetAtoms():
+                natom_dict[a.GetSymbol()] += 1
+            natom_dict['H'] = sum(a.GetTotalNumHs() for a in mol.GetAtoms())
+            max_natom_satisfied = all(natom_dict[k] <= v for (k, v) in max_natom_dict.items() if k != 'logic')
+            return max_natom_satisfied
+        self.is_a_leaf_node = is_a_leaf_node
 
         # Override: if relevance method is used, chiral database must be used!
         if chiral or template_prioritization == gc.relevance:
@@ -497,6 +535,7 @@ class TreeBuilder:
 
         # generate trees
         self.build_tree(target)
+
         def IDDFS():
             for depth in range(self.max_depth+1):
                 for path in DLS_chem(1, depth, headNode=True):
@@ -507,15 +546,15 @@ class TreeBuilder:
 
             headNode indicates whether this is the first (head) node, in which case
             we should expand it even if it is itself buyable'''
-            #Copy list so each new branch has separate list.
+            # Copy list so each new branch has separate list.
 
             if depth == 0:
                 # Not allowing deeper - is this buyable?
-                if self.tree_dict[chem_id]['ppg'] and (self.tree_dict[chem_id]['ppg'] <= self.max_ppg):
+                if chem_id in self.buyable_leaves:
                     yield []  # viable node, calling function doesn't need children
             else:
                 # Do we need to go deeper?
-                if self.tree_dict[chem_id]['ppg'] and (self.tree_dict[chem_id]['ppg'] <= self.max_ppg) and not headNode:
+                if chem_id in self.buyable_leaves and not headNode:
                     yield []  # Nope, this is a viable node
                 else:
                     # Try going deeper via DLS_rxn function
@@ -539,7 +578,7 @@ class TreeBuilder:
             # Define generators for each reactant node - decrement the depth!
             generators = [DLS_chem(chem_id, depth - 1)
                           for chem_id in self.tree_dict[rxn_id]['rcts']]
-            
+
             # Actually - need to change generators to have the actual lists
             # otherwise the nested for loops don't work!
             for i in range(len(generators)):
@@ -639,7 +678,7 @@ class TreeBuilder:
 
         tree_status = self.tree_status()
         if self.celery:
-            self.reset() # free up memory, don't hold tree
+            self.reset()  # free up memory, don't hold tree
         return (tree_status, trees)
 
 if __name__ == '__main__':
@@ -657,5 +696,5 @@ if __name__ == '__main__':
     # treeBuilder.build_tree('c1ccccc1C(=O)OCCN')
     print treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.popularity,
                                         precursor_prioritization=gc.scscore, nproc=16, expansion_time=60, max_trees=500, max_ppg=10,
-                                        max_branching = 25,precursor_score_mode =gc.mean)[0]
+                                        max_branching=25, precursor_score_mode=gc.mean)[0]
     print 'done'
