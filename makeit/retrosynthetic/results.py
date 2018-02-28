@@ -2,6 +2,7 @@ import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import makeit.global_config as gc
 
+
 class RetroResult:
     '''
     A class to store the results of a one-step retrosynthesis.
@@ -17,14 +18,16 @@ class RetroResult:
         Adds a precursor to the retrosynthesis result if it is a new and unique product
         '''
         try:
-            index = self.smiles_list_to_precursor['.'.join(precursor.smiles_list)]
+            index = self.smiles_list_to_precursor[
+                '.'.join(precursor.smiles_list)]
         except KeyError:
-            #If neither has been encountered: add new product
-            precursor.prioritize(prioritizer, mode = kwargs.pop('mode', gc.max))
+            # If neither has been encountered: add new product
+            precursor.prioritize(prioritizer, mode=kwargs.pop('mode', gc.max))
             self.precursors.append(precursor)
-            self.smiles_list_to_precursor['.'.join(precursor.smiles_list)] = len(self.precursors) - 1
+            self.smiles_list_to_precursor[
+                '.'.join(precursor.smiles_list)] = len(self.precursors) - 1
             return
-        
+
         self.precursors[index].template_ids |= set(precursor.template_ids)
         self.precursors[index].num_examples += precursor.num_examples
         if self.precursors[index].template_score < precursor.template_score:
@@ -69,9 +72,9 @@ class RetroPrecursor:
         self.template_score = template_score
         self.necessary_reagent = necessary_reagent
 
-    def prioritize(self, prioritizer, mode = gc.max):
+    def prioritize(self, prioritizer, mode=gc.max):
         '''
         Calculate the score of this step as the worst of all precursors,
         plus some penalty for a large necessary_reagent
         '''
-        self.retroscore = prioritizer.get_priority(self, mode = mode)
+        self.retroscore = prioritizer.get_priority(self, mode=mode)
