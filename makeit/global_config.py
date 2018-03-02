@@ -16,6 +16,7 @@ product = 'Product'
 #For prioritization
 all = 'All'
 # for precursors
+relevanceheuristic = 'RelevanceHeuristic'
 heuristic = 'Heuristic'
 scscore = 'SCScore'
 mincost = 'MinCost'

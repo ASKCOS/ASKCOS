@@ -22,7 +22,7 @@ class RetroResult:
                 '.'.join(precursor.smiles_list)]
         except KeyError:
             # If neither has been encountered: add new product
-            precursor.prioritize(prioritizer, mode=kwargs.pop('mode', gc.max))
+            precursor.prioritize(prioritizer, mode=kwargs.get('mode', gc.max))
             self.precursors.append(precursor)
             self.smiles_list_to_precursor[
                 '.'.join(precursor.smiles_list)] = len(self.precursors) - 1

@@ -15,6 +15,7 @@ from makeit.utilities.reactants import clean_reactant_mapping
 from makeit.retrosynthetic.results import RetroResult, RetroPrecursor
 from makeit.interfaces.template_transformer import TemplateTransformer
 from makeit.prioritization.precursors.heuristic import HeuristicPrecursorPrioritizer
+from makeit.prioritization.precursors.relevanceheuristic import RelevanceHeuristicPrecursorPrioritizer
 from makeit.prioritization.precursors.mincost import MinCostPrecursorPrioritizer
 from makeit.prioritization.precursors.scscore import SCScorePrecursorPrioritizer
 from makeit.prioritization.templates.popularity import PopularityTemplatePrioritizer
@@ -232,4 +233,4 @@ if __name__ == '__main__':
                          TEMPLATE_DB=TEMPLATE_DB)
     t.load(chiral=True)
     print(t.get_outcomes('C1C(=O)OCC12CC(C)CC2', 100,
-                         (gc.heuristic, gc.relevance), max_cum_prob = 0.5).precursors)
+                         (gc.relevanceheuristic, gc.relevance), max_cum_prob = 0.5).precursors)

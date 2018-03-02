@@ -87,7 +87,7 @@ class SCScorePrecursorPrioritizer(Prioritizer):
         return x
 
     def get_priority(self, retroProduct, **kwargs):
-        mode = kwargs.pop('mode', gc.max)
+        mode = kwargs.get('mode', gc.max)
         if not self._loaded:
             self.load_model()
 
