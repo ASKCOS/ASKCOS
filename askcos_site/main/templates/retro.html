@@ -63,6 +63,7 @@ window.onload = function() {
         <td>
             <select id="id_precursor_prioritization" name="precursor_prioritization">
                 <option value="Heuristic" {% if form.precursor_prioritization == 'Heuristic' %}selected{% endif %}>Heuristic</option>
+                <option value="RelevanceHeuristic" {% if form.precursor_prioritization == 'RelevanceHeuristic' %}selected{% endif %}>Relevance+Heuristic</option>
                 <option value="SCScore"  {% if form.precursor_prioritization == 'SCScore' %}selected{% endif %}>SCScore</option>
                 <option value="Natural"  {% if form.precursor_prioritization == 'Natural' %}selected{% endif %}>Natural ordering</option>
             </select>

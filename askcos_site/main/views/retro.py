@@ -36,7 +36,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
     # Set default inputs
     context['form'] = {}
     context['form']['template_prioritization'] = request.session.get('template_prioritization', 'Relevance')
-    context['form']['precursor_prioritization'] = request.session.get('precursor_prioritization', 'Heuristic')
+    context['form']['precursor_prioritization'] = request.session.get('precursor_prioritization', 'RelevanceHeuristic')
     context['form']['template_count'] = request.session.get('template_count', '100')
     context['form']['max_cum_prob'] = request.session.get('max_cum_prob', '0.995')
     print(request)
@@ -198,7 +198,7 @@ def retro_interactive(request, target=None):
     context['template_count_default'] = 100
     context['template_prioritization'] = 'Relevance'
     context['max_cum_prob_default'] = 0.995
-    context['precursor_prioritization'] = 'Heuristic'
+    context['precursor_prioritization'] = 'RelevanceHeuristic'
     context['forward_scorer'] = 'Template_Free'
 
     if target is not None:
@@ -220,7 +220,7 @@ def ajax_start_retro_celery(request):
     max_ppg = int(request.GET.get('max_ppg', 10))
     chiral = json.loads(request.GET.get('chiral', 'false'))
     precursor_prioritization = request.GET.get(
-        'precursor_prioritization', 'Heuristic')
+        'precursor_prioritization', 'RelevanceHeuristic')
     template_prioritization = request.GET.get(
         'template_prioritization', 'Relevance')
     template_count = int(request.GET.get('template_count', '100'))

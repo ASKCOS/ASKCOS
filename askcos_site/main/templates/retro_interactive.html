@@ -283,10 +283,11 @@ $(document).ready(function() {
         <option value="Relevance" {% if template_prioritization == 'Relevance' %}selected{% endif %}>Relevant templates</option>
     </select>
 </td>
-<td>Precursor scoring: <a href="#" data-toggle="tooltip" title="How would you like precursors to be ranked? This determines the priority of different branches, so it is quite important. If using only relevant templates, we suggest heuristic or natural. If using all templates, we recommend heuristic or SCScore."><span class="glyphicon glyphicon-info-sign"></span></a></td>
+<td>Precursor scoring: <a href="#" data-toggle="tooltip" title="How would you like precursors to be ranked? This determines the priority of different branches, so it is quite important. If using only relevant templates, we suggest heuristic, relevance-heuristic, or natural. If using all templates, we recommend heuristic or SCScore."><span class="glyphicon glyphicon-info-sign"></span></a></td>
     <td>
         <select id="id_precursor_prioritization" name="precursor_prioritization">
             <option value="Heuristic" {% if precursor_prioritization == 'Heuristic' %}selected{% endif %}>Heuristic</option>
+            <option value="RelevanceHeuristic" {% if form.precursor_prioritization == 'RelevanceHeuristic' %}selected{% endif %}>Relevance+Heuristic</option>
             <option value="SCScore" {% if precursor_prioritization == 'SCScore' %}selected{% endif %}>SCScore</option>
             <option value="Natural" {% if precursor_prioritization == 'Natural' %}selected{% endif %}>Natural</option>
         </select>
