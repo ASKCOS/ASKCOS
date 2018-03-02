@@ -24,7 +24,7 @@ class RelevanceHeuristicPrecursorPrioritizer(Prioritizer):
             # If buyable, basically free
             ppg = self.pricer.lookup_smiles(smiles, alreadyCanonical=True)
             if ppg:
-                scores.append(- ppg / 5.0)
+                scores.append(- ppg / 1000.0)
                 continue
 
             # Else, use heuristic
