@@ -726,7 +726,7 @@ class TreeBuilder:
             """
             # Copy list so each new branch has separate list.
 
-            if depth == 0:
+            if depth <= 0:
                 # Not allowing deeper - is this buyable?
                 if chem_id in self.buyable_leaves:
                     yield []  # viable node, calling function doesn't need children
@@ -761,19 +761,19 @@ class TreeBuilder:
             """
             
 
-            # Define generators for each reactant node - decrement the depth!
-            generators = [DLS_chem(chem_id, depth - 1)
-                          for chem_id in self.tree_dict[rxn_id]['rcts']]
+            # # Define generators for each reactant node - decrement the depth!
+            # generators = [DLS_chem(chem_id, depth - 1)
+            #               for chem_id in self.tree_dict[rxn_id]['rcts']]
 
-            # Actually - need to change generators to have the actual lists
-            # otherwise the nested for loops don't work!
-            for i in range(len(generators)):
-                generators[i] = [x for x in generators[i]]
+            # # Actually - need to change generators to have the actual lists
+            # # otherwise the nested for loops don't work!
+            # for i in range(len(generators)):
+            #     generators[i] = [x for x in generators[i]]
 
             # Only one reactant? easy!
-            if len(generators) == 1:
+            if len(self.tree_dict[rxn_id]['rcts']) == 1:
                 chem_id = self.tree_dict[rxn_id]['rcts'][0]
-                for path in generators[0]:
+                for path in DLS_chem(chem_id, depth-1):
                     yield [
                         chem_dict(chem_id, self.tree_dict[chem_id][
                                   'smiles'], self.tree_dict[chem_id]['ppg'], children=path)
@@ -781,11 +781,11 @@ class TreeBuilder:
 
             # Two reactants? want to capture all combinations of each node's
             # options
-            elif len(generators) == 2:
+            elif len(self.tree_dict[rxn_id]['rcts']) == 2:
                 chem_id0 = self.tree_dict[rxn_id]['rcts'][0]
                 chem_id1 = self.tree_dict[rxn_id]['rcts'][1]
-                for path0 in generators[0]:
-                    for path1 in generators[1]:
+                for path0 in DLS_chem(chem_id0, depth-1):
+                    for path1 in DLS_chem(chem_id1, depth-1):
                         yield [
                             chem_dict(chem_id0, self.tree_dict[chem_id0][
                                       'smiles'], self.tree_dict[chem_id0]['ppg'], children=path0),
@@ -794,13 +794,13 @@ class TreeBuilder:
                         ]
 
             # Three reactants? This is not elegant...
-            elif len(generators) == 3:
+            elif len(self.tree_dict[rxn_id]['rcts']) == 3:
                 chem_id0 = self.tree_dict[rxn_id]['rcts'][0]
                 chem_id1 = self.tree_dict[rxn_id]['rcts'][1]
                 chem_id2 = self.tree_dict[rxn_id]['rcts'][2]
-                for path0 in generators[0]:
-                    for path1 in generators[1]:
-                        for path2 in generators[2]:
+                for path0 in DLS_chem(chem_id0, depth-1):
+                    for path1 in DLS_chem(chem_id1, depth-1):
+                        for path2 in DLS_chem(chem_id2, depth-1):
                             yield [
                                 chem_dict(chem_id0, self.tree_dict[chem_id0][
                                           'smiles'], self.tree_dict[chem_id0]['ppg'], children=path0),
@@ -811,15 +811,15 @@ class TreeBuilder:
                             ]
 
             # I am ashamed
-            elif len(generators) == 4:
+            elif len(self.tree_dict[rxn_id]['rcts']) == 4:
                 chem_id0 = self.tree_dict[rxn_id]['rcts'][0]
                 chem_id1 = self.tree_dict[rxn_id]['rcts'][1]
                 chem_id2 = self.tree_dict[rxn_id]['rcts'][2]
                 chem_id3 = self.tree_dict[rxn_id]['rcts'][3]
-                for path0 in generators[0]:
-                    for path1 in generators[1]:
-                        for path2 in generators[2]:
-                            for path3 in generators[3]:
+                for path0 in DLS_chem(chem_id0, depth-1):
+                    for path1 in DLS_chem(chem_id1, depth-1):
+                        for path2 in DLS_chem(chem_id2, depth-1):
+                            for path3 in DLS_chem(chem_id3, depth-1):
                                 yield [
                                     chem_dict(chem_id0, self.tree_dict[chem_id0][
                                               'smiles'], self.tree_dict[chem_id0]['ppg'], children=path0),
