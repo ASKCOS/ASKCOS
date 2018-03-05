@@ -124,6 +124,11 @@ CHEMICALS = {
     'collection': 'chemicals',
     }
 
+CHEMICAL_HISTORY = {
+    'database': database,
+    'collection': 'chemical_history'
+}
+
 BUYABLES = {
     'database': database,
     'collection': 'buyables',

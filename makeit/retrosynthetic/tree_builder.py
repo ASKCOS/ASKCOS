@@ -21,7 +21,8 @@ class TreeBuilder:
 
     def __init__(self, retroTransformer=None, pricer=None, max_branching=20, max_depth=3, expansion_time=240,
                  celery=False, nproc=1, mincount=25, chiral=True, mincount_chiral=10,
-                 template_prioritization=gc.popularity, precursor_prioritization=gc.heuristic):
+                 template_prioritization=gc.popularity, precursor_prioritization=gc.heuristic,
+                 chemhistorian=None):
         """Class for retrosynthetic tree expansion using a depth-first search
 
         Initialization of an object of the TreeBuilder class sets default values
@@ -89,6 +90,12 @@ class TreeBuilder:
         else:
             self.pricer = Pricer()
             self.pricer.load(max_ppg=1e10)
+
+        self.chemhistorian = chemhistorian
+        if self.celery and chemhistorian is None:
+            from makeit.utilities.historian.chemicals import ChemHistorian 
+            self.chemhistorian = ChemHistorian()
+            self.chemhistorian.load_from_file(refs=False, compressed=True)
 
         self.reset()
 
@@ -419,8 +426,6 @@ class TreeBuilder:
 
                 # Save ID
                 chem_ids.append(chem_id)
-                if rxn_id == 16:
-                    print('saved chem_id {} to list of rcts'.format(chem_id))
 
             # Record by overwriting the whole dict value
             rxn['rcts'] = chem_ids
@@ -558,7 +563,8 @@ class TreeBuilder:
     def get_buyable_paths(self, target, max_depth=3, max_branching=25, expansion_time=240, template_prioritization=gc.relevance,
                           precursor_prioritization=gc.heuristic, nproc=1, mincount=25, chiral=True, mincount_chiral=10, max_trees=25, max_ppg=1e10,
                           known_bad_reactions=[], forbidden_molecules=[], template_count=100, precursor_score_mode=gc.max,
-                          max_cum_template_prob=1, max_natom_dict=defaultdict(lambda: 1e9, {'logic': None})):
+                          max_cum_template_prob=1, max_natom_dict=defaultdict(lambda: 1e9, {'logic': None}),
+                          min_chemical_history_dict={'as_reactant':1e9, 'as_product':1e9,'logic':None}):
         """Get viable synthesis trees using an iterative deepening depth-first search
 
         [description]
@@ -619,6 +625,9 @@ class TreeBuilder:
                 refers to how that maximum number of atom information is combined
                 with the requirement that chemicals be cheaper than max_ppg
                 (default: {defaultdict(lambda: 1e9, {'logic': None})})
+            min_chemical_history_dict {dict} -- Dictionary defining a potential
+                chemical stopping criterion based on the number of times a
+                molecule has been seen previously. Always uses logical OR
 
         Returns:
             tree_status -- result of tree_status()
@@ -639,25 +648,20 @@ class TreeBuilder:
         self.max_cum_template_prob = max_cum_template_prob
         self.max_ppg = max_ppg
 
-        MyLogger.print_and_log('Starting to expand {} using max_natom_dict {}'.format(
-            target, max_natom_dict), treebuilder_loc, level=2)
+        MyLogger.print_and_log('Starting to expand {} using max_natom_dict {}, min_history {}'.format(
+            target, max_natom_dict, min_chemical_history_dict), treebuilder_loc, level=1)
+
+        if min_chemical_history_dict['logic'] not in [None, 'none'] and \
+                self.chemhistorian is None:
+            from makeit.utilities.historian.chemicals import ChemHistorian 
+            self.chemhistorian = ChemHistorian()
+            self.chemhistorian.load_from_file(refs=False, compressed=True)
+            MyLogger.print_and_log('Loaded compressed chemhistorian from file', treebuilder_loc, level=1)
 
         # Define stop criterion
-        def is_a_leaf_node(smiles, ppg):
-            """      
-            Arguments:
-                smiles {string} -- SMILES string of a molecule
-                ppg {number} -- Price per gram of a molecule
-            
-            Returns:
-                boolean -- Whether or not this molecule is a valid leaf node
-            """
-            if max_natom_dict['logic'] in [None, 'none']:
-                return ppg and (ppg <= max_ppg)
-            elif max_natom_dict['logic'] == 'or' and ppg and (ppg <= self.max_ppg):
-                return True
-            elif max_natom_dict['logic'] == 'and' and not (ppg and (ppg <= self.max_ppg)):
-                return False
+        def is_buyable(ppg):
+            return ppg and (ppg <= self.max_ppg)
+        def is_small_enough(smiles):
             # Get structural properties
             natom_dict = defaultdict(lambda: 0)
             mol = Chem.MolFromSmiles(smiles)
@@ -669,6 +673,32 @@ class TreeBuilder:
             max_natom_satisfied = all(natom_dict[k] <= v for (
                 k, v) in max_natom_dict.items() if k != 'logic')
             return max_natom_satisfied
+        def is_popular_enough(smiles):
+            hist = self.chemhistorian.lookup_smiles(smiles, alreadyCanonical=True)
+            return hist['as_reactant'] >= min_chemical_history_dict['as_reactant'] or \
+                    hist['as_product'] >= min_chemical_history_dict['as_product']
+        
+        if min_chemical_history_dict['logic'] in [None, 'none']:
+            if max_natom_dict['logic'] in [None, 'none']:
+                def is_a_leaf_node(smiles, ppg):
+                    return is_buyable(ppg)
+            elif max_natom_dict['logic'] == 'or':
+                def is_a_leaf_node(smiles, ppg):
+                    return is_buyable(ppg) or is_small_enough(smiles)
+            else:
+                def is_a_leaf_node(smiles, ppg):
+                    return is_buyable(ppg) and is_small_enough(smiles)
+        else:
+            if max_natom_dict['logic'] in [None, 'none']:
+                def is_a_leaf_node(smiles, ppg):
+                    return is_buyable(ppg) or is_popular_enough(smiles)
+            elif max_natom_dict['logic'] == 'or':
+                def is_a_leaf_node(smiles, ppg):
+                    return is_buyable(ppg) or is_popular_enough(smiles) or is_small_enough(smiles)
+            else:
+                def is_a_leaf_node(smiles, ppg):
+                    return is_popular_enough(smiles) or (is_buyable(ppg) and is_small_enough(smiles))
+            
         self.is_a_leaf_node = is_a_leaf_node
 
         # Override: if relevance method is used, chiral database must be used!
@@ -879,5 +909,6 @@ if __name__ == '__main__':
     # treeBuilder.build_tree('c1ccccc1C(=O)OCCN')
     print treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.popularity,
                                         precursor_prioritization=gc.scscore, nproc=16, expansion_time=60, max_trees=500, max_ppg=10,
-                                        max_branching=25, precursor_score_mode=gc.mean)[0]
+                                        max_branching=25, precursor_score_mode=gc.mean, 
+                                        min_chemical_history_dict={'as_reactant':5, 'as_product':1, 'logic':'or'})[0]
     print 'done'

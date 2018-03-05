@@ -9,7 +9,9 @@ from makeit.utilities.io.logging import MyLogger
 import cPickle as pickle
 from pymongo import MongoClient
 from multiprocessing import Manager
+import time
 import os
+import hashlib
 historian_loc = 'chemhistorian'
 
 
@@ -35,7 +37,8 @@ class ChemHistorian:
         self.REACTION_DB = REACTIONS
 
         self.occurrences = defaultdict(lambda: [0, 0, [], []])
-        self.occurrences_flat = defaultdict(lambda: [0, 0, [], []])
+        self._loaded = False
+        self._compressed = False
 
     def load_databases(self):
         '''
@@ -48,35 +51,92 @@ class ChemHistorian:
         db = db_client[gc.CHEMICALS['database']]
         self.CHEMICAL_DB = db[gc.CHEMICALS['collection']]
 
-    def dump_to_file(self, file_path=gc.historian_data):
+    def dump_to_file(self, file_path=gc.historian_data, refs=False, compressed=False):
         '''
         Write the data from the online datbases to a local file
         '''
-        if not (self.REACTION_DB and self.CHEMICAL_DB):
-            MyLogger.print_and_log(
-                "No database information to output to file.", historian_loc, level=3)
-            return
+
+        if not refs:
+            file_path += '_no_refs'
+            for k in self.occurrences.keys():
+                self.occurrences[k] = tuple(self.occurrences[k][0:2])
+
+        if compressed:
+            file_path += '_compressed'
 
         with open(file_path, 'wb') as file:
             pickle.dump(dict(self.occurrences), file, gc.protocol)
-            pickle.dump(dict(self.occurrences_flat), file, gc.protocol)
         MyLogger.print_and_log(
                 "Saved to {}".format(file_path), historian_loc, level=1)
 
-    def load_from_file(self, file_path=gc.historian_data):
+    def load_from_file(self, file_path=gc.historian_data, refs=False, compressed=False):
         '''
         Load the data for the pricer from a locally stored file instead of from the online database.
         '''
+
+        if not refs:
+            file_path += '_no_refs'
+        if compressed:
+            file_path += '_compressed'
+
         if os.path.isfile(file_path):
             with open(file_path, 'rb') as file:
-                self.occurrences = defaultdict(lambda: [0, 0, [], []], pickle.load(file))
-                self.occurrences_flat = defaultdict(lambda: [0, 0, [], []], pickle.load(file))
+                self.occurrences = pickle.load(file)
+                self._loaded = True
+                if compressed:
+                    self._compressed = True
         else:
-            self.load_databases()
-            self.load(refs=True)
-            self.dump_to_file()
+            raise ValueError('File does not exist!')
 
-    def load(self, online=True, CHEMICAL_DB=None, REACTION_DB=None, refs=False):
+    def upload_to_db(self):
+        db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
+                                'id'], connect=gc.MONGO['connect'])
+        self.CHEMICAL_HISTORY_DB = db_client[gc.CHEMICAL_HISTORY['database']][gc.CHEMICAL_HISTORY['collection']]
+
+        docs = []
+        failed_docs = []
+        ctr = 0
+        for (i, (smi, info)) in tqdm(enumerate(self.occurrences.iteritems())):
+            doc = tup_to_dict(info, refs=True)
+            doc['smiles'] = smi 
+            docs.append(doc)
+            ctr += 1
+            if ctr >= 500:
+                try:
+                    self.CHEMICAL_HISTORY_DB.insert_many(docs, ordered=False)
+                except KeyboardInterrupt:
+                    raise KeyboardInterrupt
+                except Exception as e:
+                    print(e)
+                    time.sleep(5)
+                    for doc in docs:
+                        try:
+                            self.CHEMICAL_HISTORY_DB.insert_one(doc)
+                        except Exception as e:
+                            print('#### {}'.format(e))
+                            print(doc)
+                            failed_docs.append(doc)
+                docs = []
+                ctr = 0
+        try:
+            self.CHEMICAL_HISTORY_DB.insert_many(docs)
+        except Exception as e:
+                    print(e)
+                    for doc in docs:
+                        try:
+                            self.CHEMICAL_HISTORY_DB.insert_one(doc)
+                        except Exception as e:
+                            print('## {}'.format(e))
+                            failed_docs.append(doc)
+
+        with open('failed_docs.pickle', 'wb') as fid:
+            pickle.dump(failed_docs, fid, -1)
+        # Note: going back, failed insertions were due to duplicatekeyerrors
+        # (i.e., should not have been an error) or one SMILES "Cl" had too many
+        # references and exceeded the maximum document size. Manually truncating
+        # the reference list solved that problem
+
+    def load(self, online=True, CHEMICAL_DB=None, REACTION_DB=None, refs=True):
         '''
         Loads the object from a MongoDB collection
         '''
@@ -86,7 +146,6 @@ class ChemHistorian:
         # Save collection source use online option to load either from local
         # file or from online database.
         self.occurrences = defaultdict(lambda: [0, 0, [], []])
-        self.occurrences_flat = defaultdict(lambda: [0, 0, [], []])
 
         if self.REACTION_DB and self.CHEMICAL_DB:
             pass
@@ -100,16 +159,14 @@ class ChemHistorian:
             self.REACTION_DB = REACTION_DB
 
         # First get xrn to smiles dict
-        xrn_to_smiles = {}
-        xrn_to_smiles_flat = {}
+        xrn_to_smiles = defaultdict(lambda: [])
         for chem_doc in tqdm(self.CHEMICAL_DB.find({'SMILES': {'$ne': ''}},
                                                    ['_id', 'SMILES'], no_cursor_timeout=True)):
             m = Chem.MolFromSmiles(str(chem_doc['SMILES']))
             if not m:
                 continue
             try:
-                xrn_to_smiles[chem_doc['_id']] = Chem.MolToSmiles(m, True)
-                xrn_to_smiles_flat[chem_doc['_id']] = Chem.MolToSmiles(m, False)
+                xrn_to_smiles[chem_doc['_id']] = set(Chem.MolToSmiles(m, True).split('.'))
             except Exception as e:
                 continue
 
@@ -120,38 +177,29 @@ class ChemHistorian:
         for reaction_doc in tqdm(self.REACTION_DB.find({}, ['_id', 'RX_PXRN', 'RX_RXRN', 'RX_NVAR'],
                                                        no_cursor_timeout=True)):
             for reactant_xrn in reaction_doc['RX_RXRN']:
-                if reactant_xrn in xrn_to_smiles:
-                    self.occurrences[xrn_to_smiles[reactant_xrn]][0] += reaction_doc['RX_NVAR']
-                    self.occurrences[xrn_to_smiles[reactant_xrn]][2].append(reaction_doc['_id'])
-                if reactant_xrn in xrn_to_smiles_flat:
-                    self.occurrences_flat[
-                        xrn_to_smiles_flat[reactant_xrn]][0] += reaction_doc['RX_NVAR']
-                    self.occurrences_flat[xrn_to_smiles_flat[reactant_xrn]][2].append(reaction_doc['_id'])
+                for smi in xrn_to_smiles[reactant_xrn]:
+                    self.occurrences[smi][0] += reaction_doc['RX_NVAR']
+                    if refs:
+                        self.occurrences[smi][2].append(reaction_doc['_id'])
 
             for product_xrn in reaction_doc['RX_PXRN']:
-                if product_xrn in xrn_to_smiles:
-                    self.occurrences[xrn_to_smiles[product_xrn]][1] += reaction_doc['RX_NVAR']
-                    self.occurrences[xrn_to_smiles[product_xrn]][3].append(reaction_doc['_id'])
-                if product_xrn in xrn_to_smiles_flat:
-                    self.occurrences_flat[
-                        xrn_to_smiles_flat[product_xrn]][1] += reaction_doc['RX_NVAR']
-                    self.occurrences_flat[xrn_to_smiles_flat[product_xrn]][3].append(reaction_doc['_id'])
+                for smi in xrn_to_smiles[product_xrn]:
+                    self.occurrences[smi][1] += reaction_doc['RX_NVAR']
+                    if refs:
+                        self.occurrences[smi][3].append(reaction_doc['_id'])
 
+        self._loaded = True
         MyLogger.print_and_log('Historian is fully loaded.', historian_loc)
 
     def lookup_smiles(self, smiles, alreadyCanonical=False, isomericSmiles=True, refs=False):
         '''
         Looks up a price by SMILES. Tries it as-entered and then 
-        re-canonicalizes it in RDKit unl ess the user specifies that
+        re-canonicalizes it in RDKit unless the user specifies that
         the string is definitely already canonical.
         '''
-        info = self.occurrences_flat[smiles]
-        if info != [0, 0, [], []]:
-            return tup_to_dict(info, refs=refs)
 
-        info = self.occurrences[smiles]
-        if info != [0, 0, [], []]:
-            return tup_to_dict(info, refs=refs)
+        if not isomericSmiles:
+            raise ValueError('Not intended to be used for non-isomeric!')
 
         if not alreadyCanonical:
             mol = Chem.MolFromSmiles(smiles)
@@ -159,20 +207,52 @@ class ChemHistorian:
                 return 0.
             smiles = Chem.MolToSmiles(mol, isomericSmiles=isomericSmiles)
 
-            info = self.occurrences_flat[smiles]
-            if info != [0, 0, [], []]:
-                return tup_to_dict(info, refs=refs)
-
-            info = self.occurrences[smiles]
-            if info != [0, 0, [], []]:
-                return tup_to_dict(info, refs=refs)
+        try:
+            if self._compressed:
+                info = self.occurrences[int(hashlib.md5(smiles).hexdigest(), 16)]
+            else:
+                info = self.occurrences[smiles]
+        except KeyError:
+            info = [0, 0, [], []]
 
         return tup_to_dict(info, refs=refs)
 
+    def compress_keys(self):
+        '''Convert keys to hashed values to save space'''
+        new_occurrences = {}
+        for k in self.occurrences.keys():
+            k_compressed = int(hashlib.md5(k).hexdigest(), 16)
+            new_occurrences[k_compressed] = self.occurrences[k]
+        del self.occurrences
+        self.occurrences = new_occurrences
+        self._compressed = True
+
 
 if __name__ == '__main__':
+    import time
+    time.sleep(1)
+
     # Load and dump chemhistorian
     chemhistorian = ChemHistorian()
-    chemhistorian.load_from_file()
+    # print('loading refs')
+    # chemhistorian.load_from_file(refs=True)
+    # # print('uploading to db')
+    # # chemhistorian.upload_to_db()
+    # print('dumping counts only')
+    # chemhistorian.dump_to_file(refs=False)
 
+
+    #### Compress keys
+    # print('loading no refs')
+    # chemhistorian.load_from_file(refs=False)
+    # print('compressing')
+    # chemhistorian.compress_keys()
+    # print('dumping compressed')
+    # chemhistorian.dump_to_file(refs=False, compressed=True)
+
+
+    print('loading no refs, compressed')
+    chemhistorian.load_from_file(refs=False, compressed=True)
     print(chemhistorian.lookup_smiles('CCCCO'))
+
+    time.sleep(10)
