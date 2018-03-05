@@ -10,7 +10,11 @@
         <span class="hidechem" targetid="{{ target.id }}"><span class="pseudolink" style="float:right; font-size:smaller">hide all</span></span><span class="blacklistchem pseudolink" style="padding-right:5px; float:right; font-size:smaller" smiles="{{ target.smiles }}">blacklist</span></span><br>
 		<font class="smiles">{{ target.smiles }}</font>
         {% if target.score %}<br>score: {{ target.score }}{% endif %}
-		{% if target.ppg %}<br>${{ target.ppg }}/g{% endif %}
+		
+        <br><br>{% if target.as_reactant %}{{ target.as_reactant }} precedents as reactant{% else %}<i>no precedent as reactant</i>{% endif %}
+        <br>{% if target.as_product %}{{ target.as_product }} precedents as product{% else %}<i>no precedent as product</i>{% endif %}
+        <br><br>{% if target.ppg %}${{ target.ppg }}/g{% else %}<i>not buyable</i>{% endif %}
+
 	</center>
 </div>
 </a>
