@@ -92,7 +92,7 @@ class TreeBuilder:
             self.pricer.load(max_ppg=1e10)
 
         self.chemhistorian = chemhistorian
-        if self.celery and chemhistorian is None:
+        if chemhistorian is None:
             from makeit.utilities.historian.chemicals import ChemHistorian 
             self.chemhistorian = ChemHistorian()
             self.chemhistorian.load_from_file(refs=False, compressed=True)
@@ -388,18 +388,21 @@ class TreeBuilder:
 
                     # Check if buyable
                     ppg = self.pricer.lookup_smiles(mol, alreadyCanonical=True)
+                    hist = self.chemhistorian.lookup_smiles(smiles, alreadyCanonical=True)
 
                     self.tree_dict[chem_id] = {
                         'smiles': mol,
                         'prod_of': [],
                         'rct_of': [rxn_id],
                         'depth': parent_chem_doc['depth'] + 1,
-                        'ppg': ppg
+                        'ppg': ppg,
+                        'as_reactant': hist['as_reactant'],
+                        'as_product': hist['as_product'],
                     }
                     self.chem_to_id[mol] = chem_id
 
                     # Check stop criterion
-                    if self.is_a_leaf_node(mol, ppg):
+                    if self.is_a_leaf_node(mol, ppg, hist):
                         #print('{} buyable!'.format(mol))
                         if self.celery:
                             self.buyable_leaves.add(chem_id)
@@ -512,15 +515,18 @@ class TreeBuilder:
         self.running = True
         with allow_join_result():
             try:
+                hist = self.chemhistorian.lookup_smiles(target)
                 self.tree_dict[1] = {
                     'smiles': target,
                     'prod_of': [],
                     'rct_of': [],
                     'depth': 0,
                     'ppg': self.pricer.lookup_smiles(target),
+                    'as_reactant': hist['as_reactant'],
+                    'as_product': hist['as_product'],
                 }
 
-                if self.is_a_leaf_node(target, self.tree_dict[1]['ppg']):
+                if self.is_a_leaf_node(target, self.tree_dict[1]['ppg'], hist):
                     if self.celery:
                         self.buyable_leaves.add(1)
                     else:
@@ -673,31 +679,30 @@ class TreeBuilder:
             max_natom_satisfied = all(natom_dict[k] <= v for (
                 k, v) in max_natom_dict.items() if k != 'logic')
             return max_natom_satisfied
-        def is_popular_enough(smiles):
-            hist = self.chemhistorian.lookup_smiles(smiles, alreadyCanonical=True)
+        def is_popular_enough(hist):
             return hist['as_reactant'] >= min_chemical_history_dict['as_reactant'] or \
                     hist['as_product'] >= min_chemical_history_dict['as_product']
         
         if min_chemical_history_dict['logic'] in [None, 'none']:
             if max_natom_dict['logic'] in [None, 'none']:
-                def is_a_leaf_node(smiles, ppg):
+                def is_a_leaf_node(smiles, ppg, hist):
                     return is_buyable(ppg)
             elif max_natom_dict['logic'] == 'or':
-                def is_a_leaf_node(smiles, ppg):
+                def is_a_leaf_node(smiles, ppg, hist):
                     return is_buyable(ppg) or is_small_enough(smiles)
             else:
-                def is_a_leaf_node(smiles, ppg):
+                def is_a_leaf_node(smiles, ppg, hist):
                     return is_buyable(ppg) and is_small_enough(smiles)
         else:
             if max_natom_dict['logic'] in [None, 'none']:
-                def is_a_leaf_node(smiles, ppg):
-                    return is_buyable(ppg) or is_popular_enough(smiles)
+                def is_a_leaf_node(smiles, ppg, hist):
+                    return is_buyable(ppg) or is_popular_enough(hist)
             elif max_natom_dict['logic'] == 'or':
-                def is_a_leaf_node(smiles, ppg):
-                    return is_buyable(ppg) or is_popular_enough(smiles) or is_small_enough(smiles)
+                def is_a_leaf_node(smiles, ppg, hist):
+                    return is_buyable(ppg) or is_popular_enough(hist) or is_small_enough(smiles)
             else:
-                def is_a_leaf_node(smiles, ppg):
-                    return is_popular_enough(smiles) or (is_buyable(ppg) and is_small_enough(smiles))
+                def is_a_leaf_node(smiles, ppg, hist):
+                    return is_popular_enough(hist) or (is_buyable(ppg) and is_small_enough(smiles))
             
         self.is_a_leaf_node = is_a_leaf_node
 
@@ -737,7 +742,7 @@ class TreeBuilder:
             """
             for depth in range(self.max_depth+1):
                 for path in DLS_chem(1, depth, headNode=True):
-                    yield chem_dict(1, self.tree_dict[1]['smiles'], self.tree_dict[1]['ppg'], children=path)
+                    yield chem_dict(1, children=path, **self.tree_dict[1])
 
         def DLS_chem(chem_id, depth, headNode=False):
             """Expand at a fixed depth for the current node chem_id.
@@ -767,16 +772,10 @@ class TreeBuilder:
                 else:
                     # Try going deeper via DLS_rxn function
                     for rxn_id in self.tree_dict[chem_id]['prod_of']:
-                        rxn_info_string = ''
+                        rxn_smiles = '.'.join(sorted([self.tree_dict[x]['smiles'] for x in self.tree_dict[
+                                            rxn_id]['rcts']])) + '>>' + self.tree_dict[chem_id]['smiles']
                         for path in DLS_rxn(rxn_id, depth):
-                            yield [rxn_dict(rxn_id, rxn_info_string, necessary_reagent=self.tree_dict[rxn_id]['necessary_reagent'],
-                                            num_examples=self.tree_dict[rxn_id][
-                                                'num_examples'], children=path,
-                                            template_score=float(self.tree_dict[rxn_id][
-                                                                 'template_score']),
-                                            smiles='.'.join(sorted([self.tree_dict[x]['smiles'] for x in self.tree_dict[
-                                                            rxn_id]['rcts']])) + '>>' + self.tree_dict[chem_id]['smiles'],
-                                            tforms=self.tree_dict[rxn_id]['tforms'])]
+                            yield [rxn_dict(rxn_id, rxn_smiles, children=path, **self.tree_dict[rxn_id])]
 
         def DLS_rxn(rxn_id, depth):
             """Return children paths starting from a specific rxn_id
@@ -805,8 +804,7 @@ class TreeBuilder:
                 chem_id = self.tree_dict[rxn_id]['rcts'][0]
                 for path in DLS_chem(chem_id, depth-1):
                     yield [
-                        chem_dict(chem_id, self.tree_dict[chem_id][
-                                  'smiles'], self.tree_dict[chem_id]['ppg'], children=path)
+                        chem_dict(chem_id, children=path, **self.tree_dict[chem_id])
                     ]
 
             # Two reactants? want to capture all combinations of each node's
@@ -817,10 +815,8 @@ class TreeBuilder:
                 for path0 in DLS_chem(chem_id0, depth-1):
                     for path1 in DLS_chem(chem_id1, depth-1):
                         yield [
-                            chem_dict(chem_id0, self.tree_dict[chem_id0][
-                                      'smiles'], self.tree_dict[chem_id0]['ppg'], children=path0),
-                            chem_dict(chem_id1, self.tree_dict[chem_id1][
-                                      'smiles'], self.tree_dict[chem_id1]['ppg'], children=path1)
+                            chem_dict(chem_id0, children=path0, **self.tree_dict[chem_id0]),
+                            chem_dict(chem_id1, children=path1, **self.tree_dict[chem_id1]),
                         ]
 
             # Three reactants? This is not elegant...
@@ -832,12 +828,9 @@ class TreeBuilder:
                     for path1 in DLS_chem(chem_id1, depth-1):
                         for path2 in DLS_chem(chem_id2, depth-1):
                             yield [
-                                chem_dict(chem_id0, self.tree_dict[chem_id0][
-                                          'smiles'], self.tree_dict[chem_id0]['ppg'], children=path0),
-                                chem_dict(chem_id1, self.tree_dict[chem_id1][
-                                          'smiles'], self.tree_dict[chem_id1]['ppg'], children=path1),
-                                chem_dict(chem_id2, self.tree_dict[chem_id2][
-                                          'smiles'], self.tree_dict[chem_id2]['ppg'], children=path2),
+                                chem_dict(chem_id0, children=path0, **self.tree_dict[chem_id0]),
+                                chem_dict(chem_id1, children=path1, **self.tree_dict[chem_id1]),
+                                chem_dict(chem_id2, children=path2, **self.tree_dict[chem_id2]),
                             ]
 
             # I am ashamed
@@ -851,14 +844,10 @@ class TreeBuilder:
                         for path2 in DLS_chem(chem_id2, depth-1):
                             for path3 in DLS_chem(chem_id3, depth-1):
                                 yield [
-                                    chem_dict(chem_id0, self.tree_dict[chem_id0][
-                                              'smiles'], self.tree_dict[chem_id0]['ppg'], children=path0),
-                                    chem_dict(chem_id1, self.tree_dict[chem_id1][
-                                              'smiles'], self.tree_dict[chem_id1]['ppg'], children=path1),
-                                    chem_dict(chem_id2, self.tree_dict[chem_id2][
-                                              'smiles'], self.tree_dict[chem_id2]['ppg'], children=path2),
-                                    chem_dict(chem_id3, self.tree_dict[chem_id3][
-                                              'smiles'], self.tree_dict[chem_id3]['ppg'], children=path3)
+                                    chem_dict(chem_id0, children=path0, **self.tree_dict[chem_id0]),
+                                    chem_dict(chem_id1, children=path1, **self.tree_dict[chem_id1]),
+                                    chem_dict(chem_id2, children=path2, **self.tree_dict[chem_id2]),
+                                    chem_dict(chem_id3, children=path3, **self.tree_dict[chem_id3]),
                                 ]
 
             else:
@@ -907,8 +896,10 @@ if __name__ == '__main__':
 
     treeBuilder = TreeBuilder(celery=celery, mincount=250, mincount_chiral=100)
     # treeBuilder.build_tree('c1ccccc1C(=O)OCCN')
-    print treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.popularity,
+    status, paths = treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.popularity,
                                         precursor_prioritization=gc.scscore, nproc=16, expansion_time=60, max_trees=500, max_ppg=10,
                                         max_branching=25, precursor_score_mode=gc.mean, 
-                                        min_chemical_history_dict={'as_reactant':5, 'as_product':1, 'logic':'or'})[0]
+                                        min_chemical_history_dict={'as_reactant':5, 'as_product':1, 'logic':'or'})
     print 'done'
+    print(status)
+    print(paths[0])
