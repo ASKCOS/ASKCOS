@@ -388,7 +388,7 @@ class TreeBuilder:
 
                     # Check if buyable
                     ppg = self.pricer.lookup_smiles(mol, alreadyCanonical=True)
-                    hist = self.chemhistorian.lookup_smiles(smiles, alreadyCanonical=True)
+                    hist = self.chemhistorian.lookup_smiles(mol, alreadyCanonical=True)
 
                     self.tree_dict[chem_id] = {
                         'smiles': mol,
@@ -899,8 +899,9 @@ if __name__ == '__main__':
     status, paths = treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.popularity,
                                         precursor_prioritization=gc.scscore, nproc=16, expansion_time=60, max_trees=500, max_ppg=10,
                                         max_branching=25, precursor_score_mode=gc.mean, 
-                                        min_chemical_history_dict={'as_reactant':5, 'as_product':1, 'logic':'or'})
+                                        min_chemical_history_dict={'as_reactant':5, 'as_product':1, 'logic':'none'})
     print 'done'
     print(status)
     print(paths[0])
     print(paths[1])
+    print(paths[2])
