@@ -230,6 +230,9 @@ def ajax_start_retro_celery(request):
     max_chemprop_n = int(request.GET.get('max_chemprop_n', '0'))
     max_chemprop_o = int(request.GET.get('max_chemprop_o', '0'))
     max_chemprop_h = int(request.GET.get('max_chemprop_h', '0'))
+    chemical_popularity_logic = str(request.GET.get('chemical_popularity_logic', 'none'))
+    min_chempop_reactants = int(request.GET.get('min_chempop_reactants', 5))
+    min_chempop_products = int(request.GET.get('min_chempop_products', 5))
 
     blacklisted_reactions = list(set(
         [x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))
@@ -247,9 +250,15 @@ def ajax_start_retro_celery(request):
         'O': max_chemprop_o,
         'H': max_chemprop_h,
     })
+    min_chemical_history_dict = {
+        'logic': chemical_popularity_logic,
+        'as_reactant': min_chempop_reactants,
+        'as_product': min_chempop_products,
+    }
     print('Tree building {} for user {} ({} forbidden reactions)'.format(
         smiles, request.user, len(blacklisted_reactions)))
     print('Using chemical property logic: {}'.format(max_natom_dict))
+    print('Using chemical popularity logic: {}'.format(min_chemical_history_dict))
 
     res = get_buyable_paths.delay(smiles, template_prioritization, precursor_prioritization,
                                   mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth,
@@ -257,7 +266,7 @@ def ajax_start_retro_celery(request):
                                   chiral=chiral, known_bad_reactions=blacklisted_reactions,
                                   forbidden_molecules=forbidden_molecules,
                                   max_cum_template_prob=max_cum_prob, template_count=template_count,
-                                  max_natom_dict=max_natom_dict)
+                                  max_natom_dict=max_natom_dict, min_chemical_history_dict=min_chemical_history_dict)
     (tree_status, trees) = res.get(expansion_time * 3)
     
     # print(trees)
