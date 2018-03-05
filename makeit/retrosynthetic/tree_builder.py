@@ -403,7 +403,7 @@ class TreeBuilder:
 
                     # Check stop criterion
                     if self.is_a_leaf_node(mol, ppg, hist):
-                        #print('{} buyable!'.format(mol))
+                        # print('{} is a leaf!'.format(mol))
                         if self.celery:
                             self.buyable_leaves.add(chem_id)
                         else:
@@ -903,3 +903,4 @@ if __name__ == '__main__':
     print 'done'
     print(status)
     print(paths[0])
+    print(paths[1])
