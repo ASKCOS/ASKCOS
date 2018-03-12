@@ -56,15 +56,19 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
     template_prioritizer = keyword for which prioritization method for the templates should be used, keywords can be found in global_config
     precursor_prioritizer = keyword for which prioritization method for the precursors should be used.'''
 
-    print('Treebuilder worker was asked to expand {} (mincount {}, branching {}) using {} and {}'.format(
-        smiles, mincount, max_branching, template_prioritizer, precursor_prioritizer
-    ))
+
+    #print('Treebuilder worker was asked to expand {} (mincount {}, branching {}) using {} and {}'.format(
+    #    smiles, mincount, max_branching, template_prioritizer, precursor_prioritizer
+    #))
+
 
     global retroTransformer
     result = retroTransformer.get_outcomes(
         smiles, mincount, (precursor_prioritizer, template_prioritizer), template_count = template_count, mode=mode,
         max_cum_prob=max_cum_prob)
-    print(result)
+
+    #print(result)
+
     precursors = result.return_top(n=max_branching)
     return (smiles, precursors)
 
