@@ -17,7 +17,7 @@ def setup_parser():
     tree_scoring_method = gc.forwardonly
     context_prioritization = gc.probability
     template_prioritization = gc.relevance
-    precursor_prioritization = gc.heuristic
+    precursor_prioritization = gc.relevanceheuristic
     retro_mincount = 25
     retro_mincount_chiral = 10
     synth_mincount = 25
@@ -28,12 +28,12 @@ def setup_parser():
     max_ppg = 100
     min_trees_success = 5
     precursor_score_mode = gc.max
-    max_cum_template_prob = 0.995 
+    max_cum_template_prob = 0.999
     output_dir = 'output'
     chiral = True
     nproc = 2
     celery = False
-    template_count = 100
+    template_count = 1000
     parallel_tree = False
 
     # Set all arguments

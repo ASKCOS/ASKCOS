@@ -1,3 +1,4 @@
+from __future__ import print_function 
 import os
 import time
 import makeit.global_config as gc
@@ -133,7 +134,7 @@ class MAKEIT:
                                                            nproc=nproc, parallel=self.parallel_tree, template_count = self.template_count,
                                                            )
         plausible_trees = []
-        print evaluated_trees
+        print(evaluated_trees)
         for tree in evaluated_trees:
             if tree['plausible']:
                 plausible_trees.append(tree)
@@ -148,21 +149,18 @@ class MAKEIT:
         return plausible_trees
 
 
-def print_at_depth(chemical_node, depth=1):
-    MyLogger.print_and_log('{}(${}/g) {}'.format(depth*4*' ',
-                                                 chemical_node['ppg'], chemical_node['smiles']), makeit_loc)
+def print_at_depth(chemical_node, depth=1, writefunc=lambda x: print(x), delim=' ', img=False):
+    writefunc('{}(${}/g) {}'.format(depth*4*delim, chemical_node['ppg'], chemical_node['smiles']))
     if chemical_node['children']:
         rxn = chemical_node['children'][0]
-        MyLogger.print_and_log('{}smiles : {}'.format(
-            (depth*4+4)*' ', rxn['smiles']), makeit_loc)
-        MyLogger.print_and_log('{}num ex : {}'.format(
-            (depth*4+4)*' ', rxn['num_examples']), makeit_loc)
-        MyLogger.print_and_log('{}context: {}'.format(
-            (depth*4+4)*' ', rxn['context']), makeit_loc)
-        MyLogger.print_and_log('{}score  : {}'.format(
-            (depth*4+4)*' ', rxn['forward_score']), makeit_loc)
+        if img:
+            writefunc('{}<img src="http://askcos.mit.edu/draw/reaction/{}">'.format((depth*4+4)*delim, rxn['smiles']))
+        writefunc('{}smiles : {}'.format((depth*4+4)*delim, rxn['smiles']))
+        writefunc('{}num ex : {}'.format((depth*4+4)*delim, rxn['num_examples']))
+        writefunc('{}context: {}'.format((depth*4+4)*delim, rxn['context']))
+        writefunc('{}score  : {}'.format((depth*4+4)*delim, rxn['forward_score']))
         for child_node in rxn['children']:
-            print_at_depth(child_node, depth=depth+1)
+            print_at_depth(child_node, depth=depth+1, writefunc=writefunc, delim=delim, img=img)
 
 
 def find_synthesis():
@@ -184,11 +182,25 @@ def find_synthesis():
     MyLogger.print_and_log('MAKEIT found {} tree(s) that are(is) likely to result in a successful synthesis.'.format(
         len(feasible_trees)), makeit_loc)
 
+
+    writefunc = lambda string: MyLogger.print_and_log(string, makeit_loc)
     for i, feasible_tree in enumerate(sorted(feasible_trees, key=lambda x: x['score'], reverse=True)):
         MyLogger.print_and_log('', makeit_loc)
         MyLogger.print_and_log('Feasible tree {}, plausible = {}, overall score = {}'.format(i+1,
                 feasible_tree['plausible'], feasible_tree['score']), makeit_loc)
-        print_at_depth(feasible_tree['tree'])
+        print_at_depth(feasible_tree['tree'], writefunc=writefunc)
+    
+    with open(os.path.join(makeit.ROOT, '{}_trees.html'.format(makeit.case_dir)), 'w') as fid:
+        writefunc = lambda string: fid.write('{}<br>\n'.format(string))
+        fid.write('<html><title>Results for {}</title>\n'.format(args.TARGET))
+        fid.write('<body>\n')
+        fid.write('<h1>{}</h1><br>\n'.format(args.TARGET))
+        fid.write('<i><b>Settings: </b>{}</i><br>\n'.format(args.__dict__))
+        for i, feasible_tree in enumerate(sorted(feasible_trees, key=lambda x: x['score'], reverse=True)):
+            writefunc('<h3>Feasible tree {}, plausible = {}, overall score = {}</h3><br>'.format(i+1,
+                feasible_tree['plausible'], feasible_tree['score']))
+            print_at_depth(feasible_tree['tree'], writefunc=writefunc, delim='&nbsp;', img=True)
+        fid.write('</body>\n')
 
 if __name__ == '__main__':
     find_synthesis()
