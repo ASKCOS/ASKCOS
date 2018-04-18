@@ -25,7 +25,7 @@ class MAKEIT:
                  synth_mincount, rank_threshold_inclusion, prob_threshold_inclusion, max_total_contexts, template_count,
                  max_ppg, output_dir, chiral, nproc, celery, context_recommender, forward_scoring_method,
                  tree_scoring_method, context_prioritization, template_prioritization, precursor_prioritization, 
-                 parallel_tree, precursor_score_mode, max_cum_template_prob):
+                 parallel_tree, precursor_score_mode, max_cum_template_prob, apply_fast_filter, filter_threshold):
 
         self.TARGET = TARGET
         self.expansion_time = expansion_time
@@ -58,7 +58,9 @@ class MAKEIT:
         self.known_bad_reactions = []
         self.template_count = template_count
         self.parallel_tree = parallel_tree
-        
+        self.apply_fast_filter = apply_fast_filter
+        self.filter_threshold = filter_threshold
+
     def construct_buyable_trees(self):
 
         if self.celery:  # Call celery worker
@@ -86,7 +88,8 @@ class MAKEIT:
                                                           mincount=self.retro_mincount, chiral=self.chiral, max_trees=self.max_trees,
                                                           known_bad_reactions=self.known_bad_reactions, expansion_time=self.expansion_time,
                                                           template_count = self.template_count, precursor_score_mode=self.precursor_score_mode,
-                                                          max_cum_template_prob = self.max_cum_template_prob)
+                                                          max_cum_template_prob = self.max_cum_template_prob,apply_fast_filter= self.apply_fast_filter,
+                                                          filter_threshold=self.filter_threshold)
 
         return buyable_trees
 
@@ -174,7 +177,7 @@ def find_synthesis():
                     args.output, args.chiral, args.nproc, args.celery, args.context_recommender,
                     args.forward_scoring, args.tree_scoring, args.context_prioritization,
                     args.template_prioritization, args.precursor_prioritization, args.parallel_tree,
-                    args.precursor_score_mode, args.max_cum_template_prob)
+                    args.precursor_score_mode, args.max_cum_template_prob, args.apply_fast_filter, args.filter_threshold)
     MyLogger.initialize_logFile(makeit.ROOT, makeit.case_dir)
 
     tree_status, trees = makeit.construct_buyable_trees()

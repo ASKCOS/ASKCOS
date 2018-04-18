@@ -35,6 +35,8 @@ def setup_parser():
     celery = False
     template_count = 10000
     parallel_tree = False
+    apply_fast_filter = False
+    filter_threshold = 0.8
 
     # Set all arguments
     parser.add_argument('--TARGET', type=str,
@@ -93,6 +95,11 @@ def setup_parser():
                         help='Specify how the score of a list of precursors should be determined when using synthetic complexity. Default is {}.'.format(precursor_score_mode))
     parser.add_argument('--max_cum_template_prob', type=float, default = max_cum_template_prob,
                         help='Specify the cumulative template probability cut-off. Default is {}'.format(max_cum_template_prob))
+    parser.add_argument('--apply_fast_filter', type=bool, default = apply_fast_filter,
+                        help='Whether apply fastfilter to tree expansion or not. Default is {}'.format(apply_fast_filter))
+    parser.add_argument('--filter_threshold', type=float, default = filter_threshold,
+                        help='Specify the threshold for the fastfilter to discard child nodes. Default is {}'.format(filter_threshold))
+    
     return parser
 
 

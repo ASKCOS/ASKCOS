@@ -20,6 +20,7 @@ from makeit.prioritization.precursors.scscore import SCScorePrecursorPrioritizer
 from makeit.prioritization.templates.popularity import PopularityTemplatePrioritizer
 from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
 from makeit.prioritization.default import DefaultPrioritizer
+from makeit.synthetic.evaluation.Fast_filter import FastFilterScorer
 from rdchiral.main import rdchiralRun
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 retro_transformer_loc = 'retro_transformer'
@@ -53,7 +54,7 @@ class RetroTransformer(TemplateTransformer):
         self.template_prioritizers = {}
         self.precursor_prioritizer = None
         self.template_prioritizer = None
-
+        self.fast_filter = None
         super(RetroTransformer, self).__init__()
 
     def load(self, TEMPLATE_DB=None, chiral=False, lowe=False, refs=False, rxns=True, efgs=False, rxn_ex=False):
@@ -71,12 +72,16 @@ class RetroTransformer(TemplateTransformer):
             self.num_templates), retro_transformer_loc)
 
     def get_outcomes(self, smiles, mincount, prioritizers, start_at=-1, end_at=-1,
-                     singleonly=False, stop_if=False, **kwargs):
+                     singleonly=False, stop_if=False, apply_fast_filter=False, filter_threshold = 0.5, **kwargs):
         '''
         Performs a one-step retrosynthesis given a SMILES string of a
         target molecule by applying each transformation template
         sequentially.
         '''
+        if (apply_fast_filter and not self.fast_filter):
+            self.fast_filter = FastFilterScorer()
+            self.fast_filter.load(model_path ="/home/hanyug/Make-It/makeit/rxn_bin_class_NN/my_model.h5")
+            # print('loaded fastfilter')
         (precursor_prioritizer, template_prioritizer) = prioritizers
         # Check modules:
         if not (template_prioritizer and precursor_prioritizer):
@@ -96,8 +101,18 @@ class RetroTransformer(TemplateTransformer):
 
         for template in self.top_templates(smiles, **kwargs):
             for precursor in self.apply_one_template(mol, smiles, template, singleonly=singleonly, stop_if=stop_if):
-                result.add_precursor(precursor, self.precursor_prioritizer, **kwargs)
 
+                ##########
+            #maybe add forwrad evaluation here
+            #should be a forward scorers
+                if apply_fast_filter:
+                    reactant_smiles = '.'.join(precursor.smiles_list)
+                    filter_flag = self.fast_filter.filter_with_threshold(reactant_smiles, smiles, filter_threshold)
+                    if filter_flag:
+                        result.add_precursor(precursor, self.precursor_prioritizer, **kwargs)
+                else:
+                    result.add_precursor(precursor, self.precursor_prioritizer, **kwargs)
+                
         return result
 
     def apply_one_template(self, react_mol, smiles, template, singleonly=False, stop_if=False):
@@ -181,5 +196,5 @@ if __name__ == '__main__':
     t = RetroTransformer(mincount=25, mincount_chiral=10,
                          TEMPLATE_DB=TEMPLATE_DB)
     t.load(chiral=True)
-    print(t.get_outcomes('C1C(=O)OCC12CC(C)CC2', 100,
-                         (gc.heuristic, gc.relevance), max_cum_prob = 0.5).precursors)
+    print([precursor.smiles_list for precursor in t.get_outcomes('C1C(=O)OCC12CC(C)CC2', 100,
+                         (gc.heuristic, gc.relevance), max_cum_prob = 0.5, apply_fast_filter=True, filter_threshold =0.95).precursors])

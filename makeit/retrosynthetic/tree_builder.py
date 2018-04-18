@@ -370,18 +370,20 @@ class TreeBuilder:
                     (_id, smiles) = self.expansion_queues[
                         j].get(timeout=0.5)  # short timeout
                     self.idle[i] = False
-                    #print('Worker {} grabbed {} (ID {}) to expand from queue {}'.format(i, smiles, _id, j))
+                    # print('Worker {} grabbed {} (ID {}) to expand from queue {}'.format(i, smiles, _id, j))
                     result = self.retroTransformer.get_outcomes(smiles, self.mincount, (self.precursor_prioritization,
                                                                                         self.template_prioritization),
                                                                 template_count=self.template_count, 
                                                                 mode = self.precursor_score_mode,
-                                                                max_cum_prob = self.max_cum_template_prob)
+                                                                max_cum_prob = self.max_cum_template_prob,
+                                                                apply_fast_filter = self.apply_fast_filter,
+                                                                filter_threshold = self.filter_threshold)
                     precursors = result.return_top(n=self.max_branching)
                     self.results_queue.put((_id, smiles, precursors))
-                    #print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
+                    # print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
 
                 except VanillaQueue.Empty:
-                    #print('Queue {} empty for worker {}'.format(j, i))
+                    # print('Queue {} empty for worker {}'.format(j, i))
                     pass
                 except Exception as e:
                     print e
@@ -453,7 +455,7 @@ class TreeBuilder:
     def get_buyable_paths(self, target, max_depth=3, max_branching=25, expansion_time=240, template_prioritization=None,
                           precursor_prioritization=None, nproc=1, mincount=25, chiral=True, max_trees=25, max_ppg=1e10,
                           known_bad_reactions=[], forbidden_molecules=[], template_count=100, precursor_score_mode=gc.max,
-                          max_cum_template_prob = 1):
+                          max_cum_template_prob = 1, apply_fast_filter= False, filter_threshold=0.5):
         '''Get viable synthesis trees using an iterative deepening depth-first search'''
 
         self.mincount = mincount
@@ -467,7 +469,8 @@ class TreeBuilder:
         self.template_count = template_count
         self.max_cum_template_prob = max_cum_template_prob
         self.max_ppg = max_ppg
-
+        self.apply_fast_filter= apply_fast_filter
+        self.filter_threshold = filter_threshold
         # Override: if relevance method is used, chiral database must be used!
         if chiral or template_prioritization == gc.relevance:
             self.chiral = True
@@ -652,6 +655,6 @@ if __name__ == '__main__':
     treeBuilder = TreeBuilder(celery=celery, mincount=250, mincount_chiral=100)
     # treeBuilder.build_tree('c1ccccc1C(=O)OCCN')
     print treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.popularity,
-                                        precursor_prioritization=gc.scscore, nproc=16, expansion_time=60, max_trees=500, max_ppg=10,
-                                        max_branching = 25,precursor_score_mode =gc.mean)[0]
+                                        precursor_prioritization=gc.scscore, nproc=3, expansion_time=60, max_trees=500, max_ppg=10,
+                                        max_branching = 25,precursor_score_mode =gc.mean, apply_fast_filter= True, filter_threshold=0.95)[0]
     print 'done'
