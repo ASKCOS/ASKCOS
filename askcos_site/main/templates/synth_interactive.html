@@ -134,7 +134,7 @@ $(document).ready(function() {
 
 <table class="table table-borderless table-nonfluid">
 
-<tr><th style="vertical-align: text-top;">Reactants: </th><td><input id="reactants" maxlength="500" size="40" type="text"/></td></tr>
+<tr><th style="vertical-align: text-top;">Reactants: </th><td><input id="reactants" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('reactants')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
 
 <!-- Placeholder for rendering image after a SMILES string is entered -->
 <tr id="reactant_mol_wrapper" style="display:none"><th style="vertical-align: text-top">Parsed reactants:</th><td id="reactants_image"></td></tr>
@@ -150,7 +150,7 @@ $(document).ready(function() {
 
 <tr><th>{% csrf_token %}</th></tr>
 
-<tr id="reagents_control"><th style="vertical-align: text-top; text-align:left">Reagents: </th><td><input id="reagents" maxlength="500" size="40" type="text"/></td></tr>
+<tr id="reagents_control"><th style="vertical-align: text-top; text-align:left">Reagents: </th><td><input id="reagents" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('reagents')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
 
 <!-- Placeholder for rendering image after a SMILES string is entered -->
 <tr id="reagent_mol_wrapper" style="display:none"><th style="vertical-align: text-top;"">Parsed reagents:</th><td id="reagents_image"></td></tr>
@@ -182,5 +182,9 @@ $(document).ready(function() {
 <br>
 <div style="font-size:smaller"><i>{{ footnote }}</i></div>
 {% endif %}
+
+
+<!-- drawing box -->
+{% include "drawing_modal.html" %}
 
 {% endblock %}

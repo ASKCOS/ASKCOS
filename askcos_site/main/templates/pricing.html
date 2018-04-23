@@ -73,7 +73,7 @@ $(document).ready(function() {
 </i><br><br>
 
 <table class="table table-borderless table-nonfluid">
-<tr><th>Input chemical: </th><td><input id="smiles" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="setSmilesDrawing('smiles')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
+<tr><th>Input chemical: </th><td><input id="smiles" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('smiles')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
 
 <!-- Placeholder for rendering image after a SMILES string is entered -->
 <tr id="smiles_mol_wrapper" style="display:none"><th style="vertical-align: text-top;">Parsed reactants:</th><td id="smiles_image"></td></tr>
@@ -100,22 +100,8 @@ $(document).ready(function() {
 {% endif %}
 
 
-
-<!-- Popup drawing tool -->
-<div class="modal fade" id="drawingbox">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-body" style="height:430px;">
-          <div id="jsme_container" style="margin:auto"></div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="setSmilesText('smiles');">Done drawing</button>
-        </div>
-        
-      </div>
-    </div>
-</div>
+<!-- drawing box -->
+{% include "drawing_modal.html" %}
 
 
 {% endblock %}

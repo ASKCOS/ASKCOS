@@ -262,16 +262,26 @@ function jsmeOnLoad() {
     jsmeApplet = new JSApplet.JSME("jsme_container", "565px", "400px");
 };
 // set the value of an ID with the current SMILES string
-function setSmilesText(id) {
+// note: assumes drawBoxID has been assigned as global var!
+function setSmilesText() {
     var data = jsmeApplet.smiles();
-    document.getElementById(id).value = data;
-    $("#" + id).trigger("change");
+    document.getElementById(drawBoxId).value = data;
+    $("#" + drawBoxId).trigger("change");
 };
 // set the drawing to match the SMILES string of a certain id's value
 function setSmilesDrawing(id) {
     var smi = $("#" + id).val();
-    jsmeApplet.readGenericMolecularInput(smi); 
-}
+    if(smi) {
+        jsmeApplet.readGenericMolecularInput(smi);
+    } else {
+        jsmeApplet.reset();
+    };
+};
+// onclick action for drawing popup
+function drawBox(id) {
+    setSmilesDrawing(id);
+    drawBoxId = id;
+};
 </script>
 {% block javascript %}{% endblock %}
 </body>
