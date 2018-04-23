@@ -15,15 +15,15 @@
 <script>
 function showFields(name) {
     if (name=='Template_Based') {
-        $("#reagents_control").show();
-        $("#reagent_mol_wrapper").show();
-        $("#solvent_control").show();
+        // $("#reagents_control").show();
+        // $("#reagent_mol_wrapper").show();
+        // $("#solvent_control").show();
         $("#temperature_control").show();
         $("#mincount_control").show();
     } else {
-        $("#reagents_control").hide();
-        $("#reagent_mol_wrapper").hide();
-        $("#solvent_control").hide();
+        // $("#reagents_control").hide();
+        // $("#reagent_mol_wrapper").hide();
+        // $("#solvent_control").hide();
         $("#temperature_control").hide();
         $("#mincount_control").hide();
     }
@@ -130,7 +130,7 @@ $(document).ready(function() {
 
 
 {% block page_body %}
-<i>Note: reagents are not allowed to contribute atoms to the final product, but can influence the perceived likelihoods of different outcomes. Please include all compounds that can contribute atoms to the product as reactants. Stereochemistry is not perceived during the forward prediction. </i>
+<i>Note: using the template-based enumerator, reagents are not allowed to contribute atoms to the final product, but can influence the perceived likelihoods of different outcomes. Please include all compounds that can contribute atoms to the product as reactants. Stereochemistry is not perceived during the forward prediction. Using the template-free enumerator, reagents and solvents are allowed to contribute atoms.</i>
 
 <table class="table table-borderless table-nonfluid">
 
@@ -142,8 +142,8 @@ $(document).ready(function() {
 <tr><th style="vertical-align:text-top;">Prediction approach: <a href="#" data-toggle="tooltip" title="How would you like to try to predict the outcome of this reaction? There is the classic template-based approach, which is somewhat context-dependent, but can be slow (5-45 seconds). There is also the template-free approach, which can allow for inventive chemistry and tends to be more accurate overall, but is not sensitive to context. It is very fast."><span class="glyphicon glyphicon-info-sign"></span></a></th>
     <td>
         <select id="id_forward_scorer" name="forward_scorer" onchange="showFields(this.options[this.selectedIndex].value)">
-            <option value="Template_Based" {% if forward_scorer == 'Template_Based' %}selected{% endif %}>Template-based</option>
             <option value="Template_Free" {% if forward_scorer == 'Template_Free' %}selected{% endif %}>Template-free</option>
+            <option value="Template_Based" {% if forward_scorer == 'Template_Based' %}selected{% endif %}>Template-based</option>
         </select>
     </td>
 </tr>
@@ -158,9 +158,9 @@ $(document).ready(function() {
 <tr id="solvent_control"><th>Solvent: </th><td><select id="solvent"><option value="">None</option>{% for solvent in solvent_choices %}<option value="{{ solvent.smiles }}" {% if solvent.name == solventselected %}selected{% endif %}>{{ solvent.name }}</option>{% endfor %}</select></td></tr>
 
 
-<tr id="temperature_control"><th>Temperature (Celsius): </th><td><input id="temperature" maxlength="6" size="6" type="text" value="{{ temperature }}"/></td></tr>
+<tr id="temperature_control" style="display:none"><th>Temperature (Celsius): </th><td><input id="temperature" maxlength="6" size="6" type="text" value="{{ temperature }}"/></td></tr>
 
-<tr id="mincount_control"><th>Minimum template count: <a href="#" data-toggle="tooltip" title="What is the minimum template popularity you would like to use during the forward enumeration when evaluating suggested reactions? The default value of {{ mincount }} shows the value used during intiialization, so you cannot specify a value lower than this."><span class="glyphicon glyphicon-info-sign"></span></a></th><td><input id="mincount" maxlength="6" size="6" type="text" value="{{ mincount }}"/></td></tr>
+<tr id="mincount_control" style="display:none"><th>Minimum template count: <a href="#" data-toggle="tooltip" title="What is the minimum template popularity you would like to use during the forward enumeration when evaluating suggested reactions? The default value of {{ mincount }} shows the value used during intiialization, so you cannot specify a value lower than this."><span class="glyphicon glyphicon-info-sign"></span></a></th><td><input id="mincount" maxlength="6" size="6" type="text" value="{{ mincount }}"/></td></tr>
 
 <tr><th>Maximum num. products: <a href="#" data-toggle="tooltip" title="Up to how many candidate outcomes should be returned? The only downside to returning a large number is the time it takes to render the images; it does not increase the computational time."><span class="glyphicon glyphicon-info-sign"></span></a></th><td><input id="maxreturn" maxlength="6" size="6" type="text" value="100"/></td></tr>
 
