@@ -3,6 +3,7 @@ import makeit.global_config as gc
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 from makeit.prioritization.precursors.heuristic import HeuristicPrecursorPrioritizer
+from makeit.prioritization.precursors.relevanceheuristic import RelevanceHeuristicPrecursorPrioritizer
 from makeit.prioritization.precursors.mincost import MinCostPrecursorPrioritizer
 from makeit.prioritization.precursors.scscore import SCScorePrecursorPrioritizer
 from makeit.prioritization.templates.popularity import PopularityTemplatePrioritizer
@@ -42,6 +43,8 @@ class TemplateTransformer(object):
         else:
             if precursor_prioritizer == gc.heuristic:
                 precursor = HeuristicPrecursorPrioritizer()
+            elif precursor_prioritizer == gc.relevanceheuristic:
+                precursor = RelevanceHeuristicPrecursorPrioritizer()
             elif precursor_prioritizer == gc.scscore:
                 precursor = SCScorePrecursorPrioritizer()
             elif precursor_prioritizer == gc.mincost:

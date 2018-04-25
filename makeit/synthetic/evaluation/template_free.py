@@ -32,6 +32,7 @@ class TemplateFreeNeuralNetScorer(Scorer):
 
     def evaluate(self, reactants_smiles, contexts=None, **kwargs):
         '''Evaluation does not use context, but left as dummy pos var'''
+        ##what if context contributes necessary atoms??
         outcomes = self.model.predict(reactants_smiles, 
             top_n=kwargs.get('top_n', 1e10), num_core=kwargs.get('num_core', 8))
         if not outcomes:

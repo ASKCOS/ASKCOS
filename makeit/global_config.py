@@ -16,6 +16,7 @@ product = 'Product'
 #For prioritization
 all = 'All'
 # for precursors
+relevanceheuristic = 'RelevanceHeuristic'
 heuristic = 'Heuristic'
 scscore = 'SCScore'
 mincost = 'MinCost'
@@ -123,6 +124,11 @@ CHEMICALS = {
     'collection': 'chemicals',
     }
 
+CHEMICAL_HISTORY = {
+    'database': database,
+    'collection': 'chemical_history'
+}
+
 BUYABLES = {
     'database': database,
     'collection': 'buyables',
@@ -138,6 +144,9 @@ PREDICTOR = {
     'info': '01-23-17, model trained on 80k Reaxys examples, validated on 10k, tested on 10k. Nh1_200, Nh2_200, Nh3_200, l2_0, Nc_5000, enh_weight_0d1, context_weight_50, opt_adadelta, batch_5, moreFeatures'
 }
 
+FAST_FILTER_MODEL = {
+    'trained_model_path': os.path.join(os.path.dirname(__file__), 'data', 'fast_filter'),
+}
 #Hard coded mincounts to maintain compatibility of the relevance method
 Relevance_Prioritization = {
     'trained_model_path_True': os.path.join(prioritization_data, 'template_relevance_network_weights.pickle'),

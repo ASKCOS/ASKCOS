@@ -4,7 +4,7 @@ from pymongo import MongoClient
 from logging import MyLogger
 from makeit.utilities.buyable.pricer import Pricer
 from makeit.synthetic.context.nearestneighbor import NNContextRecommender
-from makeit.synthetic.context.Neural_Network_Context_Recommender import NeuralNetContextRecommender
+from makeit.synthetic.context.neuralnetwork import NeuralNetContextRecommender
 from makeit.synthetic.enumeration.transformer import ForwardTransformer
 from makeit.retrosynthetic.transformer import RetroTransformer
 from makeit.synthetic.evaluation.template_based import TemplateNeuralNetScorer
@@ -133,7 +133,7 @@ def load_Forward_Transformer(SYNTH_DB, mincount=100, worker_no = 0):
 
 def load_fastfilter():
     ff = FastFilterScorer()
-    ff.load(model_path ="/home/hanyug/Make-It/makeit/rxn_bin_class_NN/my_model.h5")
+    ff.load(model_path =gc.FAST_FILTER_MODEL['trained_model_path']+'/my_model.h5')
     return ff
 
 
