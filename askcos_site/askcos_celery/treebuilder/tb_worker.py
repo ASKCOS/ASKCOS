@@ -12,7 +12,7 @@ from django.conf import settings
 from celery import shared_task
 from celery.signals import celeryd_init
 from pymongo import MongoClient
-import makeit.global_config as gc 
+import makeit.global_config as gc
 from makeit.retrosynthetic.transformer import RetroTransformer
 from rdkit import RDLogger
 lg = RDLogger.logger()
@@ -45,8 +45,8 @@ def configure_worker(options={}, **kwargs):
 
 
 @shared_task
-def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=25, max_branching=20, 
-                       template_count = 10000, mode=gc.max, max_cum_prob=1):
+def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=25, max_branching=20,
+                       template_count=10000, mode=gc.max, max_cum_prob=1, apply_fast_filter=False, filter_threshold=0.8):
     '''Get the precursors for a chemical defined by its SMILES
 
     smiles = SMILES of node to expand
@@ -63,8 +63,9 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
 
     global retroTransformer
     result = retroTransformer.get_outcomes(
-        smiles, mincount, (precursor_prioritizer, template_prioritizer), template_count = template_count, mode=mode,
-        max_cum_prob=max_cum_prob)
+        smiles, mincount, (precursor_prioritizer,
+                           template_prioritizer), template_count=template_count, mode=mode,
+        max_cum_prob=max_cum_prob, apply_fast_filter=False, filter_threshold=0.8)
     precursors = result.return_top(n=max_branching)
     print('Task completed, returning results.')
     return (smiles, precursors)

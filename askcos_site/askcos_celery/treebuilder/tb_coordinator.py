@@ -66,7 +66,9 @@ def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritiz
                       max_depth=3, max_ppg=1e8, max_time=60, max_trees=25, reporting_freq=5, known_bad_reactions=[],
                       return_d1_if_no_trees=False, chiral=True, template_count=1e9, forbidden_molecules=[],
                       precursor_score_mode=gc.max, max_cum_template_prob=1, max_natom_dict=defaultdict(lambda: 1e9, {'logic': None}),
-                      min_chemical_history_dict={'as_reactant':1e9, 'as_product':1e9,'logic':None}):
+                      min_chemical_history_dict={
+                          'as_reactant': 1e9, 'as_product': 1e9, 'logic': None},
+                      apply_fast_filter=True, filter_threshold=0.8):
     '''Get a set of buyable trees for a target compound.
 
     mincount = minimum template popularity
@@ -90,18 +92,23 @@ def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritiz
                                            template_prioritization=template_prioritization, precursor_prioritization=precursor_prioritization,
                                            mincount=mincount, chiral=chiral, max_trees=max_trees, max_ppg=max_ppg, known_bad_reactions=known_bad_reactions,
                                            template_count=template_count, forbidden_molecules=forbidden_molecules,
-                                           precursor_score_mode=precursor_score_mode,max_cum_template_prob=max_cum_template_prob,
-                                           max_natom_dict=max_natom_dict, min_chemical_history_dict=min_chemical_history_dict)
+                                           precursor_score_mode=precursor_score_mode, max_cum_template_prob=max_cum_template_prob,
+                                           max_natom_dict=max_natom_dict, min_chemical_history_dict=min_chemical_history_dict,
+                                           apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
     print('Task completed, returning results.')
     return result
+
+
 @shared_task
 def get_template_options():
     return [gc.popularity, gc.relevance, gc.natural]
+
 
 @shared_task
 def get_precursor_options():
     return [gc.heuristic, gc.scscore, gc.natural]
 
+
 @shared_task
 def get_precursor_score_options():
-    retunr [gc.max, gc.mean, gc.geometric, gc.pow8]
+    retunr[gc.max, gc.mean, gc.geometric, gc.pow8]

@@ -40,10 +40,9 @@ else:
     database = db_client[settings.RETRO_TRANSFORMS['database']]
     RETRO_DB = database[settings.RETRO_TRANSFORMS['collection']]
     mincount_retro = settings.RETRO_TRANSFORMS['mincount']
-    RetroTransformer = transformer.RetroTransformer(TEMPLATE_DB=RETRO_DB, mincount=mincount_retro, 
-        get_retro=False, get_synth=False, refs=True, rxns=False)
+    RetroTransformer = transformer.RetroTransformer(TEMPLATE_DB=RETRO_DB, mincount=mincount_retro, )
     print('Saving achiral retro transformer for the (only?) first time')
-    RetroTransformer.dump_to_file(save_path)
+    RetroTransformer.dump_to_file(True, save_path)
     #with open(save_path, 'wb') as fid:
     #    pickle.dump(RetroTransformer.templates, fid, -1)
 RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.format(len(RetroTransformer.templates),
@@ -67,9 +66,9 @@ else:
     mincount_retro_chiral = settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral']
     RetroTransformerChiral = transformer.RetroTransformer(TEMPLATE_DB=RETRO_DB, 
         mincount=mincount_retro, mincount_chiral=mincount_retro_chiral)
-    RetroTransformerChiral.load(get_retro=False, get_synth=False, refs=True, rxns=False)
+    RetroTransformerChiral.load(refs=True, rxns=False)
     print('Saving chiral retro transformer for the (only?) first time')
-    RetroTransformerChiral.dump_to_file(save_path)
+    RetroTransformerChiral.dump_to_file(True, save_path)
     #with open(save_path, 'wb') as fid:
     #    pickle.dump(RetroTransformerChiral.templates, fid, -1)
 RETRO_CHIRAL_FOOTNOTE = 'Using {} chiral retrosynthesis templates (mincount {} if achiral, mincount {} if chiral) from {}/{}'.format(len(RetroTransformerChiral.templates),
@@ -98,11 +97,11 @@ else:
     database = db_client[settings.SYNTH_TRANSFORMS['database']]
     SYNTH_DB = database[settings.SYNTH_TRANSFORMS['collection']]
     mincount_synth = settings.SYNTH_TRANSFORMS['mincount']
-    SynthTransformer = transformer.SynthTransformer(TEMPLATE_DB=SYNTH_DB, mincount=mincount_synth)
+    SynthTransformer = transformer.ForwardTransformer(TEMPLATE_DB=SYNTH_DB, mincount=mincount_synth)
     SynthTransformer.load(refs=True, rxns=False)
     print('Loaded {} forward templates'.format(SynthTransformer.num_templates))
     print('Saving synth transformer for the (only?) first time')
-    SynthTransformer.dump_to_file(save_path)
+    SynthTransformer.dump_to_file(False, save_path)
 SYNTH_FOOTNOTE = 'Using {} forward templates (mincount {}) from {}/{}'.format(SynthTransformer.num_templates,
     settings.SYNTH_TRANSFORMS['mincount'], settings.SYNTH_TRANSFORMS['database'], settings.SYNTH_TRANSFORMS['collection'])
 
