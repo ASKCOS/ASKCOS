@@ -237,9 +237,9 @@ class NeuralNetContextRecommender(ContextRecommender):
             c1_pred = self.c1_func(c1_inputs)
             c1_cdts = c1_pred[0][0].argsort()[-c1_rank_thres:][::-1]
             #if rank threshold
-            if c1_cdts[0] == 0 and c1_rank_thres==2:
-                c1_cdts = [c1_cdts[1]]
-            else: c1_cdts = [c1_cdts[0]]
+            # if c1_cdts[0] == 0 and c1_rank_thres==2:
+            #     c1_cdts = [c1_cdts[1]]
+            # else: c1_cdts = [c1_cdts[0]]
         else:
             c1_cdts = np.nonzero(c1_input_user)[0]
         # find the name of catalyst
