@@ -216,7 +216,7 @@ class NeuralNetContextRecommender(ContextRecommender):
         # individual elements
         context_combos = []
         context_combo_scores = []
-        num_combos = 1*s1_rank_thres * \
+        num_combos = c1_rank_thres*s1_rank_thres * \
             s2_rank_thres*r1_rank_thres*r2_rank_thres
         [pfp, rxnfp, c1_input_user, r1_input_user,
             r2_input_user, s1_input_user, s2_input_user] = inputs
