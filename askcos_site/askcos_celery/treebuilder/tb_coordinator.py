@@ -68,7 +68,7 @@ def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritiz
                       precursor_score_mode=gc.max, max_cum_template_prob=1, max_natom_dict=defaultdict(lambda: 1e9, {'logic': None}),
                       min_chemical_history_dict={
                           'as_reactant': 1e9, 'as_product': 1e9, 'logic': None},
-                      apply_fast_filter=True, filter_threshold=0.8):
+                      apply_fast_filter=False, filter_threshold=0.8):
     '''Get a set of buyable trees for a target compound.
 
     mincount = minimum template popularity
