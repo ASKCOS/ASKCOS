@@ -13,6 +13,15 @@
 
 {% block javascript %}
 <script>
+function showFields(name) {
+    if (name=='Fast_Filter') {
+        $("#context_recommender_wrapper").hide();
+        $("#heavyatomscontrib").hide();
+    } else {
+        $("#context_recommender_wrapper").show();
+        $("#heavyatomscontrib").show();
+    }
+}
 $("#reactants, #product").change(function () {
 	console.log( $(this).val() );
 	$("#results").hide();
@@ -98,10 +107,11 @@ $(document).ready(function() {
         <select id="id_forward_scorer" name="forward_scorer" onchange="showFields(this.options[this.selectedIndex].value)">
             <option value="Template_Free" {% if forward_scorer == 'Template_Free' %}selected{% endif %}>Template-free</option>
             <option value="Template_Based" {% if forward_scorer == 'Template_Based' %}selected{% endif %}>Template-based</option>
+            <option value="Fast_Filter" {% if forward_scorer == 'Fast_Filter' %}selected{% endif %}>Fast filter</option>
         </select>
     </td>
 </tr>
-<tr>
+<tr id="context_recommender_wrapper">
     <th style="vertical-align:text-top;">Context recommender: <a href="#" data-toggle="tooltip" title="Which version of the context recommender would you like to use? The nearest neighbor model is probably strictly worse than the neural network model at this point...both in terms of speed and accuracy"><span class="glyphicon glyphicon-info-sign"></span></a></th>
     <td>
         <select id="id_context_recommender" name="context_recommender">
@@ -115,7 +125,7 @@ $(document).ready(function() {
 <td>
 	<button type="button" style="width:100%" id="get_plausibility">Evaluate</button>
 </td>
-<td>
+<td id="heavyatomscontrib">
     <input type="checkbox" id="necessary_reagent"> Reagent(s) should contribute heavy atoms<br>
 </td>
 </tr>

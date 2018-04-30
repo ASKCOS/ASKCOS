@@ -38,10 +38,11 @@ def configure_worker(options={}, **kwargs):
 
     # Instantiate and load retro transformer
     global retroTransformer
-    retroTransformer = RetroTransformer(TEMPLATE_DB=RETRO_DB, mincount=settings.RETRO_TRANSFORMS_CHIRAL['mincount'],
+    retroTransformer = RetroTransformer(celery=True, TEMPLATE_DB=RETRO_DB, mincount=settings.RETRO_TRANSFORMS_CHIRAL['mincount'],
                                         mincount_chiral=settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'])
 
     retroTransformer.load(chiral=True)
+    print(retroTransformer.fast_filter.evaluate('CCCCCCO.CCCCBr', 'CCCCCCOCCCC'))
     print('### TREE BUILDER WORKER STARTED UP ###')
 
 
@@ -71,6 +72,14 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
 
     precursors = result.return_top(n=max_branching)
     return (smiles, precursors)
+
+
+@shared_task
+def fast_filter_check(*args, **kwargs):
+    '''Wrapper for fast filter check, since these workers will 
+    have it initialized. Best way to allow independent queries'''
+    print('got request for fast filter')
+    return retroTransformer.fast_filter.evaluate(*args, **kwargs)
 
 
 @shared_task(bind=True)

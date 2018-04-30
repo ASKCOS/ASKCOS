@@ -16,7 +16,7 @@ import makeit.global_config as makeit_gc
 # TODO: fix this Celery reference
 from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
 from ...askcos_celery.treeevaluator.scoring_coordinator import evaluate
-
+from ...askcos_celery.treebuilder.tb_c_worker import fast_filter_check
 from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
     trim_trailing_period
 
@@ -40,6 +40,19 @@ def ajax_evaluate_rxnsmiles(request):
 
     reactants = smiles.split('>>')[0].split('.')
     products = smiles.split('>>')[1].split('.')
+
+    if forward_scorer == 'Fast_Filter':
+        res = fast_filter_check.delay('.'.join(reactants), '.'.join(products))
+        outcomes = res.get(5)
+        score = outcomes[0][0]['score']
+        data['html'] = 'Estimated plausibility: {:.4f}'.format(score)
+        B = 150.
+        R = 255. - (score > 0.5) * (score - 0.5) * (255. - B) * 2.
+        G = 255. - (score < 0.5) * (0.5 - score) * (255. - B) * 2.
+        data['html_color'] = str('#%02x%02x%02x' % (int(R), int(G), int(B)))
+        return JsonResponse(data)
+
+
     print('...trying to get predicted context')
 
     if necessary_reagent and makeit_gc.forward_scoring_needs_context_necessary_reagent[forward_scorer]:

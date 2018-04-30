@@ -44,6 +44,19 @@ def configure_worker(options={}, **kwargs):
     print('### TREE BUILDER WORKER STARTED UP ###')
 
 
+# ONLY ONE WORKER TYPE HAS THIS FUNCTION EXPOSED - MAKE IT THE CHIRAL ONE
+# @shared_task
+# def fast_filter_check(*args, **kwargs):
+#     '''Wrapper for fast filter check, since these workers will 
+#     have it initialized. Best way to allow independent queries'''
+#     global retroTransformer
+#     if not retroTransformer.fast_filter:
+#         from makeit.synthetic.evaluation.fast_filter import FastFilterScorer
+#         retroTransformer.fast_filter = FastFilterScorer()
+#         retroTransformer.fast_filter.load(model_path=gc.FAST_FILTER_MODEL['trained_model_path'])
+#     return retroTransformer.fast_filter.evaluate(*args, **kwargs)
+
+
 @shared_task
 def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=25, max_branching=20,
                        template_count=10000, mode=gc.max, max_cum_prob=1, apply_fast_filter=False, filter_threshold=0.8):
