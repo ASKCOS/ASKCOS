@@ -40,7 +40,7 @@ window.onload = function() {
     <tr>
         <th>Target compound:</td>
         <td>
-            <input id="id_smiles" maxlength="400" name="smiles" type="text" value="{{ form.smiles }}">
+            <input id="id_smiles" maxlength="400" name="smiles" type="text" value="{{ form.smiles }}"><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('id_smiles')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a>
         </td>
     </tr>
     <tr>
@@ -159,5 +159,8 @@ window.onload = function() {
 <br>
 <div align="center"><i>{{ footnote }}</i></div>
 {% endif %}
+
+<!-- drawing box -->
+{% include "drawing_modal.html" %}
 
 {% endblock %}

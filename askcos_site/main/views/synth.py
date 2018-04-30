@@ -22,7 +22,7 @@ from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
 
 @login_required
 def synth_interactive(request, reactants='', reagents='', solvent='default', 
-        temperature='20', mincount='25', product=None, forward_scorer='Template_Based'):
+        temperature='20', mincount='25', product=None, forward_scorer='Template_Free'):
     '''Builds an interactive forward synthesis page'''
 
     context = {} 
@@ -71,7 +71,7 @@ def synth_interactive(request, reactants='', reagents='', solvent='default',
         context['reagents'] = rgt1
         context['temperature'] = T1 
 
-    context['forward_scorer'] = 'Template_Based'
+    context['forward_scorer'] = 'Template_Free'
     context['mincount'] = mincount if mincount != '' else settings.SYNTH_TRANSFORMS['mincount']
     return render(request, 'synth_interactive.html', context)
 
@@ -107,7 +107,7 @@ def ajax_start_synth(request):
     reagents = request.GET.get('reagents', None)
     mincount = int(request.GET.get('mincount', 25))
     maxreturn = int(request.GET.get('maxreturn', 100))
-    forward_scorer = request.GET.get('forward_scorer', 'Template_Based')
+    forward_scorer = request.GET.get('forward_scorer', 'Template_Free')
     print('Conditions for forward synthesis:')
     print('reactants: {}'.format(reactants))
     print('solvent: {}'.format(solvent))
@@ -118,6 +118,16 @@ def ajax_start_synth(request):
     print('forward scorer: {}'.format(forward_scorer))
 
     startTime = time.time()
+
+    # Add reagents and solvent to the reactants for TFFP. Note that this is
+    # not an ideal solution: ideally, we would have the forward_scorer class 
+    # itself handle the contexts properly
+    if forward_scorer == 'Template_Free':
+        if reagents:
+            reactants = '{}.{}'.format(reactants, reagents)
+        if solvent:
+            reactants = '{}.{}'.format(reactants, solvent)
+
     # context expected is (T1, slvt1, rgt1, cat1, t1, y1)
     res = evaluate.delay(reactants, '',
         contexts=[(temperature, solvent, reagents, '', -1, -1)], 

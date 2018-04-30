@@ -14,6 +14,8 @@
     <link href="{% static 'default.css' %}" rel="stylesheet" type="text/css"/>
     <script src="{% static 'default.js' %}"></script>
     <script src="{% static 'date.js' %}"></script>
+    <!-- Javascript drawing -->
+    <script type="text/javascript" language="javascript" src="/static/jsme/jsme/jsme.nocache.js"></script>
 </head>
 
 <body>
@@ -255,6 +257,31 @@ $("#savepage").click(function () {
         });
     };
 });
+// For drawing
+function jsmeOnLoad() {
+    jsmeApplet = new JSApplet.JSME("jsme_container", "565px", "400px");
+};
+// set the value of an ID with the current SMILES string
+// note: assumes drawBoxID has been assigned as global var!
+function setSmilesText() {
+    var data = jsmeApplet.smiles();
+    document.getElementById(drawBoxId).value = data;
+    $("#" + drawBoxId).trigger("change");
+};
+// set the drawing to match the SMILES string of a certain id's value
+function setSmilesDrawing(id) {
+    var smi = $("#" + id).val();
+    if(smi) {
+        jsmeApplet.readGenericMolecularInput(smi);
+    } else {
+        jsmeApplet.reset();
+    };
+};
+// onclick action for drawing popup
+function drawBox(id) {
+    setSmilesDrawing(id);
+    drawBoxId = id;
+};
 </script>
 {% block javascript %}{% endblock %}
 </body>

@@ -251,7 +251,7 @@ $(document).ready(function() {
 {% block page_body %}
 <table class="table table-borderless table-nonfluid">
 
-<tr><th>Target compound:</th><td colspan="4"><input id="id_smiles" maxlength="500" size="40" type="text"/></td></tr>
+<tr><th>Target compound:</th><td colspan="4"><input id="id_smiles" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('id_smiles')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
 
 <tr><th>{% csrf_token %}</th></tr>
 
@@ -413,6 +413,9 @@ Min freq. as product: <input type="number" id="min_chempop_products" style="widt
 <div id="statistics"></div>
 <br/>
 <div id="results"></div>
+
+<!-- drawing box -->
+{% include "drawing_modal.html" %}
 
 {% endblock %}
 

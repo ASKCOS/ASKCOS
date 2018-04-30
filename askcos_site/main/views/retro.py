@@ -287,7 +287,7 @@ def ajax_start_retro_celery(request):
         data['html_trees'] = render_to_string('trees_only.html',
                                               {'trees': trees, 'can_control_robot': can_control_robot(request)})
     else:
-        data['html_trees'] = 'No trees resulting in buyable chemicals found! If the program is having trouble with your target, you may want to explore the One-Step Retrosynthesis options and help guide the search.'
+        data['html_trees'] = render_to_string('trees_none.html', {})
 
     # Save to session in case user wants to export
     request.session['last_retro_interactive'] = trees

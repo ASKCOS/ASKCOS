@@ -21,8 +21,8 @@ KERAS_BACKEND=theano THEANO_FLAGS=device=cpu celery -A askcos_site worker -c 6 -
 
 # Chiral retro transformers
 KERAS_BACKEND=theano THEANO_FLAGS=device=cpu celery -A askcos_site worker -c 8 -Q tb_c_worker,tb_c_worker_reservable -n "tb_c_worker_pool1@$(hostname)" --maxtasksperchild 5000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
-# celery -A askcos_site worker -c 8 -Q tb_c_worker,tb_c_worker_reservable -n "tb_c_worker_pool2@$(hostname)" --maxtasksperchild 5000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
-# celery -A askcos_site worker -c 8 -Q tb_c_worker,tb_c_worker_reservable -n "tb_c_worker_pool3@$(hostname)" --maxtasksperchild 5000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
+#KERAS_BACKEND=theano THEANO_FLAGS=device=cpu celery -A askcos_site worker -c 8 -Q tb_c_worker,tb_c_worker_reservable -n "tb_c_worker_pool2@$(hostname)" --maxtasksperchild 5000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
+#KERAS_BACKEND=theano THEANO_FLAGS=device=cpu celery -A askcos_site worker -c 8 -Q tb_c_worker,tb_c_worker_reservable -n "tb_c_worker_pool3@$(hostname)" --maxtasksperchild 5000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
 KERAS_BACKEND=theano THEANO_FLAGS=device=cpu celery -A askcos_site worker -c 3 -Q tb_c_worker -n "tb_c_worker@$(hostname)" --maxtasksperchild 1000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
 
 # Tree builder coordinator
