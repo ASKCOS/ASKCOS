@@ -9,6 +9,7 @@ from makeit.synthetic.enumeration.transformer import ForwardTransformer
 from makeit.retrosynthetic.transformer import RetroTransformer
 from makeit.synthetic.evaluation.template_based import TemplateNeuralNetScorer
 from makeit.synthetic.evaluation.template_free import TemplateFreeNeuralNetScorer
+from makeit.synthetic.evaluation.fast_filter import FastFilterScorer
 import sys
 model_loader_loc = 'model_loader'
 
@@ -130,9 +131,10 @@ def load_Forward_Transformer(SYNTH_DB, mincount=100, worker_no = 0):
     return transformer
 
 
-def load_fastfilter(worker_no = 0):
-    # Still has to be implemented
-    return None
+def load_fastfilter():
+    ff = FastFilterScorer()
+    ff.load(model_path =gc.FAST_FILTER_MODEL['trained_model_path'])
+    return ff
 
 
 def load_templatebased(mincount=25, celery=False, worker_no = 0):

@@ -7,6 +7,7 @@ from makeit.utilities.io.logging import MyLogger
 from makeit.interfaces.context_recommender import ContextRecommender
 from scipy import stats
 import pickle
+from rdkit import Chem
 contextRecommender_loc = 'contextRecommender'
 
 
@@ -57,9 +58,11 @@ class NeuralNetContextRecommender(ContextRecommender):
 
         ###load model##############
         # load json and create model
+        K.set_learning_phase(0)
         json_file = open(model_path, 'r')
         loaded_model_json = json_file.read()
         json_file.close()
+
         self.nnModel = model_from_json(loaded_model_json)
         # load weights into new model
         self.nnModel.load_weights(weights_path)
@@ -91,7 +94,7 @@ class NeuralNetContextRecommender(ContextRecommender):
         self.r2_dim = self.nnModel.input_shape[4][1]
         self.s1_dim = self.nnModel.input_shape[5][1]
         self.s2_dim = self.nnModel.input_shape[6][1]
-        fp_transform_layer = self.nnModel.get_layer('fp_transform2')
+        fp_transform_layer = self.nnModel.get_layer('fp_transform1')
         c1_input_layer = self.nnModel.get_layer('input_c1')
         s1_input_layer = self.nnModel.get_layer('input_s1')
         s2_input_layer = self.nnModel.get_layer('input_s2')
@@ -103,6 +106,7 @@ class NeuralNetContextRecommender(ContextRecommender):
         r1_output = self.nnModel.get_layer('r1')
         r2_output = self.nnModel.get_layer('r2')
         T_output = self.nnModel.get_layer('T')
+
         self.fp_func = K.function(self.nnModel.inputs, [fp_transform_layer.output])
         self.c1_func = K.function([fp_transform_layer.output], [c1_output.output])
         self.s1_func = K.function([fp_transform_layer.output,c1_input_layer.output], [s1_output.output])
@@ -132,6 +136,15 @@ class NeuralNetContextRecommender(ContextRecommender):
         try:
             rsmi = rxn.split('>>')[0]
             psmi = rxn.split('>>')[1]
+            # rct_mol = Chem.MolFromSmiles(rsmi)
+            # prd_mol = Chem.MolFromSmiles(psmi)
+            # [atom.ClearProp('molAtomMapNumber')for \
+            #         atom in rct_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
+            # [atom.ClearProp('molAtomMapNumber')for \
+            #         atom in prd_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
+            # rsmi = Chem.MolToSmiles(rct_mol)
+            # psmi = Chem.MolToSmiles(prd_mol)
+
             [pfp, rfp] = fp.create_rxn_Morgan2FP_separately(
                 rsmi, psmi, rxnfpsize=self.fp_size, pfpsize=self.fp_size, useFeatures=False, calculate_rfp=True)
             pfp = pfp.reshape(1, self.fp_size)
@@ -168,6 +181,16 @@ class NeuralNetContextRecommender(ContextRecommender):
             try:
                 rsmi = rxn.split('>>')[0]
                 psmi = rxn.split('>>')[1]
+
+                rct_mol = Chem.MolFromSmiles(rsmi)
+                prd_mol = Chem.MolFromSmiles(psmi)
+                [atom.ClearProp('molAtomMapNumber')for \
+                        atom in rct_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
+                [atom.ClearProp('molAtomMapNumber')for \
+                        atom in prd_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
+                rsmi = Chem.MolToSmiles(rct_mol)
+                psmi = Chem.MolToSmiles(prd_mol)
+
                 [pfp, rfp] = fp.create_rxn_Morgan2FP_separately(
                     rsmi, psmi, rxnfpsize=self.fp_size, pfpsize=self.fp_size, useFeatures=False, calculate_rfp=True)
                 pfp = pfp.reshape(1, self.fp_size)
@@ -213,6 +236,10 @@ class NeuralNetContextRecommender(ContextRecommender):
             c1_inputs = fp_trans
             c1_pred = self.c1_func(c1_inputs)
             c1_cdts = c1_pred[0][0].argsort()[-c1_rank_thres:][::-1]
+            #if rank threshold
+            # if c1_cdts[0] == 0 and c1_rank_thres==2:
+            #     c1_cdts = [c1_cdts[1]]
+            # else: c1_cdts = [c1_cdts[0]]
         else:
             c1_cdts = np.nonzero(c1_input_user)[0]
         # find the name of catalyst
@@ -329,10 +356,17 @@ if __name__ == '__main__':
     cont.load_nn_model(model_path=gc.NEURALNET_CONTEXT_REC['model_path'], info_path=gc.NEURALNET_CONTEXT_REC[
                        'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path'])
     # # cont.load_nn_model(model_path = "/home/hanyug/Make-It/makeit/context_pred/model/c_s_r/model.json", info_path = "/home/hanyug/Make-It/makeit/context_pred/preprocessed_data/separate/10Msubset/", weights_path="/home/hanyug/Make-It/makeit/context_pred/model/c_s_r/weights.h5")
+    # cont.load_nn_model(model_path="/home/hanyug/Make-It/makeit/context_pred/model/michael/model.json", info_path=gc.NEURALNET_CONTEXT_REC[
+    #                'info_path'], weights_path="/home/hanyug/Make-It/makeit/context_pred/model/michael/best_weights.h5")
 
-    print cont.get_n_conditions('CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1>>CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3', 10)
-    print cont.get_n_conditions('Fc1ccc(C2(Cn3cncn3)CO2)c(F)c1>>OC(CBr)(Cn1cncn1)c1ccc(F)cc1F', 10)
-    print cont.get_n_conditions('CN(C(=O)CCl)c1ccc(Cl)cc1C(=O)c1ccccc1>>CN(C(=O)CN)c1ccc(Cl)cc1C(=O)c1ccccc1', 10)
+    print('CC(C)CO>>CC(C)C=O')
+    print cont.get_n_conditions('CCCO>>CCC=O', 10)
+    # print('CC(C)CO')
+    # print cont.get_n_conditions('CCCO.CCBr>>CCC=O', 10)
+    # # print cont.get_n_conditions('CC(=O)OC(C)=O.O=C(O)c1ccccc1O>>CC(=O)Oc1ccccc1C(=O)O', 10)
+    # print cont.get_n_conditions('Cc1cccc(C)c1NC(=O)CCl>>Cc1cccc(C)c1NC(=O)CN', 10)
+    # print cont.get_n_conditions('CN(C(=O)CCl)c1ccc(Cl)cc1C(=O)c1ccccc1>>CN(C(=O)CN)c1ccc(Cl)cc1C(=O)c1ccccc1', 10)
 #'Fc1ccc(C2(Cn3cncn3)CO2)c(F)c1>>OC(CCl)(Cn1cncn1)c1ccc(F)cc1F
 #'CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1>>CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3'
 #'CN(C(=O)CCl)c1ccc(Cl)cc1C(=O)c1ccccc1>>CN(C(=O)CN)c1ccc(Cl)cc1C(=O)c1ccccc1'
+    print cont.get_n_conditions('[C:1]([C:2]([CH3:5])=[CH2:6])([O:3][CH3:7])=[O:4].[CH2:8]([CH2:9][CH2:11][CH2:13][CH2:15][CH2:17][SH:19])[CH2:10][CH2:12][CH2:14][CH2:16][CH2:18][CH3:20]>>[C:1]([CH:2]([CH2:5][S:19][CH2:17][CH2:15][CH2:13][CH2:11][CH2:9][CH2:8][CH2:10][CH2:12][CH2:14][CH2:16][CH2:18][CH3:20])[CH3:6])([O:3][CH3:7])=[O:4]', 10)

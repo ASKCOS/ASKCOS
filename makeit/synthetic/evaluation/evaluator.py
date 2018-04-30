@@ -48,9 +48,12 @@ class Evaluator():
                     'Cannot evaluate a reaction without a forward scoring method. Exiting...', evaluator_loc, level=3)
             else:
                 scorer = self.scorers[forward_scorer]
-
-                all_outcomes = scorer.evaluate(reactant_smiles, contexts, **kwargs)
-
+                if forward_scorer!= 'Fast_Filter':
+                    all_outcomes = scorer.evaluate(reactant_smiles, contexts, **kwargs)
+                else:
+                    all_outcomes = scorer.evaluate(reactant_smiles, target, **kwargs)
+                    # print(all_outcomes)
+                    # wait = raw_input('press key to cont')
                 # output:
                 # - top product for each context + score
                 # - rank and score for target
@@ -99,11 +102,12 @@ class Evaluator():
                             'prob': 0.0,
                         }
                     evaluation_results.append(evaluation_result)
+                
             return evaluation_results
 
     def get_scorers(self, mincount, worker_no=0):
 
-        self.scorers[gc.fastfilter] = load_fastfilter(worker_no=worker_no)
+        self.scorers[gc.fastfilter] = load_fastfilter()
         self.scorers[gc.templatebased] = load_templatebased(
             mincount=mincount, celery=self.celery, worker_no=worker_no)
         self.scorers[gc.templatefree] = load_templatefree() # fast, one worker only
@@ -112,13 +116,23 @@ if __name__ == '__main__':
 
     MyLogger.initialize_logFile()
     evaluator = Evaluator(celery=False)
-    res = evaluator.evaluate('Cc1cccc(C)c1NC(=O)CCl', 'Cc1cccc(C)c1NC(=O)CN',
-                             [[10.0, '', 'O=C(Cl)C(=O)Cl', '', 2.0, -1]], mincount=25, forward_scorer=gc.templatebased,
-                             batch_size=1000, nproc=16)
-    print res
+    # res = evaluator.evaluate('Cc1cccc(C)c1NC(=O)CCl.N', 'Cc1cccc(C)c1NC(=O)CN',
+    #                          [[10.0, '', 'N', '', 2.0, -1]], mincount=25, forward_scorer=gc.templatebased,
+    #                          batch_size=1000, nproc=16)
+    # print res
     
-    res = evaluator.evaluate('Cc1cccc(C)c1NC(=O)CCl', 'Cc1cccc(C)c1NC(=O)CN', ['unk.'], forward_scorer=gc.templatefree)
+    res = evaluator.evaluate('O=C1CCCCCCC1.OO', 'O=C1CCCCCCCO1', ['unk.'], forward_scorer=gc.templatefree)
     print(res)
+
+    # ## the specificationo of other parameters should be automatically ignored if useing fastfilter
+    # res = evaluator.evaluate('[ClH:8].[O:6]=[CH2:7].[s:1]1[cH:2][cH:3][cH:4][cH:5]1', 'O=Cc1cccs1',
+    #                          [[10.0, '', 'O=C(Cl)C(=O)Cl', '', 2.0, -1]], mincount=25, forward_scorer=gc.fastfilter,
+    #                          batch_size=1000, nproc=16)
+    # print res
+    
+    # res = evaluator.evaluate('Cc1cccc(C)c1NC(=O)CCl', 'Cc1cccc(C)c1NC(=O)CN', ['unk.'], forward_scorer=gc.fastfilter)
+    # print(res)
+    
     '''
     a = []
     for batch_size in range(250,1000,250):

@@ -25,8 +25,9 @@ class MAKEIT:
     def __init__(self, target_product, expansion_time, max_depth, max_branching, max_trees, retro_mincount, retro_mincount_chiral,
                  synth_mincount, rank_threshold_inclusion, prob_threshold_inclusion, max_total_contexts, template_count,
                  max_ppg, output_dir, chiral, nproc, celery, context_recommender, forward_scoring_method,
-                 tree_scoring_method, context_prioritization, template_prioritization, precursor_prioritization,
-                 parallel_tree, precursor_score_mode, max_cum_template_prob):
+                 tree_scoring_method, context_prioritization, template_prioritization, precursor_prioritization, 
+                 parallel_tree, precursor_score_mode, max_cum_template_prob, apply_fast_filter, filter_threshold):
+
 
         self.target_product = target_product
         self.expansion_time = expansion_time
@@ -59,6 +60,9 @@ class MAKEIT:
         self.known_bad_reactions = []
         self.template_count = template_count
         self.parallel_tree = parallel_tree
+        self.apply_fast_filter = apply_fast_filter
+        self.filter_threshold = filter_threshold
+
 
     def construct_buyable_trees(self):
 
@@ -81,13 +85,14 @@ class MAKEIT:
             tree_builder = TreeBuilder(celery=self.celery, mincount=self.retro_mincount,
                                        mincount_chiral=self.retro_mincount_chiral, chiral=self.chiral)
 
-            buyable_trees = tree_builder.get_buyable_paths(self.smiles, template_prioritization=self.template_prioritization,
-                                                           precursor_prioritization=self.precursor_prioritization, nproc=self.nproc,
-                                                           max_depth=self.max_depth, max_branching=self.max_branching, max_ppg=self.max_ppg,
-                                                           mincount=self.retro_mincount, chiral=self.chiral, max_trees=self.max_trees,
-                                                           known_bad_reactions=self.known_bad_reactions, expansion_time=self.expansion_time,
-                                                           template_count=self.template_count, precursor_score_mode=self.precursor_score_mode,
-                                                           max_cum_template_prob=self.max_cum_template_prob)
+            buyable_trees = treeBuilder.get_buyable_paths(self.smiles, template_prioritization=self.template_prioritization,
+                                                          precursor_prioritization=self.precursor_prioritization, nproc=self.nproc,
+                                                          max_depth=self.max_depth, max_branching=self.max_branching, max_ppg=self.max_ppg,
+                                                          mincount=self.retro_mincount, chiral=self.chiral, max_trees=self.max_trees,
+                                                          known_bad_reactions=self.known_bad_reactions, expansion_time=self.expansion_time,
+                                                          template_count = self.template_count, precursor_score_mode=self.precursor_score_mode,
+                                                          max_cum_template_prob = self.max_cum_template_prob,apply_fast_filter= self.apply_fast_filter,
+                                                          filter_threshold=self.filter_threshold)
 
         return buyable_trees
 
@@ -177,7 +182,7 @@ def find_synthesis():
                     args.output, args.chiral, args.nproc, args.celery, args.context_recommender,
                     args.forward_scoring, args.tree_scoring, args.context_prioritization,
                     args.template_prioritization, args.precursor_prioritization, args.parallel_tree,
-                    args.precursor_score_mode, args.max_cum_template_prob)
+                    args.precursor_score_mode, args.max_cum_template_prob, args.apply_fast_filter, args.filter_threshold)
     MyLogger.initialize_logFile(makeit.output_dir_root, makeit.case_dir)
 
     tree_status, trees = makeit.construct_buyable_trees()
