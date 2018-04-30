@@ -55,13 +55,17 @@ $('#blacklisted_chemicals').on('click', '.toggle_activation', function () {
 
 {% block page_body %}
 
+<p>The following table lists chemicals that you have identified as problematic in some way; any compounds listed as <u>active</u> will be excluded from future expansions by the Tree Builder. You can delete or deactivate any of these banned chemicals at any time.</p>
+
+<p>To add a chemical to the ban list, hold your mouse over a chemical node in the results of a Tree Builder expansion. Click on the <i>blacklist</i> link in the upper-right corner.</p>
+
 {% if blacklisted_chemicals %}
 <table class="table" id="blacklisted_chemicals">
 <tr>
 	<th width="10%">Active</th>
 	<th width="15%">Created</th>
-	<th width="50%">Chemical</th>
-	<th width="20%">Description</th>
+	<th width="40%">Chemical</th>
+	<th width="30%">Description</th>
     <th width="5%">Delete</th>
 </th>
 {% for blacklisted_chemical in blacklisted_chemicals %}
@@ -75,7 +79,8 @@ $('#blacklisted_chemicals').on('click', '.toggle_activation', function () {
 {% endfor %}
 </table>
 {% else %}
-Looks like there's nothing here!
+<br>
+<p>Looks like there's nothing here!</p>
 {% endif %}
 
 {% endblock %}

@@ -27,6 +27,7 @@ urlpatterns += [
 
     # Homepage
     url(r'^$', main.views.index, name='index'),
+    url(ur'^modules/$', main.views.modules, name='modules'),
 
     # Retrosynthesis
     url(r'^retro/$', main.views.retro, name='retro_home'),

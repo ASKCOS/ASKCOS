@@ -1,24 +1,41 @@
+html {
+    position: relative;
+    min-height: 100%;
+}
 body {
     font-family: sans-serif;
     font-size: 10pt;
     margin: 0;
+    margin-bottom:16pt;
+}
+.footer {
+    position:absolute;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    background-color: #222222;
+    color: #9D9D9D;
+    font-size: 8pt;
+    height: 16pt;
+    line-height:16pt;
 }
 
 /* Colors */
 
 body, #document {
-    background-color: #F0F0F0;
-}
+/*    background-color: #F0F0F0;
+*/}
 
 #main {
-    background-color: #FFFFFF;
+/*    background-color: #FFFFFF;
     border: 1px solid #0000A0;
-    border-right: 0px;
+    border-right: 0px;*/
 }
 
 h1, h2, h3 {
       color: #333333;
 }
+
 /*a, #logo {
     color: #993333;
 }*/
@@ -46,6 +63,10 @@ a:hover {
     margin-right: 0px;
     border-radius: 0px 0px 0 0;
     border-color: transparent;
+}
+
+.nav-tabs {
+    border-bottom: 0px;
 }
 
 .tooltip-inner {
@@ -79,14 +100,15 @@ a:hover {
 
 /* Headings */
 
-h1, h2, h3 {
+h2, h3 {
     margin: 0pt 0pt 12pt 0pt;
     font-weight: normal;
 }
 
-h1 {
+/*h1 {
     font-size: 200%;
-}
+    margin-top: 6pt;
+}*/
 
 h2 {
     font-size: 150%;
@@ -123,16 +145,13 @@ h3 {
     font-size: 80%;
 }
 
-#navbar, #main, #contents {
-    padding: 4px;
-}
 
-html, body, #document, #mainbar {
+/*html, body, #document, #mainbar {
     height: 100%;
 }
 #main {
     min-height: 90%;
-}
+}*/
 
 /* Header and footer */
 
@@ -141,12 +160,7 @@ html, body, #document, #mainbar {
     font-size: 80%;
 }
 
-#header, #footer {
-    text-align: right;
-}
-/*#header > .dropdown:hover > ul.dropdown-menu {
-    display: block;    
-}*/
+
 
 #footer {
     text-align: center;
@@ -171,6 +185,10 @@ html, body, #document, #mainbar {
     vertical-align: top;
     font-style: italic;
     padding:5px;
+}
+
+.nav-side-custom > li {
+    padding: 15px;
 }
 
 #sidebar img {
@@ -495,4 +513,21 @@ input::-webkit-inner-spin-button {
 }
 [data-toggle="collapse"]:not(.collapsed) .if-collapsed {
     display:none;
+}
+
+
+
+
+
+
+
+/* Override jumbotron font sizes */
+.jumbotron h1 {
+    font-size: 32pt;
+}
+.jumbotron p.lead {
+    font-size: 16pt;
+}
+.jumbotron p {
+    font-size: 10pt;
 }

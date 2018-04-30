@@ -53,7 +53,7 @@ def ajax_rxn_to_image(request):
     return JsonResponse(data)
 
 
-@login_required
+# @login_required
 def draw_smiles(request, smiles):
     '''
     Returns a png response for a target smiles
@@ -75,7 +75,7 @@ def draw_template(request, template):
     return response
 
 
-@login_required
+# @login_required
 def draw_reaction(request, smiles):
     '''
     Returns a png response for a SMILES reaction string

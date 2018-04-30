@@ -55,6 +55,10 @@ $('#blacklisted_reactions').on('click', '.toggle_activation', function () {
 
 {% block page_body %}
 
+<p>The following table lists reactions that you have identified as problematic in some way; any compounds listed as <u>active</u> will be excluded from future expansions by the Tree Builder. You can delete or deactivate any of these banned reactions at any time.</p>
+
+<p>To add a reaction to the ban list, hold your mouse over a reaction node in the results of a Tree Builder expansion. Click on the <i>blacklist</i> link in the upper-right corner.</p>
+
 {% if blacklisted_reactions %}
 <table class="table" id="blacklisted_reactions">
 <tr>
@@ -75,7 +79,8 @@ $('#blacklisted_reactions').on('click', '.toggle_activation', function () {
 {% endfor %}
 </table>
 {% else %}
-Looks like there's nothing here!
+<br>
+<p>Looks like there's nothing here!</p>
 {% endif %}
 
 {% endblock %}

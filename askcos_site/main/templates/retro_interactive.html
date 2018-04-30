@@ -297,7 +297,7 @@ $(document).ready(function() {
     <td>
         <select id="id_precursor_prioritization" name="precursor_prioritization">
             <option value="Heuristic" {% if precursor_prioritization == 'Heuristic' %}selected{% endif %}>Heuristic</option>
-            <option value="RelevanceHeuristic" {% if form.precursor_prioritization == 'RelevanceHeuristic' %}selected{% endif %}>Relevance+Heuristic</option>
+            <option value="RelevanceHeuristic" {% if precursor_prioritization == 'RelevanceHeuristic' %}selected{% endif %}>Relevance+Heuristic</option>
             <option value="SCScore" {% if precursor_prioritization == 'SCScore' %}selected{% endif %}>SCScore</option>
             <option value="Natural" {% if precursor_prioritization == 'Natural' %}selected{% endif %}>Natural</option>
         </select>
