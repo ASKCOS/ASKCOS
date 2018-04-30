@@ -1,4 +1,4 @@
-from __future__ import print_function 
+from __future__ import print_function
 import os
 import time
 import makeit.global_config as gc
@@ -22,13 +22,13 @@ class MAKEIT:
      - Returns all (or some) of the likely synthetic routes
     '''
 
-    def __init__(self, TARGET, expansion_time, max_depth, max_branching, max_trees, retro_mincount, retro_mincount_chiral,
+    def __init__(self, target_product, expansion_time, max_depth, max_branching, max_trees, retro_mincount, retro_mincount_chiral,
                  synth_mincount, rank_threshold_inclusion, prob_threshold_inclusion, max_total_contexts, template_count,
                  max_ppg, output_dir, chiral, nproc, celery, context_recommender, forward_scoring_method,
-                 tree_scoring_method, context_prioritization, template_prioritization, precursor_prioritization, 
+                 tree_scoring_method, context_prioritization, template_prioritization, precursor_prioritization,
                  parallel_tree, precursor_score_mode, max_cum_template_prob):
 
-        self.TARGET = TARGET
+        self.target_product = target_product
         self.expansion_time = expansion_time
         self.max_depth = max_depth
         self.max_branching = max_branching
@@ -47,19 +47,19 @@ class MAKEIT:
         self.max_total_contexts = max_total_contexts
         self.precursor_score_mode = precursor_score_mode
         self.max_ppg = max_ppg
-        self.mol = name_parser.name_to_molecule(TARGET)
+        self.mol = name_parser.name_to_molecule(target_product)
         self.max_cum_template_prob = max_cum_template_prob
         self.smiles = Chem.MolToSmiles(self.mol)
-        self.ROOT = files.make_directory(output_dir)
+        self.output_dir_root = files.make_directory(output_dir)
         self.case_dir = files.make_directory(
-            '{}/{}'.format(self.ROOT, self.TARGET))
+            '{}/{}'.format(self.output_dir_root, self.target_product))
         self.nproc = nproc
         self.celery = celery
         self.chiral = chiral
         self.known_bad_reactions = []
         self.template_count = template_count
         self.parallel_tree = parallel_tree
-        
+
     def construct_buyable_trees(self):
 
         if self.celery:  # Call celery worker
@@ -68,9 +68,9 @@ class MAKEIT:
                                                 kwargs={'mincount': self.retro_mincount, 'max_branching': self.max_branching,
                                                         'max_depth': self.max_depth, 'max_ppg': self.max_ppg, 'max_time': self.expansion_time,
                                                         'max_trees': self.max_trees, 'known_bad_reactions': self.known_bad_reactions,
-                                                        'chiral': self.chiral, 'template_count':self.template_count,
-                                                        'precursor_score_mode':self.precursor_score_mode,
-                                                        'max_cum_template_prob':self.max_cum_template_prob})
+                                                        'chiral': self.chiral, 'template_count': self.template_count,
+                                                        'precursor_score_mode': self.precursor_score_mode,
+                                                        'max_cum_template_prob': self.max_cum_template_prob})
 
             while not res.ready():
                 if int(time.time() - working) % 10 == 0:
@@ -78,16 +78,16 @@ class MAKEIT:
                 time.sleep(1)
             buyable_trees = res.get()
         else:  # Create tree builder object and run it
-            treeBuilder = TreeBuilder(celery=self.celery, mincount=self.retro_mincount,
-                                      mincount_chiral=self.retro_mincount_chiral, chiral=self.chiral)
+            tree_builder = TreeBuilder(celery=self.celery, mincount=self.retro_mincount,
+                                       mincount_chiral=self.retro_mincount_chiral, chiral=self.chiral)
 
-            buyable_trees = treeBuilder.get_buyable_paths(self.smiles, template_prioritization=self.template_prioritization,
-                                                          precursor_prioritization=self.precursor_prioritization, nproc=self.nproc,
-                                                          max_depth=self.max_depth, max_branching=self.max_branching, max_ppg=self.max_ppg,
-                                                          mincount=self.retro_mincount, chiral=self.chiral, max_trees=self.max_trees,
-                                                          known_bad_reactions=self.known_bad_reactions, expansion_time=self.expansion_time,
-                                                          template_count = self.template_count, precursor_score_mode=self.precursor_score_mode,
-                                                          max_cum_template_prob = self.max_cum_template_prob)
+            buyable_trees = tree_builder.get_buyable_paths(self.smiles, template_prioritization=self.template_prioritization,
+                                                           precursor_prioritization=self.precursor_prioritization, nproc=self.nproc,
+                                                           max_depth=self.max_depth, max_branching=self.max_branching, max_ppg=self.max_ppg,
+                                                           mincount=self.retro_mincount, chiral=self.chiral, max_trees=self.max_trees,
+                                                           known_bad_reactions=self.known_bad_reactions, expansion_time=self.expansion_time,
+                                                           template_count=self.template_count, precursor_score_mode=self.precursor_score_mode,
+                                                           max_cum_template_prob=self.max_cum_template_prob)
 
         return buyable_trees
 
@@ -102,7 +102,7 @@ class MAKEIT:
                                                                     'prob_threshold': self.prob_threshold_inclusion,
                                                                     'mincount': self.synth_mincount,
                                                                     'batch_size': 500, 'n': self.max_total_contexts,
-                                                                    'template_count':self.template_count,
+                                                                    'template_count': self.template_count,
                                                                     })
             while not res.ready():
                 if int(time.time() - working) % 10 == 0:
@@ -125,14 +125,14 @@ class MAKEIT:
             else:
                 nproc_t = max(1, self.nproc)
                 nproc = 1
-            treeEvaluator = TreeEvaluator(
+            tree_evaluator = TreeEvaluator(
                 celery=False, context_recommender=self.context_recommender)
-            evaluated_trees = treeEvaluator.evaluate_trees(trees, context_recommender=self.context_recommender, context_scoring_method=self.context_prioritization,
-                                                           forward_scoring_method=self.forward_scoring_method, tree_scoring_method=self.tree_scoring_method,
-                                                           rank_threshold=self.rank_threshold_inclusion, prob_threshold=self.prob_threshold_inclusion,
-                                                           mincount=self.synth_mincount, batch_size=500, n=self.max_total_contexts, nproc_t=nproc_t,
-                                                           nproc=nproc, parallel=self.parallel_tree, template_count = self.template_count,
-                                                           )
+            evaluated_trees = tree_evaluator.evaluate_trees(trees, context_recommender=self.context_recommender, context_scoring_method=self.context_prioritization,
+                                                            forward_scoring_method=self.forward_scoring_method, tree_scoring_method=self.tree_scoring_method,
+                                                            rank_threshold=self.rank_threshold_inclusion, prob_threshold=self.prob_threshold_inclusion,
+                                                            mincount=self.synth_mincount, batch_size=500, n=self.max_total_contexts, nproc_t=nproc_t,
+                                                            nproc=nproc, parallel=self.parallel_tree, template_count=self.template_count,
+                                                            )
         plausible_trees = []
         print(evaluated_trees)
         for tree in evaluated_trees:
@@ -150,30 +150,35 @@ class MAKEIT:
 
 
 def print_at_depth(chemical_node, depth=1, writefunc=lambda x: print(x), delim=' ', img=False):
-    writefunc('{}(${}/g) {}'.format(depth*4*delim, chemical_node['ppg'], chemical_node['smiles']))
+    writefunc('{}(${}/g) {}'.format(depth*4*delim,
+                                    chemical_node['ppg'], chemical_node['smiles']))
     if chemical_node['children']:
         rxn = chemical_node['children'][0]
         if img:
-            writefunc('{}<img src="http://askcos.mit.edu/draw/reaction/{}">'.format((depth*4+4)*delim, rxn['smiles']))
+            writefunc('{}<img src="http://askcos.mit.edu/draw/reaction/{}">'.format(
+                (depth*4+4)*delim, rxn['smiles']))
         writefunc('{}smiles : {}'.format((depth*4+4)*delim, rxn['smiles']))
-        writefunc('{}num ex : {}'.format((depth*4+4)*delim, rxn['num_examples']))
+        writefunc('{}num ex : {}'.format(
+            (depth*4+4)*delim, rxn['num_examples']))
         writefunc('{}context: {}'.format((depth*4+4)*delim, rxn['context']))
-        writefunc('{}score  : {}'.format((depth*4+4)*delim, rxn['forward_score']))
+        writefunc('{}score  : {}'.format(
+            (depth*4+4)*delim, rxn['forward_score']))
         for child_node in rxn['children']:
-            print_at_depth(child_node, depth=depth+1, writefunc=writefunc, delim=delim, img=img)
+            print_at_depth(child_node, depth=depth+1,
+                           writefunc=writefunc, delim=delim, img=img)
 
 
 def find_synthesis():
 
     args = arg_parser.get_args()
-    makeit = MAKEIT(args.TARGET, args.expansion_time, args.max_depth, args.max_branching,
+    makeit = MAKEIT(args.target_product, args.expansion_time, args.max_depth, args.max_branching,
                     args.max_trees, args.retro_mincount, args.retro_mincount_chiral, args.synth_mincount,
                     args.rank_threshold, args.prob_threshold, args.max_contexts, args.template_count, args.max_ppg,
                     args.output, args.chiral, args.nproc, args.celery, args.context_recommender,
                     args.forward_scoring, args.tree_scoring, args.context_prioritization,
                     args.template_prioritization, args.precursor_prioritization, args.parallel_tree,
                     args.precursor_score_mode, args.max_cum_template_prob)
-    MyLogger.initialize_logFile(makeit.ROOT, makeit.case_dir)
+    MyLogger.initialize_logFile(makeit.output_dir_root, makeit.case_dir)
 
     tree_status, trees = makeit.construct_buyable_trees()
     MyLogger.print_and_log(
@@ -182,25 +187,27 @@ def find_synthesis():
     MyLogger.print_and_log('MAKEIT found {} tree(s) that are(is) likely to result in a successful synthesis.'.format(
         len(feasible_trees)), makeit_loc)
 
-
-    writefunc = lambda string: MyLogger.print_and_log(string, makeit_loc)
+    def writefunc(string): return MyLogger.print_and_log(string, makeit_loc)
     for i, feasible_tree in enumerate(sorted(feasible_trees, key=lambda x: x['score'], reverse=True)):
         MyLogger.print_and_log('', makeit_loc)
         MyLogger.print_and_log('Feasible tree {}, plausible = {}, overall score = {}'.format(i+1,
-                feasible_tree['plausible'], feasible_tree['score']), makeit_loc)
+                                                                                             feasible_tree['plausible'], feasible_tree['score']), makeit_loc)
         print_at_depth(feasible_tree['tree'], writefunc=writefunc)
-    
-    with open(os.path.join(makeit.ROOT, '{}_trees.html'.format(makeit.case_dir)), 'w') as fid:
-        writefunc = lambda string: fid.write('{}<br>\n'.format(string))
-        fid.write('<html><title>Results for {}</title>\n'.format(args.TARGET))
+
+    with open(os.path.join(makeit.output_dir_root, '{}_trees.html'.format(makeit.case_dir)), 'w') as fid:
+        def writefunc(string): return fid.write('{}<br>\n'.format(string))
+        fid.write(
+            '<html><title>Results for {}</title>\n'.format(args.target_product))
         fid.write('<body>\n')
-        fid.write('<h1>{}</h1><br>\n'.format(args.TARGET))
+        fid.write('<h1>{}</h1><br>\n'.format(args.target_product))
         fid.write('<i><b>Settings: </b>{}</i><br>\n'.format(args.__dict__))
         for i, feasible_tree in enumerate(sorted(feasible_trees, key=lambda x: x['score'], reverse=True)):
             writefunc('<h3>Feasible tree {}, plausible = {}, overall score = {}</h3><br>'.format(i+1,
-                feasible_tree['plausible'], feasible_tree['score']))
-            print_at_depth(feasible_tree['tree'], writefunc=writefunc, delim='&nbsp;', img=True)
+                                                                                                 feasible_tree['plausible'], feasible_tree['score']))
+            print_at_depth(
+                feasible_tree['tree'], writefunc=writefunc, delim='&nbsp;', img=True)
         fid.write('</body>\n')
+
 
 if __name__ == '__main__':
     find_synthesis()
