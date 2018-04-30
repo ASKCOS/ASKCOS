@@ -145,7 +145,7 @@ PREDICTOR = {
 }
 
 FAST_FILTER_MODEL = {
-    'trained_model_path': os.path.join(os.path.dirname(__file__), 'data', 'fast_filter'),
+    'trained_model_path': os.path.join(os.path.dirname(__file__), 'data', 'fast_filter','my_model.h5'),
 }
 #Hard coded mincounts to maintain compatibility of the relevance method
 Relevance_Prioritization = {

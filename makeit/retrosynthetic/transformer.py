@@ -21,7 +21,7 @@ from makeit.prioritization.precursors.scscore import SCScorePrecursorPrioritizer
 from makeit.prioritization.templates.popularity import PopularityTemplatePrioritizer
 from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
 from makeit.prioritization.default import DefaultPrioritizer
-from makeit.synthetic.evaluation.Fast_filter import FastFilterScorer
+from makeit.synthetic.evaluation.fast_filter import FastFilterScorer
 from rdchiral.main import rdchiralRun
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 retro_transformer_loc = 'retro_transformer'
@@ -123,7 +123,7 @@ class RetroTransformer(TemplateTransformer):
         if (apply_fast_filter and not self.fast_filter):
             self.fast_filter = FastFilterScorer()
             # self.fast_filter.set_keras_backend('theano')
-            self.fast_filter.load(model_path =gc.FAST_FILTER_MODEL['trained_model_path']+'/my_model.h5')
+            self.fast_filter.load(model_path =gc.FAST_FILTER_MODEL['trained_model_path'])
             # print('loaded fastfilter')
 
         (precursor_prioritizer, template_prioritizer) = prioritizers

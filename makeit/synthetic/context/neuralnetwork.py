@@ -136,14 +136,14 @@ class NeuralNetContextRecommender(ContextRecommender):
         try:
             rsmi = rxn.split('>>')[0]
             psmi = rxn.split('>>')[1]
-            rct_mol = Chem.MolFromSmiles(rsmi)
-            prd_mol = Chem.MolFromSmiles(psmi)
-            [atom.ClearProp('molAtomMapNumber')for \
-                    atom in rct_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
-            [atom.ClearProp('molAtomMapNumber')for \
-                    atom in prd_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
-            rsmi = Chem.MolToSmiles(rct_mol)
-            psmi = Chem.MolToSmiles(prd_mol)
+            # rct_mol = Chem.MolFromSmiles(rsmi)
+            # prd_mol = Chem.MolFromSmiles(psmi)
+            # [atom.ClearProp('molAtomMapNumber')for \
+            #         atom in rct_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
+            # [atom.ClearProp('molAtomMapNumber')for \
+            #         atom in prd_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
+            # rsmi = Chem.MolToSmiles(rct_mol)
+            # psmi = Chem.MolToSmiles(prd_mol)
 
             [pfp, rfp] = fp.create_rxn_Morgan2FP_separately(
                 rsmi, psmi, rxnfpsize=self.fp_size, pfpsize=self.fp_size, useFeatures=False, calculate_rfp=True)
@@ -353,11 +353,11 @@ class NeuralNetContextRecommender(ContextRecommender):
 if __name__ == '__main__':
     cont = NeuralNetContextRecommender()
     # cont.load_nn_model(model_path = "/home/hanyug/Make-It/makeit/context_pred/model/c_s_r_fullset/model.json", info_path = "/home/hanyug/Make-It/makeit/context_pred/preprocessed_data/separate/fullset2048/", weights_path="/home/hanyug/Make-It/makeit/context_pred/model/c_s_r_fullset/weights.h5")
-    # cont.load_nn_model(model_path=gc.NEURALNET_CONTEXT_REC['model_path'], info_path=gc.NEURALNET_CONTEXT_REC[
-    #                    'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path'])
+    cont.load_nn_model(model_path=gc.NEURALNET_CONTEXT_REC['model_path'], info_path=gc.NEURALNET_CONTEXT_REC[
+                       'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path'])
     # # cont.load_nn_model(model_path = "/home/hanyug/Make-It/makeit/context_pred/model/c_s_r/model.json", info_path = "/home/hanyug/Make-It/makeit/context_pred/preprocessed_data/separate/10Msubset/", weights_path="/home/hanyug/Make-It/makeit/context_pred/model/c_s_r/weights.h5")
-    cont.load_nn_model(model_path="/home/hanyug/Make-It/makeit/context_pred/model/michael/model.json", info_path=gc.NEURALNET_CONTEXT_REC[
-                   'info_path'], weights_path="/home/hanyug/Make-It/makeit/context_pred/model/michael/best_weights.h5")
+    # cont.load_nn_model(model_path="/home/hanyug/Make-It/makeit/context_pred/model/michael/model.json", info_path=gc.NEURALNET_CONTEXT_REC[
+    #                'info_path'], weights_path="/home/hanyug/Make-It/makeit/context_pred/model/michael/best_weights.h5")
 
     print('CC(C)CO>>CC(C)C=O')
     print cont.get_n_conditions('CCCO>>CCC=O', 10)
