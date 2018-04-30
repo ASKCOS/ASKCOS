@@ -21,6 +21,7 @@ CORRESPONDING_QUEUE = 'tb_c_worker'
 CORRESPONDING_RESERVABLE_QUEUE = 'tb_c_worker_reservable'
 retroTransformer = None
 
+
 @celeryd_init.connect
 def configure_worker(options={}, **kwargs):
 
@@ -45,8 +46,8 @@ def configure_worker(options={}, **kwargs):
 
 
 @shared_task
-def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=0, 
-                       max_branching=20, template_count = 10000, mode=gc.max,max_cum_prob=1):
+def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=0,
+                       max_branching=20, template_count=10000, mode=gc.max, max_cum_prob=1, apply_fast_filter=False, filter_threshold=0.8):
     '''Get the precursors for a chemical defined by its SMILES
 
     smiles = SMILES of node to expand
@@ -56,18 +57,17 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
     template_prioritizer = keyword for which prioritization method for the templates should be used, keywords can be found in global_config
     precursor_prioritizer = keyword for which prioritization method for the precursors should be used.'''
 
-
-    #print('Treebuilder worker was asked to expand {} (mincount {}, branching {}) using {} and {}'.format(
+    # print('Treebuilder worker was asked to expand {} (mincount {}, branching {}) using {} and {}'.format(
     #    smiles, mincount, max_branching, template_prioritizer, precursor_prioritizer
     #))
 
-
     global retroTransformer
     result = retroTransformer.get_outcomes(
-        smiles, mincount, (precursor_prioritizer, template_prioritizer), template_count = template_count, mode=mode,
-        max_cum_prob=max_cum_prob)
+        smiles, mincount, (precursor_prioritizer,
+                           template_prioritizer), template_count=template_count, mode=mode,
+        max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
 
-    #print(result)
+    # print(result)
 
     precursors = result.return_top(n=max_branching)
     return (smiles, precursors)

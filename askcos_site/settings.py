@@ -27,7 +27,7 @@ from askcos_celery.celeryconfig import *
 SECRET_KEY = 'px$*ir)-wd=x6^!r++t53ik^2)z7!9cvw+m#@!-$ut@xjyjtg*'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['askcos.mit.edu']
 
@@ -104,8 +104,8 @@ REGISTRATION_NOTIFICATION_RECIPIENTS = ['ccoley@mit.edu']
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        #'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        'NAME': os.path.join('/data', 'www-data', 'db.sqlite3'),
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        # 'NAME': os.path.join('/data', 'www-data', 'db.sqlite3'),
     }
 }
 # AUTHENTICATION_BACKENDS = (
@@ -214,9 +214,9 @@ CONTEXT_REC = {
 }
 
 LOCAL_STORAGE = {
-    'root': '/data/www-data',
-    'dir': '/data/www-data/local_db_dumps',
-    'user_saves': '/data/www-data/user_saves',
+    'root': BASE_DIR,
+    'dir': os.path.join(BASE_DIR, 'local_db_dumps'),
+    'user_saves': os.path.join(BASE_DIR, 'user_saves'),
 }
 
 # For searching "old" templates
