@@ -74,7 +74,9 @@ class MAKEIT:
                                                         'max_trees': self.max_trees, 'known_bad_reactions': self.known_bad_reactions,
                                                         'chiral': self.chiral, 'template_count': self.template_count,
                                                         'precursor_score_mode': self.precursor_score_mode,
-                                                        'max_cum_template_prob': self.max_cum_template_prob})
+                                                        'max_cum_template_prob': self.max_cum_template_prob,
+                                                        'apply_fast_filter': self.apply_fast_filter,
+                                                        'filter_threshold': self.filter_threshold})
 
             while not res.ready():
                 if int(time.time() - working) % 10 == 0:
