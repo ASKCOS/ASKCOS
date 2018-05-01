@@ -39,6 +39,8 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
     context['form']['precursor_prioritization'] = request.session.get('precursor_prioritization', 'RelevanceHeuristic')
     context['form']['template_count'] = request.session.get('template_count', '100')
     context['form']['max_cum_prob'] = request.session.get('max_cum_prob', '0.995')
+    context['form']['filter_threshold'] = request.session.get('filter_threshold', '0.1')
+
     print(request)
     if request.method == 'POST':
         print(request)
@@ -49,12 +51,16 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         context['form']['precursor_prioritization'] = str(
             request.POST['precursor_prioritization'])
         request.session['precursor_prioritization'] = context['form']['precursor_prioritization']
+
         if 'template_count' in request.POST:
             context['form']['template_count'] = str(request.POST['template_count'])
             request.session['template_count'] = context['form']['template_count']
         if 'max_cum_prob' in request.POST:
             context['form']['max_cum_prob'] = str(request.POST['max_cum_prob'])
             request.session['max_cum_prob'] = context['form']['max_cum_prob']
+        if 'filter_threshold' in request.POST:
+            context['form']['filter_threshold'] = str(request.POST['filter_threshold'])
+            request.session['filter_threshold'] = context['form']['filter_threshold']
 
         smiles = resolve_smiles(smiles)
         if smiles is None:
@@ -81,7 +87,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         context['form']['smiles'] = smiles
         template_prioritization = context['form']['template_prioritization']
         precursor_prioritization = context['form']['precursor_prioritization']
-
+        filter_threshold = context['form']['filter_threshold']
 
         try:
             template_count = int(context['form']['template_count'])
@@ -99,6 +105,16 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             context['err'] = 'Invalid maximum cumulative probability specified!'
             return render(request, 'retro.html', context)
 
+        try:
+            filter_threshold = float(context['form']['filter_threshold'])
+            filter_threshold = min(1, filter_threshold)
+            filter_threshold = max(0, filter_threshold)
+            apply_fast_filter = filter_threshold > 0
+        except ValueError:
+            context['err'] = 'Invalid filter threshold specified!'
+            return render(request, 'retro.html', context)
+
+
         if template_prioritization == 'Popularity':
             template_count = 1e9
 
@@ -108,13 +124,14 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         print(precursor_prioritization)
         print(template_count)
         print(max_cum_prob)
+        print(filter_threshold)
 
         startTime = time.time()
         if chiral:
             
             res = get_top_precursors_c.delay(
                 smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=max_n,
-                template_count=template_count, max_cum_prob=max_cum_prob, apply_fast_filter=True, filter_threshold=0.8)
+                template_count=template_count, max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
             (smiles, precursors) = res.get(300)
             # allow up to 5 minutes...can be pretty slow
             context['precursors'] = precursors
@@ -123,7 +140,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             
             # Use apply_async so we can force high priority
             res = get_top_precursors.delay(smiles, template_prioritization, precursor_prioritization,
-                mincount=0, max_branching=max_n, template_count=template_count, max_cum_prob=max_cum_prob, apply_fast_filter=True, filter_threshold=0.8)
+                mincount=0, max_branching=max_n, template_count=template_count, max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
             context['precursors'] = res.get(120)
             context['footnote'] = RETRO_FOOTNOTE
         context['time'] = '%0.3f' % (time.time() - startTime)
@@ -200,6 +217,7 @@ def retro_interactive(request, target=None):
     context['max_cum_prob_default'] = 0.995
     context['precursor_prioritization'] = 'RelevanceHeuristic'
     context['forward_scorer'] = 'Template_Free'
+    context['filter_threshold_default'] = 0.1
 
     if target is not None:
         context['target_mol'] = target
@@ -234,6 +252,9 @@ def ajax_start_retro_celery(request):
     min_chempop_reactants = int(request.GET.get('min_chempop_reactants', 5))
     min_chempop_products = int(request.GET.get('min_chempop_products', 5))
 
+    filter_threshold = float(request.GET.get('filter_threshold', 0.1))
+    apply_fast_filter = filter_threshold > 0
+
     blacklisted_reactions = list(set(
         [x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))
     forbidden_molecules = list(set(
@@ -266,7 +287,8 @@ def ajax_start_retro_celery(request):
                                   chiral=chiral, known_bad_reactions=blacklisted_reactions,
                                   forbidden_molecules=forbidden_molecules,
                                   max_cum_template_prob=max_cum_prob, template_count=template_count,
-                                  max_natom_dict=max_natom_dict, min_chemical_history_dict=min_chemical_history_dict)
+                                  max_natom_dict=max_natom_dict, min_chemical_history_dict=min_chemical_history_dict,
+                                  apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
     (tree_status, trees) = res.get(expansion_time * 3)
     
     # print(trees)

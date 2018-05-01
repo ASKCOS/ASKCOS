@@ -119,6 +119,7 @@ $("#start_retro").click(function () {
                 chemical_popularity_logic: $("#id_chemical_popularity_logic").val(),
                 min_chempop_reactants: $("#min_chempop_reactants").val(),
                 min_chempop_products: $("#min_chempop_products").val(),
+                filter_threshold: $("#filter_threshold").val(),
             },
             dataType: 'json',
             success: function (data) {
@@ -148,7 +149,9 @@ $('#results').on('click', '.rxn', function(){
         data: {
             smiles: smiles,
             synth_mincount: $("#synth_mincount").val(),
-            necessary_reagent: necessaryreagent
+            necessary_reagent: necessaryreagent,
+            forward_scorer: $("#id_forward_scorer").val(),
+
         },
         dataType: 'json',
         success: function (data) {
@@ -375,11 +378,16 @@ Min freq. as product: <input type="number" id="min_chempop_products" style="widt
 </tr>
 
 <tr><th>Evaluation settings: </th>
-     <td>Forward evaluation: <a href="#" data-toggle="tooltip" title="How would you like to evaluate reactions in the forward direction (after building the tree)? The template-based method is quite slow. The template-free method is faster, but is not condition-dependent (except when a retro transform has a necessary reagent)"><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td>Min. plausibility: <a href="#" data-toggle="tooltip" title="Minimum plausibility of each reaction to use as a filter during expansion. This uses a model trained to evaluate the likelihood that a proposed reaction is feasible under *any* set of conditions"><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td><input id="filter_threshold" maxlength="6" size="6" type="text" value="{{ filter_threshold_default }}"></td>
+</tr>
+<tr><th></th>
+     <td>Manual forward prediction: <a href="#" data-toggle="tooltip" title="How would you like to evaluate reactions in the forward direction (after building the tree)? The template-based method is quite slow. The template-free method is faster, but is not condition-dependent (except when a retro transform has a necessary reagent)"><span class="glyphicon glyphicon-info-sign"></span></a></td>
     <td>
         <select id="id_forward_scorer" name="forward_scorer" onchange="showFieldsEvaluation(this.options[this.selectedIndex].value)">
-            <option value="Template_Based" {% if forward_scorer == 'Template_Based' %}selected{% endif %}>Template-based</option>
+            <option value="Fast_Filter" {% if forward_scorer == 'Fast_Filter' %}selected{% endif %}>Fast filter</option>
             <option value="Template_Free" {% if forward_scorer == 'Template_Free' %}selected{% endif %}>Template-free</option>
+            <option value="Template_Based" {% if forward_scorer == 'Template_Based' %}selected{% endif %}>Template-based</option>
         </select>
     </td>
 <tr>

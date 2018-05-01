@@ -59,7 +59,7 @@ window.onload = function() {
         <td id="RelevanceSettings2">Max. cum. prob.: <input name="max_cum_prob" maxlength="6" size="6" type="text" value="{{ form.max_cum_prob }}"></td>
     </tr>
     <tr>
-        <th>Precursor scoring:</td>
+        <th>Precursor scoring:</th>
         <td>
             <select id="id_precursor_prioritization" name="precursor_prioritization">
                 <option value="Heuristic" {% if form.precursor_prioritization == 'Heuristic' %}selected{% endif %}>Heuristic</option>
@@ -69,6 +69,11 @@ window.onload = function() {
             </select>
         </td>
     </tr>
+    <tr>
+        <th></th>
+        <td>Min. plausibility: <input name="filter_threshold" maxlength="6" size="6" type="text" value="{{ form.filter_threshold }}"></td>
+    </tr>
+
     <th>{% csrf_token %}</th>
     <td>
         <!-- <input type="submit" value="Search (achiral)" name="retro"> -->
