@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}SCScore{% endblock %}
+{% block page_title %}SCScore evaluator{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'scscoring' %}">Pricer</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block javascript %}
+<script>
+$("#smiles").change(function () {
+    console.log( $(this).val() );
+    $("#results").hide();
+    $.ajax({
+        url: '/ajax/smiles_to_image/',
+        data: {
+            smiles: $(this).val(),
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data.err) {
+                $("#smiles_mol_wrapper").show();
+                $("#smiles_image").html('error! could not parse');
+            } else {
+                $("#smiles_image").html(data.html);
+                $("#smiles").val(data.smiles)
+                $("#smiles_mol_wrapper").show();
+                $("#get_scscore").trigger("click");
+            }
+        },
+    });
+
+});
+$("#get_scscore").click(function () {
+    console.log('getting scscore');
+    $.ajax({
+        url: '/ajax/scscore_smiles/',
+        data: {
+            smiles: $("#smiles").val(),
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data.err) {
+                alert(data.message);
+            } else {
+                $("#results").html(data.html);
+                $("#results").show();
+            }
+        }
+    });
+});
+// On load, if entries defined, switch it out
+$(document).ready(function() {
+    if ("{{smiles}}" != "") {
+        $("#smiles").val("{{smiles}}");
+        $("#smiles").trigger("change");
+    }
+});
+</script>
+{% endblock %}
+
+
+{% block page_body %}
+<p>The SCScore is a learned synthetic complexity metric trained on reactions from Reaxys. For details, see <a href="https://pubs.acs.org/doi/abs/10.1021/acs.jcim.7b00622" target="_blank">10.1021/acs.jcim.7b00622</a></p>
+
+<table class="table table-borderless table-nonfluid">
+<tr><th>Input chemical: </th><td><input id="smiles" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('smiles')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
+
+<!-- Placeholder for rendering image after a SMILES string is entered -->
+<tr id="smiles_mol_wrapper" style="display:none"><th style="vertical-align: text-top;">Parsed reactants:</th><td id="smiles_image"></td></tr>
+
+<tr><th>{% csrf_token %}</th></tr>
+
+
+<!-- Controls -->
+<tr id="controls_wrapper" style="display:none">
+<td colspan="2" style="width:100%">
+    <button type="button" style="width:100%" id="get_scscore">Look up</button>
+</td>
+</tr>
+</table>
+
+<!-- Results -->
+<br>
+<p id="results"></p>
+
+{% if footnote %}
+<br>
+<div style="font-size:smaller"><i>{{ footnote }}</i></div>
+{% endif %}
+
+
+<!-- drawing box -->
+{% include "drawing_modal.html" %}
+
+
+{% endblock %}

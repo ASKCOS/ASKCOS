@@ -27,7 +27,9 @@ urlpatterns += [
 
     # Homepage
     url(r'^$', main.views.index, name='index'),
-    url(ur'^modules/$', main.views.modules, name='modules'),
+    url(ur'^help/modules$', main.views.modules, name='modules'),
+    url(ur'^help/tutorial$', main.views.tutorial, name='tutorial'),
+    url(ur'^help/faq$', main.views.faq, name='faq'),
 
     # Retrosynthesis
     url(r'^retro/$', main.views.retro, name='retro_home'),
@@ -75,6 +77,10 @@ urlpatterns += [
     url(ur'^ajax/price_smiles/$', main.views.ajax_price_smiles, name='ajax_price_smiles'),
     url(ur'^price/smiles/(?P<smiles>.+)$', main.views.price_smiles, name='price_smiles'),
     url(ur'^price/xrn/(?P<xrn>.+)$', main.views.price_xrn, name='price_xrn'),
+
+    # SCScore
+    url(ur'^scscore/$', main.views.scscoring, name='scscoring'),
+    url(ur'^ajax/scscore_smiles/$', main.views.ajax_scscore_smiles, name='ajax_scscore_smiles'),
 
     # Drawing
     url(ur'^draw/$', main.views.draw, name='draw'),

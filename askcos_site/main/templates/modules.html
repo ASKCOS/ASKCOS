@@ -56,6 +56,13 @@
 </div>
 
  <div class="jumbotron">
+    <a href="{% url 'scscoring' %}"><h1 class="display-3">SCScore Evaluator</h1></a>
+    <p class="lead">Analyze a chemical's perceived synthetic complexity</p>
+    <hr class="my-4">
+    <p>This module is a utility to evaluate the SCScore (a learned synthetic complexity metric) for arbitrary target chemicals. The model was trained on reactions in Reaxys in an attempt to understand the nuance of synthetic complexity, e.g., when protections and deprotections are constructive. It is designed to perceive a monotonic increase in complexity throughout a linear synthesis.</p>
+</div>
+
+ <div class="jumbotron">
     <a href="{% url 'pricing' %}"><h1 class="display-3">Buyable Look-up</h1></a>
     <p class="lead">Check to see if a chemical is in the buyables database</p>
     <hr class="my-4">

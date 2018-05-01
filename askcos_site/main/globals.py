@@ -188,3 +188,8 @@ reactionhistorian = None
 # chemhistorian = ChemHistorian()
 # chemhistorian.load_from_file()
 chemhistorian = None
+
+from makeit.prioritization.precursors.scscore import SCScorePrecursorPrioritizer
+scscorer = SCScorePrecursorPrioritizer()
+scscorer.load_model(model_tag='1024bool')
+print('Loaded SCScorer on website')

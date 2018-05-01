@@ -58,6 +58,10 @@
                             <a href="{% url 'evaluate_rxnsmiles' %}">Reaction Evaluation</a>
                         </li>
 
+                        <li>
+                            <a href="{% url 'scscoring' %}">SCScore Evaluator</a>
+                        </li>
+
 
                         <li>
                             <a href="{% url 'pricing' %}">Buyable Look-up</a>
@@ -66,6 +70,15 @@
                         <li>
                             <a href="{% url 'draw' %}">Drawing</a>
                         </li>
+                    </ul>
+                </li>
+
+                <li class="dropdown">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span class="glyphicon glyphicon-question-sign"></span> Help
+                    <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="{% url 'faq' %}">FAQ</a></li>
+                        <li><a href="{% url 'tutorial' %}">Tutorial</a></li>
                     </ul>
                 </li>
 
@@ -79,7 +92,7 @@
                 </li>
 
                 <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span class="glyphicon glyphicon-remove-circle"></span> My Banlist
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span class="glyphicon glyphicon-ban-circle"></span> My Banlist
                     <span class="caret"></span></a>
                     <ul class="dropdown-menu">
                         <li><a href="{% url 'user_blacklisted_reactions' %}">View banned reactions</a></li>
@@ -136,7 +149,7 @@
                 - v0.1.1 was released after major rewrite 
                 - v0.1.2 was released when relevance prioritizer finished
                 - v0.1.3 was released when buyable database changed to ignore LabNetwork 
-                - v0.1.4 was released with massive UI overhaul   
+                - v0.1.4 was released with massive UI overhaul and integration of fast filter
                 -->
                 {% endblock %}
             </div>
