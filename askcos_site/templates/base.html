@@ -104,10 +104,14 @@
                 <li><a href="mailto:ccoley@mit.edu?subject=Feedback about askcos.mit.edu website"><span class="glyphicon glyphicon-comment"></span> Comment</a></li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
-                <li>
-                    <li><a href="/registration/password/change/">Change password</a>
+                <li class="dropdown">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span class="glyphicon glyphicon-cog"></span> Settings
+                    <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="/registration/password/change/">Change password</a></li>
+                        <li><a href="{% url 'logout' %}">Logout</a></li>
+                    </ul>
                 </li>
-                <li><a href="{% url 'logout' %}"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
             </ul>
             {% else %}
             <ul class="nav navbar-nav navbar-right">
