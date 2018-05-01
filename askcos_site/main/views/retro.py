@@ -39,7 +39,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
     context['form']['precursor_prioritization'] = request.session.get('precursor_prioritization', 'RelevanceHeuristic')
     context['form']['template_count'] = request.session.get('template_count', '100')
     context['form']['max_cum_prob'] = request.session.get('max_cum_prob', '0.995')
-    context['form']['filter_threshold'] = request.session.get('filter_threshold', '0.1')
+    context['form']['filter_threshold'] = request.session.get('filter_threshold', '0.8')
 
     print(request)
     if request.method == 'POST':
@@ -217,7 +217,7 @@ def retro_interactive(request, target=None):
     context['max_cum_prob_default'] = 0.995
     context['precursor_prioritization'] = 'RelevanceHeuristic'
     context['forward_scorer'] = 'Template_Free'
-    context['filter_threshold_default'] = 0.1
+    context['filter_threshold_default'] = 0.8
 
     if target is not None:
         context['target_mol'] = target
@@ -252,7 +252,7 @@ def ajax_start_retro_celery(request):
     min_chempop_reactants = int(request.GET.get('min_chempop_reactants', 5))
     min_chempop_products = int(request.GET.get('min_chempop_products', 5))
 
-    filter_threshold = float(request.GET.get('filter_threshold', 0.1))
+    filter_threshold = float(request.GET.get('filter_threshold', 0.8))
     apply_fast_filter = filter_threshold > 0
 
     blacklisted_reactions = list(set(
