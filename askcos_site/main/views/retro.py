@@ -39,7 +39,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
     context['form']['precursor_prioritization'] = request.session.get('precursor_prioritization', 'RelevanceHeuristic')
     context['form']['template_count'] = request.session.get('template_count', '100')
     context['form']['max_cum_prob'] = request.session.get('max_cum_prob', '0.995')
-    context['form']['filter_threshold'] = request.session.get('filter_threshold', '0.8')
+    context['form']['filter_threshold'] = request.session.get('filter_threshold', '0.75')
 
     print(request)
     if request.method == 'POST':
@@ -177,7 +177,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             {'name': 'Tramadol', 'smiles': 'CN(C)C[C@H]1CCCC[C@@]1(C2=CC(=CC=C2)OC)O'},
             {'name': 'Lamivudine', 'smiles': 'NC1=NC(=O)N(C=C1)[C@@H]2CS[C@H](CO)O2'},
             {'name': 'Pregabalin', 'smiles': 'CC(C)C[C@H](CN)CC(O)=O'},
-            {'name': 'Naproxen', 'smiles': 'COc1ccc2cc(ccc2c1)C(C)C(O)=O'},
+            {'name': 'Naproxen', 'smiles': 'COc1ccc2cc([C@H](C)C(=O)O)ccc2c1'},
             {'name': 'Imatinib', 'smiles': 'CN1CCN(CC1)Cc2ccc(cc2)C(=O)Nc3ccc(C)c(Nc4nccc(n4)c5cccnc5)c3'},
             {'name': 'Quinapril', 'smiles': 'CCOC(=O)[C@H](CCc1ccccc1)N[C@@H](C)C(=O)N2Cc3ccccc3C[C@H]2C(O)=O'},
             {'name': 'Atorvastatin', 'smiles': 'CC(C)c1n(CC[C@@H](O)C[C@@H](O)CC(O)=O)c(c2ccc(F)cc2)c(c3ccccc3)c1C(=O)Nc4ccccc4'},
@@ -217,7 +217,7 @@ def retro_interactive(request, target=None):
     context['max_cum_prob_default'] = 0.995
     context['precursor_prioritization'] = 'RelevanceHeuristic'
     context['forward_scorer'] = 'Template_Free'
-    context['filter_threshold_default'] = 0.8
+    context['filter_threshold_default'] = 0.75
 
     if target is not None:
         context['target_mol'] = target
@@ -252,7 +252,7 @@ def ajax_start_retro_celery(request):
     min_chempop_reactants = int(request.GET.get('min_chempop_reactants', 5))
     min_chempop_products = int(request.GET.get('min_chempop_products', 5))
 
-    filter_threshold = float(request.GET.get('filter_threshold', 0.8))
+    filter_threshold = float(request.GET.get('filter_threshold', 0.75))
     apply_fast_filter = filter_threshold > 0
 
     blacklisted_reactions = list(set(
