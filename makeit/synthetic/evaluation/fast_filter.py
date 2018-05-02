@@ -32,6 +32,12 @@ class FastFilterScorer(Scorer):
         MyLogger.print_and_log('Done loading fast filter', fast_filter_loc)
 
     def evaluate(self, reactant_smiles, target, **kwargs):
+        # Strip chirality
+        # rmol = Chem.MolFromSmiles(reactant_smiles)
+        # pmol = Chem.MolFromSmiles(target)
+        # reactant_smiles = Chem.MolToSmiles(rmol, False)
+        # target = Chem.MolToSmiles(pmol, False)
+
         [pfp, rfp] = create_rxn_Morgan2FP_separately(
             reactant_smiles, target, rxnfpsize=2048, pfpsize=2048, useFeatures=False)
         pfp = np.asarray(pfp, dtype='float32')

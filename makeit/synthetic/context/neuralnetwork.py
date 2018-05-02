@@ -136,14 +136,14 @@ class NeuralNetContextRecommender(ContextRecommender):
         try:
             rsmi = rxn.split('>>')[0]
             psmi = rxn.split('>>')[1]
-            rct_mol = Chem.MolFromSmiles(rsmi)
-            prd_mol = Chem.MolFromSmiles(psmi)
-            # [atom.ClearProp('molAtomMapNumber')for \
-            #         atom in rct_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
-            # [atom.ClearProp('molAtomMapNumber')for \
-            #         atom in prd_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
-            rsmi = Chem.MolToSmiles(rct_mol)
-            psmi = Chem.MolToSmiles(prd_mol)
+            # rct_mol = Chem.MolFromSmiles(rsmi)
+            # prd_mol = Chem.MolFromSmiles(psmi)
+            # # [atom.ClearProp('molAtomMapNumber')for \
+            # #         atom in rct_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
+            # # [atom.ClearProp('molAtomMapNumber')for \
+            # #         atom in prd_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
+            # rsmi = Chem.MolToSmiles(rct_mol)
+            # psmi = Chem.MolToSmiles(prd_mol)
 
             [pfp, rfp] = fp.create_rxn_Morgan2FP_separately(
                 rsmi, psmi, rxnfpsize=self.fp_size, pfpsize=self.fp_size, useFeatures=False, calculate_rfp=True)
