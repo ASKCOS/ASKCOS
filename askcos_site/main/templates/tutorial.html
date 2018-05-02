@@ -66,7 +66,7 @@
 <tr>
 <td>SCScore Evaluator</td>
 <td>Estimate synthetic complexity</td>
-<td>Predicting the synthetic complexity of a molecule [1-5] using a trained neural network model</td>
+<td>Predicting the synthetic complexity of a molecule [1-5 scale] using a trained neural network model</td>
 </tr>
 
 <tr>
@@ -83,7 +83,7 @@
 
 </table>
 
-<p>Generally, the website takes target compound inputs as SMILES strings, although there are some compounds for which the common name (aspirin, ibuprofen, etc.) can be entered in the input window and converted to a SMILES string automatically.  For more information about SMILES strings, click <a href="https://en.wikipedia.org/wiki/Simplified_molecular-input_line-entry_system">here</a>.  Compound SMILES strings can be obtained by first drawing the molecule of interest in ChemDraw, selecting the molecule with the selector tool, right-clicking, and choosing Molecule "Copy As" SMILES.  Alternatively, much of the website also supports drawing compounds of interest directly.  This can be done by clicking the Draw links adjacent to input text fields, where applicable.</p>
+<p>Generally, the website takes target compound inputs as SMILES strings, although there are some compounds for which the common name (aspirin, ibuprofen, etc.) can be entered in the input window and converted to a SMILES string automatically.  For more information about SMILES strings, click <a href="https://en.wikipedia.org/wiki/Simplified_molecular-input_line-entry_system">here</a>.  Compound SMILES strings can be obtained by first drawing the molecule of interest in ChemDraw, selecting the molecule with the selector tool, right-clicking, and choosing 'Molecule', 'Copy As', and finally, 'SMILES'.  Alternatively, much of the website also supports drawing compounds of interest directly.  This can be done by clicking the Draw links adjacent to input text fields, where applicable.</p>
 
 <h1 id="onestep">One-Step Retrosynthesis</h1>
 
@@ -91,9 +91,10 @@
 
 <h4>Usage</h4>
 <ol>
-<li>Enter target compound SMILES string into "Target compound:" field</li>
+<li>Enter target compound SMILES string into "Target compound" field</li>
 <li>Select template prioritization option ("apply relevant templates" preferred)</li>
 <li>Select precursor scoring option (Relevance+Heuristic preferred)</li>
+<li>Define minimum plausibility [0 to 1]</li>
 <li>Click Search</li>
 </ol>
 
@@ -122,6 +123,7 @@
     <li>SCScore: learned synthetic complexity score</li>
     <li>Natural ordering: as the name implies</li>
 </ul>
+</li>In addition, a minimum plausibility may be specified. The plausibility metric represents the likelihood that a pair of candidate precursors can be successfully used to generate the target compound under any set of conditions.
 </li>
 </ul>
 
@@ -142,28 +144,28 @@
 <h4>Example</h4>
 <p>To demonstrate the use of the one-step retrosynthesis tool, consider the potential target compound Atropine.  To obtain a list of precursors that can be used to generate Atropine via a single reaction, click the “One-step Retro” link on the left-hand side of the ASKCOS homepage.  The following screen will appear:</p>
 
-<img src="{% static 'images/tut_onestep_home.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_onestep_home.png" class="center tutorialimage">
 
 <p>Enter Atropine (by name or SMILES string: CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3) into the “Target compound” field.  The default algorithm options generally work well, and may be left as-is.  Click Search.  Below the Search button, the parsed molecule structure will appear, along with the rank-ordered list of precursor candidates.  The first three candidates are shown in the image below.  If a candidate is buyable, its price per gram will appear next to its SMILES string; if not, the phrase “cannot buy” is listed:</p>
 
-<img src="{% static 'images/tut_onestep_atropine.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_onestep_atropine.png" class="center tutorialimage">
 
 <p>The SMILES strings of the proposed candidates are links that the user can click to run the one-step retrosynthesis on a candidate.  This allows users to design full syntheses manually, in a step-by-step fashion.  For example, clicking the SMILES string of the non-buyable precursor that is ranked second in the output above automatically runs the one-step expansion on that candidate:</p>
 
-<img src="{% static 'images/tut_onestep_atropine_d2.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_onestep_atropine_d2.png" class="center tutorialimage">
 
 <p>Alternatively, the user can click the link designated by "-->?"" adjacent to the precursor SMILES strings in the one-step output.  This automatically runs the context recommender.  For example, clicking the context recommendation link for the first pair of precursors in the one-step retrosynthesis we generated for Atropine gives:</p>
 
 
-<img src="{% static 'images/tut_onestep_context.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_onestep_context.png" class="center tutorialimage">
 
-<p>You can also click on the image of the reactants themselves to expand a list of the templates that were used to suggest that transformation. Multiple templates can lead to the same precursor, so there may be many with different degrees of specificity and different numbers of precedents. </p>
+<p>You can also click on the image of the reactants themselves to expand a list of the templates that were used to suggest that transformation.  Multiple templates can lead to the same precursor, so there may be many with different degrees of specificity and different numbers of precedents. </p>
 
-<img src="{% static 'images/tut_onestep_atropine_click.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_onestep_atropine_click.png" class="center tutorialimage">
 
 <p>Clicking through provides more details about the template, including its SMARTS string. It displays a selection of precedents from Reaxys sorted by decreasing yield.</p>
 
-<img src="{% static 'images/tut_template.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_template.png" class="center tutorialimage">
 
 
 <h1 id="treebuilder">Tree Builder</h1>
@@ -173,9 +175,9 @@
 <ol>
 <li>Specify target compound:
 <ul>
-<li>Enter SMILES string of target in “Target compound:” field</li>
+<li>Enter SMILES string of target in “Target compound” field</li>
 OR
-<li>Click “Draw” link adjacent to “Target compound:” field and draw target compound in the window that appears
+<li>Click “Draw” link adjacent to “Target compound” field and draw target compound in the window that appears
 </li>
 </ul>
 </li>
@@ -211,25 +213,28 @@ OR
 
 </ul>
 
-<p>Evaluation settings: TODO</p>
-
-<p>Pay close attention to chirality: we recommend keeping this box checked.  This prevents the application of achiral templates to chiral molecules, or chiral templates to achiral molecules, although it is somewhat more computationally expensive.</p>
+<p>Evaluation settings</p>
+<ul>
+<li>Minimum plausibility: this setting allows you to specify the minimum plausibility of each reaction in your expansion.  Reactions that are proposed by the retrosynthetic algorithm but do not meet this minimum will be removed from the expansion.
+<li>Manual forward prediction: this setting defines the forward prediction approach that will be implemented if a user clicks the 'Evaluate' link on a particular proposed synthetic tree in the output.  This does not affect the outcome of the retrosynthetic expansion itself.
+<li>Pay close attention to chirality: we recommend keeping this box checked.  This prevents the application of achiral templates to chiral molecules, or chiral templates to achiral molecules, although it is somewhat more computationally expensive to do so.
+</li></ul>
 
 <h4>Output</h4>
 <p>The tree-builder produces a rank-ordered list of recommended synthetic routes.  Compounds that are buyable are outlined in green; those that are not are outlined in orange.  Between each target compound and its retrospective precursor(s) is a number that specifies the number of examples of reactions in Reaxys that support the template(s) that was (were) applied to make the proposed disconnection. </p>
 
 
-<p>You can store the results of an expansion and review them later.  To do this after an expansion is complete, scroll to the top of the website and click the dropdown adjacent to your ASKCOS username in the top-right corner of the screen.  In the list that appears, click the “Save this page” link to save your results.  You can access this drop-down list from any of the ASKCOS webpages; it is also the place you go to access results that you have saved previously (to do this, click “See saved results”).</p>
+<p>You can store the results of an expansion and review them later.  To do this after an expansion is complete, scroll to the top of the website and click the "My Results" tab in the  black banner.  In the list that appears, click the “Save this page” link to save your results.  From this list, you can also access results that you have saved previously (to do this, click "See saved results" instead of "Save this page").</p>
 
-<p>Additionally, once a retrosynthetic expansion is performed, the user has the option to blacklist a chemical or reaction that appears in the tree if it is, e.g., known to be patented.  Then, the user may re-run the expansion to obtain recommendations that exclude the chemical(s) or reaction(s) that were deemed undesirable.  Just like the list of your saved expansion results, the list of compounds and reactions that you have blacklisted can be accessed by clicking the drop-down adjacent to your username in the top-right corner of any of the ASKCOS webpages (see above).  For more information, see the Example below.</p>
+<p>Additionally, once a retrosynthetic expansion is performed, the user has the option to blacklist a chemical or reaction that appears in the tree if it is, e.g., known to be patented.  Then, the user may re-run the expansion to obtain recommendations that exclude the chemical(s) or reaction(s) that were deemed undesirable.  The list of compounds and reactions that you have blacklisted can be accessed by clicking the "My Banlist" tab in the black banner at the top of the website.  For more information, see the Example below.</p>
 
 <h4>Example</h4>
 
-<p>A set of proposed synthetic routes to the compound Fluconazole is easily created using the default tree-builder settings.  To get started, click the Tree Builder option on the left-hand side of the ASKCOS website.  This will bring up a field where you can enter the SMILES string of your target (in this case, Fluconazole):</p>
+<p>A set of proposed synthetic routes to the compound Fluconazole is easily created using the default tree-builder settings.  To get started, click the Tree Builder module option (accessible from the Modules drop-down at the top of the ASKCOS website).  This will bring up a field where you can enter the SMILES string of your target (in this case, Fluconazole):</p>
 
-<p>When you enter Fluconazole’s name or SMILES string in the “Target compound:” field, the various algorithm settings appear, along with the parsed structure (which you should confirm is correct):</p>
+<p>When you enter Fluconazole’s name or SMILES string in the "Target compound" field, the various algorithm settings appear, along with the parsed structure (which you should confirm is correct):</p>
 
-<img src="{% static 'images/tut_treebuilder.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_treebuilder.png" class="center tutorialimage">
 
 
 <p>Click Start.  Once the expansion is complete, a summary of the results of the expansion appears, followed by a rank-ordered list of potential synthetic routes.
@@ -237,30 +242,30 @@ OR
 The summary of the expansion results shows the number of chemicals (or, at half-depths, reactions) that were found by the algorithm during the expansion.</p>
 
 
-<img src="{% static 'images/tut_treebuilder_res.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_treebuilder_res.png" class="center tutorialimage">
 
 <p>The first recommendation in the list of synthetic routes is Fluconazole itself, because it can be purchased for less than the maximum chemical price that was specified as part of the stop criteria.  Since Fluconazole is commercially available, it is outlined in green:</p>
 
-<img src="{% static 'images/tut_treebuilder_res1.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_treebuilder_res1.png" class="center tutorialimage">
 
 <p>The second option is a linear synthesis consisting of two reactions.  The epoxide intermediate is outlined in orange because it is not buyable:</p>
 
-<img src="{% static 'images/tut_treebuilder_res2.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_treebuilder_res2.png" class="center tutorialimage">
 
 <p>Hovering over each of the compounds pulls up a pale-yellow window with additional information, including the compound’s SMILES string, frequency of appearance as a reactant or product in Reaxys, and the options to “blacklist” or “hide all” (see Tree Builder - Output).  For compounds that are commercially available, the price per gram is listed (non-purchasable compounds show the words “not buyable”).  For example, for the non-purchasable epoxide intermediate:</p>
 
-<img src="{% static 'images/tut_treebuilder_mouseoverchem.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_treebuilder_mouseoverchem.png" class="center tutorialimage">
 
 
 <p>As described in Tree Builder - Output, compounds and reactions may be blacklisted, if desired.  To do this, for example, for the epoxide intermediate in Option 2, mouse over the compound, and click the blacklist link in the pale-yellow window that appears.  Another pop-up will appear with a text field where you can specify the reason for blacklisting the chemical (for your records only).  After you click OK, another window will appear, confirming that the compound with the specified SMILES string was blacklisted.  Click OK again.</p>
 
-<p>To review the compounds and reactions that you’ve blacklisted, scroll to the top of the webpage and mouse over the down-arrow next to your username in the top right corner.  A list of options will appear, including the option to “See blacklisted chemicals”:</p>
+<p>To review the compounds and reactions that you’ve blacklisted, scroll to the top of the webpage and click the "My Banlist" tab.  A list of options will appear, including the option to “View banned chemicals”:</p>
 
-<img src="{% static 'images/tut_blacklisted_view.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_blacklisted_view.png" class="center tutorialimage">
 
-<p>If you click the “See blacklisted chemicals” link, you will be taken to a new webpage that shows a list of the chemicals you’ve blacklisted.  For now, only the epoxide intermediate appears.  You have the option to temporarily disable compounds on your blacklist by clicking the True link under the Active column on the left; you may also permanently delete compounds on your blacklist by clicking the X under the Delete column on the right:</p>
+<p>If you click the “View banned chemicals” link, you will be taken to a new webpage that shows a list of the chemicals you’ve blacklisted.  For now, only the epoxide intermediate appears.  You have the option to temporarily disable compounds on your blacklist by clicking the True link under the Active column on the left; you may also permanently delete compounds on your blacklist by clicking the X under the Delete column on the right:</p>
 
-<img src="{% static 'images/tut_blacklisted_chemicals.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_blacklisted_chemicals.png" class="center tutorialimage">
 
 <p>Now that we’ve blacklisted this chemical, it is possible to return to the Tree Builder tab and rerun the Fluconazole expansion.  This time, none of the trees that the algorithm recommends will contain the blacklisted chemical. </p>
 
@@ -273,16 +278,16 @@ The summary of the expansion results shows the number of chemicals (or, at half-
 <ol>
 <li>Specify reactants:
 <ol>
-<li>Enter reactant SMILES strings into “Reactants:” field.  Separate distinct reactants using a period, “.”</li>
+<li>Enter reactant SMILES strings into “Reactants” field.  Separate distinct reactants using a period, “.”</li>
 OR
-<li>Click “Draw” link adjacent to “Reactants:” field and draw reactants in window that appears</li>
+<li>Click “Draw” link adjacent to “Reactants” field and draw reactants in window that appears</li>
 </ol>
 </li>
 <li>Specify products:
 <ol>
-<li>Enter reactant SMILES strings into "Products:” field.  Separate distinct reactants using a period, “.”</li>
+<li>Enter product SMILES strings into "Products” field</li>
 OR
-<li>Click “Draw” link adjacent to "Products:” field and draw reactants in window that appears</li>
+<li>Click “Draw” link adjacent to "Products” field and draw products in window that appears</li>
 </ol>
 </li>
 <li>Select context recommender option (see Options, below; Neural Network preferred)</li>
@@ -303,22 +308,22 @@ OR
 
 <p>To begin, click the Context Recommendation option on the left-hand side of the ASKCOS homepage.  This will bring up a screen where you can enter the SMILES strings of the reactant(s) and product of the reaction of interest (or, alternatively, you can click the Draw link adjacent to the text fields).</p>
 
-<p>In the “Reactants:” text field, enter the SMILES strings of the reactant in the FMOC deprotection:
+<p>In the “Reactants” text field, enter the SMILES strings of the reactant in the FMOC deprotection:
 
 Reactant SMILES: O=C([C@H](CO[C@@H]1O[C@@H]([C@@H]([C@@H]([C@H]1NC(C)=O)OC(C)=O)OC(C)=O)COC(C)=O)NC(OCC2C3=C(C4=C2C=CC=C4)C=CC=C3)=O)NCCCCCCCCCCCCCC
 
-For reactions that include multiple reactants, separate reactant SMILES strings should be separated with a period.  In the “Products:” text field, enter the SMILES string of the product of the FMOC deprotection:
+For reactions that include multiple reactants, distinct reactant SMILES strings should be separated with a period.  In the “Products” text field, enter the SMILES string of the product of the FMOC deprotection:
 
 Product SMILES: O=C([C@H](CO[C@@H]1O[C@@H]([C@@H]([C@@H]([C@H]1NC(C)=O)OC(C)=O)OC(C)=O)COC(C)=O)N)NCCCCCCCCCCCCCC
 
 Once you enter the strings, the parsed structures will appear:</p>
 
-<img src="{% static 'images/tut_contextrec.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_contextrec.png" class="center tutorialimage">
 
 <p>For the context recommender, choose the neural network.  Click Get Context Recommendations.  Below the Get Context Recommendations button, a list of ten recommendations will appear:
 </p>
 
-<img src="{% static 'images/tut_contextrec_results.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_contextrec_results.png" class="center tutorialimage">
 
 
 <p>The results, which include weak bases and low temperatures, reflect the need to selectively deprotect the Fmoc group.</p>
@@ -332,9 +337,9 @@ Once you enter the strings, the parsed structures will appear:</p>
 <ol>
 <li>1. Specify reactants.  Note that compounds that can contribute atoms to the product should be included as reactants:
     <ol>
-        <li>Enter SMILES strings of reactants, separated by a period, in the “Reactants:” field</li>
+        <li>Enter SMILES strings of reactants, separated by a period, in the "Reactants" field</li>
         OR
-        <li>Click the “Draw” link adjacent to the “Reactants” field and draw reactant structures in window that appears</li>
+        <li>Click the "Draw" link adjacent to the “Reactants” field and draw reactant structures in window that appears</li>
     </ol>
 </li>
 <li>Select prediction approach (see Options, below)</li>
@@ -383,7 +388,7 @@ Template-free
 <p>The forward predictor produces a list of candidate reaction outcomes that are rank-ordered by a Probability score that reflects the model’s confidence that each outcome will appear.  The probabilities for a set of candidates should not be interpreted together to comprise an expected product distribution, nor should an individual probability be interpreted as an expected yield; rather, a probability for a given outcome purely reflects the model’s confidence regarding whether or not that compound will appear at all (the model is not trained on specific yield-related data).</p>
 
 <h4>Example</h4>
-<p>Consider the p-toluenesulfonic acid-promoted etherification of benzhydrol by dimethylaminoethanol that can be used to synthesize diphenhydramine.  To predict the outcome of a reaction between benzhydrol and DMAE in the presence of p-toluenesulfonic acid, start by entering the SMILES strings of the two reactants, separated by a period, in the “Reactants:” field (or, alternatively, draw the structures in the window that appears after clicking the Draw link adjacent to the Reactants field).</p>
+<p>Consider the p-toluenesulfonic acid-promoted etherification of benzhydrol by dimethylaminoethanol that can be used to synthesize diphenhydramine.  To predict the outcome of a reaction between benzhydrol and DMAE in the presence of p-toluenesulfonic acid, start by entering the SMILES strings of the two reactants, separated by a period, in the "Reactants" field (or, alternatively, draw the structures in the window that appears after clicking the Draw link adjacent to the Reactants field).</p>
 
 <p>SMILES string of DMAE: CN(C)CCO
 SMILES string of benzhydrol: OC(c1ccccc1)c1ccccc1
@@ -392,11 +397,11 @@ The parsed structures will appear so the user can confirm that their input was i
 
 <p>Next, choose the <b>Prediction approach</b>.  Since we have a reagent that we would like to specify, we can use either approach, although the template-based approach does not make any explicit consideration of the fact that p-toluenesulfonic acid is expected to act as a reagent and not a reactant.</p>
 
-<img src="{% static 'images/tut_synthpredictor.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_synthpredictor.png" class="center tutorialimage">
 
 <p>Choosing the template-free expansion method gives the predicted outcomes according to the Template-free forward predictor:</p>
 
-<img src="{% static 'images/tut_synthpred_res.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_synthpred_res.png" class="center tutorialimage">
 
 
 <h1 id="evaluation">Reaction Evaluation</h1>
@@ -459,15 +464,15 @@ The parsed structures will appear so the user can confirm that their input was i
 <h4>Example</h4>
 <p>Consider the simplest one-step retrosynthesis for diphenhydramine. We can enter the reactant and product SMILES strings into the Evaluator:</p>
 
-<img src="{% static 'images/tut_evaluator.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_evaluator.png" class="center tutorialimage">
 
 <p>Using the Template-free method, we can virtually screen 10 different reaction conditions to find which one seems to be most promising, i.e., which one leads to the intended product with the highest confidence.</p>
 
-<img src="{% static 'images/tut_evaluator_res.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_evaluator_res.png" class="center tutorialimage">
 
 Alternately, we can ask if this reaction is possible under <i>any</i> set of conditions, which is the question that the Fast filter is designed to answer. Choosing this option gives a very confident prediction that this reaction is possible.
 
-<img src="{% static 'images/tut_evaluator_fastfilter.png' %}" class="center tutorialimage">
+<img src="/static/images/tut_evaluator_fastfilter.png" class="center tutorialimage">
 
 
 {% endblock %}
