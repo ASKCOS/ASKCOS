@@ -93,6 +93,15 @@
 </table>
 </div>
 
+{% if cannot_view_all %}
+<p><b>Note: you only have access to see a few examples from Reaxys for this transformation. If your institution has access and you believe this is in error, please contact <a href='mailto:ccoley@mit.edu'>ccoley@mit.edu</a></b></p>
+
+
+<p>Reaction IDs corresponding to the 500 highest-yielding examples of this template:</p>
+<p>{{ ref_ids }}</p>
+
+{% endif %}
+
 {% endif %}
 
 {% endblock %}

@@ -14,6 +14,9 @@ from ..models import SavedResults, BlacklistedReactions, BlacklistedChemicals
 
 can_control_robot = lambda request: request.user.get_username() in ['ccoley']
 
+def can_view_reaxys(request):
+    return request.user.is_authenticated and request.user.groups.filter(name='reaxys_view').exists()
+
 def log_this_request(method):
     def f(*args, **kwargs):
         try:

@@ -9,6 +9,7 @@ from ..globals import RetroTransformer, SynthTransformer, \
     REACTION_DB, INSTANCE_DB, CHEMICAL_DB, TEMPLATE_BACKUPS, REACTION_DB_OLD, \
     INSTANCE_DB_OLD, CHEMICAL_DB_OLD
 
+from .users import can_view_reaxys
 from ..utils import fancyjoin, xrn_lst_to_name_lst
 
 @login_required
@@ -44,6 +45,7 @@ def template_target(request, id):
     references = []
     rx_docs = {}; xrn_to_smiles = {}
     context['total_references'] = len(reference_ids)
+
     for rxd_doc in INSTANCE_DB.find({'_id': {'$in': reference_ids}}):
         rx_id = int(rxd_doc['_id'].split('-')[0])
         rx_doc = REACTION_DB.find_one({'_id': rx_id})
@@ -84,6 +86,12 @@ def template_target(request, id):
         references.append(ref)
         
     context['references'] = sorted(references, key=lambda x: x['y'] if x['y'] != 'unk' else -1, reverse=True)[:500]
+    if not can_view_reaxys(request):
+        context['ref_ids'] = ', '.join([str(y) for y in sorted(set(x['rx_id'] for x in context['references']))])
+        context['references'] = context['references'][:3]
+        context['cannot_view_all'] = True 
+
+
     #from makeit.retro.conditions import average_template_list
     #context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
 
