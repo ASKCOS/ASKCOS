@@ -119,14 +119,6 @@ def ajax_start_synth(request):
 
     startTime = time.time()
 
-    # Add reagents and solvent to the reactants for TFFP. Note that this is
-    # not an ideal solution: ideally, we would have the forward_scorer class 
-    # itself handle the contexts properly
-    if forward_scorer == 'Template_Free':
-        if reagents:
-            reactants = '{}.{}'.format(reactants, reagents)
-        if solvent:
-            reactants = '{}.{}'.format(reactants, solvent)
 
     # context expected is (T1, slvt1, rgt1, cat1, t1, y1)
     res = evaluate.delay(reactants, '',
