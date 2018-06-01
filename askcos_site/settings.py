@@ -29,7 +29,7 @@ SECRET_KEY = 'px$*ir)-wd=x6^!r++t53ik^2)z7!9cvw+m#@!-$ut@xjyjtg*'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['askcos.mit.edu']
+ALLOWED_HOSTS = ['0.0.0.0']
 
 TEMPLATE_LOADERS = ['django.template.loaders.filesystem.Loader',
  'django.template.loaders.app_directories.Loader']
@@ -105,7 +105,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         # 'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        'NAME': os.path.join('/data', 'www-data', 'db.sqlite3'),
+        'NAME': os.path.join('db.sqlite3'),
     }
 }
 # AUTHENTICATION_BACKENDS = (
@@ -214,9 +214,9 @@ CONTEXT_REC = {
 }
 
 LOCAL_STORAGE = {
-    'root': '/data/www-data',
-    'dir': os.path.join('/data/www-data', 'local_db_dumps'),
-    'user_saves': os.path.join('/data/www-data', 'user_saves'),
+    'root': '/home/ubuntu/ASKCOS/Make-It/data',
+    'dir': os.path.join('local_db_dumps'),
+    'user_saves': os.path.join('user_saves'),
 }
 
 # For searching "old" templates
