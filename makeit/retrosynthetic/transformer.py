@@ -59,6 +59,7 @@ class RetroTransformer(TemplateTransformer):
             self.mincount_chiral = mincount_chiral
         self.templates = []
         self.celery = celery
+
         # if not self.celery and not TEMPLATE_DB:
         #    MyLogger.print_and_log('Predefined template database is required for the retro transformer. Exiting...', retro_transformer_loc, level=3)
 
@@ -68,6 +69,9 @@ class RetroTransformer(TemplateTransformer):
         self.precursor_prioritizer = None
         self.template_prioritizer = None
         self.fast_filter = None
+        if self.celery:
+            # Pre-load fast filter
+            self.load_fast_filter()
         super(RetroTransformer, self).__init__()
 
     def load(self, TEMPLATE_DB=None, chiral=False, lowe=False, refs=False, rxns=True, efgs=False, rxn_ex=False):
@@ -98,7 +102,10 @@ class RetroTransformer(TemplateTransformer):
         MyLogger.print_and_log('Retro-synthetic transformer has been loaded - using {} templates.'.format(
             self.num_templates), retro_transformer_loc)
 
-
+    def load_fast_filter(self):
+        self.fast_filter = FastFilterScorer()
+        # self.fast_filter.set_keras_backend('theano')
+        self.fast_filter.load(model_path=gc.FAST_FILTER_MODEL['trained_model_path'])
 
     def get_outcomes(self, smiles, mincount, prioritizers, **kwargs):
         """Performs a one-step retrosynthesis given a SMILES string of a
@@ -121,10 +128,7 @@ class RetroTransformer(TemplateTransformer):
         apply_fast_filter = kwargs.pop('apply_fast_filter',False)
         filter_threshold = kwargs.pop('filter_threshold',0.8)
         if (apply_fast_filter and not self.fast_filter):
-            self.fast_filter = FastFilterScorer()
-            # self.fast_filter.set_keras_backend('theano')
-            self.fast_filter.load(model_path =gc.FAST_FILTER_MODEL['trained_model_path'])
-            # print('loaded fastfilter')
+            self.load_fast_filter()
 
         (precursor_prioritizer, template_prioritizer) = prioritizers
         # Check modules:
@@ -145,11 +149,7 @@ class RetroTransformer(TemplateTransformer):
 
         for template in self.top_templates(smiles, **kwargs):
             for precursor in self.apply_one_template(mol, smiles, template):
-                result.add_precursor(precursor, self.precursor_prioritizer, **kwargs)
-
-                ##########
-            #maybe add forwrad evaluation here
-            #should be a forward scorers
+                # Should we add this to the results?
                 if apply_fast_filter:
                     reactant_smiles = '.'.join(precursor.smiles_list)
                     filter_flag = self.fast_filter.filter_with_threshold(reactant_smiles, smiles, filter_threshold)

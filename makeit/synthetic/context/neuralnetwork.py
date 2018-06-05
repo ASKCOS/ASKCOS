@@ -145,6 +145,7 @@ class NeuralNetContextRecommender(ContextRecommender):
             rsmi = Chem.MolToSmiles(rct_mol, isomericSmiles=True)
             psmi = Chem.MolToSmiles(prd_mol, isomericSmiles=True)
             print(rsmi)
+
             [pfp, rfp] = fp.create_rxn_Morgan2FP_separately(
                 rsmi, psmi, rxnfpsize=self.fp_size, pfpsize=self.fp_size, useFeatures=False, calculate_rfp=True)
             pfp = pfp.reshape(1, self.fp_size)
@@ -192,7 +193,7 @@ class NeuralNetContextRecommender(ContextRecommender):
                 psmi = Chem.MolToSmiles(prd_mol, isomericSmiles=True)
                 print(rsmi)
                 [pfp, rfp] = fp.create_rxn_Morgan2FP_separately(
-                    rsmi, psmi, rxnfpsize=self.fp_size, pfpsize=self.fp_size, useFeatures=False, calculate_rfp=True)
+                    rsmi, psmi, rxnfpsize=self.fp_size, pfpsize=self.fp_size, useFeatures=False, calculate_rfp=True, useChirality=True)
                 pfp = pfp.reshape(1, self.fp_size)
                 rfp = rfp.reshape(1, self.fp_size)
                 rxnfp = pfp - rfp
@@ -375,4 +376,4 @@ if __name__ == '__main__':
 #'Fc1ccc(C2(Cn3cncn3)CO2)c(F)c1>>OC(CCl)(Cn1cncn1)c1ccc(F)cc1F
 #'CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1>>CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3'
 #'CN(C(=O)CCl)c1ccc(Cl)cc1C(=O)c1ccccc1>>CN(C(=O)CN)c1ccc(Cl)cc1C(=O)c1ccccc1'
-    print cont.get_n_conditions('COC(=O)c1ccccc1>>CCC(=O)c1ccccc1', 10, with_smiles=False)
+    print cont.get_n_conditions('CC1CO1.Cc1ncc([N+](=O)[O-])[nH]1>>Cc1ncc([N+](=O)[O-])n1CC(C)O', 10, with_smiles=False)

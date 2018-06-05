@@ -114,11 +114,12 @@ class SCScorePrecursorPrioritizer(Prioritizer):
         else:
             return np.max(list_of_scores)
 
-    def get_score_from_smiles(self, smiles):
+    def get_score_from_smiles(self, smiles, noprice=False):
         # Check buyable
-        ppg = self.pricer.lookup_smiles(smiles, alreadyCanonical=True)
-        if ppg:
-            return ppg / 100.
+        if not noprice:
+            ppg = self.pricer.lookup_smiles(smiles, alreadyCanonical=True)
+            if ppg:
+                return ppg / 100.
         
         fp = np.array((self.smi_to_fp(smiles)), dtype=np.float32)
         if sum(fp) == 0:
