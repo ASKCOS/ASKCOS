@@ -146,7 +146,7 @@ class NeuralNetContextRecommender(ContextRecommender):
             psmi = Chem.MolToSmiles(prd_mol, isomericSmiles=True)
 
             [pfp, rfp] = fp.create_rxn_Morgan2FP_separately(
-                rsmi, psmi, rxnfpsize=self.fp_size, pfpsize=self.fp_size, useFeatures=False, calculate_rfp=True)
+                rsmi, psmi, rxnfpsize=self.fp_size, pfpsize=self.fp_size, useFeatures=False, calculate_rfp=True, useChirality=True)
             pfp = pfp.reshape(1, self.fp_size)
             rfp = rfp.reshape(1, self.fp_size)
             rxnfp = pfp - rfp
