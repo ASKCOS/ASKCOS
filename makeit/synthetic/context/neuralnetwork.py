@@ -138,9 +138,9 @@ class NeuralNetContextRecommender(ContextRecommender):
             psmi = rxn.split('>>')[1]
             rct_mol = Chem.MolFromSmiles(rsmi)
             prd_mol = Chem.MolFromSmiles(psmi)
-            [atom.ClearProp('molAtomMapNumber')for \
+            [atom.ClearProp('molAtomMapNumber') for \
                     atom in rct_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
-            [atom.ClearProp('molAtomMapNumber')for \
+            [atom.ClearProp('molAtomMapNumber') for \
                     atom in prd_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
             rsmi = Chem.MolToSmiles(rct_mol, isomericSmiles=True)
             psmi = Chem.MolToSmiles(prd_mol, isomericSmiles=True)
@@ -374,4 +374,4 @@ if __name__ == '__main__':
 #'Fc1ccc(C2(Cn3cncn3)CO2)c(F)c1>>OC(CCl)(Cn1cncn1)c1ccc(F)cc1F
 #'CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1>>CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3'
 #'CN(C(=O)CCl)c1ccc(Cl)cc1C(=O)c1ccccc1>>CN(C(=O)CN)c1ccc(Cl)cc1C(=O)c1ccccc1'
-    print cont.get_n_conditions('CC1CO1.Cc1ncc([N+](=O)[O-])[nH]1>>Cc1ncc([N+](=O)[O-])n1CC(C)O', 10, with_smiles=False)
+    print cont.get_n_conditions('CC(=O)[O:4][C@H:1]1[C@H:2]([O:6][CH2:11][C:14]2=[CH:17][CH:20]=[CH:23][CH:19]=[CH:16]2)[C@@H:5]([OH:10])[C@@H:9]([O:13][CH2:15][C:18]2=[CH:22][CH:25]=[CH:26][CH:24]=[CH:21]2)[C@@H:7]([OH:12])[C@@H:3]1[OH:8]>>[C@@H:1]1([OH:4])[C@H:2]([O:6][CH2:11][C:14]2=[CH:17][CH:20]=[CH:23][CH:19]=[CH:16]2)[C@H:5]([OH:10])[C@@H:9]([O:13][CH2:15][C:18]2=[CH:22][CH:25]=[CH:26][CH:24]=[CH:21]2)[C@H:7]([OH:12])[C@H:3]1[OH:8]', 10, with_smiles=False)
