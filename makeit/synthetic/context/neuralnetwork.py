@@ -144,7 +144,6 @@ class NeuralNetContextRecommender(ContextRecommender):
                     atom in prd_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
             rsmi = Chem.MolToSmiles(rct_mol, isomericSmiles=True)
             psmi = Chem.MolToSmiles(prd_mol, isomericSmiles=True)
-            print(rsmi)
 
             [pfp, rfp] = fp.create_rxn_Morgan2FP_separately(
                 rsmi, psmi, rxnfpsize=self.fp_size, pfpsize=self.fp_size, useFeatures=False, calculate_rfp=True)
@@ -191,7 +190,6 @@ class NeuralNetContextRecommender(ContextRecommender):
                         atom in prd_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
                 rsmi = Chem.MolToSmiles(rct_mol, isomericSmiles=True)
                 psmi = Chem.MolToSmiles(prd_mol, isomericSmiles=True)
-                print(rsmi)
                 [pfp, rfp] = fp.create_rxn_Morgan2FP_separately(
                     rsmi, psmi, rxnfpsize=self.fp_size, pfpsize=self.fp_size, useFeatures=False, calculate_rfp=True, useChirality=True)
                 pfp = pfp.reshape(1, self.fp_size)
@@ -308,7 +306,7 @@ class NeuralNetContextRecommender(ContextRecommender):
                                 r2_sc = 1
                             T_inputs = [fp_trans[0], c1_input, s1_input, s2_input, r1_input, r2_input]
                             T_pred = self.T_func(T_inputs)
-                            print(c1_name,s1_name,s2_name,r1_name,r2_name)
+                            # print(c1_name,s1_name,s2_name,r1_name,r2_name)
                             cat_name = [c1_name]
                             if r2_name == '':
                                 rgt_name = [r1_name]
