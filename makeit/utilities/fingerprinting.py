@@ -39,7 +39,6 @@ def create_rxn_Morgan2FP(rxn_smiles, fpsize=gc.fingerprint_bits, useFeatures=Tru
     return pfp.reshape(1, len(pfp))
 
 
-
 def create_rxn_Morgan2FP_separately(rsmi, psmi, rxnfpsize=gc.fingerprint_bits, pfpsize=gc.fingerprint_bits, useFeatures=False, calculate_rfp=True, useChirality=False):
     # Similar as the above function but takes smiles separately and returns pfp and rfp separately
 
