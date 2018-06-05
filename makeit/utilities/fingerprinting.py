@@ -37,7 +37,7 @@ def create_rxn_Morgan2FP(rxn_smiles, fpsize=gc.fingerprint_bits, useFeatures=Tru
         pfp -= rfp
     return pfp.reshape(1,len(pfp))
 
-def create_rxn_Morgan2FP_separately(rsmi, psmi, rxnfpsize = gc.fingerprint_bits, pfpsize=gc.fingerprint_bits, useFeatures= False,calculate_rfp = True):
+def create_rxn_Morgan2FP_separately(rsmi, psmi, rxnfpsize = gc.fingerprint_bits, pfpsize=gc.fingerprint_bits, useFeatures= False,calculate_rfp = True, useChirality = True):
     #Similar as the above function but takes smiles separately and returns pfp and rfp separately
 
     rsmi = rsmi.encode('utf-8')
@@ -48,7 +48,7 @@ def create_rxn_Morgan2FP_separately(rsmi, psmi, rxnfpsize = gc.fingerprint_bits,
         print(e)
         return
     try:
-        fp_bit = AllChem.GetMorganFingerprintAsBitVect(mol=mol, radius=2, nBits = rxnfpsize, useFeatures=useFeatures, useChirality = True)
+        fp_bit = AllChem.GetMorganFingerprintAsBitVect(mol=mol, radius=2, nBits = rxnfpsize, useFeatures=useFeatures, useChirality = useChirality)
         fp = np.empty(rxnfpsize,dtype = 'float32')
         DataStructs.ConvertToNumpyArray(fp_bit,fp)
     except Exception as e:
@@ -61,7 +61,7 @@ def create_rxn_Morgan2FP_separately(rsmi, psmi, rxnfpsize = gc.fingerprint_bits,
     except Exception as e:
         return
     try:
-        fp_bit = AllChem.GetMorganFingerprintAsBitVect(mol=mol, radius=2, nBits = pfpsize, useFeatures=useFeatures, useChirality = True)
+        fp_bit = AllChem.GetMorganFingerprintAsBitVect(mol=mol, radius=2, nBits = pfpsize, useFeatures=useFeatures, useChirality = useChirality)
         fp = np.empty(pfpsize,dtype = 'float32')
         DataStructs.ConvertToNumpyArray(fp_bit,fp)
     except Exception as e:
