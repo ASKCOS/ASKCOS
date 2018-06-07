@@ -27,7 +27,7 @@ from askcos_celery.celeryconfig import *
 SECRET_KEY = 'px$*ir)-wd=x6^!r++t53ik^2)z7!9cvw+m#@!-$ut@xjyjtg*'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['0.0.0.0']
 
@@ -214,10 +214,11 @@ CONTEXT_REC = {
 }
 
 LOCAL_STORAGE = {
-    'root': '/home/ubuntu/ASKCOS/Make-It/data',
-    'dir': os.path.join('local_db_dumps'),
-    'user_saves': os.path.join('user_saves'),
+    'root': '/home/ubuntu/ASKCOS/Make-It/makeit/data'
 }
+LOCAL_STORAGE['dir'] = os.path.join(LOCAL_STORAGE['root'], 'local_db_dumps')
+LOCAL_STORAGE['user_saves'] = os.path.join(LOCAL_STORAGE['root'], 'user_saves')
+
 
 # For searching "old" templates
 TEMPLATE_BACKUPS = [
