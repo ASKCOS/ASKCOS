@@ -80,7 +80,7 @@ database = 'reaxys_v2'
 #Required database names
 MONGO = {
         'path': 'mongodb://guest:guest@askcos2.mit.edu/admin',
-        'path_yield_flow':'mongodb://guest:guest@rmg.mit.edu/admin',
+        'path_yield_flow':None,
         'id': 27017,
         'connect': False
         }

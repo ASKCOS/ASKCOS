@@ -84,7 +84,7 @@ class MAKEIT:
                 time.sleep(1)
             buyable_trees = res.get()
         else:  # Create tree builder object and run it
-            tree_builder = TreeBuilder(celery=self.celery, mincount=self.retro_mincount,
+            treeBuilder = TreeBuilder(celery=self.celery, mincount=self.retro_mincount,
                                        mincount_chiral=self.retro_mincount_chiral, chiral=self.chiral)
 
             buyable_trees = treeBuilder.get_buyable_paths(self.smiles, template_prioritization=self.template_prioritization,
@@ -178,7 +178,7 @@ def print_at_depth(chemical_node, depth=1, writefunc=lambda x: print(x), delim='
 def find_synthesis():
 
     args = arg_parser.get_args()
-    makeit = MAKEIT(args.target_product, args.expansion_time, args.max_depth, args.max_branching,
+    makeit = MAKEIT(args.TARGET, args.expansion_time, args.max_depth, args.max_branching,
                     args.max_trees, args.retro_mincount, args.retro_mincount_chiral, args.synth_mincount,
                     args.rank_threshold, args.prob_threshold, args.max_contexts, args.template_count, args.max_ppg,
                     args.output, args.chiral, args.nproc, args.celery, args.context_recommender,
@@ -204,9 +204,9 @@ def find_synthesis():
     with open(os.path.join(makeit.output_dir_root, '{}_trees.html'.format(makeit.case_dir)), 'w') as fid:
         def writefunc(string): return fid.write('{}<br>\n'.format(string))
         fid.write(
-            '<html><title>Results for {}</title>\n'.format(args.target_product))
+            '<html><title>Results for {}</title>\n'.format(args.TARGET))
         fid.write('<body>\n')
-        fid.write('<h1>{}</h1><br>\n'.format(args.target_product))
+        fid.write('<h1>{}</h1><br>\n'.format(args.TARGET))
         fid.write('<i><b>Settings: </b>{}</i><br>\n'.format(args.__dict__))
         for i, feasible_tree in enumerate(sorted(feasible_trees, key=lambda x: x['score'], reverse=True)):
             writefunc('<h3>Feasible tree {}, plausible = {}, overall score = {}</h3><br>'.format(i+1,
