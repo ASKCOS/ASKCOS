@@ -24,7 +24,7 @@ from askcos_celery.celeryconfig import *
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'px$*ir)-wd=x6^!r++t53ik^2)z7!9cvw+m#@!-$ut@xjyjtg*'
+SECRET_KEY = 'notsecret'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
