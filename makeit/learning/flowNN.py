@@ -171,7 +171,9 @@ def tests():
     from pymongo import MongoClient
     
     MyLogger.initialize_logFile()
-    client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', gc.MONGO['id'], connect = gc.MONGO['connect'])
+    import makeit.global_config as gc
+    client = MongoClient(gc.MONGO['path'], gc.MONGO[ 'id'], connect=gc.MONGO['connect'])
+
     db2 = client[gc.FLOW_CONDITIONS['database']]
     flow_database = None
     if all_data:

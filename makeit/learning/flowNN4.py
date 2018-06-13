@@ -387,7 +387,7 @@ def full_test(data, model, no_write=False):
     test_no = len(data['ids_test'])
     train_no = len(data['ids_train'])
     #Use full database for this test
-    client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', gc.MONGO['id'], connect = gc.MONGO['connect'])
+    client = MongoClient(gc.MONGO['path'], gc.MONGO[ 'id'], connect=gc.MONGO['connect'])
     db2 = client[gc.FLOW_CONDITIONS4['database']]
     flow_database = db2[gc.FLOW_CONDITIONS4['collection']]
     reaction_database = db2[gc.REACTIONS['collection']]
@@ -500,7 +500,8 @@ def basic_tests():
     elif read_raw_data_from_file:
         data = get_data(train_test_split=0.9, read_raw_from_file=True, write_input_to_file = write_input_data_to_file, write_raw_to_file=write_raw_data_to_file)
     else:
-        client = MongoClient('mongodb://guest:guest@rmg.mit.edu/admin', gc.MONGO['id'], connect = gc.MONGO['connect'])
+        import makeit.global_config as gc
+        client = MongoClient(gc.MONGO['path'], gc.MONGO[ 'id'], connect=gc.MONGO['connect'])
         db2 = client[gc.FLOW_CONDITIONS4['database']]
         flow_database = None
         MyLogger.print_and_log('Initialized databases', flowNN_loc)
