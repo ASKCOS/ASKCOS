@@ -102,9 +102,9 @@ def smiles2graph_batch(smiles_list, idxfunc=lambda x:x.GetAtomMapNum() - 1):
 if __name__ == "__main__":
     np.set_printoptions(threshold='nan')
     a,b,c,d,e,f = smiles2graph_list(["c1cccnc1",'c1nccc2n1ccc2'])
-    print a
-    print b
-    print c
-    print d
-    print e
-    print f
+    print(a)
+    print(b)
+    print(c)
+    print(d)
+    print(e)
+    print(f)

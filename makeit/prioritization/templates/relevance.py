@@ -9,7 +9,7 @@ import sys
 import random
 import time
 import os
-import cPickle as pickle
+import six; from six.moves import cPickle as pickle
 import tensorflow as tf 
 import math
 
@@ -65,7 +65,7 @@ class RelevanceTemplatePrioritizer(Prioritizer):
                 tf.global_variables_initializer().run(session=self.session)
                 size_func = lambda v: reduce(lambda x, y: x*y, v.get_shape().as_list())
                 n = sum(size_func(v) for v in tf.trainable_variables())
-                print "Model size: %dK" % (n/1000,)
+                print("Model size: %dK" % (n/1000,))
 
                 self.coord = tf.train.Coordinator()
                 with open(gc.Relevance_Prioritization['trained_model_path_{}'.format(self.retro)], 'rb') as fid:

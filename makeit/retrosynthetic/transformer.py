@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import makeit.global_config as gc
 import os
-import cPickle as pickle
+import six; from six.moves import cPickle as pickle
 from pymongo import MongoClient
 
 USE_STEREOCHEMISTRY = True
@@ -33,7 +33,9 @@ class RetroTransformer(TemplateTransformer):
     one-step retrosyntheses for a given molecule.
     """
 
-    def __init__(self, celery=False, mincount=25, mincount_chiral=10, TEMPLATE_DB=None, loc=False, done=None):
+    def __init__(self, celery=False, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'], 
+        mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'], 
+        TEMPLATE_DB=None):
         """Initialize
         
         Keyword Arguments:
@@ -46,12 +48,8 @@ class RetroTransformer(TemplateTransformer):
                 need to be initialized. Chiral templates are necessarily more specific,
                 so we generally use a lower threshold than achiral templates (default: {10})
             TEMPLATE_DB {None or MongoDB} -- Database to load templates from (default: {None})
-            loc {bool} -- indicate that local file data should be read instead of online data (default: {False})
-            done {function} -- whether the expansion is done(?) (default: {None})
         """
-
         
-        self.done = done
         self.mincount = mincount
         if mincount_chiral == -1:
             self.mincount_chiral = mincount
@@ -59,10 +57,6 @@ class RetroTransformer(TemplateTransformer):
             self.mincount_chiral = mincount_chiral
         self.templates = []
         self.celery = celery
-
-        # if not self.celery and not TEMPLATE_DB:
-        #    MyLogger.print_and_log('Predefined template database is required for the retro transformer. Exiting...', retro_transformer_loc, level=3)
-
         self.TEMPLATE_DB = TEMPLATE_DB
         self.precursor_prioritizers = {}
         self.template_prioritizers = {}
@@ -72,16 +66,15 @@ class RetroTransformer(TemplateTransformer):
         if self.celery:
             # Pre-load fast filter
             self.load_fast_filter()
+
         super(RetroTransformer, self).__init__()
 
-    def load(self, TEMPLATE_DB=None, chiral=False, lowe=False, refs=False, rxns=True, efgs=False, rxn_ex=False):
+    def load(self, chiral=True, refs=False, rxns=True, efgs=False, rxn_ex=False):
         """Load templates to finish initializing the transformer
         
         Keyword Arguments:
             TEMPLATE_DB {None or MongoDB} -- MongoDB to load from (default: {None})
             chiral {bool} -- Whether to pay close attention to chirality (default: {False})
-            lowe {bool} -- Whether the templates come from Lowe (USPTO) data, 
-                as opposed to Reaxys (default: {False})
             refs {bool} -- Whether to also save references (Reaxys instance IDs)
                 when loading templates (default: {False})
             rxns {bool} -- Whether to actually load reaction SMARTS into RDKit
@@ -96,13 +89,34 @@ class RetroTransformer(TemplateTransformer):
         MyLogger.print_and_log('Loading retro-synthetic transformer, including all templates with more than {} hits ({} for chiral reactions)'.format(
             self.mincount, self.mincount_chiral), retro_transformer_loc)
 
-        self.load_templates(True, chiral=chiral, lowe=lowe,
-                            refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+        if chiral:
+            from makeit.utilities.io.files import get_retrotransformer_chiral_path
+            file_path = get_retrotransformer_chiral_path(
+                gc.RETRO_TRANSFORMS_CHIRAL['database'],
+                gc.RETRO_TRANSFORMS_CHIRAL['collection'],
+                gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
+                gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
+            )
+        else:
+            from makeit.utilities.io.files import get_retrotransformer_achiral_path
+            file_path = get_retrotransformer_achiral_path(
+                gc.RETRO_TRANSFORMS['database'],
+                gc.RETRO_TRANSFORMS['collection'],
+                gc.RETRO_TRANSFORMS['mincount'],
+            )
 
-        MyLogger.print_and_log('Retro-synthetic transformer has been loaded - using {} templates.'.format(
+        try:
+            self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+        except IOError:
+            self.load_from_database(True, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+        finally:
+            self.reorder()
+
+        MyLogger.print_and_log('Retrosynthetic transformer has been loaded - using {} templates.'.format(
             self.num_templates), retro_transformer_loc)
 
     def load_fast_filter(self):
+        # NOTE: Keras backend must be Theano for fast filter to work
         self.fast_filter = FastFilterScorer()
         # self.fast_filter.set_keras_backend('theano')
         self.fast_filter.load(model_path=gc.FAST_FILTER_MODEL['trained_model_path'])
@@ -125,8 +139,8 @@ class RetroTransformer(TemplateTransformer):
              RetroResult -- special object for a retrosynthetic expansion result,
                 defined by ./results.py
         """
-        apply_fast_filter = kwargs.pop('apply_fast_filter',False)
-        filter_threshold = kwargs.pop('filter_threshold',0.8)
+        apply_fast_filter = kwargs.pop('apply_fast_filter', True)
+        filter_threshold = kwargs.pop('filter_threshold', 0.75)
         if (apply_fast_filter and not self.fast_filter):
             self.load_fast_filter()
 
@@ -144,6 +158,7 @@ class RetroTransformer(TemplateTransformer):
         smiles = Chem.MolToSmiles(mol, isomericSmiles=True)  # to canonicalize
         if self.chiral:
             mol = rdchiralReactants(smiles)
+
         # Initialize results object
         result = RetroResult(smiles)
 
@@ -190,8 +205,7 @@ class RetroTransformer(TemplateTransformer):
             # Output of rdchiral is (a list of) smiles of the products.
             if self.chiral:
                 smiles_list = outcome.split('.')
-            # Output of the standard reactor in rdkit is an rdkit molecule
-            # object.
+            # Output of the standard reactor in rdkit is an rdkit molecule object.
             else:
                 try:
                     for x in outcome:
@@ -247,12 +261,7 @@ class RetroTransformer(TemplateTransformer):
 
 if __name__ == '__main__':
     MyLogger.initialize_logFile()
-    db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
-                            'id'], connect=gc.MONGO['connect'])
-    TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL['database']][
-        gc.RETRO_TRANSFORMS_CHIRAL['collection']]
-    t = RetroTransformer(mincount=25, mincount_chiral=10,
-                         TEMPLATE_DB=TEMPLATE_DB)
+    t = RetroTransformer()
     t.load(chiral=True)
 
     print(t.get_outcomes('C1C(=O)OCC12CC(C)CC2', 100,

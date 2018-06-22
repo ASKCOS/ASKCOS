@@ -110,5 +110,5 @@ if __name__ == '__main__':
     scorer = TemplateFreeNeuralNetScorer()
     res = scorer.evaluate('CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1')
     for re in res[0]:
-        print re['outcome']['smiles'] + " {}".format(re['prob'])
-    print 'done!'
+        print(re['outcome']['smiles'] + " {}".format(re['prob']))
+    print('done!')

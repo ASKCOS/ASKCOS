@@ -6,7 +6,7 @@ import rdkit.Chem as Chem
 from collections import defaultdict
 from tqdm import tqdm
 from makeit.utilities.io.logging import MyLogger
-import cPickle as pickle
+import six; from six.moves import cPickle as pickle
 from pymongo import MongoClient
 from multiprocessing import Manager
 import os

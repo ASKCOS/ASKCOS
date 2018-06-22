@@ -98,5 +98,5 @@ if __name__ == "__main__":
             break
     rcores = cf.predict(data, 10)
     for core in rcores:
-        print core
+        print(core)
 

@@ -162,7 +162,7 @@ class TreeEvaluator():
                 #print('Quee {} empty for worker {}'.format(j, i))
                         pass
                     except Exception as e:
-                        print e
+                        print(e)
                     self.idle[i] = True
             self.work = work
 
@@ -246,7 +246,7 @@ class TreeEvaluator():
                     reaction['template_score'], top_result['target']['prob'])
 
                 plausible = self.is_plausible(top_result)
-                print reaction_smiles, plausible
+                print(reaction_smiles, plausible)
                 all_children_plausible = True
                 for child in reaction['children']:
                     # TODO: pproperly pass arguments to next evaluate_tree call
@@ -345,4 +345,4 @@ if __name__ == '__main__':
     res = ev.evaluate_tree(tree, gc.nearest_neighbor, gc.probability,
                            gc.templatebased, gc.product, is_target=True, reset=True, nproc=16)
     #res = ev.evaluate_trees(trees, gc.probability, gc.templatebased, gc.product, nproc = 8, parallel=True, nproc_t=3)
-    print res
+    print(res)

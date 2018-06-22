@@ -2,7 +2,7 @@ import makeit.global_config as gc
 from pymongo import MongoClient
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
-import cPickle as pickle
+import six; from six.moves import cPickle as pickle
 import numpy as np
 import random
 from collections import deque
@@ -323,4 +323,4 @@ if __name__ == '__main__':
     import global_config as gc
     cont = NNContextRecommender()
     cont.load_nn_model(model_path = gc.CONTEXT_REC['model_path'], info_path = gc.CONTEXT_REC['info_path'])
-    print cont.get_n_conditions('CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1>>CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3', 10)
+    print(cont.get_n_conditions('CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1>>CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3', 10))

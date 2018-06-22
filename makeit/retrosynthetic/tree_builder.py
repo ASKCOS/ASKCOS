@@ -489,7 +489,7 @@ class TreeBuilder:
                     # print('Queue {} empty for worker {}'.format(j, i))
                     pass
                 except Exception as e:
-                    print e
+                    print(e)
             time.sleep(0.01)
             self.idle[i] = True
 
@@ -905,17 +905,12 @@ if __name__ == '__main__':
     treedict = []
 
     treeBuilder = TreeBuilder(celery=celery, mincount=250, mincount_chiral=100)
-    # treeBuilder.build_tree('c1ccccc1C(=O)OCCN')
-    # print treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.popularity,
-    #                                     precursor_prioritization=gc.scscore, nproc=3, expansion_time=60, max_trees=500, max_ppg=10,
-    #                                     max_branching = 25,precursor_score_mode =gc.mean, apply_fast_filter= True, filter_threshold=0.95)[0]
-    # print 'done'
 
     status, paths = treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.popularity,
                                         precursor_prioritization=gc.scscore, nproc=16, expansion_time=60, max_trees=500, max_ppg=10,
                                         max_branching=25, precursor_score_mode=gc.mean, 
                                         min_chemical_history_dict={'as_reactant':5, 'as_product':1, 'logic':'none'})
-    print 'done'
+    print('done')
     print(status)
     print(paths[0])
     print(paths[1])

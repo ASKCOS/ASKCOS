@@ -11,7 +11,7 @@ import random
 import os
 import time
 import os
-import cPickle as pickle
+import six; from six.moves import cPickle as pickle
 from numpy import inf
 scscore_prioritizer_loc = 'scscoreprioritizer'
 

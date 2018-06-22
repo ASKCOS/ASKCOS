@@ -353,9 +353,9 @@ def smiles2graph_test(rsmiles, core_bonds, idxfunc=lambda x:x.GetIntProp('molAto
 
 if __name__ == "__main__":
     a,b,c,d,e,f = smiles2graph("[OH:1][CH3:2]", "[O:1]=[CH2:2]", [(0,1)])[0]
-    print a
-    print b
-    print c
-    print d
-    print e
-    print f
+    print(a)
+    print(b)
+    print(c)
+    print(d)
+    print(e)
+    print(f)

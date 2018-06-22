@@ -9,7 +9,7 @@ import numpy as np#something
 
 from keras import backend as K 
 from keras.layers import Dense, Activation, Input
-from keras.layers import Merge, merge, activations
+from keras.layers import merge, activations
 from keras.optimizers import SGD, Adam, Adadelta
 #import keras.engine.topology 
 from keras.engine.topology import Layer
