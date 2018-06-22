@@ -1,5 +1,5 @@
 import rdkit.Chem as Chem
-from mol_graph import bond_fdim, bond_features
+from .mol_graph import bond_fdim, bond_features
 import numpy as np
 
 BOND_TYPE = ["NOBOND", Chem.rdchem.BondType.SINGLE, Chem.rdchem.BondType.DOUBLE, Chem.rdchem.BondType.TRIPLE, Chem.rdchem.BondType.AROMATIC] 

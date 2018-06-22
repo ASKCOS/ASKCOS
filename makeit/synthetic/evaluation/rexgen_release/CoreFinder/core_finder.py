@@ -79,7 +79,7 @@ class CoreFinder(object):
                 res = []
                 for j in range(num_core):
                     k = cur_topk[i,j]
-                    x = k / cur_dim
+                    x = k // cur_dim
                     y = k % cur_dim
                     if x < y and cur_validity[i,x,y] == 1:
                         res.append( (x + 1,y + 1) )

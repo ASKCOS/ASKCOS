@@ -4,7 +4,7 @@ import tensorflow as tf
 from ..utils.nn import linearND, linear
 from .mol_graph import atom_fdim as adim, bond_fdim as bdim, max_nb, smiles2graph_test, bond_types
 from .models import *
-from edit_mol import edit_mol
+from .edit_mol import edit_mol
 
 class CandRanker(object):
 

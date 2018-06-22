@@ -1,1 +1,1 @@
-from cand_ranker import CandRanker
+from .cand_ranker import CandRanker

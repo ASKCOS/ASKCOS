@@ -1,5 +1,5 @@
-from CandRanker import CandRanker
-from CoreFinder import CoreFinder
+from makeit.synthetic.evaluation.rexgen_release.CandRanker import CandRanker
+from makeit.synthetic.evaluation.rexgen_release.CoreFinder import CoreFinder
 import rdkit.Chem as Chem 
 import sys
 import os 

@@ -1,1 +1,1 @@
-from core_finder import CoreFinder
+from .core_finder import CoreFinder
