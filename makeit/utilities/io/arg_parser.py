@@ -13,7 +13,7 @@ def setup_parser():
     max_branching = 20
     max_trees = 5000
     context_recommender = gc.neural_network
-    forward_scoring_method = gc.templatefree
+    forward_scoring_method = gc.fastfilter
     tree_scoring_method = gc.forwardonly
     context_prioritization = gc.probability
     template_prioritization = gc.relevance
