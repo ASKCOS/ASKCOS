@@ -123,10 +123,10 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
     dynamic_unreshaper = lambda x: T.reshape(x[0], (x[1].shape[0], x[1].shape[1], x[1].shape[2], x[0].shape[1]), ndim  = x[0].ndim+2)
     dynamic_unreshaper_shape = lambda x: x[1][:3] + x[0][1:]
 
-    h_lost_r2    = merge([h_lost_h, h_lost], mode = dynamic_unreshaper, output_shape = dynamic_unreshaper_shape, name = "expand H_lost edits")
-    h_gain_r2    = merge([h_gain_h, h_gain], mode = dynamic_unreshaper, output_shape = dynamic_unreshaper_shape, name = "expand H_gain edits")
-    bond_lost_r2 = merge([bond_lost_h, bond_lost], mode = dynamic_unreshaper, output_shape = dynamic_unreshaper_shape, name = "expand bond_lost edits")
-    bond_gain_r2 = merge([bond_gain_h, bond_gain], mode = dynamic_unreshaper, output_shape = dynamic_unreshaper_shape, name = "expand bond_gain edits")
+    h_lost_r2    = Lambda(dynamic_unreshaper, output_shape = dynamic_unreshaper_shape, name = "expand H_lost edits")([h_lost_h, h_lost])
+    h_gain_r2    = Lambda(dynamic_unreshaper, output_shape = dynamic_unreshaper_shape, name = "expand H_gain edits")([h_gain_h, h_gain])
+    bond_lost_r2 = Lambda(dynamic_unreshaper, output_shape = dynamic_unreshaper_shape, name = "expand bond_lost edits")([bond_lost_h, bond_lost])
+    bond_gain_r2 = Lambda(dynamic_unreshaper, output_shape = dynamic_unreshaper_shape, name = "expand bond_gain edits")([bond_gain_h, bond_gain])
 
     # Add edits within a single candidate
     sum_along_axis2       = lambda x: K.sum(x, axis = 2)
@@ -137,7 +137,7 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
     bond_gain_sum = Lambda(sum_along_axis2, output_shape = sum_along_axis2_shape, name = "sum bond_gain")(bond_gain_r2)
 
     # Sum across edits in their intermediate representation
-    net_sum = merge([h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum], mode = 'concat', name = "concat across edits")
+    net_sum = merge.concatenate([h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum], name = "concat across edits")
 
     feature_to_feature = Dense(N_hf, activation = inner_act, W_regularizer = l2(l2v))
     net_sum_h = TimeDistributed(feature_to_feature, name = "reaction embedding post-sum")(net_sum)
@@ -149,12 +149,12 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
     # x[0] is the original vector and x[1] is just to get the number of candidates (shape)
     context_repeater     = lambda x: K.repeat(x[0], x[1].shape[1])
     context_repeater_shape = lambda x: (x[0][0], x[1][1]) + x[0][1:]
-    reagents_h_rpt = merge([reagents_h, h_lost], mode = context_repeater, output_shape = context_repeater_shape, name = "broadcast reagent vector")
-    solvent_rpt    = merge([solvent, h_lost], mode = context_repeater, output_shape = context_repeater_shape, name = "broadcast solvent vector")
-    temp_rpt       = merge([temp, h_lost], mode = context_repeater, output_shape = context_repeater_shape, name = "broadcast temperature")
+    reagents_h_rpt = Lambda(context_repeater, output_shape = context_repeater_shape, name = "broadcast reagent vector")([reagents_h, h_lost])
+    solvent_rpt    = Lambda(context_repeater, output_shape = context_repeater_shape, name = "broadcast solvent vector")([solvent, h_lost])
+    temp_rpt       = Lambda(context_repeater, output_shape = context_repeater_shape, name = "broadcast temperature")([temp, h_lost])
 
     # Dot product between reagents and net_sum_h gives enhancement factor
-    enhancement_mul = merge([net_sum_h, reagents_h_rpt], mode = 'mul', name = "multiply reaction with reagents [dot 1/2]")
+    enhancement_mul = merge.multiply([net_sum_h, reagents_h_rpt], name = "multiply reaction with reagents [dot 1/2]")
     enhancement_r = Lambda(lambda x: K.sum(x, axis = -1, keepdims = True), output_shape = lambda x: x[:-1] + (1,), name = "sum reaction with reagents [dot 2/2]")(enhancement_mul)
 
     # Converge to G0, C[not real], E, S, A, B, V, and K
@@ -162,7 +162,7 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
     params = TimeDistributed(feature_to_params, name = "features to K,G0,C,E,S,A,B,V")(net_sum_h)
 
     # Concatenate enhancement and solvents
-    params_enhancement = merge([params, enhancement_r, solvent_rpt, temp_rpt], mode = 'concat', name = "concatenate context")
+    params_enhancement = merge.concatenate([params, enhancement_r, solvent_rpt, temp_rpt], name = "concatenate context")
 
     # # Calculate using thermo-ish
     # # K * exp(- (G0 + delG_solv) / T + enhancement)

@@ -35,8 +35,8 @@ def setup_parser():
     celery = False
     template_count = 1000
     parallel_tree = False
-    apply_fast_filter = False
-    filter_threshold = 0.8
+    apply_fast_filter = True 
+    filter_threshold = 0.75
 
     # Set all arguments
     parser.add_argument('--TARGET', type=str,

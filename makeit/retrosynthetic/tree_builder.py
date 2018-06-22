@@ -15,7 +15,6 @@ from makeit.utilities.buyable.pricer import Pricer
 from makeit.utilities.io.logging import MyLogger
 from makeit.utilities.io import model_loader
 from makeit.utilities.formats import chem_dict, rxn_dict
-from celery.result import allow_join_result
 import askcos_site.askcos_celery.treebuilder.tb_worker as tb_worker
 import askcos_site.askcos_celery.treebuilder.tb_c_worker as tb_c_worker
 treebuilder_loc = 'tree_builder'
@@ -521,6 +520,10 @@ class TreeBuilder:
             target {string} -- SMILES of target molecule
         """
         self.running = True
+        if self.celery:
+            from celery.result import allow_join_result
+        else:
+            from makeit.utilities.with_dummy import with_dummy as allow_join_result
         with allow_join_result():
             try:
                 hist = self.chemhistorian.lookup_smiles(target)

@@ -193,8 +193,7 @@ class TemplateTransformer(object):
 
     def load_from_database(self, retro, chiral=False, refs=False, rxns=True, efgs=False, rxn_ex=False):
         # Save collection TEMPLATE_DB
-        if not self.TEMPLATE_DB:
-            self.load_databases(retro, chiral=chiral)
+        self.load_databases(retro, chiral=chiral)
         self.chiral = chiral
         if self.mincount and 'count' in self.TEMPLATE_DB.find_one():
             if retro:

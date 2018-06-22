@@ -109,15 +109,15 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
 
         from makeit.utilities.io.files import get_synthtransformer_path
         file_path = get_synthtransformer_path(
-            settings.SYNTH_TRANSFORMS['database'],
-            settings.SYNTH_TRANSFORMS['collection'],
-            settings.SYNTH_TRANSFORMS['mincount'],
+            gc.SYNTH_TRANSFORMS['database'],
+            gc.SYNTH_TRANSFORMS['collection'],
+            gc.SYNTH_TRANSFORMS['mincount'],
         )
 
         try:
-            self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+            self.load_from_file(False, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
         except IOError:
-            self.load_from_database(True, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+            self.load_from_database(False, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
         finally:
             print(self.templates[0])
             self.reorder()
