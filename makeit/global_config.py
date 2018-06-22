@@ -1,21 +1,26 @@
 import os
 time_zero = 0
-# Should we use stereochemistry? [should deprecate this setting]
 
+### TODO: deprecate this - always use stereochemsitry!
+# Should we use stereochemistry?
 USE_STEREOCHEMISTRY = True
 
-#Output debugging statements
+# Output debugging statements
 DEBUG = False
-#Module options:
-#For pathway scoring:
+
+################################################################################
+# Options for different modules, defined as strings
+################################################################################
+
+# For pathway scoring:
 forwardonly = 'Forward only'
 templateonly = 'Template only'
 product = 'Product'
 
-
-#For prioritization
+# For prioritization (precursors and templates)
 all = 'All'
-# for precursors
+
+# For precursor prioritization
 relevanceheuristic = 'RelevanceHeuristic'
 heuristic = 'Heuristic'
 scscore = 'SCScore'
@@ -24,22 +29,25 @@ mean = 'Mean'
 geometric = 'Geometric'
 pow8 ='Power of 8'
 max = 'Maximum'
-# for templates
+
+# For template prioritization
 popularity = 'Popularity'
 relevance = 'Relevance'
-
 natural = 'Natural'
-# for contexts
+
+# For deciding the best context
 probability = 'Probability'
 rank = 'Rank'
 
-#For context recommendation
+# For context recommendation
 nearest_neighbor = 'Nearest_Neighbor'
 neural_network = 'Neural_Network'
-#For transformations
+
+# For forward prediction
 template = 'Template'
 network = 'Neural_Network'
-#Reaction evaluation
+
+# For reaction evaluation
 fastfilter = 'Fast_Filter'
 templatefree = 'Template_Free'
 templatebased = 'Template_Based'
@@ -54,16 +62,22 @@ forward_scoring_needs_context_necessary_reagent = {
     'Template_Based': True,
 }
 
-#Set which modules should be used:
+# Set which modules should be used as defaults
 context_module = nearest_neighbor
 synth_enumeration = template
 retro_enumeration = template
 prioritizaton = heuristic
 forward_scoring = network
 
-#Use highest protocol in pickle
+# Use highest protocol in pickle
 protocol = -1
+
+################################################################################
+# Define data file locations
+################################################################################
+
 data_path = os.path.join(os.path.dirname(__file__),'data')
+local_db_dumps = os.path.join(data_path, 'local_db_dumps')
 
 fingerprint_bits = 256
 reaction_fingerprint_bits = 2048
@@ -77,26 +91,24 @@ prioritization_data = os.path.join(data_path, 'prioritization')
 
 database = 'reaxys_v2'
 
-#Required database names
+################################################################################
+# Define databases (should be nonessential if all local files present)
+################################################################################
+
+# TODO: change this to your local Mongo DB!
 MONGO = {
-        'path': 'mongodb://guest:guest@askcos2.mit.edu/admin',
-        'path_yield_flow':None,
-        'id': 27017,
-        'connect': False
-        }
+    'path': 'mongodb://USERNAME:PASSWORD@DB_SERVER/AUTH_DB',
+    'id': 27017,
+    'connect': False
+}
 
-
-YIELDS = {
-    'database': database,
-    'collection' : 'yields',
-    'data_loc': os.path.join(data_path, 'forward_scoring/yield_est_data'),
-    'model_loc': os.path.join(data_path, 'forward_scoring/yield_est_model.h5')
-    }
-
+# TODO: deprecate achiral transforms
 RETRO_TRANSFORMS = {
     'database': database,
-    'collection': 'transforms_retro_v8', 
-    }
+    'collection': 'transforms_retro_v6',
+    'mincount': 25,
+}
+
 RETRO_TRANSFORMS_CHIRAL = {
     'database': database,
     'collection': 'transforms_retro_v9',
@@ -107,22 +119,23 @@ RETRO_TRANSFORMS_CHIRAL = {
 SYNTH_TRANSFORMS = {
     'database': 'reaxys',
     'collection': 'transforms_forward_v1' ,
-    }
+    'mincount': 25, 
+}
 
 INSTANCES = {
     'database': database,
     'collection': 'instances',
-    }
+}
 
 REACTIONS = {
     'database': database,
     'collection': 'reactions',
-    }
+}
 
 CHEMICALS = {
     'database': database,
     'collection': 'chemicals',
-    }
+}
 
 CHEMICAL_HISTORY = {
     'database': database,
@@ -132,27 +145,31 @@ CHEMICAL_HISTORY = {
 BUYABLES = {
     'database': database,
     'collection': 'buyables',
-    }
+}
 
 SOLVENTS = {
     'database': 'reaxys',
     'collection': 'solvents',    
-    }
+}
 
+# Template-based forward predictor
 PREDICTOR = {
     'trained_model_path': os.path.join(os.path.dirname(__file__), 'data', 'forward_scoring'),
     'info': '01-23-17, model trained on 80k Reaxys examples, validated on 10k, tested on 10k. Nh1_200, Nh2_200, Nh3_200, l2_0, Nc_5000, enh_weight_0d1, context_weight_50, opt_adadelta, batch_5, moreFeatures'
 }
 
+# Fast filter evaluation
 FAST_FILTER_MODEL = {
     'trained_model_path': os.path.join(os.path.dirname(__file__), 'data', 'fast_filter','my_model.h5'),
 }
-#Hard coded mincounts to maintain compatibility of the relevance method
+# Hard coded mincounts to maintain compatibility of the relevance method
 Relevance_Prioritization = {
     'trained_model_path_True': os.path.join(prioritization_data, 'template_relevance_network_weights.pickle'),
     'min_chiral':10,
     'min':25
-    }
+}
+
+# Different SCScore models that are all functionally similary
 SCScore_Prioritiaztion = {
     'trained_model_path_1024bool': os.path.join(prioritization_data, 'scscore', 'model_1024bool.pickle'),
     'trained_model_path_2048bool': os.path.join(prioritization_data, 'scscore', 'model_2048bool.pickle'),
@@ -160,11 +177,11 @@ SCScore_Prioritiaztion = {
 
 MinCost_Prioritiaztion = {
     'trained_model_path': os.path.join(prioritization_data, 'mincost', 'model.hdf5')
-    }
+}
 
 CONTEXT_REC = {
-    'info_path': os.path.join(data_path,'context', 'RxnID_infoFull.txt'),
-    'model_path': os.path.join(data_path,'context', 'fp256noFtr_NN10_BT.pickle'),
+    'info_path': os.path.join(data_path, 'context', 'RxnID_infoFull.txt'),
+    'model_path': os.path.join(data_path, 'context', 'fp256noFtr_NN10_BT.pickle'),
     'model_dir': data_path,
     'database': database,
 }
@@ -175,60 +192,3 @@ NEURALNET_CONTEXT_REC = {
     'weights_path': os.path.join(data_path,'context', 'NeuralNet_Cont_Model', 'weights.h5'),
     'database': database,
 }
-
-FLOW_CONDITIONS = {
-    'database': database,
-    'collection' : 'flow_conditions',
-    'data_loc': os.path.join(data_path, 'context/flow_condition_data'), 
-    'model_loc': os.path.join(data_path, 'context/flow_model.h5')
-    }
-
-FLOW_CONDITIONS_50 = {
-    'database':database,
-    'collection' : 'flow_conditions_50',
-    'data_loc': os.path.join(data_path, 'context/flow_condition_data_50'), 
-    'model_loc': os.path.join(data_path, 'context/flow_model_50.h5')
-    }
-FLOW_CONDITIONS2 = {
-    'database': database,
-    'collection' : 'flow_conditions',
-    'data_loc': os.path.join(data_path, 'context/flow_condition_data2'), 
-    'model_loc': os.path.join(data_path, 'context/flow_model2.h5')
-    }
-
-FLOW_CONDITIONS2_50 = {
-    'database':database,
-    'collection' : 'flow_conditions_50',
-    'data_loc': os.path.join(data_path, 'context/flow_condition_data2_50'), 
-    'model_loc': os.path.join(data_path, 'context/flow_model2_50.h5')
-    }
-
-FLOW_CONDITIONS3 = {
-    'database': database,
-    'collection' : 'flow_conditions',
-    'data_loc': os.path.join(data_path, 'context/flow_condition_data3'), 
-    'model_loc': os.path.join(data_path, 'context/flow_model3.h5')
-    }
-
-FLOW_CONDITIONS3_50 = {
-    'database':database,
-    'collection' : 'flow_conditions_50',
-    'data_loc': os.path.join(data_path, 'context/flow_condition_data3_50'), 
-    'model_loc': os.path.join(data_path, 'context/flow_model3_50.h5')
-    }
-
-FLOW_CONDITIONS4 = {
-    'database': database,
-    'collection' : 'flow_conditions',
-    'raw_data_loc': os.path.join(data_path, 'context/flow_condition_rawdata4'), 
-    'data_loc': os.path.join(data_path, 'context/flow_condition_data4'), 
-    'model_loc': os.path.join(data_path, 'context/flow_model4.h5')
-    }
-
-FLOW_CONDITIONS4_50 = {
-    'database':database,
-    'collection' : 'flow_conditions_50',
-    'raw_data_loc': os.path.join(data_path, 'context/flow_condition_rawdata4_50'), 
-    'data_loc': os.path.join(data_path, 'context/flow_condition_data4_50'),
-    'model_loc': os.path.join(data_path, 'context/flow_model4_50.h5')
-    }
