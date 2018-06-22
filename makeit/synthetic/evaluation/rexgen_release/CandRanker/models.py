@@ -6,7 +6,7 @@ def rcnn_wl_last(graph_inputs, hidden_size, depth, training=True):
     input_atom, input_bond, atom_graph, bond_graph, num_nbs = graph_inputs
     atom_features = tf.nn.relu(linearND(input_atom, hidden_size, "atom_embedding", init_bias=None))
     layers = []
-    for i in xrange(depth):
+    for i in range(depth):
         with tf.variable_scope("WL", reuse=(i>0)) as scope:
             fatom_nei = tf.gather_nd(atom_features, atom_graph)
             fbond_nei = tf.gather_nd(input_bond, bond_graph)
@@ -42,7 +42,7 @@ def rcnn_wl_last(graph_inputs, hidden_size, depth):
     mask_nei = tf.reshape(mask_nei, target_shape)
     mask_nei.set_shape([None, None, max_nb, 1])
 
-    for i in xrange(depth):
+    for i in range(depth):
         with tf.variable_scope("WL", reuse=(i>0)) as scope:
             fatom_nei = tf.gather_nd(atom_features, atom_graph)
             l_nei = tf.concat(3, [fatom_nei, fbond_nei])

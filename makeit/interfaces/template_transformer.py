@@ -13,7 +13,7 @@ from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 from pymongo import MongoClient
 from makeit.utilities.io.logging import MyLogger
 transformer_loc = 'template_transformer'
-import six; from six.moves import cPickle as pickle
+import makeit.utilities.io.pickle as pickle
 import os
 
 class TemplateTransformer(object):
@@ -72,55 +72,44 @@ class TemplateTransformer(object):
 
         self.template_prioritizer = template
 
-    def dump_to_file(self, retro, file_name, chiral=False, file_path=""):
+    def dump_to_file(self, retro, file_path, chiral=False):
         '''
         Write the template database to a file, of which the path in specified in the general configuration
         '''
+
         if not self.templates:
-            self.load_from_db(chiral=chiral)
+            raise ValueError('Cannot dump to file if templates have not been loaded')
 
-        if retro:
-            if file_path=="":
-                file_path = gc.retro_template_data
-            if chiral:
-                pickle_templates = []
-                # reconstruct template list, but without chiral rxn object =>
-                # can't be pickled.
-                for template in self.templates:
-                    pickle_templates.append({
-                                            'name':                 template['name'],
-                                            'reaction_smarts':      template['reaction_smarts'],
-                                            'incompatible_groups':  template['incompatible_groups'],
-                                            'references':           template['references'],
-                                            'rxn_example':          template['rxn_example'],
-                                            'explicit_H':           template['explicit_H'],
-                                            '_id':                  template['_id'],
-                                            'product_smiles':       template['product_smiles'],
-                                            'necessary_reagent':    template['necessary_reagent'],
-                                            'efgs':                 template['efgs'],
-                                            'intra_only':           template['intra_only'],
-                                            'dimer_only':           template['dimer_only'],
-                                            'chiral':               template['chiral'],
-                                            'count':                template['count'],
-                                            })
-            else:
-                pickle_templates = self.templates
-            with open(os.path.join(file_path, file_name), 'w+') as file:
-                pickle.dump(pickle_templates, file, gc.protocol)
-
-            MyLogger.print_and_log('Wrote templates to {}'.format(
-                os.path.join(file_path, file_name)), transformer_loc)
-
+        if retro and chiral:
+            pickle_templates = []
+            # reconstruct template list, but without chiral rxn object (can't be pickled)
+            for template in self.templates:
+                pickle_templates.append({
+                                        'name':                 template['name'],
+                                        'reaction_smarts':      template['reaction_smarts'],
+                                        'incompatible_groups':  template['incompatible_groups'],
+                                        'references':           template['references'],
+                                        'rxn_example':          template['rxn_example'],
+                                        'explicit_H':           template['explicit_H'],
+                                        '_id':                  template['_id'],
+                                        'product_smiles':       template['product_smiles'],
+                                        'necessary_reagent':    template['necessary_reagent'],
+                                        'efgs':                 template['efgs'],
+                                        'intra_only':           template['intra_only'],
+                                        'dimer_only':           template['dimer_only'],
+                                        'chiral':               template['chiral'],
+                                        'count':                template['count'],
+                                        })
         else:
-            if file_path=="":
-                file_path = gc.synth_template_data
-            with open(os.path.join(file_path, file_name), 'w+') as file:
-                pickle.dump(self.templates, file, gc.protocol)
+            pickle_templates = self.templates
+
+        with open(file_path, 'w+') as file:
+            pickle.dump(pickle_templates, file)
 
             MyLogger.print_and_log('Wrote templates to {}'.format(
-                os.path.join(file_path, file_name)), transformer_loc)
+                file_path, transformer_loc))
 
-    def load_from_file(self, retro, file_path, chiral=False, rxns=True):
+    def load_from_file(self, retro, file_path, chiral=False, rxns=True, refs=False, efgs=False, rxn_ex=False):
         '''
         Read the template database from a previously saved file, of which the path is specified in the general
         configuration
@@ -131,7 +120,7 @@ class TemplateTransformer(object):
         rxns : whether or not to actually load the reaction objects (or just the info)
         '''
         
-        MyLogger.print_and_log('Loading templates from {}'.format(file_name), transformer_loc)
+        MyLogger.print_and_log('Loading templates from {}'.format(file_path), transformer_loc)
 
         if os.path.isfile(file_path):
             with open(file_path, 'rb') as file:
@@ -150,6 +139,23 @@ class TemplateTransformer(object):
         else:
             MyLogger.print_and_log("No file to read data from.", transformer_loc, level=1)
             raise IOError('File not found to load template_transformer from!')
+
+        # Clear out unnecessary info
+        if not refs:
+            [self.templates[i].pop('refs', None) for i in range(len(self.templates))]
+        elif 'refs' not in self.templates[0]:
+            raise IOError('Save file does not contain references (which were requested!)')
+
+        if not efgs:
+            [self.templates[i].pop('efgs', None) for i in range(len(self.templates))]
+        elif 'efgs' not in self.templates[0]:
+            raise IOError('Save file does not contain efg info (which was requested!)')
+
+        if not rxn_ex:
+            [self.templates[i].pop('rxn_ex', None) for i in range(len(self.templates))]
+        elif 'rxn_ex' not in self.templates[0]:
+            raise IOError('Save file does not contain a reaction example (which was requested!)')
+
 
         self.num_templates = len(self.templates)
         MyLogger.print_and_log('Loaded templates. Using {} templates'.format(self.num_templates), transformer_loc)

@@ -5,7 +5,7 @@ import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import numpy as np
 import os
-import six; from six.moves import cPickle as pickle
+import makeit.utilities.io.pickle as pickle
 from functools import partial  # used for passing args to multiprocessing
 from makeit.utilities.io.logging import MyLogger
 from makeit.synthetic.enumeration.results import ForwardResult, ForwardProduct
@@ -27,20 +27,18 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
     one-step retrosyntheses for a given molecule.
     '''
 
-    def __init__(self, mincount=0, TEMPLATE_DB=None, loc=False, done=None, celery=False):
+    def __init__(self, mincount=gc.SYNTH_TRANSFORMS['mincount'], celery=False):
         '''
         Initialize a transformer.
         TEMPLATE_DB: indicate the database you want to use (def. none)
         loc: indicate that local file data should be read instead of online data (def. false)
         '''
 
-        self.done = done
         self.mincount = mincount
         self.templates = []
         self.id_to_index = {}
         self.celery = celery
         self.template_prioritizers = {}
-        self.TEMPLATE_DB = TEMPLATE_DB
 
         super(ForwardTransformer, self).__init__()
 
@@ -108,6 +106,22 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
         if worker_no == 0:
             MyLogger.print_and_log('Loading synthetic transformer, including all templates with more than {} hits'.format(
                 self.mincount), forward_transformer_loc)
+
+        from makeit.utilities.io.files import get_synthtransformer_path
+        file_path = get_synthtransformer_path(
+            settings.SYNTH_TRANSFORMS['database'],
+            settings.SYNTH_TRANSFORMS['collection'],
+            settings.SYNTH_TRANSFORMS['mincount'],
+        )
+
+        try:
+            self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+        except IOError:
+            self.load_from_database(True, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+        finally:
+            print(self.templates[0])
+            self.reorder()
+
 
         self.load_from_database(False, refs=refs, efgs=efgs, rxns = rxns)
 

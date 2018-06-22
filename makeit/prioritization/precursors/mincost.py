@@ -14,7 +14,7 @@ import random
 import os
 import time
 import os
-import six; from six.moves import cPickle as pickle
+import makeit.utilities.io.pickle as pickle
 from numpy import inf
 mincost_prioritizer_loc = 'mincostprioritizer'
 
@@ -62,7 +62,7 @@ class MinCostPrecursorPrioritizer(Prioritizer):
         self.mol_to_fp = mol_to_fp
 
         self.pricer = Pricer()
-        self.pricer.load_from_file()
+        self.pricer.load()
         self._restored = True
         self._loaded = True
 

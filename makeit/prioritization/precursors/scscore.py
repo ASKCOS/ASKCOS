@@ -11,7 +11,7 @@ import random
 import os
 import time
 import os
-import six; from six.moves import cPickle as pickle
+import makeit.utilities.io.pickle as pickle
 from numpy import inf
 scscore_prioritizer_loc = 'scscoreprioritizer'
 
@@ -51,7 +51,7 @@ class SCScorePrecursorPrioritizer(Prioritizer):
                 fp = AllChem.GetMorganFingerprint(
                     mol, self.FP_rad, useChirality=True)  # uitnsparsevect
                 fp_folded = np.zeros((self.FP_len,), dtype=np.uint8)
-                for k, v in fp.GetNonzeroElements().iteritems():
+                for k, v in fp.GetNonzeroElements().items():
                     fp_folded[k % self.FP_len] += v
                 return np.array(fp_folded)
         else:
@@ -63,7 +63,7 @@ class SCScorePrecursorPrioritizer(Prioritizer):
         self.mol_to_fp = mol_to_fp
 
         self.pricer = Pricer()
-        self.pricer.load_from_file()
+        self.pricer.load()
         self._restored = True
         self._loaded = True
 

@@ -66,7 +66,7 @@ class CoreFinder(object):
         batch_size = self.batch_size
         num_core *= 2
 
-        for it in xrange(0, len(reactants), batch_size):
+        for it in range(0, len(reactants), batch_size):
             src_batch = reactants[it:it + batch_size]
             src_tuple = smiles2graph_batch(src_batch)
             cur_bin, cur_validity = get_all_batch(src_batch)
@@ -75,9 +75,9 @@ class CoreFinder(object):
             cur_topk = self.session.run(self.topk, feed_dict=feed_map)
             cur_dim = cur_validity.shape[1]
             
-            for i in xrange(batch_size):
+            for i in range(batch_size):
                 res = []
-                for j in xrange(num_core):
+                for j in range(num_core):
                     k = cur_topk[i,j]
                     x = k / cur_dim
                     y = k % cur_dim

@@ -89,7 +89,7 @@ class TreeBuilder:
             self.pricer = pricer
         else:
             self.pricer = Pricer()
-            self.pricer.load(max_ppg=1e10)
+            self.pricer.load()
 
         self.chemhistorian = chemhistorian
         if chemhistorian is None:

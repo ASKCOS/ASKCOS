@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import makeit.global_config as gc
 import os
-import six; from six.moves import cPickle as pickle
+import makeit.utilities.io.pickle as pickle
 from pymongo import MongoClient
 
 USE_STEREOCHEMISTRY = True
@@ -85,6 +85,7 @@ class RetroTransformer(TemplateTransformer):
                 each template as it is loaded (default: {False})
         """
 
+        self.chiral = chiral 
 
         MyLogger.print_and_log('Loading retro-synthetic transformer, including all templates with more than {} hits ({} for chiral reactions)'.format(
             self.mincount, self.mincount_chiral), retro_transformer_loc)
@@ -198,7 +199,7 @@ class RetroTransformer(TemplateTransformer):
             else:
                 outcomes = template['rxn'].RunReactants([react_mol])
         except Exception as e:
-            # print(template['reaction_smarts'])
+            print(e)
             return []
         for j, outcome in enumerate(outcomes):
             smiles_list = []
@@ -217,7 +218,7 @@ class RetroTransformer(TemplateTransformer):
                         smiles_list.extend(Chem.MolToSmiles(
                             x, isomericSmiles=USE_STEREOCHEMISTRY).split('.'))
                 except Exception as e:
-                    # print(e) # fail quietly
+                    print(e) # fail quietly
                     continue
 
             if template['intra_only'] and len(smiles_list) > 1:
@@ -252,17 +253,24 @@ class RetroTransformer(TemplateTransformer):
         Yields:
             dict -- single templates in order of decreasing priority
         """
-        prioritized_templates = self.template_prioritizer.get_priority((self.templates, target), **kwargs)
-        for template in prioritized_templates:
-            if template['count'] < self.mincount:
+        for template in self.template_prioritizer.get_priority((self.templates, target), **kwargs):
+            if not template['chiral'] and template['count'] < self.mincount:
+                pass
+            elif template['chiral'] and template['count'] < self.mincount_chiral:
                 pass
             else:
                 yield template
 
 if __name__ == '__main__':
+    
     MyLogger.initialize_logFile()
     t = RetroTransformer()
-    t.load(chiral=True)
+    t.load(chiral=True, refs=False, rxns=True)
 
-    print(t.get_outcomes('C1C(=O)OCC12CC(C)CC2', 100,
-                         (gc.relevanceheuristic, gc.relevance), max_cum_prob = 0.5).precursors)
+    outcomes = get_outcomes('C1C(=O)OCC12CC(C)CC2', 100, (gc.relevanceheuristic, gc.relevance))
+    precursors = outcomes.precursors
+
+    print([precursor.smiles_list for precursor in precursors])
+
+
+

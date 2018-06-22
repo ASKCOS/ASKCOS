@@ -25,7 +25,7 @@ from makeit.utilities.threadsafe import threadsafe_generator
 import rdkit.Chem as Chem
 
 from scipy.sparse import coo_matrix
-import six; from six.moves import cPickle as pickle
+import makeit.utilities.io.pickle as pickle
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt    # for visualization

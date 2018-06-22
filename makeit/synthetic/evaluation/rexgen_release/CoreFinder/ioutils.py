@@ -23,8 +23,8 @@ def get_bin_feature(r, max_natoms):
         bond_map[(a1,a2)] = bond_map[(a2,a1)] = bond
         
     features = []
-    for i in xrange(max_natoms):
-        for j in xrange(max_natoms):
+    for i in range(max_natoms):
+        for j in range(max_natoms):
             f = np.zeros((binary_fdim,))
             if i >= n_atoms or j >= n_atoms or i == j:
                 features.append(f)

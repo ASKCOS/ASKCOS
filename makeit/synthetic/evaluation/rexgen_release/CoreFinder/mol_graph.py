@@ -10,7 +10,7 @@ max_nb = 10
 def onek_encoding_unk(x, allowable_set):
     if x not in allowable_set:
         x = allowable_set[-1]
-    return map(lambda s: x == s, allowable_set)
+    return list(map(lambda s: x == s, allowable_set))
 
 def atom_features(atom):
     return np.array(onek_encoding_unk(atom.GetSymbol(), elem_list) 
@@ -90,7 +90,7 @@ def get_mask(arr_list):
     N = max([x.shape[0] for x in arr_list])
     a = np.zeros((len(arr_list), N))
     for i, arr in enumerate(arr_list):
-        for j in xrange(arr.shape[0]):
+        for j in range(arr.shape[0]):
             a[i][j] = 1
     return a
 

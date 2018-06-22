@@ -12,7 +12,7 @@ def batch_normalization(x, scope, decay=0.999, eps=1e-6, training=True):
         mean = tf.get_variable("mean", [fdim], tf.float32, tf.constant_initializer(0.0), trainable=False)
         var = tf.get_variable("variance", [fdim], tf.float32, tf.constant_initializer(1.0), trainable=False)
         if training:
-            x_mean, x_var = tf.nn.moments(x, range(ndim - 1))
+            x_mean, x_var = tf.nn.moments(x, list(range(ndim - 1)))
             avg_mean = tf.assign(mean, mean * decay + x_mean * (1.0 - decay))
             avg_var = tf.assign(var, var * decay + x_var * (1.0 - decay))
             with tf.control_dependencies([avg_mean, avg_var]):
@@ -29,7 +29,7 @@ def batch_normalization_with_mask(x, mask, scope, decay=0.999, eps=1e-6, trainin
         mean = tf.get_variable("mean", [fdim], tf.float32, tf.constant_initializer(0.0), trainable=False)
         var = tf.get_variable("variance", [fdim], tf.float32, tf.constant_initializer(1.0), trainable=False)
         if training:
-            x_mean, x_var = tf.nn.weighted_moments(x, range(ndim - 1), mask)
+            x_mean, x_var = tf.nn.weighted_moments(x, list(range(ndim - 1)), mask)
             avg_mean = tf.assign(mean, mean * decay + x_mean * (1.0 - decay))
             avg_var = tf.assign(var, var * decay + x_var * (1.0 - decay))
             with tf.control_dependencies([avg_mean, avg_var]):
@@ -41,7 +41,7 @@ def smart_gatherND(params, indices):
     shape = indices.get_shape()
     ndim = len(shape)
     cur_shape = tf.shape(indices)
-    new_shape = tf.gather(cur_shape, range(ndim))
+    new_shape = tf.gather(cur_shape, list(range(ndim)))
     new_shape = tf.concat(0, [new_shape, hidden_size])
     indices = tf.reshape([-1])
     res = tf.gather(params, indices)
@@ -77,7 +77,7 @@ def linearND(input_, output_size, scope, reuse=False, init_bias=0.0):
     stddev = min(1.0 / math.sqrt(shape[-1]), 0.1)
     with tf.variable_scope(scope, reuse=reuse):
         W = tf.get_variable("Matrix", [shape[-1], output_size], tf.float32, tf.random_normal_initializer(stddev=stddev))
-    X_shape = tf.gather(tf.shape(input_), range(ndim-1))
+    X_shape = tf.gather(tf.shape(input_), list(range(ndim-1)))
     target_shape = tf.concat([X_shape, [output_size]], 0)
     exp_input = tf.reshape(input_, [-1, shape[-1]])
     if init_bias is None:
@@ -93,10 +93,10 @@ def linearND(input_, output_size, scope, reuse=False, init_bias=0.0):
 def CSR2TF(x):
     indices = [[0,0]] # Avoid empty matrix
     values = [0.0]
-    for i in xrange(x.shape[0]):
+    for i in range(x.shape[0]):
         left = x.indptr[i]
         right = x.indptr[i + 1]
-        for j in xrange(left, right):
+        for j in range(left, right):
             indices.append([i, x.indices[j]])
             values.append(x.data[j])
     return (indices, values, x.shape)

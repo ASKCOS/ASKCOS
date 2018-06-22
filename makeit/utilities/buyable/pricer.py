@@ -3,7 +3,7 @@ import rdkit.Chem as Chem
 from collections import defaultdict
 from tqdm import tqdm
 from makeit.utilities.io.logging import MyLogger
-import six; from six.moves import cPickle as pickle
+import makeit.utilities.io.pickle as pickle
 from pymongo import MongoClient
 from multiprocessing import Manager
 import os
@@ -38,41 +38,43 @@ class Pricer:
         db = db_client[gc.CHEMICALS['database']]
         self.CHEMICAL_DB = db[gc.CHEMICALS['collection']]
 
-    def dump_to_file(self, file_path=gc.pricer_data):
+    def dump_to_file(self, file_path):
         '''
         Write the data from the online datbases to a local file
         '''
-        if not (self.BUYABLE_DB and self.CHEMICAL_DB):
-            MyLogger.print_and_log(
-                "No database information to output to file.", pricer_loc, level=3)
-            return
-
         with open(file_path, 'wb') as file:
-            pickle.dump(self.prices, file, gc.protocol)
-            pickle.dump(self.prices_flat, file, gc.protocol)
-            pickle.dump(self.prices_by_xrn, file, gc.protocol)
+            pickle.dump(self.prices, file)
+            pickle.dump(self.prices_flat, file)
+            pickle.dump(self.prices_by_xrn, file)
 
-    def load_from_file(self, file_path=gc.pricer_data):
+    def load(self):
         '''
         Load the data for the pricer from a locally stored file instead of from the online database.
         '''
+        from makeit.utilities.io.files import get_pricer_path
+        file_path = get_pricer_path(
+            gc.CHEMICALS['database'], 
+            gc.CHEMICALS['collection'], 
+            gc.BUYABLES['database'], 
+            gc.BUYABLES['collection'],
+        )
         if os.path.isfile(file_path):
             with open(file_path, 'rb') as file:
-                self.prices = pickle.load(file)
-                self.prices_flat = pickle.load(file)
-                self.prices_by_xrn = pickle.load(file)
+                self.prices = defaultdict(float, pickle.load(file))
+                self.prices_flat = defaultdict(float, pickle.load(file))
+                self.prices_by_xrn = defaultdict(float, pickle.load(file))
         else:
             self.load_databases()
-            self.load()
-            self.dump_to_file()
+            self.load_from_database()
+            self.dump_to_file(file_path)
 
-    def load(self, online=True, CHEMICAL_DB=None, BUYABLE_DB=None, max_ppg=1e10):
+    def load_from_database(self, max_ppg=1e10):
         '''
         Loads the object from a MongoDB collection containing transform
         template records.
         '''
-        MyLogger.print_and_log(
-            'Loading pricer with buyable limit of ${} per gram.'.format(max_ppg), pricer_loc)
+        MyLogger.print_and_log('Loading pricer with buyable limit of ${} per gram.'.format(max_ppg), pricer_loc)
+        
         # Save collection source use online option to load either from local
         # file or from online database.
         self.prices = defaultdict(float)  # default 0 ppg means not buyable
@@ -80,24 +82,12 @@ class Pricer:
         self.prices_flat = defaultdict(float)
         self.prices_by_xrn = defaultdict(float)
 
-        if self.BUYABLE_DB and self.CHEMICAL_DB:
-            pass
-        elif not (CHEMICAL_DB and BUYABLE_DB):
-            if online:
-                self.load_databases()
-            else:
-                self.load_from_file()
-        else:
-            self.CHEMICAL_DB = CHEMICAL_DB
-            self.BUYABLE_DB = BUYABLE_DB
-
         buyable_dict = {}
+
         # First pull buyables source (smaller)
         for buyable_doc in self.BUYABLE_DB.find({'source': {'$ne': 'LN'}}, 
                         ['ppg', 'smiles', 'smiles_flat'],
                         no_cursor_timeout=True):
-            # smiles = buyable_doc['smiles']
-            # smiles_flat = buyable_doc['smiles_flat']
 
             if buyable_doc['ppg'] > max_ppg:
                 continue
@@ -120,7 +110,8 @@ class Pricer:
 
         if self.by_xrn:
             # Then pull chemicals source for XRNs (larger)
-            for chemical_doc in tqdm(self.CHEMICAL_DB.find({'buyable_id': {'$gt': -1}}, ['buyable_id'], no_cursor_timeout=True)):
+            for chemical_doc in tqdm(self.CHEMICAL_DB.find({'buyable_id': {'$gt': -1}}, 
+                    ['buyable_id'], no_cursor_timeout=True)):
                 if 'buyable_id' not in chemical_doc:
                     continue
                 self.prices_by_xrn[chemical_doc['_id']] = buyable_dict[
@@ -171,3 +162,10 @@ class Pricer:
         if not self.by_rxn:
             raise ValueError('Not initialized to look up prices by XRN!')
         return self.prices_by_xrn[xrn]
+
+
+if __name__ == '__main__':
+    pricer = Pricer()
+    pricer.load()
+    print(pricer.lookup_smiles('CCCCCO'))
+    print(pricer.lookup_smiles('CCCCXCCO'))

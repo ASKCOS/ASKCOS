@@ -45,5 +45,5 @@ class RelevanceHeuristicPrecursorPrioritizer(Prioritizer):
 
     def load_model(self):
         self.pricer = Pricer()
-        self.pricer.load_from_file()
+        self.pricer.load()
         self._loaded = True

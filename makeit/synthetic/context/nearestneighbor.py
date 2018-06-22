@@ -2,7 +2,7 @@ import makeit.global_config as gc
 from pymongo import MongoClient
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
-import six; from six.moves import cPickle as pickle
+import makeit.utilities.io.pickle as pickle
 import numpy as np
 import random
 from collections import deque

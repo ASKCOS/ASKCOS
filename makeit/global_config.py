@@ -69,8 +69,6 @@ retro_enumeration = template
 prioritizaton = heuristic
 forward_scoring = network
 
-# Use highest protocol in pickle
-protocol = -1
 
 ################################################################################
 # Define data file locations
@@ -84,7 +82,6 @@ reaction_fingerprint_bits = 2048
 
 historian_data = os.path.join(data_path, 'historian', 'chemicals.pickle')
 reactionhistorian_data = os.path.join(data_path, 'historian', 'reactions.pickle')
-pricer_data = os.path.join(data_path,'buyable')
 retro_template_data = os.path.join(data_path,'retrosynthetic')
 synth_template_data = os.path.join(data_path,'synthetic')
 prioritization_data = os.path.join(data_path, 'prioritization')

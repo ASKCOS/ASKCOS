@@ -208,7 +208,7 @@ def enumerate_possible_cistrans_defs(template_r, \
         required_bond_defs.update(possible_defs)
         
     if PLEVEL >= 10: print('All bond specs for this template:' )
-    if PLEVEL >= 10: print(str([(k, v) for (k, v) in required_bond_defs.iteritems()]))
+    if PLEVEL >= 10: print(str([(k, v) for (k, v) in required_bond_defs.items()]))
     return required_bond_defs, required_bond_defs_coreatoms
 
 def get_atoms_across_double_bonds(mol, labeling_func=lambda a:a.GetIsotope()):
@@ -375,7 +375,7 @@ def restore_bond_stereo_to_sp2_atom(a, bond_dirs_by_isotope):
                 if PLEVEL >= 5: print('Only single-bond attachment to atom {} is old, try to reproduce chirality'.format(a.GetIsotope()))
                 needs_inversion = True
 
-            for (i, j), bond_dir in bond_dirs_by_isotope.iteritems():
+            for (i, j), bond_dir in bond_dirs_by_isotope.items():
                 if bond_dir != BondDir.NONE:
                     if i == bond_to_spec.GetBeginAtom().GetIsotope():
                         if needs_inversion:
@@ -397,7 +397,7 @@ def restore_bond_stereo_to_sp2_atom(a, bond_dirs_by_isotope):
                 # looking at a new atom, assume same as removed atom
                 needs_inversion = False 
 
-            for (i, j), bond_dir in bond_dirs_by_isotope.iteritems():
+            for (i, j), bond_dir in bond_dirs_by_isotope.items():
                 if bond_dir != BondDir.NONE:
                     if i == bond_to_spec.GetBeginAtom().GetIsotope():
                         if needs_inversion:

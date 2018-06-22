@@ -24,8 +24,7 @@ class RetroResult:
             # If neither has been encountered: add new product
             precursor.prioritize(prioritizer, mode=kwargs.get('mode', gc.max))
             self.precursors.append(precursor)
-            self.smiles_list_to_precursor[
-                '.'.join(precursor.smiles_list)] = len(self.precursors) - 1
+            self.smiles_list_to_precursor['.'.join(precursor.smiles_list)] = len(self.precursors) - 1
             return
 
         self.precursors[index].template_ids |= set(precursor.template_ids)

@@ -6,7 +6,7 @@ import rdkit.Chem as Chem
 from collections import defaultdict
 from tqdm import tqdm
 from makeit.utilities.io.logging import MyLogger
-import six; from six.moves import cPickle as pickle
+import makeit.utilities.io.pickle as pickle
 from pymongo import MongoClient
 from multiprocessing import Manager
 import time
@@ -65,7 +65,7 @@ class ChemHistorian:
             file_path += '_compressed'
 
         with open(file_path, 'wb') as file:
-            pickle.dump(dict(self.occurrences), file, gc.protocol)
+            pickle.dump(dict(self.occurrences), file)
         MyLogger.print_and_log(
                 "Saved to {}".format(file_path), historian_loc, level=1)
 
@@ -96,7 +96,7 @@ class ChemHistorian:
         docs = []
         failed_docs = []
         ctr = 0
-        for (i, (smi, info)) in tqdm(enumerate(self.occurrences.iteritems())):
+        for (i, (smi, info)) in tqdm(enumerate(self.occurrences.items())):
             doc = tup_to_dict(info, refs=True)
             doc['smiles'] = smi 
             docs.append(doc)
