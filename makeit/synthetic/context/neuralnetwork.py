@@ -66,19 +66,19 @@ class NeuralNetContextRecommender(ContextRecommender):
         s2_dict_file = info_path + "s2_dict.pickle"
         c1_dict_file = info_path + "c1_dict.pickle"
 
-        with open(r1_dict_file, "r") as R1_DICT_F:
+        with open(r1_dict_file, "rb") as R1_DICT_F:
             self.r1_dict = pickle.load(R1_DICT_F)
 
-        with open(r2_dict_file, "r") as R2_DICT_F:
+        with open(r2_dict_file, "rb") as R2_DICT_F:
             self.r2_dict = pickle.load(R2_DICT_F)
 
-        with open(s1_dict_file, "r") as S1_DICT_F:
+        with open(s1_dict_file, "rb") as S1_DICT_F:
             self.s1_dict = pickle.load(S1_DICT_F)
 
-        with open(s2_dict_file, "r") as S2_DICT_F:
+        with open(s2_dict_file, "rb") as S2_DICT_F:
             self.s2_dict = pickle.load(S2_DICT_F)
 
-        with open(c1_dict_file, "r") as C1_DICT_F:
+        with open(c1_dict_file, "rb") as C1_DICT_F:
             self.c1_dict = pickle.load(C1_DICT_F)
 
         self.c1_dim = self.nnModel.input_shape[2][1]
