@@ -51,6 +51,7 @@ class RetroResult:
                 'tforms': sorted(list(precursor.template_ids)),
                 'template_score': float(precursor.template_score),
                 'necessary_reagent': precursor.necessary_reagent,
+                'plausibility': precursor.plausibility,
             })
             if i + 1 == n:
                 break
@@ -63,13 +64,14 @@ class RetroPrecursor:
     does NOT contain the target molecule information
     '''
 
-    def __init__(self, smiles_list=[], template_id=-1, template_score=1, num_examples=0, necessary_reagent=''):
+    def __init__(self, smiles_list=[], template_id=-1, template_score=1, num_examples=0, necessary_reagent='', plausibility=1.0):
         self.retroscore = 0
         self.num_examples = num_examples
         self.smiles_list = smiles_list
         self.template_ids = set([template_id])
         self.template_score = template_score
         self.necessary_reagent = necessary_reagent
+        self.plausibility = plausibility
 
     def prioritize(self, prioritizer, mode=gc.max):
         '''

@@ -1,11 +1,14 @@
 import makeit.global_config as gc
 from multiprocessing import Process, Manager, Queue
 from evaluator import Evaluator
-import Queue as VanillaQueue
+import sys 
+if sys.version_info[0] < 3:
+    import Queue as VanillaQueue
+else:
+    import queue as VanillaQueue
 import time
 from makeit.utilities.io.logging import MyLogger
 from makeit.utilities.io import model_loader
-from celery.result import allow_join_result
 from askcos_site.askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
 from askcos_site.askcos_celery.treeevaluator.scoring_coordinator import evaluate
 from makeit.prioritization.contexts.probability import ProbabilityContextPrioritizer
@@ -32,8 +35,8 @@ class TreeEvaluator():
         self.max_contexts = max_contexts
         self._loaded_context_recommender = False
 
-
         if self.celery:
+            from celery.result import allow_join_result
             def evaluate_reaction(reactant_smiles, target, contexts, worker_no = 0):
                 res = evaluate.apply_async(args=(reactant_smiles, target, contexts),
                                            kwargs={'mincount': self.mincount, 'forward_scorer': self.forward_scorer,

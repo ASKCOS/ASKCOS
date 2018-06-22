@@ -68,7 +68,7 @@ class FastFilterScorer(Scorer):
         score = self.model.predict(
             [pfp.reshape(1, 2048), rxnfp.reshape(1, 2048)])
         filter_flag = (score > threshold)
-        return filter_flag
+        return filter_flag, float(score)
 
 
 if __name__ == "__main__":

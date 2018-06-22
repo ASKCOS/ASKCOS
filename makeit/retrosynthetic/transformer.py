@@ -168,8 +168,9 @@ class RetroTransformer(TemplateTransformer):
                 # Should we add this to the results?
                 if apply_fast_filter:
                     reactant_smiles = '.'.join(precursor.smiles_list)
-                    filter_flag = self.fast_filter.filter_with_threshold(reactant_smiles, smiles, filter_threshold)
+                    filter_flag, filter_score = self.fast_filter.filter_with_threshold(reactant_smiles, smiles, filter_threshold)
                     if filter_flag:
+                        precursor.plausibility = filter_score
                         result.add_precursor(precursor, self.precursor_prioritizer, **kwargs)
                 else:
                     result.add_precursor(precursor, self.precursor_prioritizer, **kwargs)
@@ -192,15 +193,17 @@ class RetroTransformer(TemplateTransformer):
             list -- list of RetroPrecursor objects resulting from applying
                 this one template
         """
-        results = []
+        if template is None:
+            return []
         try:
             if self.chiral:
                 outcomes = rdchiralRun(template['rxn'], react_mol)
             else:
                 outcomes = template['rxn'].RunReactants([react_mol])
         except Exception as e:
-            print(e)
             return []
+
+        results = []
         for j, outcome in enumerate(outcomes):
             smiles_list = []
             # Output of rdchiral is (a list of) smiles of the products.
@@ -262,7 +265,7 @@ class RetroTransformer(TemplateTransformer):
                 yield template
 
 if __name__ == '__main__':
-    
+
     MyLogger.initialize_logFile()
     t = RetroTransformer()
     t.load(chiral=True, refs=False, rxns=True)

@@ -6,9 +6,12 @@ from pymongo import MongoClient
 import numpy as np
 import os
 import sys
-from celery.result import allow_join_result
 from multiprocessing import Queue, Process, Manager
-import Queue as VanillaQueue
+import sys 
+if sys.version_info[0] < 3:
+    import Queue as VanillaQueue
+else:
+    import queue as VanillaQueue
 from makeit.interfaces.scorer import Scorer
 from makeit.synthetic.enumeration.transformer import ForwardTransformer
 from makeit.synthetic.enumeration.results import ForwardResult, ForwardProduct
@@ -43,6 +46,7 @@ class TemplateNeuralNetScorer(Scorer):
         self.pending_results = []
 
         if self.celery:
+            from celery.result import allow_join_result
             tc = template_count.apply_async()
             while not tc.ready():
                 time.sleep(0.25)

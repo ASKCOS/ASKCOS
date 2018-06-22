@@ -6,15 +6,11 @@ from pymongo import MongoClient
 import numpy as np
 import os
 import sys
-from celery.result import allow_join_result
-from multiprocessing import Queue, Process, Manager
-import Queue as VanillaQueue
 from makeit.interfaces.scorer import Scorer
 
 from makeit.synthetic.enumeration.results import ForwardResult, ForwardProduct
 from makeit.synthetic.evaluation.template_based_aux import build
 import makeit.utilities.contexts as context_cleaner
-
 
 from makeit.utilities.parsing import parse_list_to_smiles
 from makeit.utilities.io.logging import MyLogger
@@ -32,7 +28,6 @@ class TemplateFreeNeuralNetScorer(Scorer):
 
     def evaluate(self, reactants_smiles, contexts=[(20,'','','','','')], **kwargs):
         '''Evaluation does not use context, but left as dummy pos var'''
-        ##what if context contributes necessary atoms??
 
         all_outcomes = []
         for (T1, slvt1, rgt1, cat1, t1, y1) in contexts:

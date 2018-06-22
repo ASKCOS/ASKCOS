@@ -1,7 +1,11 @@
 
 import makeit.global_config as gc
 from multiprocessing import Process, Manager, Queue
-import Queue as VanillaQueue
+import sys 
+if sys.version_info[0] < 3:
+    import Queue as VanillaQueue
+else:
+    import queue as VanillaQueue
 import time
 import sys
 from collections import defaultdict
@@ -21,7 +25,7 @@ class TreeBuilder:
 
     def __init__(self, retroTransformer=None, pricer=None, max_branching=20, max_depth=3, expansion_time=240,
                  celery=False, nproc=1, mincount=25, chiral=True, mincount_chiral=10,
-                 template_prioritization=gc.popularity, precursor_prioritization=gc.heuristic,
+                 template_prioritization=gc.relevance, precursor_prioritization=gc.relevanceheuristic,
                  chemhistorian=None):
         """Class for retrosynthetic tree expansion using a depth-first search
 
@@ -76,11 +80,7 @@ class TreeBuilder:
         self.max_depth = max_depth
         self.expansion_time = expansion_time
         self.template_prioritization = template_prioritization
-        MyLogger.print_and_log('Using {} method for template prioritization.'.format(
-            self.template_prioritization), treebuilder_loc)
         self.precursor_prioritization = precursor_prioritization
-        MyLogger.print_and_log('Using {} method for precursor prioritization.'.format(
-            self.precursor_prioritization), treebuilder_loc)
         self.nproc = nproc
         self.chiral = chiral
         self.max_cum_template_prob = 1
@@ -322,6 +322,7 @@ class TreeBuilder:
                     'necessary_reagent': precursor['necessary_reagent'],
                     'num_examples': precursor['num_examples'],
                     'score': precursor['score'],
+                    'plausibility': precursor['plausibility']
                 },
                 precursor['smiles_split']
             ))
@@ -798,16 +799,6 @@ class TreeBuilder:
                 list -- paths connecting to buyable molecules that are children
                     of the current reaction
             """
-            
-
-            # # Define generators for each reactant node - decrement the depth!
-            # generators = [DLS_chem(chem_id, depth - 1)
-            #               for chem_id in self.tree_dict[rxn_id]['rcts']]
-
-            # # Actually - need to change generators to have the actual lists
-            # # otherwise the nested for loops don't work!
-            # for i in range(len(generators)):
-            #     generators[i] = [x for x in generators[i]]
 
             # Only one reactant? easy!
             if len(self.tree_dict[rxn_id]['rcts']) == 1:
@@ -873,7 +864,7 @@ class TreeBuilder:
         counter = 0
         for tree in IDDFS():
             hashkey = hashlib.sha1(json.dumps(
-                tree, sort_keys=True)).hexdigest()
+                tree, sort_keys=True).encode('utf-8')).hexdigest()
 
             if hashkey in done_trees:
                 #print('Found duplicate tree...')
@@ -894,21 +885,12 @@ class TreeBuilder:
         return (tree_status, trees)
 
 if __name__ == '__main__':
-
     MyLogger.initialize_logFile()
-    from pymongo import MongoClient
-    db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
-                            'id'], connect=gc.MONGO['connect'])
-    TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL['database']][
-        gc.RETRO_TRANSFORMS_CHIRAL['collection']]
     celery = False
-    treedict = []
-
-    treeBuilder = TreeBuilder(celery=celery, mincount=250, mincount_chiral=100)
-
-    status, paths = treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.popularity,
-                                        precursor_prioritization=gc.scscore, nproc=16, expansion_time=60, max_trees=500, max_ppg=10,
-                                        max_branching=25, precursor_score_mode=gc.mean, 
+    treeBuilder = TreeBuilder(celery=celery, mincount=25, mincount_chiral=10)
+    status, paths = treeBuilder.get_buyable_paths('CN(C)CCOC(c1ccccc1)c2ccccc2', max_depth=2, template_prioritization=gc.relevance,
+                                        precursor_prioritization=gc.relevanceheuristic, nproc=2, expansion_time=60, max_trees=500, max_ppg=10,
+                                        max_branching=25, apply_fast_filter=True, filter_threshold=0.5,
                                         min_chemical_history_dict={'as_reactant':5, 'as_product':1, 'logic':'none'})
     print('done')
     print(status)
