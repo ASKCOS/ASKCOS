@@ -209,7 +209,7 @@ class ChemHistorian:
 
         try:
             if self._compressed:
-                info = self.occurrences[int(hashlib.md5(smiles).hexdigest(), 16)]
+                info = self.occurrences[int(hashlib.md5(smiles.encode('utf-8')).hexdigest(), 16)]
             else:
                 info = self.occurrences[smiles]
         except KeyError:
@@ -221,7 +221,7 @@ class ChemHistorian:
         '''Convert keys to hashed values to save space'''
         new_occurrences = {}
         for k in self.occurrences.keys():
-            k_compressed = int(hashlib.md5(k).hexdigest(), 16)
+            k_compressed = int(hashlib.md5(k.encode('utf-8')).hexdigest(), 16)
             new_occurrences[k_compressed] = self.occurrences[k]
         del self.occurrences
         self.occurrences = new_occurrences
@@ -229,8 +229,6 @@ class ChemHistorian:
 
 
 if __name__ == '__main__':
-    import time
-    time.sleep(1)
 
     # Load and dump chemhistorian
     chemhistorian = ChemHistorian()
