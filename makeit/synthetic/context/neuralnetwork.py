@@ -14,7 +14,7 @@ contextRecommender_loc = 'contextRecommender'
 class NeuralNetContextRecommender(ContextRecommender):
     """Reaction condition predictor based on Nearest Neighbor method"""
 
-    def __init__(self, max_contexts=10, singleSlvt=True, with_smiles=True, done=None):
+    def __init__(self, max_contexts=10, singleSlvt=True, with_smiles=True):
         """
         :param singleSlvt:
         :param with_smiles:
@@ -30,7 +30,6 @@ class NeuralNetContextRecommender(ContextRecommender):
         self.with_smiles = with_smiles
         self.max_total_context = max_contexts
         self.max_context = 2
-        self.done = done
         self.fp_size = 2048
 
     def load(self, model_path="", info_path="", weights_path=""):
@@ -39,13 +38,6 @@ class NeuralNetContextRecommender(ContextRecommender):
 
         MyLogger.print_and_log(
             'Nerual network context recommender has been loaded.', contextRecommender_loc)
-
-        # multiprocessing notify done
-        if self.done == None:
-            pass
-        else:
-            self.done.value = 1
-    # Model path should be relative!
 
     def load_nn_model(self, model_path="", info_path="", weights_path=""):
 
@@ -125,7 +117,7 @@ class NeuralNetContextRecommender(ContextRecommender):
         self.max_int = userInput['max_int']
         self.max_context = userInput['max_context']
 
-    def get_n_conditions(self, rxn, n=10, singleSlvt=True, with_smiles=True):
+    def get_n_conditions(self, rxn, n=10, singleSlvt=True, with_smiles=True, return_scores=False):
         """
         Reaction condition recommendations for a rxn (SMILES) from top n NN
         Returns the top n parseable conditions.
@@ -157,9 +149,13 @@ class NeuralNetContextRecommender(ContextRecommender):
             s2_input = []
             inputs = [pfp, rxnfp, c1_input, r1_input,
                       r2_input, s1_input, s2_input]
-            top_combos = self.predict_top_combos(inputs=inputs)
+            
+            (top_combos,top_combo_scores)=self.predict_top_combos(inputs=inputs)
 
-            return top_combos[:n]
+            if return_scores:
+                return (top_combos[:n],top_combo_scores[:n])
+            else:
+                return top_combos[:n]
 
         except Exception as e:
 
@@ -325,20 +321,18 @@ class NeuralNetContextRecommender(ContextRecommender):
                             else:
                                 context_combos.append(
                                     [float(T_pred[0][0][0]), '.'.join(slv_name), '.'.join(rgt_name), '.'.join(cat_name), np.nan, np.nan])
-                            # print(c1_cdt,s1_cdt,s2_cdt,r1_cdt,r2_cdt)
-                            # wait =raw_input('wait')
+
                             context_combo_scores.append(
                                 c1_sc*s1_sc*s2_sc*r1_sc*r2_sc)
-        context_ranks = num_combos+1 - stats.rankdata(context_combo_scores)
-        # print(c1_cdts)
-        # print(num_combos)
-        # print(context_ranks)
+        context_ranks = list(num_combos+1 - stats.rankdata(context_combo_scores))
+
         context_combos = [context_combos[
-            int(rank)-1] for rank in context_ranks]
-        # print(context_combos)
+            context_ranks.index(i+1)] for i in range(num_combos)]
         context_combo_scores = [context_combo_scores[
-            int(rank)-1] for rank in context_ranks]
-        return context_combos
+            context_ranks.index(i+1)] for i in range(num_combos)]
+
+        return (context_combos, context_combo_scores)
+
     def category_to_name(self,chem_type,category):
         if chem_type == 'c1':
             return self.c1_dict[category]
@@ -354,24 +348,6 @@ class NeuralNetContextRecommender(ContextRecommender):
 
 if __name__ == '__main__':
     cont = NeuralNetContextRecommender()
-    # cont.load_nn_model(model_path = "/home/hanyug/Make-It/makeit/context_pred/model/c_s_r_fullset/model.json", info_path = "/home/hanyug/Make-It/makeit/context_pred/preprocessed_data/separate/fullset2048/", weights_path="/home/hanyug/Make-It/makeit/context_pred/model/c_s_r_fullset/weights.h5")
     cont.load_nn_model(model_path=gc.NEURALNET_CONTEXT_REC['model_path'], info_path=gc.NEURALNET_CONTEXT_REC[
                        'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path'])
-    # # cont.load_nn_model(model_path = "/home/hanyug/Make-It/makeit/context_pred/model/c_s_r/model.json", info_path = "/home/hanyug/Make-It/makeit/context_pred/preprocessed_data/separate/10Msubset/", weights_path="/home/hanyug/Make-It/makeit/context_pred/model/c_s_r/weights.h5")
-    # cont.load_nn_model(model_path="/home/hanyug/Make-It/makeit/context_pred/model/test/model.json", info_path=gc.NEURALNET_CONTEXT_REC[
-    #                'info_path'], weights_path="/home/hanyug/Make-It/makeit/context_pred/model/test/weights.h5")
-
-    # cont.load_nn_model(model_path="/home/hanyug/Make-It/makeit/context_pred/model/michael/model.json", info_path=gc.NEURALNET_CONTEXT_REC[
-    #                'info_path'], weights_path="/home/hanyug/Make-It/makeit/context_pred/model/michael/best_weights.h5")
-
-    # print('CC(C)CO>>CC(C)C=O')
-    # print cont.get_n_conditions('CCCO>>CCC=O', 10)
-    # print('CC(C)CO')
-    # print cont.get_n_conditions('CCCO.CCBr>>CCC=O', 10)
-    # # print cont.get_n_conditions('CC(=O)OC(C)=O.O=C(O)c1ccccc1O>>CC(=O)Oc1ccccc1C(=O)O', 10)
-    # print cont.get_n_conditions('Cc1cccc(C)c1NC(=O)CCl>>Cc1cccc(C)c1NC(=O)CN', 10)
-    # print cont.get_n_conditions('CN(C(=O)CCl)c1ccc(Cl)cc1C(=O)c1ccccc1>>CN(C(=O)CN)c1ccc(Cl)cc1C(=O)c1ccccc1', 10)
-#'Fc1ccc(C2(Cn3cncn3)CO2)c(F)c1>>OC(CCl)(Cn1cncn1)c1ccc(F)cc1F
-#'CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1>>CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3'
-#'CN(C(=O)CCl)c1ccc(Cl)cc1C(=O)c1ccccc1>>CN(C(=O)CN)c1ccc(Cl)cc1C(=O)c1ccccc1'
-    print cont.get_n_conditions('CC(=O)[O:4][C@H:1]1[C@H:2]([O:6][CH2:11][C:14]2=[CH:17][CH:20]=[CH:23][CH:19]=[CH:16]2)[C@@H:5]([OH:10])[C@@H:9]([O:13][CH2:15][C:18]2=[CH:22][CH:25]=[CH:26][CH:24]=[CH:21]2)[C@@H:7]([OH:12])[C@@H:3]1[OH:8]>>[C@@H:1]1([OH:4])[C@H:2]([O:6][CH2:11][C:14]2=[CH:17][CH:20]=[CH:23][CH:19]=[CH:16]2)[C@H:5]([OH:10])[C@@H:9]([O:13][CH2:15][C:18]2=[CH:22][CH:25]=[CH:26][CH:24]=[CH:21]2)[C@H:7]([OH:12])[C@H:3]1[OH:8]', 10, with_smiles=False)
+    print(cont.get_n_conditions('CC1(C)OBOC1(C)C.Cc1ccc(Br)cc1>>Cc1cccc(B2OC(C)(C)C(C)(C)O2)c1', 10, with_smiles=False, return_scores=True))
