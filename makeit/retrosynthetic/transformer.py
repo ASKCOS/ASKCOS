@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import makeit.global_config as gc
-import os
+import os, sys
 import makeit.utilities.io.pickle as pickle
 from pymongo import MongoClient
 
@@ -165,6 +165,7 @@ class RetroTransformer(TemplateTransformer):
 
         for template in self.top_templates(smiles, **kwargs):
             for precursor in self.apply_one_template(mol, smiles, template):
+
                 # Should we add this to the results?
                 if apply_fast_filter:
                     reactant_smiles = '.'.join(precursor.smiles_list)
@@ -174,7 +175,6 @@ class RetroTransformer(TemplateTransformer):
                         result.add_precursor(precursor, self.precursor_prioritizer, **kwargs)
                 else:
                     result.add_precursor(precursor, self.precursor_prioritizer, **kwargs)
-                
         return result
 
     def apply_one_template(self, react_mol, smiles, template, **kwargs):
@@ -270,7 +270,7 @@ if __name__ == '__main__':
     t = RetroTransformer()
     t.load(chiral=True, refs=False, rxns=True)
 
-    outcomes = get_outcomes('C1C(=O)OCC12CC(C)CC2', 100, (gc.relevanceheuristic, gc.relevance))
+    outcomes = t.get_outcomes('C1C(=O)OCC12CC(C)CC2', 100, (gc.relevanceheuristic, gc.relevance))
     precursors = outcomes.precursors
 
     print([precursor.smiles_list for precursor in precursors])

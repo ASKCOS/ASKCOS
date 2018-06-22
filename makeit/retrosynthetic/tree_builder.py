@@ -254,8 +254,11 @@ class TreeBuilder:
         else:
             def set_initial_target(smiles):
                 self.expansion_queues[-1].put((1, smiles))
+                print(self.expansion_queues)
+                print('Put something on expansion queue')
                 while self.results_queue.empty():
                     time.sleep(0.25)
+                    #print('Waiting for first result in treebuilder...')
         self.set_initial_target = set_initial_target
 
     def reset(self):
@@ -469,8 +472,7 @@ class TreeBuilder:
             # Grab something off the queue
             for j in range(len(self.expansion_queues))[::-1]:
                 try:
-                    (_id, smiles) = self.expansion_queues[
-                        j].get(timeout=0.5)  # short timeout
+                    (_id, smiles) = self.expansion_queues[j].get(timeout=0.1)  # short timeout
                     self.idle[i] = False
                     # print('Worker {} grabbed {} (ID {}) to expand from queue {}'.format(i, smiles, _id, j))
                     result = self.retroTransformer.get_outcomes(smiles, self.mincount, (self.precursor_prioritization,
@@ -481,15 +483,18 @@ class TreeBuilder:
                                                                 apply_fast_filter=self.apply_fast_filter,
                                                                 filter_threshold=self.filter_threshold
                                                                 )
+
                     precursors = result.return_top(n=self.max_branching)
+
                     self.results_queue.put((_id, smiles, precursors))
-                    # print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
+                    
 
                 except VanillaQueue.Empty:
-                    # print('Queue {} empty for worker {}'.format(j, i))
+                    #print('Queue {} empty for worker {}'.format(j, i))
                     pass
                 except Exception as e:
-                    print(e)
+                    sys.stdout.write(e)
+                    sys.stdout.flush()
             time.sleep(0.01)
             self.idle[i] = True
 
@@ -891,9 +896,9 @@ if __name__ == '__main__':
     MyLogger.initialize_logFile()
     celery = False
     treeBuilder = TreeBuilder(celery=celery, mincount=25, mincount_chiral=10)
-    status, paths = treeBuilder.get_buyable_paths('CN(C)CCOC(c1ccccc1)c2ccccc2', max_depth=2, template_prioritization=gc.relevance,
+    status, paths = treeBuilder.get_buyable_paths('CN1C2CCC1CC(OC(=O)C(CO)c1ccccc1)C2', max_depth=4, template_prioritization=gc.relevance,
                                         precursor_prioritization=gc.relevanceheuristic, nproc=2, expansion_time=60, max_trees=500, max_ppg=10,
-                                        max_branching=25, apply_fast_filter=True, filter_threshold=0.5,
+                                        max_branching=25, apply_fast_filter=True, filter_threshold=0.75,
                                         min_chemical_history_dict={'as_reactant':5, 'as_product':1, 'logic':'none'})
     print('done')
     print(status)

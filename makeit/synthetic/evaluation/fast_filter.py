@@ -29,6 +29,7 @@ class FastFilterScorer(Scorer):
         MyLogger.print_and_log('Starting to load fast filter', fast_filter_loc)
         self.model = load_model(model_path, custom_objects={
                                 'Highway_self': Highway_self, 'pos_ct': pos_ct, 'true_pos': true_pos, 'real_pos': real_pos})
+        self.model._make_predict_function()
         MyLogger.print_and_log('Done loading fast filter', fast_filter_loc)
 
     def evaluate(self, reactant_smiles, target, **kwargs):
@@ -65,8 +66,7 @@ class FastFilterScorer(Scorer):
         rfp = np.asarray(rfp, dtype='float32')
         rxnfp = pfp - rfp
 
-        score = self.model.predict(
-            [pfp.reshape(1, 2048), rxnfp.reshape(1, 2048)])
+        score = self.model.predict([pfp.reshape(1, 2048), rxnfp.reshape(1, 2048)])
         filter_flag = (score > threshold)
         return filter_flag, float(score)
 
@@ -82,3 +82,7 @@ if __name__ == "__main__":
     score = ff.evaluate(
         'CNC.Cc1ccc(S(=O)(=O)OCCOC(c2ccccc2)c2ccccc2)cc1', 'CN(C)CCOC(c1ccccc1)c2ccccc2')
     print(score)
+
+    flag, sco = ff.filter_with_threshold('CCO.CC(=O)O', 'CCOC(=O)C', 0.75)
+    print(flag)
+    print(sco)

@@ -14,7 +14,7 @@ from pymongo import MongoClient
 from makeit.utilities.io.logging import MyLogger
 transformer_loc = 'template_transformer'
 import makeit.utilities.io.pickle as pickle
-import os
+import os, sys
 
 class TemplateTransformer(object):
     '''
