@@ -32,7 +32,8 @@ class NeuralNetContextRecommender(ContextRecommender):
         self.max_context = 2
         self.fp_size = 2048
 
-    def load(self, model_path="", info_path="", weights_path=""):
+    def load(self, model_path=gc.NEURALNET_CONTEXT_REC['model_path'], info_path=gc.NEURALNET_CONTEXT_REC[
+                       'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path']):
         # for the neural net model, info path points to the encoders
         self.load_nn_model(model_path, info_path, weights_path)
 
