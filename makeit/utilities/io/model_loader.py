@@ -81,14 +81,14 @@ def load_Pricer(chemical_database, buyable_database):
     return pricerModel
 
 
-def load_Forward_Transformer(SYNTH_DB, mincount=100, worker_no = 0):
+def load_Forward_Transformer(mincount=100, worker_no = 0):
     '''
     Load the forward prediction neural network
     '''
     if worker_no==0:
         MyLogger.print_and_log('Loading forward prediction model...', model_loader_loc)
         
-    transformer = ForwardTransformer(TEMPLATE_DB=SYNTH_DB, mincount=mincount)
+    transformer = ForwardTransformer(mincount=mincount)
     transformer.load(worker_no = worker_no)
     if worker_no==0:
         MyLogger.print_and_log('Forward transformer loaded.', model_loader_loc)
@@ -105,8 +105,7 @@ def load_templatebased(mincount=25, celery=False, worker_no = 0):
     transformer = None
     databases = load_Databases(worker_no = worker_no)
     if not celery:
-        transformer = load_Forward_Transformer(
-            databases['Synth_Database'], mincount=mincount, worker_no = worker_no)
+        transformer = load_Forward_Transformer(mincount=mincount, worker_no = worker_no)
 
     scorer = TemplateNeuralNetScorer(
         forward_transformer=transformer, celery=celery)
