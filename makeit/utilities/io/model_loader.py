@@ -109,8 +109,7 @@ def load_templatebased(mincount=25, celery=False, worker_no = 0):
 
     scorer = TemplateNeuralNetScorer(
         forward_transformer=transformer, celery=celery)
-    scorer.load(databases['Solvent_Database'],
-                gc.PREDICTOR['trained_model_path'], worker_no = worker_no)
+    scorer.load(gc.PREDICTOR['trained_model_path'], worker_no = worker_no)
     return scorer
 
 
