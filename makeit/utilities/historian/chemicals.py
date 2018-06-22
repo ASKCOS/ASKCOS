@@ -74,6 +74,8 @@ class ChemHistorian:
         Load the data for the pricer from a locally stored file instead of from the online database.
         '''
 
+        MyLogger.print_and_log('Loading chemhistorian from file...', historian_loc)
+
         if not refs:
             file_path += '_no_refs'
         if compressed:
