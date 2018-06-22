@@ -26,3 +26,6 @@ def get_synthtransformer_path(dbname, collname, mincount):
 def get_pricer_path(chem_dbname, chem_collname, buyable_dbname, buyable_collname):
     return os.path.join(gc.local_db_dumps, 
         'pricer_using_%s-%s_and_%s-%s.pkl' % (chem_dbname, chem_collname, buyable_dbname, buyable_collname))
+
+def get_abraham_solvents_path():
+	return os.path.join(gc.local_db_dumps, 'abraham_solvents.pkl')
