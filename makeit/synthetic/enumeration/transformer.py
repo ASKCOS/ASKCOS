@@ -119,11 +119,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
         except IOError:
             self.load_from_database(False, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
         finally:
-            print(self.templates[0])
             self.reorder()
-
-
-        self.load_from_database(False, refs=refs, efgs=efgs, rxns = rxns)
 
         if worker_no == 0:
             MyLogger.print_and_log('Synthetic transformer has been loaded - using {} templates'.format(

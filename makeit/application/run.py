@@ -28,7 +28,6 @@ class MAKEIT:
                  tree_scoring_method, context_prioritization, template_prioritization, precursor_prioritization, 
                  parallel_tree, precursor_score_mode, max_cum_template_prob, apply_fast_filter, filter_threshold):
 
-
         self.target_product = target_product
         self.expansion_time = expansion_time
         self.max_depth = max_depth
