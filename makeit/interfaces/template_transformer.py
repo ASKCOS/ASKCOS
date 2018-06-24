@@ -315,12 +315,12 @@ class TemplateTransformer(object):
                 self.TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL[
                     'database']][gc.RETRO_TRANSFORMS_CHIRAL['collection']]
                 MyLogger.print_and_log("Using {} as template database.".format(
-                    gc.RETRO_TRANSFORMS_CHIRAL['collection']), retro_transformer_loc)
+                    gc.RETRO_TRANSFORMS_CHIRAL['collection']), transformer_loc)
             else:
                 self.TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS[
                     'database']][gc.RETRO_TRANSFORMS['collection']]
                 MyLogger.print_and_log("Using {} as template database.".format(
-                    gc.RETRO_TRANSFORMS['collection']), retro_transformer_loc)
+                    gc.RETRO_TRANSFORMS['collection']), transformer_loc)
         else:
             self.TEMPLATE_DB = db_client[gc.SYNTH_TRANSFORMS[
                 'database']][gc.SYNTH_TRANSFORMS['collection']]

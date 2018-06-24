@@ -27,7 +27,6 @@ import rdkit.Chem as Chem
 from scipy.sparse import coo_matrix
 import makeit.utilities.io.pickle as pickle
 import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt    # for visualization
 import scipy.stats as ss
 import itertools

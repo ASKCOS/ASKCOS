@@ -7,14 +7,12 @@ from makeit.utilities.buyable.pricer import Pricer
 from makeit.utilities.io.logging import MyLogger
 import math
 import sys
-import random
 import os
 import time
 import os
 import makeit.utilities.io.pickle as pickle
 from numpy import inf
 scscore_prioritizer_loc = 'scscoreprioritizer'
-
 
 class SCScorePrecursorPrioritizer(Prioritizer):
     '''
@@ -70,17 +68,17 @@ class SCScorePrecursorPrioritizer(Prioritizer):
     def smi_to_fp(self, smi):
         if not smi:
             return np.zeros((self.FP_len,), dtype=np.float32)
-        return self.mol_to_fp(Chem.MolFromSmiles(smi))
+        return self.mol_to_fp(Chem.MolFromSmiles(str(smi)))
 
     def apply(self, x):
         if not self._restored:
             raise ValueError('Must restore model weights!')
         # Each pair of vars is a weight and bias term
         for i in range(0, len(self.vars), 2):
-            last_layer = (i == len(self.vars)-2)
+            last_layer = (i == (len(self.vars)-2))
             W = self.vars[i]
             b = self.vars[i+1]
-            x = np.matmul(x, W) + b
+            x = np.dot(W.T, x) + b        
             if not last_layer:
                 x = x * (x > 0)  # ReLU
         x = 1 + (self.score_scale - 1) * sigmoid(x)
@@ -95,7 +93,7 @@ class SCScorePrecursorPrioritizer(Prioritizer):
             scores = []
             for smiles in retroProduct.smiles_list:
                 scores.append(self.get_score_from_smiles(smiles))
-            return -self.merge_scores(scores, mode = mode)
+            return -self.merge_scores(scores, mode=mode)
         else:
             return -self.get_score_from_smiles(retroProduct)
         if not retroProduct:
@@ -131,26 +129,30 @@ class SCScorePrecursorPrioritizer(Prioritizer):
 
 
 def sigmoid(x):
-    return 1 / (1 + math.exp(-x))
+    if x < -10:
+        return 0
+    if x > 10:
+        return 1
+    return 1. / (1 + math.exp(-x))
 
 if __name__ == '__main__':
-    model = SCScorer()
+    model = SCScorePrecursorPrioritizer()
     model.load_model(model_tag='1024bool')
-    smis = ['CCCOCCC', 'CCCNc1ccccc1']
+    smis = ['CCCOCCC', 'CCCC']
     for smi in smis:
-        sco = model.get_priority(smi)
+        sco = model.get_score_from_smiles(smi, noprice=True)
         print('{} <--- {}'.format(sco, smi))
 
-    model = SCScorer()
-    model.load_model(model_tag='2048bool', FP_len=2048)
-    smis = ['CCCOCCC', 'CCCNc1ccccc1']
-    for smi in smis:
-        sco = model.get_priority(smi)
-        print('{} <--- {}'.format(sco, smi))
+    # model = SCScorer()
+    # model.load_model(model_tag='2048bool', FP_len=2048)
+    # smis = ['CCCOCCC', 'CCCNc1ccccc1']
+    # for smi in smis:
+    #     sco = model.get_priority(smi)
+    #     print('{} <--- {}'.format(sco, smi))
 
-    model = SCScorer()
-    model.load_model(model_tag='1024uint8')
-    smis = ['CCCOCCC', 'CCCNc1ccccc1']
-    for smi in smis:
-        sco = model.get_priority(smi)
-        print('{} <--- {}'.format(sco, smi))
+    # model = SCScorer()
+    # model.load_model(model_tag='1024uint8')
+    # smis = ['CCCOCCC', 'CCCNc1ccccc1']
+    # for smi in smis:
+    #     sco = model.get_priority(smi)
+    #     print('{} <--- {}'.format(sco, smi))
