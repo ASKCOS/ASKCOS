@@ -188,7 +188,11 @@ def ReactionToImage(rxn, dummyAtoms=False, kekulize=True, options=None, **kwargs
         if dummyAtoms:
             [CheckAtomForGeneralization(atom) for atom in mol.GetAtoms()]
 
-    mols.append(None)  # placeholder for arrow
+    if kwargs.pop('retro', True):
+        mols.append('<-')  # placeholder for arrow
+    else:
+        mols.append('->')
+
     for j in range(rxn.GetNumProductTemplates()):
         mol = rxn.GetProductTemplate(j)
         mol.UpdatePropertyCache(False)
@@ -242,7 +246,7 @@ def TransformStringToImage(transform, retro=True, **kwargs):
     TODO: Need to improve generalization visually! Right now it still shows'''
 
     options = defaultDrawOptions()
-    options.dotsPerAngstrom = 50
+    options.dotsPerAngstrom = 40
 
     # To generalize un-mapped atoms in transform, need to identify square brackets
     # without colon in the middle (e.g., [C]) and replace with dummy label [C:0] so
@@ -279,9 +283,9 @@ def main():
     rxn_image_string = ReactionStringToImage(rxn_string, strip=True, retro=True)
     rxn_image_string.save('draw_retro_test_rxn_string.png')
 
-    # tform = '([O;H0:3]=[C;H0:4](-[C:5])-[NH:2]-[C:1])>>([C:1]-[NH2:2]).([OH:3]-[C;H0:4](=O)-[C:5])'
-    # img = TransformStringToImage(tform)
-    # img.save('draw_transform.png')
+    tform = '([O;H0:3]=[C;H0:4](-[C:5])-[NH:2]-[C:1])>>([C:1]-[NH2:2]).([OH:3]-[C;H0:4](=O)-[C:5])'
+    img = TransformStringToImage(tform)
+    img.save('draw_transform.png')
 
 if __name__ == '__main__':
     main()
