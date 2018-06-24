@@ -95,11 +95,14 @@
 
 {% if cannot_view_all %}
 <p><b>Note: you only have access to see a few examples from Reaxys for this transformation. If your institution has access and you believe this is in error, please contact <a href='mailto:ccoley@mit.edu'>ccoley@mit.edu</a></b></p>
-
-
 <p>Reaction IDs corresponding to the 500 highest-yielding examples of this template:</p>
 <p>{{ ref_ids }}</p>
+{% endif %}
 
+{% if cannot_view_any %}
+<p><b>Note: the database backend is not configured to retrieve Reaxys examples currently.</b></p>
+<p>Reaction IDs supporting this template (that can be looked up in Reaxys) are as follows:</p>
+<p>{{ ref_ids }}</p>
 {% endif %}
 
 {% endif %}
