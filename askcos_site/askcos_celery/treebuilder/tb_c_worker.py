@@ -31,15 +31,9 @@ def configure_worker(options={}, **kwargs):
         return
     print('### STARTING UP A TREE BUILDER WORKER ###')
 
-    # Database
-    from database import db_client
-    db = db_client[settings.RETRO_TRANSFORMS_CHIRAL['database']]
-    RETRO_DB = db[settings.RETRO_TRANSFORMS_CHIRAL['collection']]
-
     # Instantiate and load retro transformer
     global retroTransformer
-    retroTransformer = RetroTransformer(celery=True, TEMPLATE_DB=RETRO_DB, mincount=settings.RETRO_TRANSFORMS_CHIRAL['mincount'],
-                                        mincount_chiral=settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'])
+    retroTransformer = RetroTransformer(celery=True)
 
     retroTransformer.load(chiral=True)
     print(retroTransformer.fast_filter.evaluate('CCCCCCO.CCCCBr', 'CCCCCCOCCCC'))

@@ -31,14 +31,13 @@ def configure_worker(options={}, **kwargs):
     global templates
     global forwardTransformer
 
-    # Database
-    from database import db_client
-    db = db_client[settings.SYNTH_TRANSFORMS['database']]
-    SYNTH_DB = db[settings.SYNTH_TRANSFORMS['collection']]
-    # Load templates
-    mincount_synth = settings.SYNTH_TRANSFORMS['mincount']
-    forwardTransformer = ForwardTransformer(
-        celery=True, TEMPLATE_DB=SYNTH_DB, mincount=mincount_synth)
+    # # Database
+    # from database import db_client
+    # db = db_client[settings.SYNTH_TRANSFORMS['database']]
+    # SYNTH_DB = db[settings.SYNTH_TRANSFORMS['collection']]
+    # # Load templates
+    # mincount_synth = settings.SYNTH_TRANSFORMS['mincount']
+    forwardTransformer = ForwardTransformer(celery=True)
     forwardTransformer.load()
     print('### FORWARD ENUMERATION WORKER STARTED UP ###')
 

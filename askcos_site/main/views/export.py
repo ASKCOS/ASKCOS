@@ -9,7 +9,6 @@ import json
 import os
 
 import rdkit.Chem as Chem 
-import urllib2
 
 from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
 from ..globals import SYNTH_FOOTNOTE

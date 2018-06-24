@@ -30,9 +30,8 @@ def configure_worker(options={}, **kwargs):
     lg = RDLogger.logger()
     lg.setLevel(RDLogger.CRITICAL)
     try:
-        recommender = NeuralNetContextRecommender(max_contexts=10)
-        recommender.load(model_path=gc.NEURALNET_CONTEXT_REC['model_path'], info_path=gc.NEURALNET_CONTEXT_REC[
-                       'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path'])
+        recommender = NeuralNetContextRecommender()
+        recommender.load()
     except Exception as e:
         print(e)
     print('Loaded context recommendation model')

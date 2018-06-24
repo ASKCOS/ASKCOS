@@ -16,7 +16,7 @@ import os
 from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
 from askcos_site.askcos_celery.treeevaluator.scoring_coordinator import evaluate
 
-from ..globals import PREDICTOR_FOOTNOTE, SOLVENT_DB
+from ..globals import PREDICTOR_FOOTNOTE, solvent_choices
 from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
     trim_trailing_period
 
@@ -27,12 +27,6 @@ def synth_interactive(request, reactants='', reagents='', solvent='default',
 
     context = {} 
     context['footnote'] = PREDICTOR_FOOTNOTE
-    solvent_choices = []
-    for doc in SOLVENT_DB.find({'_id': {'$ne': 'default'}}):
-        solvent_choices.append({
-            'smiles': doc['smiles'],
-            'name': doc['name'],
-        })
     context['solvent_choices'] = sorted(solvent_choices, key = lambda x: x['name'])
     context['reactants'] = reactants
 

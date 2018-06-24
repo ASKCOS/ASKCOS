@@ -8,24 +8,20 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.6/ref/settings/
 """
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 PROJECT_PATH = os.path.dirname(__file__)
 
-# # Celery 
-# import djcelery
-# djcelery.setup_loader()
-
 # Get settings from separate celeryconfig.py
-from askcos_celery.celeryconfig import *
+from askcos_site.askcos_celery.celeryconfig import *
+# Get settings from makeit
+import makeit.global_config as gc
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
+# Email notification for registration - must be set up to work!!
+USE_EMAIL_NOTIFICATION = False
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'notsecret'
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -58,8 +54,6 @@ TEMPLATES = [
     },
 ]
 
-# Application definition
-
 INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
@@ -68,10 +62,11 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'askcos_site.main',
-    # 'django_celery_results',
     'registration',
-    'registration.contrib.notification',
 )
+
+if USE_EMAIL_NOTIFICATION:
+    INSTALLED_APPS = INSTALLED_APPS + ('registration.contrib.notification',)
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -83,52 +78,41 @@ MIDDLEWARE_CLASSES = (
 )
 
 ROOT_URLCONF = 'askcos_site.urls'
-
 WSGI_APPLICATION = 'askcos_site.wsgi.application'
 
+# LOGIN
+LOGIN_URL = '/login'
+LOGIN_REDIRECT_URL = '/'
+
 # Registration
-REGISTRATION_SUPPLEMENT_CLASS = None
-ACCOUNT_ACTIVATION_DAYS = 7
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'localhost'
-EMAIL_PORT = 25
-EMAIL_HOST_USER = ''
-EMAIL_HOST_PASSWORD = ''
-EMAIL_USE_TLS = False
-DEFAULT_FROM_EMAIL = 'ccoley@mit.edu'
-REGISTRATION_NOTIFICATION = True
-REGISTRATION_NOTIFICATION_RECIPIENTS = ['ccoley@mit.edu']
-# Database
-# https://docs.djangoproject.com/en/1.6/ref/settings/#databases
+if USE_EMAIL_NOTIFICATION:
+    REGISTRATION_SUPPLEMENT_CLASS = None
+    ACCOUNT_ACTIVATION_DAYS = 7
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'localhost'
+    EMAIL_PORT = 25
+    EMAIL_HOST_USER = ''
+    EMAIL_HOST_PASSWORD = ''
+    EMAIL_USE_TLS = False
+    DEFAULT_FROM_EMAIL = 'ccoley@mit.edu'
+    REGISTRATION_NOTIFICATION = True
+    REGISTRATION_NOTIFICATION_RECIPIENTS = ['ccoley@mit.edu']
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        # 'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        'NAME': os.path.join('db.sqlite3'),
-    }
-}
-# AUTHENTICATION_BACKENDS = (
-#     'mongoengine.django.auth.MongoEngineBackend',
-# )
+# Where are user settings / banlists / etc. saved?
+# NOTE: we recommend relocating the db to an ssd for speed
+DATABASES = {'default': {
+    'ENGINE': 'django.db.backends.sqlite3',
+    'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+}}
 
-# Internationalization
-# https://docs.djangoproject.com/en/1.6/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.6/howto/static-files/
-
 STATIC_ROOT = os.path.join(PROJECT_PATH, 'static/')
 STATIC_URL = '/static/'
 STATICFILES_FINDERS = (
@@ -138,89 +122,35 @@ STATICFILES_FINDERS = (
 STATICFILES_DIRS = (
     os.path.join(STATIC_ROOT, 'css'),
     os.path.join(STATIC_ROOT, 'js')
-    )
+)
 
 # Media files
 MEDIA_ROOT = os.path.join(PROJECT_PATH, 'media/')
 MEDIA_URL = '/media/'
 
-# Miscellanious
-RETRO_TRANSFORMS = {
-    'database': 'reaxys_v2',
-    'collection': 'transforms_retro_v6',
-    'mincount': 25,
-}
-RETRO_TRANSFORMS_CHIRAL = {
-    'database': 'reaxys_v2',
-    'collection': 'transforms_retro_v9',
-    'mincount': 25,
-    'mincount_chiral': 10
-}
-RETRO_TRANSFORMER = { 
-    'parallel': False,
-    'nb_workers': 0,
-}
-SYNTH_TRANSFORMS = {
-    'database': 'reaxys',
-    'collection': 'transforms_forward_v1',
-    'mincount': 5, 
-}
-SYNTH_TRANSFORMER = {
-}
-INSTANCES = {
-    'database': 'reaxys_v2',
-    'collection': 'instances',
-}
-REACTIONS = {
-    'database': 'reaxys_v2',
-    'collection': 'reactions',
-}
-CHEMICALS = {
-    'database': 'reaxys_v2',
-    'collection': 'chemicals',
-}
+################################################################################
+# Define databases to replicate Make-It settings
+################################################################################
 
-INSTANCES_OLD = {
-    'database': 'reaxys',
-    'collection': 'instances',
-}
-REACTIONS_OLD = {
-    'database': 'reaxys',
-    'collection': 'reactions',
-}
-CHEMICALS_OLD = {
-    'database': 'reaxys',
-    'collection': 'chemicals',
-}
+RETRO_TRANSFORMS = gc.RETRO_TRANSFORMS
+RETRO_TRANSFORMS_CHIRAL = gc.RETRO_TRANSFORMS_CHIRAL
 
-BUYABLES = {
-    'database': 'reaxys_v2',
-    'collection': 'buyables',
-}
-SOLVENTS = {
-    'database': 'reaxys',
-    'collection': 'solvents',
-}
+# TODO: deprecate in favor of template-free forward prediction only
+SYNTH_TRANSFORMS = gc.SYNTH_TRANSFORMS
 
-PREDICTOR = {
-    'nb_workers': 0,
-    'trained_model_path': '/home/ccoley/Make-It/makeit/predict/output/01_23_2017',
-    'info': '01-23-17, model trained on 80k Reaxys examples, validated on 10k, tested on 10k. Nh1_200, Nh2_200, Nh3_200, l2_0, Nc_5000, enh_weight_0d1, context_weight_50, opt_adadelta, batch_5, moreFeatures'
-}
+INSTANCES = gc.INSTANCES
+REACTIONS = gc.REACTIONS
+CHEMICALS = gc.CHEMICALS
 
-CONTEXT_REC = {
-    'model_dir': '/data/fatmodels/FullReaxysModel',
-    'database': 'reaxys',
-}
+# Back-up databases
+INSTANCES_OLD = {'database': 'reaxys', 'collection': 'instances'}
+REACTIONS_OLD = {'database': 'reaxys', 'collection': 'reactions'}
+CHEMICALS_OLD = {'database': 'reaxys', 'collection': 'chemicals'}
 
-LOCAL_STORAGE = {
-    'root': '/home/ubuntu/ASKCOS/Make-It/makeit/data'
-}
-LOCAL_STORAGE['dir'] = os.path.join(LOCAL_STORAGE['root'], 'local_db_dumps')
-LOCAL_STORAGE['user_saves'] = os.path.join(LOCAL_STORAGE['root'], 'user_saves')
+BUYABLES = gc.BUYABLES
+SOLVENTS = gc.SOLVENTS
 
-
-# For searching "old" templates
+# For searching "old" templates in the MongoDB (not locally saved)
 TEMPLATE_BACKUPS = [
     ('reaxys_v2', 'transforms_retro_v8'),
     ('reaxys_v2', 'transforms_retro_v7'),
@@ -230,6 +160,12 @@ TEMPLATE_BACKUPS = [
     ('reaxys', 'transforms_retro_v3'),
 ]
 
-# LOGIN
-LOGIN_URL = '/login'
-LOGIN_REDIRECT_URL = '/'
+################################################################################
+# Define local file storage locations
+################################################################################
+
+### Very important - where to look for local versions of files instead of relying on DB connections
+LOCAL_STORAGE = {}
+LOCAL_STORAGE['user_saves'] = os.path.join(gc.data_path, 'user_saves')
+
+

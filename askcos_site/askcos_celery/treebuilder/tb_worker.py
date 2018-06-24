@@ -30,17 +30,11 @@ def configure_worker(options={}, **kwargs):
         return
     print('### STARTING UP A TREE BUILDER WORKER ###')
 
-    # Database
-    from database import db_client
-    db = db_client[settings.RETRO_TRANSFORMS['database']]
-    RETRO_DB = db[settings.RETRO_TRANSFORMS['collection']]
-
     global retroTransformer
     # Instantiate and load retro transformer
-    retroTransformer = RetroTransformer(
-        TEMPLATE_DB=RETRO_DB, mincount=settings.RETRO_TRANSFORMS['mincount'])
+    retroTransformer = RetroTransformer(celery=True)
+    retroTransformer.load(chiral=False)
 
-    retroTransformer.load()
     print('### TREE BUILDER WORKER STARTED UP ###')
 
 

@@ -4,73 +4,22 @@ lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
 from database import db_client
 from django.conf import settings
-import cPickle as pickle
+import makeit.utilities.io.pickle as pickle
 import os 
 
-def get_retrotransformer_achiral_path(dbname, collname, mincount_retro):
-    return os.path.join(settings.LOCAL_STORAGE['dir'], 
-        'retrotransformer_achiral_using_%s-%s_mincount%i.pkl' % (dbname, collname, mincount_retro))
-
-def get_retrotransformer_chiral_path(dbname, collname, mincount_retro, mincount_retro_chiral):
-    return os.path.join(settings.LOCAL_STORAGE['dir'], 
-        'retrotransformer_chiral_using_%s-%s_mincount%i_mincountchiral%i.pkl' % (dbname, collname, mincount_retro, mincount_retro_chiral))
-
-def get_synthtransformer_path(dbname, collname, mincount):
-    return os.path.join(settings.LOCAL_STORAGE['dir'], 
-        'synthtransformer_using_%s-%s_mincount%i.pkl' % (dbname, collname, mincount))
-
-def get_pricer_path(chem_dbname, chem_collname, buyable_dbname, buyable_collname):
-    return os.path.join(settings.LOCAL_STORAGE['dir'], 
-        'pricer_using_%s-%s_and_%s-%s.pkl' % (chem_dbname, chem_collname, buyable_dbname, buyable_collname))
-
-### Retro transformer
+# Retro transformer
 import makeit.retrosynthetic.transformer as transformer 
-save_path = get_retrotransformer_achiral_path(
-    settings.RETRO_TRANSFORMS['database'],
-    settings.RETRO_TRANSFORMS['collection'],
-    settings.RETRO_TRANSFORMS['mincount'],
-)
-if os.path.isfile(save_path):
-    #with open(save_path, 'rb') as fid:
-    #    RetroTransformer.templates = pickle.load(fid)
-    RetroTransformer = transformer.RetroTransformer()
-    RetroTransformer.load_from_file(True, save_path, chiral=False, rxns=False)
-    RetroTransformer.reorder()
-else:
-    database = db_client[settings.RETRO_TRANSFORMS['database']]
-    RETRO_DB = database[settings.RETRO_TRANSFORMS['collection']]
-    mincount_retro = settings.RETRO_TRANSFORMS['mincount']
-    RetroTransformer = transformer.RetroTransformer(TEMPLATE_DB=RETRO_DB, mincount=mincount_retro, )
-    print('Saving achiral retro transformer for the (only?) first time')
-    RetroTransformer.dump_to_file(True, save_path)
-    #with open(save_path, 'wb') as fid:
-    #    pickle.dump(RetroTransformer.templates, fid, -1)
+RetroTransformer = transformer.RetroTransformer()
+RetroTransformer.load(chiral=False, refs=False, rxns=False) # TODO: do we need refs?
+RetroTransformer.reorder()
 RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.format(len(RetroTransformer.templates),
     settings.RETRO_TRANSFORMS['mincount'], settings.RETRO_TRANSFORMS['database'], settings.RETRO_TRANSFORMS['collection'])
 
-### Chiral Retro Transformer
-database = db_client[settings.RETRO_TRANSFORMS_CHIRAL['database']]
-RETRO_DB = database[settings.RETRO_TRANSFORMS_CHIRAL['collection']]
-save_path = get_retrotransformer_chiral_path(
-    settings.RETRO_TRANSFORMS_CHIRAL['database'],
-    settings.RETRO_TRANSFORMS_CHIRAL['collection'],
-    settings.RETRO_TRANSFORMS_CHIRAL['mincount'],
-    settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
-)
-if os.path.isfile(save_path):
-    RetroTransformerChiral = transformer.RetroTransformer()
-    RetroTransformerChiral.load_from_file(True, save_path, chiral=True, rxns=False)
-    RetroTransformerChiral.reorder()
-else:
-    mincount_retro = settings.RETRO_TRANSFORMS_CHIRAL['mincount']
-    mincount_retro_chiral = settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral']
-    RetroTransformerChiral = transformer.RetroTransformer(TEMPLATE_DB=RETRO_DB, 
-        mincount=mincount_retro, mincount_chiral=mincount_retro_chiral)
-    RetroTransformerChiral.load(refs=True, rxns=False)
-    print('Saving chiral retro transformer for the (only?) first time')
-    RetroTransformerChiral.dump_to_file(True, save_path)
-    #with open(save_path, 'wb') as fid:
-    #    pickle.dump(RetroTransformerChiral.templates, fid, -1)
+# Chiral Retro Transformer
+import makeit.retrosynthetic.transformer as transformer 
+RetroTransformerChiral = transformer.RetroTransformer()
+RetroTransformerChiral.load(chiral=True, refs=False, rxns=False) # TODO: do we need refs?
+RetroTransformerChiral.reorder()
 RETRO_CHIRAL_FOOTNOTE = 'Using {} chiral retrosynthesis templates (mincount {} if achiral, mincount {} if chiral) from {}/{}'.format(len(RetroTransformerChiral.templates),
     settings.RETRO_TRANSFORMS_CHIRAL['mincount'], 
     settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'], 
@@ -83,25 +32,10 @@ print('{} total templates available'.format(len(RetroTransformer.templates)))
 RetroTransformer.reorder() # rebuilds id->template dictionary
 
 ### Forward transformer 
-save_path = get_synthtransformer_path(
-    settings.SYNTH_TRANSFORMS['database'],
-    settings.SYNTH_TRANSFORMS['collection'],
-    settings.SYNTH_TRANSFORMS['mincount'],
-)
 import makeit.synthetic.enumeration.transformer as transformer
-if os.path.isfile(save_path):
-    SynthTransformer = transformer.ForwardTransformer()
-    SynthTransformer.load_from_file(False, save_path, rxns=False)
-    SynthTransformer.reorder()
-else:
-    database = db_client[settings.SYNTH_TRANSFORMS['database']]
-    SYNTH_DB = database[settings.SYNTH_TRANSFORMS['collection']]
-    mincount_synth = settings.SYNTH_TRANSFORMS['mincount']
-    SynthTransformer = transformer.ForwardTransformer(TEMPLATE_DB=SYNTH_DB, mincount=mincount_synth)
-    SynthTransformer.load(refs=True, rxns=False)
-    print('Loaded {} forward templates'.format(SynthTransformer.num_templates))
-    print('Saving synth transformer for the (only?) first time')
-    SynthTransformer.dump_to_file(False, save_path)
+SynthTransformer = transformer.ForwardTransformer()
+SynthTransformer.load(chiral=False, rxns=False)
+SynthTransformer.reorder()
 SYNTH_FOOTNOTE = 'Using {} forward templates (mincount {}) from {}/{}'.format(SynthTransformer.num_templates,
     settings.SYNTH_TRANSFORMS['mincount'], settings.SYNTH_TRANSFORMS['database'], settings.SYNTH_TRANSFORMS['collection'])
 
@@ -122,7 +56,6 @@ BUYABLE_DB = db[settings.BUYABLES['collection']]
 db = db_client[settings.SOLVENTS['database']]
 SOLVENT_DB = db[settings.SOLVENTS['collection']]
 
-
 db = db_client[settings.REACTIONS_OLD['database']]
 REACTION_DB_OLD = db[settings.REACTIONS_OLD['collection']]
 
@@ -137,38 +70,12 @@ CHEMICAL_DB_OLD = db[settings.CHEMICALS_OLD['collection']]
 print('Loading prices...')
 import makeit.utilities.buyable.pricer as pricer
 Pricer = pricer.Pricer()
-save_path = get_pricer_path(
-    settings.CHEMICALS['database'], 
-    settings.CHEMICALS['collection'], 
-    settings.BUYABLES['database'], 
-    settings.BUYABLES['collection'],
-)
-if os.path.isfile(save_path):
-    with open(save_path, 'rb') as fid:
-        Pricer.prices = pickle.load(fid) 
-        Pricer.prices_flat = pickle.load(fid) 
-        Pricer.prices_by_xrn = pickle.load(fid) 
-else:
-    Pricer.load(CHEMICAL_DB, BUYABLE_DB)
-    with open(save_path, 'wb') as fid:
-        pickle.dump(Pricer.prices, fid, -1)
-        pickle.dump(Pricer.prices_flat, fid, -1)
-        pickle.dump(Pricer.prices_by_xrn, fid, -1)
+Pricer.load()
 print('Loaded known prices')
 
-# ### Literaturue transformer
-# import makeit.retro.transformer_onlyKnown as transformer_onlyKnown
-# TransformerOnlyKnown = transformer_onlyKnown.TransformerOnlyKnown()
-# TransformerOnlyKnown.load(CHEMICAL_DB, REACTION_DB)
 TransformerOnlyKnown = None 
 
-
-PREDICTOR_FOOTNOTE = 'When using the template-based predictor, results are \
-generated using <= {} forward synthetic templates \
-(mincount >= {}) from {}/{}, scored by a trained machine learning model: '.format(
-    SynthTransformer.num_templates,  settings.SYNTH_TRANSFORMS['mincount'], 
-    settings.SYNTH_TRANSFORMS['database'], 
-    settings.SYNTH_TRANSFORMS['collection']) + settings.PREDICTOR['info']
+PREDICTOR_FOOTNOTE = ''
 
 # Keeping track of what reactions have already been done
 DONE_SYNTH_PREDICTIONS = {}
@@ -193,3 +100,24 @@ from makeit.prioritization.precursors.scscore import SCScorePrecursorPrioritizer
 scscorer = SCScorePrecursorPrioritizer()
 scscorer.load_model(model_tag='1024bool')
 print('Loaded SCScorer on website')
+print(scscorer.get_score_from_smiles('CCCC', noprice=True))
+
+
+# Solvent choices - the save file is created by the template-based forward predictor
+solvent_choices = []
+from makeit.utilities.io.files import get_abraham_solvents_path
+file_path = get_abraham_solvents_path()
+if os.path.isfile(file_path):
+    with open(file_path, 'rb') as fid:
+        solvent_name_to_smiles = pickle.load(fid)
+    solvent_choices = [{'smiles': v, 'name': k} for (k, v) in solvent_name_to_smiles.items()]
+else:
+    db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
+                    'id'], connect=gc.MONGO['connect'])
+    db = db_client[gc.SOLVENTS['database']]
+    SOLVENT_DB = db[gc.SOLVENTS['collection']]
+    for doc in SOLVENT_DB.find({'_id': {'$ne': 'default'}}):
+        solvent_choices.append({
+            'smiles': doc['smiles'],
+            'name': doc['name'],
+        })

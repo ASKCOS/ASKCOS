@@ -8,7 +8,7 @@ import django.contrib.auth.views
 from pymongo.message import bson
 from bson.objectid import ObjectId
 from datetime import datetime
-import os
+import os, sys
 
 from ..models import SavedResults, BlacklistedReactions, BlacklistedChemicals
 
@@ -51,7 +51,10 @@ def user_saved_results_id(request, _id=-1):
     if saved_result.count() == 0:
         return user_saved_results(request, err='Could not find that ID')
     with open(saved_result[0].fpath, 'r') as fid:
-        html = fid.read().decode('utf8')
+        if sys.version_info[0] < 3:
+            html = fid.read().decode('utf8')
+        else:
+            html = fid.read()
     return render(request, 'saved_results_id.html', 
         {'saved_result':saved_result[0], 'html':html, 'dt': saved_result[0].dt})
 
@@ -78,7 +81,10 @@ def ajax_user_save_page(request):
     fpath = os.path.join(settings.LOCAL_STORAGE['user_saves'], unique_str)
     try:
         with open(fpath, 'w') as fid:
-            fid.write(html.encode('utf8'))
+            if sys.version_info[0] < 3:
+                fid.write(html.encode('utf8'))
+            else:
+                fid.write(html)
         print('Wrote to {}'.format(fpath))
         obj = SavedResults.objects.create(user=request.user, 
             description=desc,

@@ -44,17 +44,10 @@ def configure_coordinator(options={}, **kwargs):
 
     evaluator = Evaluator(celery=True)
 
-    # Database
-    from database import db_client
-    db = db_client[settings.BUYABLES['database']]
-    BUYABLE_DB = db[settings.BUYABLES['collection']]
-    db = db_client[settings.CHEMICALS['database']]
-    CHEMICAL_DB = db[settings.CHEMICALS['collection']]
-
     # Prices
     print('Loading prices...')
-    pricer = Pricer(CHEMICALS=CHEMICAL_DB, BUYABLES=BUYABLE_DB)
-    pricer.load(max_ppg=1e10)
+    pricer = Pricer()
+    pricer.load()
     print('Loaded known prices')
     treeBuilder = TreeBuilder(celery=True, pricer=pricer)
 

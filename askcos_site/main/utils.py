@@ -1,7 +1,13 @@
 from django.http import JsonResponse
 from .globals import CHEMICAL_DB
 import rdkit.Chem as Chem 
-import urllib2
+import sys 
+if sys.version_info[0] < 3:
+    from urllib2 import urlopen 
+    from urllib2 import HTTPError
+else:
+    from urllib.request import urlopen
+    from urllib.error import HTTPError
 
 def ajax_error_wrapper(ajax_func):
     def ajax_func_call(*args, **kwargs):
@@ -47,8 +53,8 @@ def resolve_smiles(smiles):
         new_smiles = []
         for smiles in smiles.split(' and '):
             try:
-                smiles = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(smiles)).read()
-            except urllib2.HTTPError:
+                smiles = urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(smiles)).read()
+            except HTTPError:
                 return None
             mol = Chem.MolFromSmiles(smiles)
             if not mol: return None
@@ -58,11 +64,11 @@ def resolve_smiles(smiles):
 
 def get_name_from_smiles(smiles):
     try:
-        names = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/names'.format(smiles)).read()
+        names = urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/names'.format(smiles)).read()
         if '&lt;!DOCTYPE html&gt;' in names:
             return smiles
         return names.split('\n')[0]
-    except urllib2.HTTPError:
+    except HTTPError:
         return smiles
 
 def fix_rgt_cat_slvt(rgt1, cat1, slvt1):
