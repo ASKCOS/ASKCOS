@@ -100,10 +100,13 @@ def TrimImgByWhite(img, padding=0):
     as_array = np.array(img)  # N x N x (r,g,b,a)
 
     # Set previously-transparent pixels to white
-    as_array[as_array[:, :, 3] == 0] = [255, 255, 255, 255]
+    if as_array.shape[2] == 4:
+        as_array[as_array[:, :, 3] == 0] = [255, 255, 255, 0]
+
+    as_array = as_array[:, :, :3]
 
     # Content defined as non-white and non-transparent pixel
-    has_content = np.sum(as_array, axis=2, dtype=np.uint32) != 255 * 4
+    has_content = np.sum(as_array, axis=2, dtype=np.uint32) != 255 * 3
     xs, ys = np.nonzero(has_content)
 
     # Crop down
@@ -115,7 +118,7 @@ def TrimImgByWhite(img, padding=0):
 
     img = Image.fromarray(as_array_cropped, mode='RGB')
 
-    return ImageOps.expand(img, border=padding, fill=(255, 255, 255, 0))
+    return ImageOps.expand(img, border=padding, fill=(255, 255, 255))
 
 
 def StitchPILsHorizontally(imgs):
@@ -128,12 +131,12 @@ def StitchPILsHorizontally(imgs):
     height = max(heights)
     widths = [img.size[0] for img in imgs]
     width = sum(widths)
-    res = Image.new('RGBA', (width, height), (255, 255, 255, 255))
+    res = Image.new('RGB', (width, height), (255, 255, 255))
 
     # Add in sub-images
     for i, img in enumerate(imgs):
         offset_x = sum(widths[:i])  # left to right
-        offset_y = (height - heights[i]) / 2
+        offset_y = (height - heights[i]) // 2
         res.paste(img, (offset_x, offset_y))
 
     return res
@@ -201,7 +204,7 @@ def ReactionToImage(rxn, dummyAtoms=False, kekulize=True, options=None, **kwargs
 
 
 def ReactionStringToImage(rxn_string, strip=True, update=True, options=None,
-		retro=False, **kwargs):
+        retro=False, **kwargs):
     '''This function takes a SMILES rxn_string as input, not an 
     RDKit reaction object, and draws it.'''
 
@@ -213,9 +216,9 @@ def ReactionStringToImage(rxn_string, strip=True, update=True, options=None,
 
     # Stich together mols (ignore agents)
     if retro:
-    	mols = reactants + ['<-'] + products
+        mols = reactants + ['<-'] + products
     else:
-		mols = reactants + ['->'] + products
+        mols = reactants + ['->'] + products
     if update:
         [mol.UpdatePropertyCache(False) for mol in mols if mol is not None and type(mol) != str]
     if strip:
