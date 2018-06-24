@@ -20,7 +20,7 @@ import makeit.utilities.contexts as context_cleaner
 from makeit.utilities.outcomes import summarize_reaction_outcome
 from makeit.utilities.descriptors import edits_to_vectors, edits_to_tensor, edit_vector_lengths
 from makeit.utilities.parsing import parse_list_to_smiles
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 import makeit.utilities.io.pickle as pickle
 from makeit.utilities.reactants import clean_reactant_mapping
 from askcos_site.askcos_celery.treeevaluator.forward_trans_worker import get_outcomes, template_count

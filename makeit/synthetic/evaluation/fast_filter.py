@@ -10,7 +10,7 @@ from tqdm import tqdm
 from keras.models import load_model
 from keras import backend as K
 import makeit.global_config as gc
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 import os
 fast_filter_loc = 'fast_filter'
 

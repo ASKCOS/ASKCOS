@@ -4,7 +4,7 @@ import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import numpy as np
 from makeit.utilities.buyable.pricer import Pricer
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from keras.models import Sequential
 from keras.layers import Dense, Lambda
 from keras import backend as K

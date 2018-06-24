@@ -3,7 +3,7 @@ import numpy as np
 from keras.models import model_from_json
 from keras import backend as K
 import makeit.utilities.fingerprinting as fp
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.interfaces.context_recommender import ContextRecommender
 from scipy import stats
 import pickle

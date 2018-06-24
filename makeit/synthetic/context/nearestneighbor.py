@@ -10,7 +10,7 @@ from collections import deque
 from sklearn.externals import joblib
 import makeit.utilities.strings as strings
 import makeit.utilities.fingerprinting as fp
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.interfaces.context_recommender import ContextRecommender
 contextRecommender_loc = 'contextRecommender'
 

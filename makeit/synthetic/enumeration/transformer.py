@@ -7,7 +7,7 @@ import numpy as np
 import os
 import makeit.utilities.io.pickle as pickle
 from functools import partial  # used for passing args to multiprocessing
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.synthetic.enumeration.results import ForwardResult, ForwardProduct
 from pymongo import MongoClient
 from makeit.interfaces.template_transformer import TemplateTransformer

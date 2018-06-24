@@ -12,7 +12,7 @@ from collections import defaultdict
 import rdkit.Chem as Chem
 from makeit.retrosynthetic.transformer import RetroTransformer
 from makeit.utilities.buyable.pricer import Pricer
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.utilities.io import model_loader
 from makeit.utilities.formats import chem_dict, rxn_dict
 import askcos_site.askcos_celery.treebuilder.tb_worker as tb_worker

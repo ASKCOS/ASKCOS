@@ -11,7 +11,7 @@ from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritiz
 from makeit.prioritization.default import DefaultPrioritizer
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 from pymongo import MongoClient
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 transformer_loc = 'template_transformer'
 import makeit.utilities.io.pickle as pickle
 import os, sys

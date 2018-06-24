@@ -1,7 +1,7 @@
 import makeit.global_config as gc
 import rdkit.Chem as Chem          
 from rdkit.Chem import AllChem
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 reactants_loc = 'util.reactants'
 
 

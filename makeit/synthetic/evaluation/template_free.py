@@ -13,7 +13,7 @@ from makeit.synthetic.evaluation.template_based_aux import build
 import makeit.utilities.contexts as context_cleaner
 
 from makeit.utilities.parsing import parse_list_to_smiles
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.utilities.reactants import clean_reactant_mapping
 from askcos_site.askcos_celery.treeevaluator.forward_trans_worker import get_outcomes, template_count
 from operator import itemgetter

@@ -1,7 +1,7 @@
 import os
 import makeit.global_config as gc
 from pymongo import MongoClient
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.utilities.buyable.pricer import Pricer
 from makeit.synthetic.context.nearestneighbor import NNContextRecommender
 from makeit.synthetic.context.neuralnetwork import NeuralNetContextRecommender

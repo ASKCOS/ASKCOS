@@ -1,7 +1,7 @@
 import makeit.global_config as gc
 import rdkit.Chem as Chem
 from multiprocessing import Process, Manager, Queue
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.utilities.io.model_loader import load_fastfilter, load_templatebased, load_templatefree
 from makeit.utilities.parsing import parse_molecule_to_smiles, parse_list_to_smiles
 from makeit.utilities.outcomes import summarize_reaction_outcome

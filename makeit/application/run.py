@@ -4,7 +4,7 @@ import time
 import makeit.global_config as gc
 from makeit.utilities.io import arg_parser, name_parser, files
 import rdkit.Chem as Chem
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.retrosynthetic.tree_builder import TreeBuilder
 from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
 from askcos_site.askcos_celery.treeevaluator.tree_evaluation_coordinator import evaluate_trees

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+import numpy as np
 import rdkit.Chem as Chem
 import rdkit.Chem.AllChem as AllChem
 import rdkit.Chem.Draw as Draw
@@ -5,7 +7,6 @@ from PIL import Image, ImageOps
 from collections import defaultdict
 # from rdkit.Chem.Draw.cairoCanvas import Canvas
 import os
-import numpy as np
 import re
 '''
 Many of these functions are taken from RDKit.
@@ -267,8 +268,7 @@ def MolsSmilesToImage(smiles, options=None, **kwargs):
     return StitchPILsHorizontally(imgs)
 
 
-if __name__ == '__main__':
-
+def main():
     # Simple test cases
     rxn_string = 'Fc1ccc(C2(Cn3cncn3)CO2)c(F)c1.c1nc[nH]n1.Cl.O=C([O-])O.[Na+]>>OC(Cn1cncn1)(Cn1cncn1)c1ccc(F)cc1F'
     # rxn = AllChem.ReactionFromSmarts(rxn_string)
@@ -279,6 +279,9 @@ if __name__ == '__main__':
     rxn_image_string = ReactionStringToImage(rxn_string, strip=True, retro=True)
     rxn_image_string.save('draw_retro_test_rxn_string.png')
 
-    tform = '([O;H0:3]=[C;H0:4](-[C:5])-[NH:2]-[C:1])>>([C:1]-[NH2:2]).([OH:3]-[C;H0:4](=O)-[C:5])'
-    img = TransformStringToImage(tform)
-    img.save('draw_transform.png')
+    # tform = '([O;H0:3]=[C;H0:4](-[C:5])-[NH:2]-[C:1])>>([C:1]-[NH2:2]).([OH:3]-[C;H0:4](=O)-[C:5])'
+    # img = TransformStringToImage(tform)
+    # img.save('draw_transform.png')
+
+if __name__ == '__main__':
+    main()

@@ -7,7 +7,7 @@ if sys.version_info[0] < 3:
 else:
     import queue as VanillaQueue
 import time
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.utilities.io import model_loader
 from askcos_site.askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
 from askcos_site.askcos_celery.treeevaluator.scoring_coordinator import evaluate
