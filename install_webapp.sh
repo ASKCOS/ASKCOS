@@ -17,7 +17,7 @@ sudo dpkg -i erlang-solutions_1.0_all.deb
 sudo apt-get update
 sudo apt-get install erlang 
 
-sudo apt-get install rabbitmq-server
+sudo apt-get install rabbitmq-server # on OS X, brew install rabbitmq
 
 sudo service redis start 
 sudo service rabbitmq-server start
