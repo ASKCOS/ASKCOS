@@ -1,5 +1,4 @@
-# {rabbit,"RabbitMQ","3.6.9"},
-# Redix 4.0.2
+### Meant for Python 2.7.6 on Ubuntu 16.04 running on an AWS EC2 instance
 
 sudo add-apt-repository -y ppa:chris-lea/redis-server 
 sudo apt-get update
