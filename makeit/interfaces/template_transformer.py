@@ -142,8 +142,8 @@ class TemplateTransformer(object):
 
         # Clear out unnecessary info
         if not refs:
-            [self.templates[i].pop('refs', None) for i in range(len(self.templates))]
-        elif 'refs' not in self.templates[0]:
+            [self.templates[i].pop('references', None) for i in range(len(self.templates))]
+        elif 'references' not in self.templates[0]:
             raise IOError('Save file does not contain references (which were requested!)')
 
         if not efgs:
@@ -152,8 +152,8 @@ class TemplateTransformer(object):
             raise IOError('Save file does not contain efg info (which was requested!)')
 
         if not rxn_ex:
-            [self.templates[i].pop('rxn_ex', None) for i in range(len(self.templates))]
-        elif 'rxn_ex' not in self.templates[0]:
+            [self.templates[i].pop('rxn_example', None) for i in range(len(self.templates))]
+        elif 'rxn_example' not in self.templates[0]:
             raise IOError('Save file does not contain a reaction example (which was requested!)')
 
 
