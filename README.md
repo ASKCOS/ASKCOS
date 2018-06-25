@@ -1,5 +1,5 @@
 
-# MAKE-IT:
+# Make-It:
 Software package for the prediction of feasible synthetic routes towards a desired compound and associated tasks. Is interdependent with ASKCOS_WEBSITE [https://github.com/connorcoley/ASKCOS_Website/].
 
 ## Dependencies
@@ -13,6 +13,155 @@ A coarse installation guide can be found in ```install_cli.sh``` (i.e., "install
 We also have an installation guide for the Django web interface, which uses Celery for asynchronous task management (```install_webapp.sh```). This relies on RabbitMQ and Redis servers and uWSGI/NGINX or Apache for deployment.
 
 Please note that this code relies on either (1) additional data files not contained in this repo, but available from ccoley@mit.edu or (2) connection to a MongoDB with specific expectations for databases/collections/etc.
+
+#### Make-It installation instructions (Ubuntu 16.04, Python 2.7.6)
+1. Place the Make-It and ASKCOS_Website repositories inside an ```ASKCOS``` folder in your home folder
+
+1. Download miniconda2 (or miniconda3 for Python 3) and add it to the system path
+	```
+	wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
+	bash Miniconda2-latest-Linux-x86_64.sh -b -p $HOME/miniconda
+	export PATH=~/miniconda/bin:$PATH
+	echo 'export PATH=~/miniconda/bin:$PATH' >> ~/.bashrc
+	```
+
+1. Prepare system-wide dependencies before setting up python packages
+
+	```
+	sudo apt install heimdal-dev
+	sudo apt install libkrb5-dev 
+	sudo apt-get install build-essential
+	```
+
+1. Create the "askcos" conda environment using the provided ```askcos.yml``` as a starting point
+
+	```
+	conda-env create -f askcos.yml -n askcos
+	```
+
+1. Add Make-It and ASKCOS_Website folders to your ```PYTHONPATH``` environment variable
+
+	```
+	export PYTHONPATH=~/ASKCOS/Make-It:~/ASKCOS/ASKCOS_Website:$PYTHONPATH
+	echo 'export PYTHONPATH=~/ASKCOS/Make-It:~/ASKCOS/ASKCOS_Website:$PYTHONPATH' >> ~/.bashrc 
+	```
+
+1. [OPTIONAL] create a link between ```Make-It/makeit/data``` and wherever you actually want to store the data
+
+1. Install RDKit and Pymongo
+
+	```
+	source activate askcos
+	conda install rdkit 
+	pip install pymongo
+	sudo apt install libxrender-dev 
+
+	export PYTHONPATH=~/miniconda/envs/askcos/lib/python2.7/site-packages:$PYTHONPATH
+	export LD_LIBRARY_PATH=~/miniconda/envs/askcos/lib:$LD_LIBRARY_PATH
+
+	echo 'export PYTHONPATH=~/miniconda/envs/askcos/lib/python2.7/site-packages:$PYTHONPATH' >> ~/.bashrc
+	echo 'export LD_LIBRARY_PATH=~/miniconda/envs/askcos/lib:$LD_LIBRARY_PATH' >> ~/.bashrc
+	```
+
+1. Install a more recent verison of Tensorflow
+
+	```
+	pip install tensorflow==1.4.1
+	```
+
+1. Set the default Keras backend to Theano by editing ```~/.keras/keras.json```
+
+1. Test Make-It by running any of the individual modules below and/or the full planning script.
+
+#### ASKCOS_Website installation instructions (Ubuntu 16.04, Python 2.7.6)
+
+1. Install Redis as the results backend
+
+	```
+	sudo add-apt-repository -y ppa:chris-lea/redis-server 
+	sudo apt-get update
+	sudo apt-get install redis-server
+	sudo service redis start 
+	```
+
+1. Install RabbitMQ as the message broker
+
+	```
+	echo "deb https://dl.bintray.com/rabbitmq/debian xenial main" | sudo tee /etc/apt/sources.list.d/bintray.rabbitmq.list 
+	wget -O- https://dl.bintray.com/rabbitmq/Keys/rabbitmq-release-signing-key.asc |
+	     sudo apt-key add - 
+	sudo apt-get update 
+
+	wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb 
+	sudo dpkg -i erlang-solutions_1.0_all.deb
+	sudo apt-get update
+	sudo apt-get install erlang 
+	sudo apt-get install rabbitmq-server # on OS X, brew install rabbitmq
+
+	sudo service redis start 
+	sudo service rabbitmq-server start
+	```
+	
+1. Install uWSGI
+
+	```
+	pip install uwsgi
+	sudo apt-get install nginx
+	sudo /etc/init.d/nginx start 
+	```
+	
+1. Test that uWSGI is working by temporarily running the webserver
+
+	```
+	uwsgi --http :8000 --wsgi-file wsgi.py
+	```
+
+	and in a new terminal window...
+
+	```
+	curl http://localhost:8000
+	```
+
+1. Inside the ASKCOS_Website folder, get uwsgi_params
+
+	```
+	wget https://raw.githubusercontent.com/nginx/nginx/master/conf/uwsgi_params
+	```
+
+1. Edit /etc/nginx/nginx.conf as needed, according to http://uwsgi-docs.readthedocs.io/en/latest/tutorials/Django_and_nginx.html
+
+1. Start the uWSGI server
+
+	```
+	uwsgi --socket :8000 --wsgi-file wsgi.py
+	```
+
+1. Start the NGINX server
+
+	```
+	sudo service nginx start
+	```
+	
+1. Test basic website functionality
+	- SCScore
+	- Buyable page
+	- Drawing
+	- Saving/restoring pages
+	
+1. Test Celery functionality by starting up context recommender workers
+	1. 
+
+		```
+		celery -A askcos_site worker -c 1 -Q cr_coordinator -n "cr_coordinator@$(hostname)" --max-tasks-per-child 1000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
+		celery -A askcos_site worker -c 1 -Q cr_network_worker -n "cr_network_worker@$(hostname)" --max-tasks-per-child 5000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
+		```
+	1. Go to the /context/ page on the website and make a request for the neurla network context recommender model
+	
+1. Edit ```spawn_workers.sh``` to reflect the anticipated server load (i.e., number of workers needed to support each task) before running the script to spawn them.
+
+	_note: if you want the workers to run on a separate server, you will need to edit ```ASKCOS_Website/askcos_site/celery.py``` to give an explicit SERVERHOST instead of localhost. You will also need to open up the ports for the message broker (5672) and redis server (6379) to the other server._
+
+
 
 ## How to run individual modules
 Many of the individual modules -- at least the ones that are the most interesting -- can be run "standalone". Examples of how to use them are often found in the ```if __name__ == '__main__'``` statement at the bottom of the script definitions. For example...
@@ -32,8 +181,10 @@ Many of the individual modules -- at least the ones that are the most interestin
 #### Using the coarse "fast filter" (binary classifier) for evaluating reaction plausibility
 ```makeit/synthetic/evaluation/fast_filter.py```
 
-## Options 
-For the integrated synthesis planning tool at ```makeit/application/run.py```, there are several options available. The currently enabled options for the command-line tool can be found at ```makeit/utilities/io/arg_parser.py```. There are some options that are only available for the website and some that are only available for the command-line version. As an example of the former, the consideration of popular but non-buyable chemicals as suitable "leaf nodes" in the search.
+## Integrated CASP tool
+For the integrated synthesis planning tool at ```makeit/application/run.py```, there are several options available. The currently enabled options for the command-line tool can be found at ```makeit/utilities/io/arg_parser.py```. There are some options that are only available for the website and some that are only available for the command-line version. As an example of the former, the consideration of popular but non-buyable chemicals as suitable "leaf nodes" in the search. An example of how to use this module is:
+
+```python ASKCOS/Make-It/makeit/application/run.py --TARGET atropine```
 
 ### Model choices: the following options influence which models are used to carry out the different
 tasks within the algorithm.
