@@ -21,7 +21,7 @@ def setup_parser():
     retro_mincount = 25
     retro_mincount_chiral = 10
     synth_mincount = 25
-    rank_threshold = 5
+    rank_threshold = 10
     p_threshold = 0.01
     max_expansions = 8
     max_contexts = 10

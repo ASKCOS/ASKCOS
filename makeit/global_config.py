@@ -98,7 +98,6 @@ MONGO = {
     'id': 27017,
     'connect': False
 }
-# MONGO['path'] = 'mongodb://guest:guest@askcos2.mit.edu/admin',
 
 # TODO: deprecate achiral transforms
 RETRO_TRANSFORMS = {
