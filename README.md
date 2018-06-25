@@ -12,6 +12,26 @@ A coarse installation guide can be found in ```install_cli.sh``` (i.e., "install
 
 We also have an installation guide for the Django web interface, which uses Celery for asynchronous task management (```install_webapp.sh```). This relies on RabbitMQ and Redis servers and uWSGI/NGINX or Apache for deployment.
 
+Please note that this code relies on either (1) additional data files not contained in this repo, but available from ccoley@mit.edu or (2) connection to a MongoDB with specific expectations for databases/collections/etc.
+
+## How to run individual modules
+Many of the individual modules -- at least the ones that are the most interesting -- can be run "standalone". Examples of how to use them are often found in the ```if __name__ == '__main__'``` statement at the bottom of the script definitions. For example...
+
+#### Using the learned synthetic complexity metric (SCScore)
+```makeit/prioritization/precursors/scscore.py```
+
+#### Obtaining a single-step retrosynthetic suggestion with consideration of chirality
+```makeit/retrosynthetic/transformer.py```
+
+#### Finding recommended reaction conditions based on a trained neural network model
+```makeit/synthetic/context/neuralnetwork.py```
+
+#### Using the template-free forward predictor
+```makeit/synthetic/evaluation/template_free.py```
+
+#### Using the coarse "fast filter" (binary classifier) for evaluating reaction plausibility
+```makeit/synthetic/evaluation/fast_filter.py```
+
 ## Options 
 For the integrated synthesis planning tool at ```makeit/application/run.py```, there are several options available. The currently enabled options for the command-line tool can be found at ```makeit/utilities/io/arg_parser.py```. There are some options that are only available for the website and some that are only available for the command-line version. As an example of the former, the consideration of popular but non-buyable chemicals as suitable "leaf nodes" in the search.
 
