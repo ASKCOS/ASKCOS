@@ -19,31 +19,45 @@ For the integrated synthesis planning tool at ```makeit/application/run.py```, t
 tasks within the algorithm.
 
 - Context recommendation: via '--context_recommender', currently has the following options:
+
 	-'Nearest_Neighbor': Uses a nearest neighbor based database search (memory intensive, ~30GB, and slow; relies on external data file)
+	
 	-'Neural_Network': Uses a pretrained neural network (highly recommended!!)
 
-- Context prioritization: via '--context_prioritization', specifies how we should determine the ``best'' context for a proposed reaction. It currently has the following options:
+- Context prioritization: via '--context_prioritization', specifies how we should determine the "best" context for a proposed reaction. It currently has the following options:
+
 	-'Probability': uses the likelihood of success for the reaction under that condition
+	
 	-'Rank': uses the rank of the reaction under that condition relative to all other outcomes
 
 - Forward evaluation: via '--forward_scoring', is used to evaluate the likelihood of success of a reaction. It currently has the following options:
+
 	-'Template_Based': uses the original forward evaluation method enumerating all possible outcomes by applying templates and then predicting the most likely main product [https://pubs.acs.org/doi/abs/10.1021/acscentsci.7b00064]
+	
     -'Template_Free': uses the higher-performing and faster template-free method based on graph convolutional neural networks [https://arxiv.org/abs/1709.04555]
-    -'Fast_Filter': uses a binary classifier to distinguish good and bad reaction suggestions. It is imperfect, but very fast. Based on the ``in-scope filter'' suggested by Marwin Segler [https://www.nature.com/articles/nature25978]
+    
+    -'Fast_Filter': uses a binary classifier to distinguish good and bad reaction suggestions. It is imperfect, but very fast. Based on the "in-scope filter" suggested by Marwin Segler [https://www.nature.com/articles/nature25978]
 
 - Retrosynthetic template prioritization: via '--template_prioritization', is used to minimize the number of reaction templates that must be applied to the target compound at each iteration. It currently has the following options:
+
 	-'Relevance': Quantifies how relevant a given template is for the considered reactants, based on the approach suggested by Marwin Segler [https://onlinelibrary.wiley.com/doi/abs/10.1002/chem.201605499]
+	
 	-'Popularity': Ranking based on number of references in literature, independent of the product species
 
 - Precursor prioritization: via '--precusor_prioritization', is used to determine which precursor is the most promising branch to pursue. It currently has the following options:
+
 	-'Heuristic': Simple heuristic, with decreasing score as number of atoms, rings and chiral centers increases
+	
 	-'SCScore': Synthetic Complexity Score - learned quantity indicating how complex a molecule is. Tries to interpret molecules with a protection/deprotection group as less complex than their non-protected counterparts. [https://pubs.acs.org/doi/abs/10.1021/acs.jcim.7b00622]
 
 
 
 - Tree scoring: via '--tree_scoring', determines how final synthesis trees should be sorted/ranked. It currently has the following options:
+
 	-'Product': uses the product of template score and forward prediction score
+	
 	-'Forward_only': uses only the forward prediction score
+	
 	-'Template_only': uses only the template score
 
 ### Limits and thresholds: the following options will set limits for the different parts of the program
