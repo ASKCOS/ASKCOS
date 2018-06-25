@@ -10,7 +10,7 @@ import os
 # Retro transformer
 import makeit.retrosynthetic.transformer as transformer 
 RetroTransformer = transformer.RetroTransformer()
-RetroTransformer.load(chiral=False, refs=False, rxns=False) # TODO: do we need refs?
+RetroTransformer.load(chiral=False, refs=True, rxns=False) 
 RetroTransformer.reorder()
 RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.format(len(RetroTransformer.templates),
     settings.RETRO_TRANSFORMS['mincount'], settings.RETRO_TRANSFORMS['database'], settings.RETRO_TRANSFORMS['collection'])
@@ -18,7 +18,7 @@ RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.fo
 # Chiral Retro Transformer
 import makeit.retrosynthetic.transformer as transformer 
 RetroTransformerChiral = transformer.RetroTransformer()
-RetroTransformerChiral.load(chiral=True, refs=False, rxns=False) # TODO: do we need refs?
+RetroTransformerChiral.load(chiral=True, refs=True, rxns=False) 
 RetroTransformerChiral.reorder()
 RETRO_CHIRAL_FOOTNOTE = 'Using {} chiral retrosynthesis templates (mincount {} if achiral, mincount {} if chiral) from {}/{}'.format(len(RetroTransformerChiral.templates),
     settings.RETRO_TRANSFORMS_CHIRAL['mincount'], 
