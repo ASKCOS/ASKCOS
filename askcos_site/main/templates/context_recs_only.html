@@ -7,8 +7,12 @@
 <tbody>
 <tr>
 	<td>Reagent(s): </td>
-	{% if context.reagents %}
-	<td width="70%" colspan=7><div style="overflow-x:auto; width=100%"><img src="" data-async-load="{% url 'draw_smiles' context.reagents %}" alt="{{ context.reagents }}" max-width="100%"></div></td>
+	{% if context.reagents or context.reagents_name_only %}
+	<td width="70%" colspan=7><div style="overflow-x:auto; width=100%">
+		{% if context.reagents %} 
+		<img src="" data-async-load="{% url 'draw_smiles' context.reagents %}" alt="{{ context.reagents }}" max-width="100%">
+		{% endif %}
+	{{context.reagents_name_only}}</div></td>
 	{% else %}
 	<td>none</td>
 	{% endif %}
@@ -16,8 +20,12 @@
 </tr>
 <tr>
 	<td>Catalyst(s): </td>
-	{% if context.catalysts %}
-	<td width="70%" colspan=7><div style="overflow-x:auto; width=100%"><img src="" data-async-load="{% url 'draw_smiles' context.catalysts %}" alt="{{ context.catalysts }}" max-width="100%"></div></td>
+	{% if context.catalysts or context.catalysts_name_only %}
+	<td width="70%" colspan=7><div style="overflow-x:auto; width=100%">
+		{% if context.catalysts %} 
+		<img src="" data-async-load="{% url 'draw_smiles' context.catalysts %}" alt="{{ context.catalysts }}" max-width="100%">
+		{% endif %}
+	{{context.catalysts_name_only}}</div></td>
 	{% else %}
 	<td>none</td>
 	{% endif %}
@@ -25,8 +33,12 @@
 </tr>
 <tr>
 	<td>Solvent(s): </td>
-	{% if context.solvents and context.solvents != '.' %}
-	<td width="70%" colspan=7><div style="overflow-x:auto; width=100%"><img src="" data-async-load="{% url 'draw_smiles' context.solvents %}" alt="{{ context.smiles }}" max-width="100%"></div></td>
+	{% if context.solvents or context.solvents_name_only %}
+	<td width="70%" colspan=7><div style="overflow-x:auto; width=100%">
+		{% if context.solvents %}
+		<img src="" data-async-load="{% url 'draw_smiles' context.solvents %}" alt="{{ context.smiles }}" max-width="100%">
+		{% endif %}
+	{{context.solvents_name_only}}</div></td>
 	{% else %}
 	<td>neat</td>
 	{% endif %}

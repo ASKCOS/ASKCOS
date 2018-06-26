@@ -48,7 +48,10 @@ def get_n_conditions(*args, **kwargs):
     n = number of contexts to return'''
 
     print('Context recommender worker got a request: {}, {}'.format(args, kwargs))
+    try:
+        res = recommender.get_n_conditions(*args, **kwargs)
+    except Exception as e:
+        print(e)
 
-    res = recommender.get_n_conditions(*args, **kwargs)
     print('Task completed, returning results.')
     return res
