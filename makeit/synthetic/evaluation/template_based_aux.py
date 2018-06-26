@@ -136,7 +136,10 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
     bond_gain_sum = Lambda(sum_along_axis2, output_shape = sum_along_axis2_shape, name = "sum bond_gain")(bond_gain_r2)
 
     # Sum across edits in their intermediate representation
-    net_sum = merge.concatenate([h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum], name = "concat across edits")
+    try:
+        net_sum = merge.concatenate([h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum], name = "concat across edits")
+    except AttributeError:
+        net_sum = merge([h_lost_sum, h_gain_sum, bond_lost_sum, bond_gain_sum], mode = 'concat', name = "concat across edits")
 
     feature_to_feature = Dense(N_hf, activation = inner_act, W_regularizer = l2(l2v))
     net_sum_h = TimeDistributed(feature_to_feature, name = "reaction embedding post-sum")(net_sum)
@@ -153,7 +156,10 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
     temp_rpt       = Lambda(context_repeater, output_shape = context_repeater_shape, name = "broadcast temperature")([temp, h_lost])
 
     # Dot product between reagents and net_sum_h gives enhancement factor
-    enhancement_mul = merge.multiply([net_sum_h, reagents_h_rpt], name = "multiply reaction with reagents [dot 1/2]")
+    try:
+        enhancement_mul = merge.multiply([net_sum_h, reagents_h_rpt], name = "multiply reaction with reagents [dot 1/2]")
+    except AttributeError:
+        enhancement_mul = merge([net_sum_h, reagents_h_rpt], mode = 'mul', name = "multiply reaction with reagents [dot 1/2]")
     enhancement_r = Lambda(lambda x: K.sum(x, axis = -1, keepdims = True), output_shape = lambda x: x[:-1] + (1,), name = "sum reaction with reagents [dot 2/2]")(enhancement_mul)
 
     # Converge to G0, C[not real], E, S, A, B, V, and K
@@ -161,8 +167,11 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
     params = TimeDistributed(feature_to_params, name = "features to K,G0,C,E,S,A,B,V")(net_sum_h)
 
     # Concatenate enhancement and solvents
-    params_enhancement = merge.concatenate([params, enhancement_r, solvent_rpt, temp_rpt], name = "concatenate context")
-
+    try:
+        params_enhancement = merge.concatenate([params, enhancement_r, solvent_rpt, temp_rpt], name = "concatenate context")
+    except AttributeError:
+        params_enhancement = merge([params, enhancement_r, solvent_rpt, temp_rpt], mode = 'concat', name = "concatenate context")
+    
     # # Calculate using thermo-ish
     # # K * exp(- (G0 + delG_solv) / T + enhancement)
     # unscaled_score = Lambda(
