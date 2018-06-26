@@ -33,7 +33,7 @@ class TemplateFreeNeuralNetScorer(Scorer):
     def evaluate(self, reactants_smiles, contexts=[(20,'','','','','')], **kwargs):
         '''Evaluation does not use context, but left as dummy pos var'''
         ##what if context contributes necessary atoms??
-
+        print(contexts)
         all_outcomes = []
         for (T1, slvt1, rgt1, cat1, t1, y1) in contexts:
             this_reactants_smiles = reactants_smiles

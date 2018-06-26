@@ -11,6 +11,7 @@ from askcos_site.askcos_celery.treeevaluator.scoring_coordinator import evaluate
 from makeit.prioritization.contexts.probability import ProbabilityContextPrioritizer
 from makeit.prioritization.contexts.rank import RankContextPrioritizer
 from makeit.prioritization.default import DefaultPrioritizer
+import makeit.utilities.contexts as context_cleaner
 treeEvaluator_loc = 'tree_evaluator'
 
 
@@ -225,8 +226,11 @@ class TreeEvaluator():
                             contexts = self.get_contexts(reaction_smiles, n)
                         elif self.recommender != gc.nearest_neighbor:#the not using the nearest neighbor model:
                             contexts = self.get_contexts(reaction_smiles, 1)
+                        contexts = [context_cleaner.clean_context(context) for context in contexts]
                     if not contexts:
                         contexts = ['n/a']
+                    # remove context without parsible smiles string
+                    
                     evaluation = self.evaluate_reaction(
                         '.'.join(reactants), target, contexts, worker_no = worker_no)
                     self.evaluation_dict[reaction_smiles] = evaluation
@@ -335,14 +339,14 @@ class TreeEvaluator():
     ###############################################################
 
 if __name__ == '__main__':
-    from synthetic.context.nearestneighbor import NNContextRecommender
+    # from synthetic.context.nearestneighbor import NNContextRecommender
     MyLogger.initialize_logFile()
 
-    ev = TreeEvaluator(context_recommender=gc.nearest_neighbor, celery=False)
+    ev = TreeEvaluator(context_recommender=gc.neural_network, celery=False)
     trees = [{'is_chemical': True, 'smiles': 'CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3', 'ppg': 0.0, 'id': 1, 'children': [{'info': '', 'smiles': 'CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1>>CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3', 'is_reaction': True, 'num_examples': 19578, 'template_score': 0.017628178000450134, 'children': [
         {'is_chemical': True, 'smiles': 'CN1C2CCC1CC(O)C2', 'ppg': 1.0, 'id': 3, 'children': []}, {'is_chemical': True, 'smiles': 'O=C(O)C(CO)c1ccccc1', 'ppg': 1.0, 'id': 4, 'children': []}], 'id': 2, 'necessary_reagent': u''}]}]
     tree = trees[0]
-    res = ev.evaluate_tree(tree, gc.nearest_neighbor, gc.probability,
+    res = ev.evaluate_tree(tree, gc.neural_network, gc.probability,
                            gc.templatebased, gc.product, is_target=True, reset=True, nproc=16)
     #res = ev.evaluate_trees(trees, gc.probability, gc.templatebased, gc.product, nproc = 8, parallel=True, nproc_t=3)
     print res
