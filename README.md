@@ -130,7 +130,7 @@ Please note that this code relies on either (1) additional data files not contai
 
 1. Edit /etc/nginx/nginx.conf as needed, according to http://uwsgi-docs.readthedocs.io/en/latest/tutorials/Django_and_nginx.html
 
-1. Start the uWSGI server
+1. Start the uWSGI server (long-term, this should be run as a service)
 
 	```
 	uwsgi --socket :8000 --wsgi-file wsgi.py
@@ -161,6 +161,25 @@ Please note that this code relies on either (1) additional data files not contai
 
 	_note: if you want the workers to run on a separate server, you will need to edit ```ASKCOS_Website/askcos_site/celery.py``` to give an explicit SERVERHOST instead of localhost. You will also need to open up the ports for the message broker (5672) and redis server (6379) to the other server._
 
+
+#### Setting up the Celery workers on a different server from the Webserver
+
+For scalability, it is possible to have the webserver and compute servers completely separately. The webserver will host the website, RabbitMQ, and Redis servers. The compute server will be where Celery workers are spun up.
+
+1. If using AWS, open up connections between instances in the same security group (following the slightly-outdated https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/security-group-rules-reference.html#sg-rules-other-instances)
+
+1. [On the webserver] Allow remote connections to RabbitMQ. It is possible to create specific users for the default vhost to limit access, but it is easiest to open up all remote connections to the "guest" user (https://www.rabbitmq.com/access-control.html). This relies on non-RabbitMQ security measures to prevent unwanted connections to the server's port. Create ```/etc/rabbitmq/rabbitmq.conf``` if it does not exits and enter one line:
+
+	```
+	loopback_users = none
+	```
+
+1. [On the webserver] Edit ```/etc/redis/redis.conf``` to allow remote connections from worker machine. Ideally, you can bind to a specific IP by editing the ```bind 127.0.0.1``` line. This seems to work fine on our local servers but did not work well on AWS. The alternative is to completely open up connections by changing the ```bind``` line to ```bind 0.0.0.0``` and edit the following block to say ```protected-mode off```. As with the RabbitMQ settings, this means that Redis will rely on other firewalls/security measures.
+
+
+1. [On the compute server] Change the ```SERVERHOST``` in ```ASKCOS_Website/askcos_site/celery.py``` to the IP of the webserver, so the Celery workers know where to look for the RabbitMQ/Redis servers. If using AWS, this should be the _private_ IP of the webserver instance.
+
+1. [On the compute server] Spin up as many workers as desired using ```spawn_workers.sh``` from inside the ```ASKCOS_Website``` folder. The most computationally intensive task is the TreeBuilder, for which we generally allocate 4-12 processes in each worker pool. Each process requires 3-4 GB of RAM. The other Celery workers (aside from the nearest neighbor context recommender, which should be deprecated) are relatively small in memory footprint.
 
 
 ## How to run individual modules
