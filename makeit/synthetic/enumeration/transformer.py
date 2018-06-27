@@ -154,6 +154,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                 # all products represented as single mol by transforms
                 outcome = outcome[0]
 
+
                 try:
                     outcome.UpdatePropertyCache()
                     Chem.SanitizeMol(outcome)
@@ -162,6 +163,9 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                         MyLogger.print_and_log('Non-sensible molecule constructed by template {}'.format(
                             template['reaction_smarts']), forward_transformer_loc, level=1)
                     continue
+
+                # NOTE: To get the edits (and preserve atom mapping) RDKit must be
+                # build from the fork at github.com/connorcoley/rdkit
                 [a.SetProp(str('molAtomMapNumber'), a.GetProp(str('old_molAtomMapNumber')))
                     for a in outcome.GetAtoms()
                     if str('old_molAtomMapNumber') in a.GetPropsAsDict()]
@@ -176,7 +180,10 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                 outcome = Chem.MolFromSmiles(candidate_smiles)
 
                 # Find what edits were made
-                edits = summarize_reaction_outcome(react_mol, outcome)
+                try:
+                    edits = summarize_reaction_outcome(react_mol, outcome)
+                except KeyError:
+                    edits = []
 
                 # Remove mapping before matching
                 [x.ClearProp(str('molAtomMapNumber')) for x in outcome.GetAtoms()

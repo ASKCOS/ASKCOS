@@ -25,6 +25,8 @@ Please note that this code relies on either (1) additional data files not contai
 	echo 'export PATH=~/miniconda/bin:$PATH' >> ~/.bashrc
 	```
 
+1. [MIGHT BE NECESSARY] Install libxext6, libsm6, and zlib-1.2.9, and add ```$HOME/miniconda/lib/python2.7/site-packages``` to ```PYTHONPATH``` and ```$HOME/miniconda/lib``` to ```LD_LIBRARY_PATH```
+
 1. Prepare system-wide dependencies before setting up python packages
 
 	```
@@ -222,7 +224,7 @@ tasks within the algorithm.
 
 - Forward evaluation: via '--forward_scoring', is used to evaluate the likelihood of success of a reaction. It currently has the following options:
 
-	-'Template_Based': uses the original forward evaluation method enumerating all possible outcomes by applying templates and then predicting the most likely main product [https://pubs.acs.org/doi/abs/10.1021/acscentsci.7b00064]
+	-'Template_Based': uses the original forward evaluation method enumerating all possible outcomes by applying templates and then predicting the most likely main product [https://pubs.acs.org/doi/abs/10.1021/acscentsci.7b00064] (NOTE: the template-based forward predictor requires a custom built version of RDKit from https://github.com/connorcoley/rdkit - we highly recommend using the template-free approach)
 	
     -'Template_Free': uses the higher-performing and faster template-free method based on graph convolutional neural networks [https://arxiv.org/abs/1709.04555]
     
