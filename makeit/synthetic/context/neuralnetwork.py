@@ -130,6 +130,7 @@ class NeuralNetContextRecommender(ContextRecommender):
         Reaction condition recommendations for a rxn (SMILES) from top n NN
         Returns the top n parseable conditions.
         """
+        # print('started neuralnet')
         self.singleSlvt = singleSlvt
         self.with_smiles = with_smiles
         # print('rxn to recommend context for : {}'.format(rxn), contextRecommender_loc)
@@ -144,7 +145,6 @@ class NeuralNetContextRecommender(ContextRecommender):
                     atom in prd_mol.GetAtoms() if atom.HasProp('molAtomMapNumber')]
             rsmi = Chem.MolToSmiles(rct_mol, isomericSmiles=True)
             psmi = Chem.MolToSmiles(prd_mol, isomericSmiles=True)
-
             [pfp, rfp] = fp.create_rxn_Morgan2FP_separately(
                 rsmi, psmi, rxnfpsize=self.fp_size, pfpsize=self.fp_size, useFeatures=False, calculate_rfp=True, useChirality=True)
             pfp = pfp.reshape(1, self.fp_size)
@@ -157,9 +157,7 @@ class NeuralNetContextRecommender(ContextRecommender):
             s2_input = []
             inputs = [pfp, rxnfp, c1_input, r1_input,
                       r2_input, s1_input, s2_input]
-            
             (top_combos,top_combo_scores)=self.predict_top_combos(inputs=inputs)
-
             if return_scores:
                 return (top_combos[:n],top_combo_scores[:n])
             else:
@@ -318,10 +316,10 @@ class NeuralNetContextRecommender(ContextRecommender):
                             if s2_name == '':
                                 slv_name = [s1_name]
                             else: slv_name = [s1_name,s2_name]
-                            if self.with_smiles:
-                                rgt_name = [rgt for rgt in rgt_name if 'Reaxys' not in rgt]
-                                slv_name = [slv for slv in slv_name if 'Reaxys' not in slv]
-                                cat_name = [cat for cat in cat_name if 'Reaxys' not in cat]
+                            # if self.with_smiles:
+                            #     rgt_name = [rgt for rgt in rgt_name if 'Reaxys' not in rgt]
+                            #     slv_name = [slv for slv in slv_name if 'Reaxys' not in slv]
+                            #     cat_name = [cat for cat in cat_name if 'Reaxys' not in cat]
                             ##for testing purpose only, output order as training
                             if return_categories_only:
                                 context_combos.append([c1_cdt,s1_cdt,s2_cdt,r1_cdt,r2_cdt,T_pred[0][0][0]])
@@ -343,6 +341,7 @@ class NeuralNetContextRecommender(ContextRecommender):
         # print(context_combos)
         context_combo_scores = [context_combo_scores[
             context_ranks.index(i+1)] for i in range(num_combos)]
+
         # print context_combo_scores
         return (context_combos, context_combo_scores)
 
@@ -362,11 +361,11 @@ class NeuralNetContextRecommender(ContextRecommender):
 if __name__ == '__main__':
     cont = NeuralNetContextRecommender()
     # cont.load_nn_model(model_path = "/home/hanyug/Make-It/makeit/context_pred/model/c_s_r_fullset/model.json", info_path = "/home/hanyug/Make-It/makeit/context_pred/preprocessed_data/separate/fullset2048/", weights_path="/home/hanyug/Make-It/makeit/context_pred/model/c_s_r_fullset/weights.h5")
-    cont.load_nn_model(model_path=gc.NEURALNET_CONTEXT_REC['model_path'], info_path=gc.NEURALNET_CONTEXT_REC[
-                       'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path'])
-    # cont.load_nn_model(model_path = "/home/hanyug/Make-It/makeit/context_pred/model/c_s_r/model.json", info_path = "/home/hanyug/Make-It/makeit/context_pred/preprocessed_data/separate/10Msubset/", weights_path="/home/hanyug/Make-It/makeit/context_pred/model/c_s_r/weights.h5")
-    # cont.load_nn_model(model_path="/data/www-data/fatmodels/NeuralNet_Cont_Model/backup_models/Version0.0/model.json", info_path=gc.NEURALNET_CONTEXT_REC[
+    # cont.load_nn_model(model_path=gc.NEURALNET_CONTEXT_REC['model_path'], info_path=gc.NEURALNET_CONTEXT_REC[
     #                    'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path'])
+    # cont.load_nn_model(model_path = "/home/hanyug/Make-It/makeit/context_pred/model/c_s_r/model.json", info_path = "/home/hanyug/Make-It/makeit/context_pred/preprocessed_data/separate/10Msubset/", weights_path="/home/hanyug/Make-It/makeit/context_pred/model/c_s_r/weights.h5")
+    cont.load_nn_model(model_path="/data/www-data/fatmodels/NeuralNet_Cont_Model/backup_models/Version0.0/model.json", info_path=gc.NEURALNET_CONTEXT_REC[
+                       'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path'])
 
     # cont.load_nn_model(model_path="/home/hanyug/Make-It/makeit/context_pred/model/michael/model.json", info_path=gc.NEURALNET_CONTEXT_REC[
     #                'info_path'], weights_path="/home/hanyug/Make-It/makeit/context_pred/model/michael/best_weights.h5")
@@ -386,4 +385,4 @@ if __name__ == '__main__':
 #'O=[N+]([O-])c1ccccc1>>O=[N+]([O-])c1ccc(Br)cc1'
 #'Cc1ccccc1>>Cc1ccc(Br)cc1'
 #'Cc1ccccc1>>Cc1cccc(B2OC(C)(C)C(C)(C)O2)c1'
-    print cont.get_n_conditions('CC1(C)OBOC1(C)C.Cc1ccc(Br)cc1>>Cc1cccc(B2OC(C)(C)C(C)(C)O2)c1', 10, with_smiles=False, return_scores=True)
+    print cont.get_n_conditions('CC(O)c1ccccc1>>CC(=O)c1ccccc1', 10, with_smiles=False, return_scores=True)
