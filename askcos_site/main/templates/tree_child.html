@@ -25,6 +25,7 @@
 <div>
 <a targetid="{{ target.id }}" class="treetooltip treetooltip{{ target.id }} treebox rxnbox{{ target.id }}" style="border-color:black">
 {% if target.num_examples %}{{ target.num_examples }} examples{% endif %}
+{% if target.plausibility %}<br>FF score: {{ target.plausibility|floatformat:3 }}{% endif %}
 <div style="width:300px">
     <center>
         <span class="hiderxn" targetid="{{ target.id }}"><span class="pseudolink" style="float:right; font-size:smaller">hide all</span></span><span class="blacklistrxn pseudolink" style="padding-right:5px; float:right; font-size:smaller" smiles="{{ target.smiles }}">blacklist</span></span><br>

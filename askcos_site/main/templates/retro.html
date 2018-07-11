@@ -116,10 +116,12 @@ window.onload = function() {
                 <th>Score</th>
                 <th># Examples</th>
                 {% if form.template_prioritization == 'Relevance' %}<th>Max template relevance</th>{% endif %}
+                {% if form.filter_threshold %}<th>Fast filter score</th>{% endif %}
             </tr>
         </thead>
         <tbody>
         {% for precursor in precursors %}
+
         <tr>
             <td>{{ precursor.rank }}</td>
             <td>
@@ -154,6 +156,7 @@ window.onload = function() {
             <td>{{ precursor.score }}</td>
             <td>{{ precursor.num_examples }}</td>
             {% if form.template_prioritization == 'Relevance' %}<td>{{ precursor.template_score|floatformat:5 }}</td>{% endif %}
+            {% if form.filter_threshold %}<td>{{ precursor.plausibility|floatformat:5 }}</td>{% endif %}
         </tr>
         {% endfor %}
         </tbody>
