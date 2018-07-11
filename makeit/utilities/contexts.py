@@ -20,9 +20,9 @@ def clean_context(context):
     slvs = slvt1.split('.')
     rgts = rgt1.split('.')
     cats = cat1.split('.')
-    rgt_name = [rgt for rgt in rgts if 'Reaxys' not in rgt]
-    slv_name = [slv for slv in slvs if 'Reaxys' not in slv]
-    cat_name = [cat for cat in cats if 'Reaxys' not in cat]
+    rgts = [rgt for rgt in rgts if 'Reaxys' not in rgt]
+    slvs = [slv for slv in slvs if 'Reaxys' not in slv]
+    cats = [cat for cat in cats if 'Reaxys' not in cat]
     slvt1 = '.'.join(slvs)
     rgt1 = '.'.join(rgts)
     cat1 = '.'.join(cats)
