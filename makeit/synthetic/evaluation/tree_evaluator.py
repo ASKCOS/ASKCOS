@@ -1,11 +1,14 @@
 import makeit.global_config as gc
 from multiprocessing import Process, Manager, Queue
-from evaluator import Evaluator
-import Queue as VanillaQueue
+from makeit.synthetic.evaluation.evaluator import Evaluator
+import sys 
+if sys.version_info[0] < 3:
+    import Queue as VanillaQueue
+else:
+    import queue as VanillaQueue
 import time
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.utilities.io import model_loader
-from celery.result import allow_join_result
 from askcos_site.askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
 from askcos_site.askcos_celery.treeevaluator.scoring_coordinator import evaluate
 from makeit.prioritization.contexts.probability import ProbabilityContextPrioritizer
@@ -32,7 +35,6 @@ class TreeEvaluator():
         self.recommender = context_recommender
         self.max_contexts = max_contexts
         self._loaded_context_recommender = False
-
 
         if self.celery:
             def evaluate_reaction(reactant_smiles, target, contexts, worker_no = 0):
@@ -163,7 +165,7 @@ class TreeEvaluator():
                 #print('Quee {} empty for worker {}'.format(j, i))
                         pass
                     except Exception as e:
-                        print e
+                        print(e)
                     self.idle[i] = True
             self.work = work
 
@@ -198,6 +200,10 @@ class TreeEvaluator():
             else:
                 return True, 1.0
         else:
+            if self.celery:
+                from celery.result import allow_join_result
+            else:
+                from makeit.utilities.with_dummy import with_dummy as allow_join_result
             with allow_join_result():
                 target = tree['smiles']
                 reaction = tree['children'][0]
@@ -250,7 +256,7 @@ class TreeEvaluator():
                     reaction['template_score'], top_result['target']['prob'])
 
                 plausible = self.is_plausible(top_result)
-                print reaction_smiles, plausible
+                print(reaction_smiles, plausible)
                 all_children_plausible = True
                 for child in reaction['children']:
                     # TODO: pproperly pass arguments to next evaluate_tree call
@@ -339,7 +345,7 @@ class TreeEvaluator():
     ###############################################################
 
 if __name__ == '__main__':
-    # from synthetic.context.nearestneighbor import NNContextRecommender
+  
     MyLogger.initialize_logFile()
 
     ev = TreeEvaluator(context_recommender=gc.neural_network, celery=False)
@@ -347,6 +353,6 @@ if __name__ == '__main__':
         {'is_chemical': True, 'smiles': 'CN1C2CCC1CC(O)C2', 'ppg': 1.0, 'id': 3, 'children': []}, {'is_chemical': True, 'smiles': 'O=C(O)C(CO)c1ccccc1', 'ppg': 1.0, 'id': 4, 'children': []}], 'id': 2, 'necessary_reagent': u''}]}]
     tree = trees[0]
     res = ev.evaluate_tree(tree, gc.neural_network, gc.probability,
-                           gc.templatebased, gc.product, is_target=True, reset=True, nproc=16)
-    #res = ev.evaluate_trees(trees, gc.probability, gc.templatebased, gc.product, nproc = 8, parallel=True, nproc_t=3)
-    print res
+                           gc.templatefree, gc.product, is_target=True, reset=True, nproc=2)
+    print(res)
+

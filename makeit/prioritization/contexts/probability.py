@@ -2,7 +2,7 @@ from makeit.prioritization.prioritizer import Prioritizer
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import numpy as np
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 probability_context_prioritizer_loc = 'probability_context_prioritizer'
 
 

@@ -12,7 +12,7 @@ max_nb = 10
 def onek_encoding_unk(x, allowable_set):
     if x not in allowable_set:
         x = allowable_set[-1]
-    return map(lambda s: x == s, allowable_set)
+    return list(map(lambda s: x == s, allowable_set))
 
 def atom_features(atom):
     return np.array(onek_encoding_unk(atom.GetSymbol(), elem_list) 
@@ -39,7 +39,7 @@ def search(buf, cur_bonds, core_bonds, free_vals, depth):
         free_vals[y] += t
         cur_bonds.pop()
     else:
-        for k in xrange(4):
+        for k in range(4):
             if k > free_vals[x] or k > free_vals[y]:
                 break
             cur_bonds.append((x,y,k))
@@ -64,7 +64,7 @@ def packnb(arr_list):
 def floodfill(cur_id, cur_label, comp, core_bonds):
     comp[cur_id] = cur_label
     x,y = core_bonds[cur_id]
-    for i in xrange(len(core_bonds)):
+    for i in range(len(core_bonds)):
         if comp[i] >= 0: continue
         u,v = core_bonds[i]
         if x == u or x == v or y == u or y == v:
@@ -135,7 +135,7 @@ def smiles2graph(rsmiles, psmiles, core_bonds, cutoff=500, idxfunc=lambda x:x.Ge
             gbonds[(x,y)] = rbonds[(x,y)]
 
     #Take the max just in case
-    for i in xrange(n_atoms):
+    for i in range(n_atoms):
         if pfree_vals[i] > free_vals[i]:
             free_vals[i] = pfree_vals[i]
 
@@ -148,15 +148,15 @@ def smiles2graph(rsmiles, psmiles, core_bonds, cutoff=500, idxfunc=lambda x:x.Ge
     #Get connected components in core bonds
     comp = [-1] * len(core_bonds)
     tot = 0
-    for i in xrange(len(core_bonds)):
+    for i in range(len(core_bonds)):
         if comp[i] == -1:
             floodfill(i, tot, comp, core_bonds)
             tot += 1
     
     core_configs = []
-    for cur_id in xrange(tot):
+    for cur_id in range(tot):
         cand_bonds = []
-        for i in xrange(len(core_bonds)):
+        for i in range(len(core_bonds)):
             x,y = core_bonds[i]
             if comp[i] == cur_id: t = -1
             elif (x,y) not in rbonds: t = 0
@@ -279,15 +279,15 @@ def smiles2graph_test(rsmiles, core_bonds, idxfunc=lambda x:x.GetIntProp('molAto
     #Get connected components in core bonds
     comp = [-1] * len(core_bonds)
     tot = 0
-    for i in xrange(len(core_bonds)):
+    for i in range(len(core_bonds)):
         if comp[i] == -1:
             floodfill(i, tot, comp, core_bonds)
             tot += 1
     
     core_configs = []
-    for cur_id in xrange(tot):
+    for cur_id in range(tot):
         cand_bonds = []
-        for i in xrange(len(core_bonds)):
+        for i in range(len(core_bonds)):
             x,y = core_bonds[i]
             if comp[i] == cur_id: t = -1
             elif (x,y) not in rbonds: t = 0
@@ -353,9 +353,9 @@ def smiles2graph_test(rsmiles, core_bonds, idxfunc=lambda x:x.GetIntProp('molAto
 
 if __name__ == "__main__":
     a,b,c,d,e,f = smiles2graph("[OH:1][CH3:2]", "[O:1]=[CH2:2]", [(0,1)])[0]
-    print a
-    print b
-    print c
-    print d
-    print e
-    print f
+    print(a)
+    print(b)
+    print(c)
+    print(d)
+    print(e)
+    print(f)

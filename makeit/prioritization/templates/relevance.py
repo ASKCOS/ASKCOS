@@ -3,13 +3,13 @@ from makeit.prioritization.prioritizer import Prioritizer
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import numpy as np
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 import math
 import sys
 import random
 import time
 import os
-import cPickle as pickle
+import makeit.utilities.io.pickle as pickle
 import tensorflow as tf 
 import math
 
@@ -21,7 +21,7 @@ def linearND(input_, output_size, scope, reuse=False, init_bias=0.0):
     stddev = min(1.0 / math.sqrt(shape[-1]), 0.1)
     with tf.variable_scope(scope, reuse=reuse):
         W = tf.get_variable("Matrix", [shape[-1], output_size], tf.float32, tf.random_normal_initializer(stddev=stddev))
-    X_shape = tf.gather(tf.shape(input_), range(ndim-1))
+    X_shape = tf.gather(tf.shape(input_), list(range(ndim-1)))
     target_shape = tf.concat([X_shape, [output_size]], 0)
     exp_input = tf.reshape(input_, [-1, shape[-1]])
     if init_bias is None:
@@ -56,16 +56,17 @@ class RelevanceTemplatePrioritizer(Prioritizer):
                 self.session = tf.Session(config=config)
                 self.input_mol = tf.placeholder(tf.float32, [self.batch_size, self.FP_len])
                 self.mol_hiddens = tf.nn.relu(linearND(self.input_mol, hidden_size, scope="encoder0", reuse=None))
-                for d in xrange(1, depth):
+                for d in range(1, depth):
                     self.mol_hiddens = tf.nn.relu(linearND(self.mol_hiddens, hidden_size, scope="encoder%i"%d, reuse=None))
 
                 self.score = linearND(self.mol_hiddens, output_size, scope="output", reuse=None)
                 _, self.topk = tf.nn.top_k(self.score, k=self.NK)
 
                 tf.global_variables_initializer().run(session=self.session)
+                from functools import reduce
                 size_func = lambda v: reduce(lambda x, y: x*y, v.get_shape().as_list())
                 n = sum(size_func(v) for v in tf.trainable_variables())
-                print "Model size: %dK" % (n/1000,)
+                print("Model size: %dK" % (n/1000,))
 
                 self.coord = tf.train.Coordinator()
                 with open(gc.Relevance_Prioritization['trained_model_path_{}'.format(self.retro)], 'rb') as fid:
@@ -181,11 +182,11 @@ if __name__ == '__main__':
         lst = model.get_topk_from_smi(smi)
         print('{} -> {}'.format(smi, lst))
 
-    model2 = RelevanceTemplatePrioritizer(use_tf=True)
-    model2.load_model()
-    for smi in smis:
-        lst = model2.get_topk_from_smi(smi)
-        print('{} -> {}'.format(smi, lst))
+    # model2 = RelevanceTemplatePrioritizer(use_tf=True)
+    # model2.load_model()
+    # for smi in smis:
+    #     lst = model2.get_topk_from_smi(smi)
+    #     print('{} -> {}'.format(smi, lst))
         
-    import time
-    time.sleep(10)
+    # import time
+    # time.sleep(10)

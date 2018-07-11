@@ -13,7 +13,7 @@ def setup_parser():
     max_branching = 20
     max_trees = 5000
     context_recommender = gc.neural_network
-    forward_scoring_method = gc.templatefree
+    forward_scoring_method = gc.fastfilter
     tree_scoring_method = gc.forwardonly
     context_prioritization = gc.probability
     template_prioritization = gc.relevance
@@ -21,7 +21,7 @@ def setup_parser():
     retro_mincount = 25
     retro_mincount_chiral = 10
     synth_mincount = 25
-    rank_threshold = 5
+    rank_threshold = 10
     p_threshold = 0.01
     max_expansions = 8
     max_contexts = 10
@@ -35,8 +35,8 @@ def setup_parser():
     celery = False
     template_count = 1000
     parallel_tree = False
-    apply_fast_filter = False
-    filter_threshold = 0.8
+    apply_fast_filter = True 
+    filter_threshold = 0.75
 
     # Set all arguments
     parser.add_argument('--TARGET', type=str,

@@ -1,4 +1,8 @@
-import urllib2
+import sys 
+if sys.version_info[0] < 3:
+    from urllib2 import urlopen 
+else:
+    from urllib.request import urlopen
 import rdkit.Chem as Chem
 name_parser_loc = 'name_parser'
 
@@ -12,7 +16,7 @@ def name_to_molecule(name):
     except:
         pass
 
-    smiles = urllib2.urlopen(
+    smiles = urlopen(
         'https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(name)).read()
     mol = Chem.MolFromSmiles(smiles)
     if not mol:

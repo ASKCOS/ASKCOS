@@ -1,5 +1,5 @@
 from makeit.prioritization.prioritizer import Prioritizer
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 popularity_template_prioritizer_loc = 'popularity_template_prioritizer'
 
 

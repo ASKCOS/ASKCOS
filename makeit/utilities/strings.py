@@ -29,4 +29,3 @@ def string_or_range_to_float(text):
         else:
             print(e)
     return None
-

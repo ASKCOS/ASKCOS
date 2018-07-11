@@ -5,7 +5,7 @@ import rdkit.Chem.EState as EState
 import rdkit.Chem.rdPartialCharges as rdPartialCharges
 import rdkit.Chem.rdChemReactions as rdRxns
 from makeit.utilities.atoms import atom_dftb
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 import rdkit.Chem as Chem 
 descriptors_loc = 'descriptors'
 
@@ -15,7 +15,7 @@ def oneHotVector(val, lst):
 	'''Converts a value to a one-hot vector based on options in lst'''
 	if val not in lst:
 		val = lst[-1]
-	return map(lambda x: x == val, lst)
+	return list(map(lambda x: x == val, lst))
 
 def rxn_level_descriptors(rxn):
 	'''

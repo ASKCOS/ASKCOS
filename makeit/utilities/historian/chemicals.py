@@ -5,8 +5,8 @@ lg.setLevel(4)
 import rdkit.Chem as Chem
 from collections import defaultdict
 from tqdm import tqdm
-from makeit.utilities.io.logging import MyLogger
-import cPickle as pickle
+from makeit.utilities.io.logger import MyLogger
+import makeit.utilities.io.pickle as pickle
 from pymongo import MongoClient
 from multiprocessing import Manager
 import time
@@ -65,7 +65,7 @@ class ChemHistorian:
             file_path += '_compressed'
 
         with open(file_path, 'wb') as file:
-            pickle.dump(dict(self.occurrences), file, gc.protocol)
+            pickle.dump(dict(self.occurrences), file)
         MyLogger.print_and_log(
                 "Saved to {}".format(file_path), historian_loc, level=1)
 
@@ -73,6 +73,8 @@ class ChemHistorian:
         '''
         Load the data for the pricer from a locally stored file instead of from the online database.
         '''
+
+        MyLogger.print_and_log('Loading chemhistorian from file...', historian_loc)
 
         if not refs:
             file_path += '_no_refs'
@@ -96,7 +98,7 @@ class ChemHistorian:
         docs = []
         failed_docs = []
         ctr = 0
-        for (i, (smi, info)) in tqdm(enumerate(self.occurrences.iteritems())):
+        for (i, (smi, info)) in tqdm(enumerate(self.occurrences.items())):
             doc = tup_to_dict(info, refs=True)
             doc['smiles'] = smi 
             docs.append(doc)
@@ -209,7 +211,7 @@ class ChemHistorian:
 
         try:
             if self._compressed:
-                info = self.occurrences[int(hashlib.md5(smiles).hexdigest(), 16)]
+                info = self.occurrences[int(hashlib.md5(smiles.encode('utf-8')).hexdigest(), 16)]
             else:
                 info = self.occurrences[smiles]
         except KeyError:
@@ -221,7 +223,7 @@ class ChemHistorian:
         '''Convert keys to hashed values to save space'''
         new_occurrences = {}
         for k in self.occurrences.keys():
-            k_compressed = int(hashlib.md5(k).hexdigest(), 16)
+            k_compressed = int(hashlib.md5(k.encode('utf-8')).hexdigest(), 16)
             new_occurrences[k_compressed] = self.occurrences[k]
         del self.occurrences
         self.occurrences = new_occurrences
@@ -229,8 +231,6 @@ class ChemHistorian:
 
 
 if __name__ == '__main__':
-    import time
-    time.sleep(1)
 
     # Load and dump chemhistorian
     chemhistorian = ChemHistorian()

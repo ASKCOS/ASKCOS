@@ -1,7 +1,7 @@
 import os
 import makeit.global_config as gc
 from pymongo import MongoClient
-from logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.utilities.buyable.pricer import Pricer
 from makeit.synthetic.context.nearestneighbor import NNContextRecommender
 from makeit.synthetic.context.neuralnetwork import NeuralNetContextRecommender
@@ -14,49 +14,13 @@ import sys
 model_loader_loc = 'model_loader'
 
 
-def load_all(retro_mincount=25, retro_mincount_chiral=10):
-    MyLogger.print_and_log('Loading models...', model_loader_loc)
-    databases = load_Databases()
-    pricer = load_Pricer(databases['Chemical_Database'], databases[
-                         'Buyable_Database'])
-
-    prioritizer = None
-    retroTransformer = None
-    synthTransfomrer = None
-    scorer = None
-    contextRecommender = None
-
-    if(gc.retro_enumeration == gc.template):
-        retroTransformer = load_Retro_Transformer(
-            databases['Retro_Database'], prioritizer,  mincount=retro_mincount)
-    else:
-        MyLogger.print_and_log(
-            'Invalid retro enumeration method specified. Exiting...', model_loader_loc, level=3)
-
-    models = {
-        'retro_transformer': retroTransformer,
-        'pricer': pricer,
-    }
-
-    MyLogger.print_and_log('All models loaded.', model_loader_loc)
-
-    return models
-
-
-def load_Retro_Transformer(RETRO_DB=None, mincount=25, mincount_chiral=10, chiral=False):
+def load_Retro_Transformer(mincount=25, mincount_chiral=10, chiral=True):
     '''    
     Load the model and databases required for the retro transformer. Returns the retro transformer, ready to run.
     '''
     MyLogger.print_and_log(
         'Loading retro synthetic template database...', model_loader_loc)
-    if not RETRO_DB:
-        databases = load_Databases()
-        if chiral:
-            RETRO_DB = databases['Retro_Database_Chiral']
-        else:
-            RETRO_DB = databases['Retro_Database']
-    retroTransformer = RetroTransformer(
-        TEMPLATE_DB=RETRO_DB, mincount=mincount, mincount_chiral=mincount_chiral)
+    retroTransformer = RetroTransformer(mincount=mincount, mincount_chiral=mincount_chiral)
     retroTransformer.load(chiral=chiral)
     MyLogger.print_and_log(
         'Retro synthetic transformer loaded.', model_loader_loc)
@@ -117,14 +81,14 @@ def load_Pricer(chemical_database, buyable_database):
     return pricerModel
 
 
-def load_Forward_Transformer(SYNTH_DB, mincount=100, worker_no = 0):
+def load_Forward_Transformer(mincount=100, worker_no = 0):
     '''
     Load the forward prediction neural network
     '''
     if worker_no==0:
         MyLogger.print_and_log('Loading forward prediction model...', model_loader_loc)
         
-    transformer = ForwardTransformer(TEMPLATE_DB=SYNTH_DB, mincount=mincount)
+    transformer = ForwardTransformer(mincount=mincount)
     transformer.load(worker_no = worker_no)
     if worker_no==0:
         MyLogger.print_and_log('Forward transformer loaded.', model_loader_loc)
@@ -141,13 +105,11 @@ def load_templatebased(mincount=25, celery=False, worker_no = 0):
     transformer = None
     databases = load_Databases(worker_no = worker_no)
     if not celery:
-        transformer = load_Forward_Transformer(
-            databases['Synth_Database'], mincount=mincount, worker_no = worker_no)
+        transformer = load_Forward_Transformer(mincount=mincount, worker_no = worker_no)
 
     scorer = TemplateNeuralNetScorer(
         forward_transformer=transformer, celery=celery)
-    scorer.load(databases['Solvent_Database'],
-                gc.PREDICTOR['trained_model_path'], worker_no = worker_no)
+    scorer.load(gc.PREDICTOR['trained_model_path'], worker_no = worker_no)
     return scorer
 
 

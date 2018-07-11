@@ -6,7 +6,7 @@ def gated_convnet(graph_inputs, batch_size=64, hidden_size=300, depth=3, res_blo
     input_atom, input_bond, atom_graph, bond_graph, num_nbs, node_mask = graph_inputs
     layers = [input_atom]
     atom_features = input_atom
-    for i in xrange(depth):
+    for i in range(depth):
         fatom_nei = tf.gather_nd(atom_features, atom_graph)
         fbond_nei = tf.gather_nd(input_bond, bond_graph)
         f_nei = tf.concat([fatom_nei, fbond_nei], 3)
@@ -34,7 +34,7 @@ def rcnn_wl_last(graph_inputs, batch_size, hidden_size, depth, training=True):
     mask_nei = tf.reshape(tf.sequence_mask(tf.reshape(num_nbs, [-1]), max_nb, dtype=tf.float32), [batch_size,-1,max_nb,1])
     fbond_nei = tf.gather_nd(input_bond, bond_graph)
 
-    for i in xrange(depth):
+    for i in range(depth):
         with tf.variable_scope("WL", reuse=(i>0)) as scope:
             fatom_nei = tf.gather_nd(atom_features, atom_graph)
             l_nei = tf.concat(3, [fatom_nei, fbond_nei])
@@ -60,7 +60,7 @@ def rcnn_wl_last(graph_inputs, batch_size, hidden_size, depth, training=True):
     input_atom, input_bond, atom_graph, bond_graph, num_nbs, node_mask = graph_inputs
     atom_features = tf.nn.relu(linearND(input_atom, hidden_size, "atom_embedding", init_bias=None))
     layers = []
-    for i in xrange(depth):
+    for i in range(depth):
         with tf.variable_scope("WL", reuse=(i>0)) as scope:
             fatom_nei = tf.gather_nd(atom_features, atom_graph)
             fbond_nei = tf.gather_nd(input_bond, bond_graph)

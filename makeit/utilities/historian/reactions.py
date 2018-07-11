@@ -5,8 +5,8 @@ lg.setLevel(4)
 import rdkit.Chem as Chem
 from collections import defaultdict
 from tqdm import tqdm
-from makeit.utilities.io.logging import MyLogger
-import cPickle as pickle
+from makeit.utilities.io.logger import MyLogger
+import makeit.utilities.io.pickle as pickle
 from pymongo import MongoClient
 from multiprocessing import Manager
 import os
@@ -53,8 +53,8 @@ class ReactionHistorian:
             return
 
         with open(file_path, 'wb') as file:
-            pickle.dump(dict(self.occurrences), file, gc.protocol)
-            pickle.dump(dict(self.occurrences_flat), file, gc.protocol)
+            pickle.dump(dict(self.occurrences), file)
+            pickle.dump(dict(self.occurrences_flat), file)
 
         MyLogger.print_and_log(
                 "Saved to {}".format(file_path), historian_loc, level=1)

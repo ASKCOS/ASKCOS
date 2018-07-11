@@ -6,9 +6,12 @@ from pymongo import MongoClient
 import numpy as np
 import os
 import sys
-from celery.result import allow_join_result
 from multiprocessing import Queue, Process, Manager
-import Queue as VanillaQueue
+import sys 
+if sys.version_info[0] < 3:
+    import Queue as VanillaQueue
+else:
+    import queue as VanillaQueue
 from makeit.interfaces.scorer import Scorer
 from makeit.synthetic.enumeration.transformer import ForwardTransformer
 from makeit.synthetic.enumeration.results import ForwardResult, ForwardProduct
@@ -17,7 +20,8 @@ import makeit.utilities.contexts as context_cleaner
 from makeit.utilities.outcomes import summarize_reaction_outcome
 from makeit.utilities.descriptors import edits_to_vectors, edits_to_tensor, edit_vector_lengths
 from makeit.utilities.parsing import parse_list_to_smiles
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
+import makeit.utilities.io.pickle as pickle
 from makeit.utilities.reactants import clean_reactant_mapping
 from askcos_site.askcos_celery.treeevaluator.forward_trans_worker import get_outcomes, template_count
 from operator import itemgetter
@@ -149,7 +153,7 @@ class TemplateNeuralNetScorer(Scorer):
                 self.running = False
         self.stop_expansion = stop_expansion
         
-    def load(self, SOLVENT_DB, folder="", worker_no = 0):
+    def load(self, folder="", worker_no = 0):
         '''Load a neural network scoring model'''
         if worker_no==0:
             MyLogger.print_and_log('Starting to load scorer...', template_nn_scorer_loc)
@@ -184,18 +188,35 @@ class TemplateNeuralNetScorer(Scorer):
         self.model.load_weights(WEIGHTS_FPATH, by_name=True)
 
         # Now load solvent information
+        # Try to load from file first
+        from makeit.utilities.io.files import get_abraham_solvents_path
+        file_path = get_abraham_solvents_path()
+        if os.path.isfile(file_path):
+            with open(file_path, 'rb') as fid:
+                self.solvent_name_to_smiles = pickle.load(fid)
+                self.solvent_smiles_to_params = pickle.load(fid)
+        else:
+            db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
+                            'id'], connect=gc.MONGO['connect'])
+            db = db_client[gc.SOLVENTS['database']]
+            SOLVENT_DB = db[gc.SOLVENTS['collection']]
+            for doc in SOLVENT_DB.find():
+                try:
+                    if doc['_id'] == u'default':
+                        self.solvent_name_to_smiles['default'] = doc['_id']
+                    else:
+                        self.solvent_name_to_smiles[doc['name']] = doc['_id']
 
-        for doc in SOLVENT_DB.find():
-            try:
-                if doc['_id'] == u'default':
-                    self.solvent_name_to_smiles['default'] = doc['_id']
-                else:
-                    self.solvent_name_to_smiles[doc['name']] = doc['_id']
+                    self.solvent_smiles_to_params[doc['_id']] = doc
 
-                self.solvent_smiles_to_params[doc['_id']] = doc
-            except KeyError:
-                MyLogger.print_and_log('Solvent doc {} missing a name'.format(
-                    doc), template_nn_scorer_loc, level=1)
+                except KeyError:
+                    MyLogger.print_and_log('Solvent doc {} missing a name'.format(
+                        doc), template_nn_scorer_loc, level=1)
+
+            with open(file_path, 'wb') as fid:
+                pickle.dump(self.solvent_name_to_smiles, fid)
+                pickle.dump(self.solvent_smiles_to_params, fid)
+
         if worker_no == 0:
             MyLogger.print_and_log('Scorer has been loaded.', template_nn_scorer_loc)
 
@@ -234,7 +255,7 @@ class TemplateNeuralNetScorer(Scorer):
                 #print('Queue {} empty for worker {}'.format(j, i))
                 pass
             except Exception as e:
-                print e
+                print(e)
             # Wait briefly to allow the results_queue to properly update
             time.sleep(0.5)
             self.idle[i] = True
@@ -275,6 +296,10 @@ class TemplateNeuralNetScorer(Scorer):
         clean_reactant_mapping(mol)
 
         reactants_smiles = Chem.MolToSmiles(mol)
+        if self.celery:
+            from celery.result import allow_join_result
+        else:
+            from makeit.utilities.with_dummy import with_dummy as allow_join_result
         with allow_join_result():
             self.template_prioritization = kwargs.pop('template_prioritization', gc.popularity)
             self.prepare()
@@ -372,7 +397,7 @@ class TemplateNeuralNetScorer(Scorer):
                 is_ready = [i for (i, res) in enumerate(
                     self.pending_results) if res.ready()]
             except Exception as e:
-                print e
+                print(e)
                 pass
 
         for product in stiched_result.products:
@@ -390,10 +415,7 @@ def softmax(x):
 if __name__ == '__main__':
     MyLogger.initialize_logFile()
     celery = False
-    db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
-                            'id'], connect=gc.MONGO['connect'])
-    db = db_client[gc.SOLVENTS['database']]
-    SOLVENT_DB = db[gc.SOLVENTS['collection']]
+    
     if not celery:
         forw_trans = ForwardTransformer(mincount=25, celery=False)
         forw_trans.load()
@@ -401,9 +423,9 @@ if __name__ == '__main__':
     else:
         scorer = TemplateNeuralNetScorer(celery=celery)
 
-    scorer.load(SOLVENT_DB, gc.PREDICTOR['trained_model_path'])
+    scorer.load(gc.PREDICTOR['trained_model_path'])
     res = scorer.evaluate('CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1', [
                           [80.0, u'', u'', u'', -1, 50.0]], batch_size=100, nproc=8)
     for re in res[0]:
-        print re['outcome'].smiles + " {}".format(re['prob'])
-    print 'done'
+        print(re['outcome'].smiles + " {}".format(re['prob']))
+    print('done')

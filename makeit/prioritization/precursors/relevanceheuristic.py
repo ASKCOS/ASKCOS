@@ -3,7 +3,7 @@ import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import numpy as np
 from makeit.utilities.buyable.pricer import Pricer
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 heuristic_precursor_prioritizer_loc = 'relevanceheuristic_precursor_prioritizer'
 
 
@@ -45,5 +45,5 @@ class RelevanceHeuristicPrecursorPrioritizer(Prioritizer):
 
     def load_model(self):
         self.pricer = Pricer()
-        self.pricer.load_from_file()
+        self.pricer.load()
         self._loaded = True

@@ -5,9 +5,9 @@ import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 import numpy as np
 import os
-import cPickle as pickle
+import makeit.utilities.io.pickle as pickle
 from functools import partial  # used for passing args to multiprocessing
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.synthetic.enumeration.results import ForwardResult, ForwardProduct
 from pymongo import MongoClient
 from makeit.interfaces.template_transformer import TemplateTransformer
@@ -27,20 +27,18 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
     one-step retrosyntheses for a given molecule.
     '''
 
-    def __init__(self, mincount=0, TEMPLATE_DB=None, loc=False, done=None, celery=False):
+    def __init__(self, mincount=gc.SYNTH_TRANSFORMS['mincount'], celery=False):
         '''
         Initialize a transformer.
         TEMPLATE_DB: indicate the database you want to use (def. none)
         loc: indicate that local file data should be read instead of online data (def. false)
         '''
 
-        self.done = done
         self.mincount = mincount
         self.templates = []
         self.id_to_index = {}
         self.celery = celery
         self.template_prioritizers = {}
-        self.TEMPLATE_DB = TEMPLATE_DB
 
         super(ForwardTransformer, self).__init__()
 
@@ -100,7 +98,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
 
         return (smiles, result)
 
-    def load(self, chiral=False, lowe=False, refs=False, efgs=False, rxn_ex=False, worker_no=0, rxns = True):
+    def load(self, chiral=False, refs=False, efgs=False, rxn_ex=False, worker_no=0, rxns = True):
         '''
         Loads and parses the template database to a useable one
         Chrial and rxn_ex are not used, but for compatibility with retro_transformer
@@ -109,7 +107,19 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
             MyLogger.print_and_log('Loading synthetic transformer, including all templates with more than {} hits'.format(
                 self.mincount), forward_transformer_loc)
 
-        self.load_templates(False, lowe=lowe, refs=refs, efgs=efgs, rxns = rxns)
+        from makeit.utilities.io.files import get_synthtransformer_path
+        file_path = get_synthtransformer_path(
+            gc.SYNTH_TRANSFORMS['database'],
+            gc.SYNTH_TRANSFORMS['collection'],
+            gc.SYNTH_TRANSFORMS['mincount'],
+        )
+
+        try:
+            self.load_from_file(False, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+        except IOError:
+            self.load_from_database(False, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+        finally:
+            self.reorder()
 
         if worker_no == 0:
             MyLogger.print_and_log('Synthetic transformer has been loaded - using {} templates'.format(
@@ -144,6 +154,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                 # all products represented as single mol by transforms
                 outcome = outcome[0]
 
+
                 try:
                     outcome.UpdatePropertyCache()
                     Chem.SanitizeMol(outcome)
@@ -152,6 +163,9 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                         MyLogger.print_and_log('Non-sensible molecule constructed by template {}'.format(
                             template['reaction_smarts']), forward_transformer_loc, level=1)
                     continue
+
+                # NOTE: To get the edits (and preserve atom mapping) RDKit must be
+                # build from the fork at github.com/connorcoley/rdkit
                 [a.SetProp(str('molAtomMapNumber'), a.GetProp(str('old_molAtomMapNumber')))
                     for a in outcome.GetAtoms()
                     if str('old_molAtomMapNumber') in a.GetPropsAsDict()]
@@ -166,7 +180,10 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                 outcome = Chem.MolFromSmiles(candidate_smiles)
 
                 # Find what edits were made
-                edits = summarize_reaction_outcome(react_mol, outcome)
+                try:
+                    edits = summarize_reaction_outcome(react_mol, outcome)
+                except KeyError:
+                    edits = []
 
                 # Remove mapping before matching
                 [x.ClearProp(str('molAtomMapNumber')) for x in outcome.GetAtoms()

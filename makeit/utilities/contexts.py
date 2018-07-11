@@ -3,7 +3,7 @@ from rdkit.Chem import AllChem
 import numpy as np
 import makeit.global_config as gc
 from pymongo import MongoClient
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 
 contexts_loc = 'contexts'
 

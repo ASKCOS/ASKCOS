@@ -1,17 +1,20 @@
 
 import makeit.global_config as gc
 from multiprocessing import Process, Manager, Queue
-import Queue as VanillaQueue
+import sys 
+if sys.version_info[0] < 3:
+    import Queue as VanillaQueue
+else:
+    import queue as VanillaQueue
 import time
 import sys
 from collections import defaultdict
 import rdkit.Chem as Chem
 from makeit.retrosynthetic.transformer import RetroTransformer
 from makeit.utilities.buyable.pricer import Pricer
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.utilities.io import model_loader
 from makeit.utilities.formats import chem_dict, rxn_dict
-from celery.result import allow_join_result
 import askcos_site.askcos_celery.treebuilder.tb_worker as tb_worker
 import askcos_site.askcos_celery.treebuilder.tb_c_worker as tb_c_worker
 treebuilder_loc = 'tree_builder'
@@ -21,7 +24,7 @@ class TreeBuilder:
 
     def __init__(self, retroTransformer=None, pricer=None, max_branching=20, max_depth=3, expansion_time=240,
                  celery=False, nproc=1, mincount=25, chiral=True, mincount_chiral=10,
-                 template_prioritization=gc.popularity, precursor_prioritization=gc.heuristic,
+                 template_prioritization=gc.relevance, precursor_prioritization=gc.relevanceheuristic,
                  chemhistorian=None):
         """Class for retrosynthetic tree expansion using a depth-first search
 
@@ -76,11 +79,7 @@ class TreeBuilder:
         self.max_depth = max_depth
         self.expansion_time = expansion_time
         self.template_prioritization = template_prioritization
-        MyLogger.print_and_log('Using {} method for template prioritization.'.format(
-            self.template_prioritization), treebuilder_loc)
         self.precursor_prioritization = precursor_prioritization
-        MyLogger.print_and_log('Using {} method for precursor prioritization.'.format(
-            self.precursor_prioritization), treebuilder_loc)
         self.nproc = nproc
         self.chiral = chiral
         self.max_cum_template_prob = 1
@@ -89,7 +88,7 @@ class TreeBuilder:
             self.pricer = pricer
         else:
             self.pricer = Pricer()
-            self.pricer.load(max_ppg=1e10)
+            self.pricer.load()
 
         self.chemhistorian = chemhistorian
         if chemhistorian is None:
@@ -255,8 +254,11 @@ class TreeBuilder:
         else:
             def set_initial_target(smiles):
                 self.expansion_queues[-1].put((1, smiles))
+                print(self.expansion_queues)
+                print('Put something on expansion queue')
                 while self.results_queue.empty():
                     time.sleep(0.25)
+                    #print('Waiting for first result in treebuilder...')
         self.set_initial_target = set_initial_target
 
     def reset(self):
@@ -322,6 +324,7 @@ class TreeBuilder:
                     'necessary_reagent': precursor['necessary_reagent'],
                     'num_examples': precursor['num_examples'],
                     'score': precursor['score'],
+                    'plausibility': precursor['plausibility']
                 },
                 precursor['smiles_split']
             ))
@@ -469,8 +472,7 @@ class TreeBuilder:
             # Grab something off the queue
             for j in range(len(self.expansion_queues))[::-1]:
                 try:
-                    (_id, smiles) = self.expansion_queues[
-                        j].get(timeout=0.5)  # short timeout
+                    (_id, smiles) = self.expansion_queues[j].get(timeout=0.1)  # short timeout
                     self.idle[i] = False
                     # print('Worker {} grabbed {} (ID {}) to expand from queue {}'.format(i, smiles, _id, j))
                     result = self.retroTransformer.get_outcomes(smiles, self.mincount, (self.precursor_prioritization,
@@ -481,15 +483,18 @@ class TreeBuilder:
                                                                 apply_fast_filter=self.apply_fast_filter,
                                                                 filter_threshold=self.filter_threshold
                                                                 )
+
                     precursors = result.return_top(n=self.max_branching)
+
                     self.results_queue.put((_id, smiles, precursors))
-                    # print('Worker {} added children of {} (ID {}) to results queue'.format(i, smiles, _id))
+                    
 
                 except VanillaQueue.Empty:
-                    # print('Queue {} empty for worker {}'.format(j, i))
+                    #print('Queue {} empty for worker {}'.format(j, i))
                     pass
                 except Exception as e:
-                    print e
+                    sys.stdout.write(e)
+                    sys.stdout.flush()
             time.sleep(0.01)
             self.idle[i] = True
 
@@ -520,6 +525,10 @@ class TreeBuilder:
             target {string} -- SMILES of target molecule
         """
         self.running = True
+        if self.celery:
+            from celery.result import allow_join_result
+        else:
+            from makeit.utilities.with_dummy import with_dummy as allow_join_result
         with allow_join_result():
             try:
                 hist = self.chemhistorian.lookup_smiles(target)
@@ -798,16 +807,6 @@ class TreeBuilder:
                 list -- paths connecting to buyable molecules that are children
                     of the current reaction
             """
-            
-
-            # # Define generators for each reactant node - decrement the depth!
-            # generators = [DLS_chem(chem_id, depth - 1)
-            #               for chem_id in self.tree_dict[rxn_id]['rcts']]
-
-            # # Actually - need to change generators to have the actual lists
-            # # otherwise the nested for loops don't work!
-            # for i in range(len(generators)):
-            #     generators[i] = [x for x in generators[i]]
 
             # Only one reactant? easy!
             if len(self.tree_dict[rxn_id]['rcts']) == 1:
@@ -873,7 +872,7 @@ class TreeBuilder:
         counter = 0
         for tree in IDDFS():
             hashkey = hashlib.sha1(json.dumps(
-                tree, sort_keys=True)).hexdigest()
+                tree, sort_keys=True).encode('utf-8')).hexdigest()
 
             if hashkey in done_trees:
                 #print('Found duplicate tree...')
@@ -894,28 +893,14 @@ class TreeBuilder:
         return (tree_status, trees)
 
 if __name__ == '__main__':
-
     MyLogger.initialize_logFile()
-    from pymongo import MongoClient
-    db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
-                            'id'], connect=gc.MONGO['connect'])
-    TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL['database']][
-        gc.RETRO_TRANSFORMS_CHIRAL['collection']]
     celery = False
-    treedict = []
-
-    treeBuilder = TreeBuilder(celery=celery, mincount=250, mincount_chiral=100)
-    # treeBuilder.build_tree('c1ccccc1C(=O)OCCN')
-    # print treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.popularity,
-    #                                     precursor_prioritization=gc.scscore, nproc=3, expansion_time=60, max_trees=500, max_ppg=10,
-    #                                     max_branching = 25,precursor_score_mode =gc.mean, apply_fast_filter= True, filter_threshold=0.95)[0]
-    # print 'done'
-
-    status, paths = treeBuilder.get_buyable_paths('OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', max_depth=4, template_prioritization=gc.popularity,
-                                        precursor_prioritization=gc.scscore, nproc=16, expansion_time=60, max_trees=500, max_ppg=10,
-                                        max_branching=25, precursor_score_mode=gc.mean, 
+    treeBuilder = TreeBuilder(celery=celery, mincount=25, mincount_chiral=10)
+    status, paths = treeBuilder.get_buyable_paths('CN1C2CCC1CC(OC(=O)C(CO)c1ccccc1)C2', max_depth=4, template_prioritization=gc.relevance,
+                                        precursor_prioritization=gc.relevanceheuristic, nproc=2, expansion_time=60, max_trees=500, max_ppg=10,
+                                        max_branching=25, apply_fast_filter=True, filter_threshold=0.75,
                                         min_chemical_history_dict={'as_reactant':5, 'as_product':1, 'logic':'none'})
-    print 'done'
+    print('done')
     print(status)
     print(paths[0])
     print(paths[1])

@@ -6,22 +6,18 @@ from pymongo import MongoClient
 import numpy as np
 import os
 import sys
-from celery.result import allow_join_result
-from multiprocessing import Queue, Process, Manager
-import Queue as VanillaQueue
 from makeit.interfaces.scorer import Scorer
 
 from makeit.synthetic.enumeration.results import ForwardResult, ForwardProduct
 from makeit.synthetic.evaluation.template_based_aux import build
 import makeit.utilities.contexts as context_cleaner
 
-
 from makeit.utilities.parsing import parse_list_to_smiles
-from makeit.utilities.io.logging import MyLogger
+from makeit.utilities.io.logger import MyLogger
 from makeit.utilities.reactants import clean_reactant_mapping
 from askcos_site.askcos_celery.treeevaluator.forward_trans_worker import get_outcomes, template_count
 from operator import itemgetter
-template_free_scorer_loc = 'template_based'
+template_free_scorer_loc = 'template_free_scorer'
 
 
 class TemplateFreeNeuralNetScorer(Scorer):
@@ -32,8 +28,7 @@ class TemplateFreeNeuralNetScorer(Scorer):
 
     def evaluate(self, reactants_smiles, contexts=[(20,'','','','','')], **kwargs):
         '''Evaluation does not use context, but left as dummy pos var'''
-        ##what if context contributes necessary atoms??
-        print(contexts)
+
         all_outcomes = []
         for (T1, slvt1, rgt1, cat1, t1, y1) in contexts:
             this_reactants_smiles = reactants_smiles
@@ -57,23 +52,25 @@ class TemplateFreeNeuralNetScorer(Scorer):
             outcomes_to_ret = {}
             reactants_smiles_split = this_reactants_smiles.split('.')
             for outcome in outcomes:
-
-                # Remove fragments that are unreacted
                 smiles_list = set(outcome['smiles'].split('.'))
-                for reactants_smiles_part in reactants_smiles_split:
-                    if reactants_smiles_part in smiles_list:
-                        smiles_list.remove(reactants_smiles_part)
-                if not smiles_list:
+                
+                # Canonicalize
+                smiles_canonical = set()
+                for smi in smiles_list:
+                    mol = Chem.MolFromSmiles(smi)
+                    if not mol:
+                        MyLogger.print_and_log('Template free evaluator could not reparse product {}'.format('.'.join(smiles_list)), 
+                        template_free_scorer_loc, 1)
+                        continue
+                    smiles_canonical.add(Chem.MolToSmiles(mol))
+
+
+                # Remove unreacted frags
+                smiles_canonical = smiles_canonical - set(reactants_smiles_split)
+                if not smiles_canonical:
                     continue # no reaction?
 
-                # Canonicalize
-                mol = Chem.MolFromSmiles('.'.join(smiles_list))
-                if not mol:
-                    MyLogger.print_and_log('Template free evaluator could not reparse product {}'.format('.'.join(smiles_list)), 
-                        template_free_scorer_loc, 1)
-                    continue
-                smiles_list = Chem.MolToSmiles(mol).split('.')
-                smiles = max(smiles_list, key=len) # NOTE: this is not great...byproducts may be longer
+                smiles = max(smiles_canonical, key=len) # NOTE: this is not great...byproducts may be longer
 
                 if smiles in outcomes_to_ret:
                     outcomes_to_ret[smiles]['rank'] = min(outcomes_to_ret[smiles]['rank'], outcome['rank'])
@@ -108,7 +105,7 @@ class TemplateFreeNeuralNetScorer(Scorer):
 if __name__ == '__main__':
     MyLogger.initialize_logFile()
     scorer = TemplateFreeNeuralNetScorer()
-    res = scorer.evaluate('CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1')
+    res = scorer.evaluate('Fc1ccc(C2(Cn3cncn3)CO2)c(F)c1.c1nc[nH]n1')
     for re in res[0]:
-        print re['outcome']['smiles'] + " {}".format(re['prob'])
-    print 'done!'
+        print(re['outcome']['smiles'] + " {}".format(re['prob']))
+    print('done!')
