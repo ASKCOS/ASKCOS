@@ -19,6 +19,7 @@ from askcos_site.askcos_celery.treeevaluator.scoring_coordinator import evaluate
 from ..globals import PREDICTOR_FOOTNOTE, solvent_choices
 from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
     trim_trailing_period
+from makeit.utilities.contexts import clean_context
 
 @login_required
 def synth_interactive(request, reactants='', reagents='', solvent='default', 
@@ -116,7 +117,7 @@ def ajax_start_synth(request):
 
     # context expected is (T1, slvt1, rgt1, cat1, t1, y1)
     res = evaluate.delay(reactants, '',
-        contexts=[(temperature, solvent, reagents, '', -1, -1)], 
+        contexts=[clean_context((temperature, solvent, reagents, '', -1, -1))], 
         forward_scorer=forward_scorer, top_n=maxreturn, return_all_outcomes=True)
     outcomes = res.get(300)[0]['outcomes']
 

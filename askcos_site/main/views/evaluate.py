@@ -19,6 +19,7 @@ from ...askcos_celery.treeevaluator.scoring_coordinator import evaluate
 from ...askcos_celery.treebuilder.tb_c_worker import fast_filter_check
 from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
     trim_trailing_period
+from makeit.utilities.contexts import clean_context
 
 @login_required
 def evaluate_rxnsmiles(request):
@@ -67,6 +68,8 @@ def ajax_evaluate_rxnsmiles(request):
             context_recommender=context_recommender)
         contexts = res.get(60)
         print('Got context(s)')
+        print(contexts)
+        contexts = [clean_context(context) for context in contexts]
         print(contexts)
         if contexts is None:
             raise ValueError('Context recommender was unable to get valid context(?)')
