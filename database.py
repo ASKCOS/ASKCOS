@@ -6,7 +6,8 @@ try:
     try:
         db_client
     except NameError:
-        db_client = MongoClient('mongodb://guest:guest@askcos2.mit.edu:27017/admin', 
+        import makeit.global_config as gc
+        db_client = MongoClient(gc.MONGO['path'], gc.MONGO[ 'id'], 
             serverSelectionTimeoutMS = 2000,
             connect=True)
 except Exception as e:

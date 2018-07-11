@@ -261,9 +261,6 @@ def SPARC_logD(molecule_smi, org, aqu, temp=25.0, pHmin=0.0, pHincrement=0.1):
     # print(task)
 
     myResponse = requests.post(url, json=task)
-    # print 'Status', myResponse.status_code
-    # print(myResponse.content)
-    # print myResponse.headers['content-type']
 
     # For successful API call, response code will be 200 (OK)
     if (myResponse.ok):

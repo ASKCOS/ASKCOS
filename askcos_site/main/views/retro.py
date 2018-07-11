@@ -296,7 +296,7 @@ def ajax_start_retro_celery(request):
     (num_chemicals, num_reactions, at_depth) = tree_status
     data['html_stats'] = 'After expanding (with {} banned reactions, {} banned chemicals), {} total chemicals and {} total reactions'.format(
         len(blacklisted_reactions), len(forbidden_molecules), num_chemicals, num_reactions)
-    for (depth, count) in sorted(at_depth.iteritems(), key=lambda x: x[0]):
+    for (depth, count) in sorted(at_depth.items(), key=lambda x: x[0]):
         label = 'Could not format label...?'
         if int(float(depth)) == float(depth):
             label = 'chemicals'

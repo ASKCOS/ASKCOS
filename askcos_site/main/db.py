@@ -4,5 +4,5 @@ global db_client
 try:
 	db_client
 except NameError:
-	db_client = MongoClient('mongodb://guest:guest@askcos2.mit.edu/admin', 27017)
-	#print(db_client.database_names())
+	import makeit.global_config as gc
+	db_client = MongoClient(gc.MONGO['path'], gc.MONGO[ 'id'], connect=gc.MONGO['connect'])
