@@ -328,7 +328,8 @@ class TemplateNeuralNetScorer(Scorer):
                                          'prob': 0.0,
                                          })
                     continue
-                prediction_context = context_cleaner.clean_context(context)
+                # prediction_context = context_cleaner.clean_context(context) ## move this step to tree evaluator
+                prediction_context = context
                 context_tensor = context_cleaner.context_to_edit(
                     prediction_context, self.solvent_name_to_smiles, self.solvent_smiles_to_params)
                 if not context_tensor: 

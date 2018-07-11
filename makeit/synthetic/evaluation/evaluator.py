@@ -121,7 +121,7 @@ if __name__ == '__main__':
     #                          batch_size=1000, nproc=16)
     # print res
     
-    res = evaluator.evaluate('O=C1CCCCCCC1.OO', 'O=C1CCCCCCCO1', ['unk.'], forward_scorer=gc.templatefree)
+    res = evaluator.evaluate('O=C1CCCCCCC1.OO', 'O=C1CCCCCCCO1', [(20,'','','','','')], forward_scorer=gc.templatefree)
     print(res)
 
     # ## the specificationo of other parameters should be automatically ignored if useing fastfilter

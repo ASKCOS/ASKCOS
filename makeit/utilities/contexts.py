@@ -16,11 +16,22 @@ def clean_contexts(contexts):
 
 def clean_context(context):
     (T1, slvt1, rgt1, cat1, t1, y1) = context
+    ##remove chemicals without parsible smiles
+    slvs = slvt1.split('.')
+    rgts = rgt1.split('.')
+    cats = cat1.split('.')
+    rgt_name = [rgt for rgt in rgts if 'Reaxys' not in rgt]
+    slv_name = [slv for slv in slvs if 'Reaxys' not in slv]
+    cat_name = [cat for cat in cats if 'Reaxys' not in cat]
+    slvt1 = '.'.join(slvs)
+    rgt1 = '.'.join(rgts)
+    cat1 = '.'.join(cats)
+
     slvt1 = trim_trailing_period(slvt1)
     rgt1 = trim_trailing_period(rgt1)
     cat1 = trim_trailing_period(cat1)
     (rgt1, cat1, slvt1) = fix_rgt_cat_slvt(rgt1, cat1, slvt1)
-    context_predictor = (T1, rgt1, slvt1)   
+    context_predictor = (T1, slvt1, rgt1, cat1, t1, y1)   
     return context_predictor
 
 def fix_rgt_cat_slvt(rgt1, cat1, slvt1):
@@ -42,7 +53,7 @@ def trim_trailing_period(txt):
 
 def context_to_edit(context, solvent_name_to_smiles, solvent_smiles_to_params):
     
-    (T, reagents_str, solvent) = context
+    (T, solvent, reagents_str, cat1, t1, y1) = context
     # Temperature is easy
     try:
         T = float(T)

@@ -14,6 +14,7 @@ from askcos_site.askcos_celery.treeevaluator.scoring_coordinator import evaluate
 from makeit.prioritization.contexts.probability import ProbabilityContextPrioritizer
 from makeit.prioritization.contexts.rank import RankContextPrioritizer
 from makeit.prioritization.default import DefaultPrioritizer
+import makeit.utilities.contexts as context_cleaner
 treeEvaluator_loc = 'tree_evaluator'
 
 
@@ -231,8 +232,11 @@ class TreeEvaluator():
                             contexts = self.get_contexts(reaction_smiles, n)
                         elif self.recommender != gc.nearest_neighbor:#the not using the nearest neighbor model:
                             contexts = self.get_contexts(reaction_smiles, 1)
+                        contexts = [context_cleaner.clean_context(context) for context in contexts]
                     if not contexts:
                         contexts = ['n/a']
+                    # remove context without parsible smiles string
+                    
                     evaluation = self.evaluate_reaction(
                         '.'.join(reactants), target, contexts, worker_no = worker_no)
                     self.evaluation_dict[reaction_smiles] = evaluation
@@ -341,6 +345,7 @@ class TreeEvaluator():
     ###############################################################
 
 if __name__ == '__main__':
+  
     MyLogger.initialize_logFile()
 
     ev = TreeEvaluator(context_recommender=gc.neural_network, celery=False)
@@ -350,3 +355,4 @@ if __name__ == '__main__':
     res = ev.evaluate_tree(tree, gc.neural_network, gc.probability,
                            gc.templatefree, gc.product, is_target=True, reset=True, nproc=2)
     print(res)
+
