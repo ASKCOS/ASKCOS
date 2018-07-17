@@ -95,21 +95,23 @@ class RetroTransformer(TemplateTransformer):
             file_path = get_retrotransformer_chiral_path(
                 gc.RETRO_TRANSFORMS_CHIRAL['database'],
                 gc.RETRO_TRANSFORMS_CHIRAL['collection'],
-                gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
-                gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
+                self.mincount,
+                self.mincount_chiral,
             )
         else:
             from makeit.utilities.io.files import get_retrotransformer_achiral_path
             file_path = get_retrotransformer_achiral_path(
                 gc.RETRO_TRANSFORMS['database'],
                 gc.RETRO_TRANSFORMS['collection'],
-                gc.RETRO_TRANSFORMS['mincount'],
+                self.mincount,
             )
 
         try:
             self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
         except IOError:
-            self.load_from_database(True, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+            self.load_from_database(True, chiral=chiral, rxns=True, refs=True, efgs=True, rxn_ex=True)
+            self.dump_to_file(True, file_path, chiral=chiral)
+            self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
         finally:
             self.reorder()
 

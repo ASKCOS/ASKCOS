@@ -50,7 +50,7 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         self.NK = 100
 
         if use_tf:
-            def load_model(depth=5, hidden_size=300, output_size=61142):
+            def load_model(depth=5, hidden_size=300, output_size=gc.Relevance_Prioritization['output_size']):
                 config = tf.ConfigProto()
                 config.gpu_options.allow_growth = True
                 self.session = tf.Session(config=config)

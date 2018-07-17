@@ -36,7 +36,7 @@ class Evaluator():
         self.celery = celery
         self.scorers = {}
 
-    def evaluate(self, reactant_smiles, target, contexts, forward_scorer='Template_Based',
+    def evaluate(self, reactant_smiles, target, contexts, forward_scorer='Template_Free',
                  worker_no=0, top_n=100, return_all_outcomes=False, chiral=False, **kwargs):
         with allow_join_result():
             target = Chem.MolToSmiles(Chem.MolFromSmiles(target), chiral)

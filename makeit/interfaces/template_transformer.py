@@ -106,8 +106,7 @@ class TemplateTransformer(object):
         with open(file_path, 'w+') as file:
             pickle.dump(pickle_templates, file)
 
-            MyLogger.print_and_log('Wrote templates to {}'.format(
-                file_path, transformer_loc))
+            MyLogger.print_and_log('Wrote templates to {}'.format(file_path), transformer_loc)
 
     def load_from_file(self, retro, file_path, chiral=False, rxns=True, refs=False, efgs=False, rxn_ex=False):
         '''
