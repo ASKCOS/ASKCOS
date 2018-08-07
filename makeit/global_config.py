@@ -94,7 +94,7 @@ database = 'reaxys_v2'
 
 # TODO: change this to your local Mongo DB!
 MONGO = {
-    'path': 'mongodb://USERNAME:PASSWORD@DB_SERVER/AUTH_DB',
+    'path': 'mongodb://guest:askcos_guest@askcos2.mit.edu/admin',
     'id': 27017,
     'connect': False
 }
@@ -109,8 +109,8 @@ RETRO_TRANSFORMS = {
 RETRO_TRANSFORMS_CHIRAL = {
     'database': database,
     'collection': 'transforms_retro_v9',
-    'mincount': 25,
-    'mincount_chiral': 10
+    'mincount': 10,
+    'mincount_chiral': 5
 }
 
 SYNTH_TRANSFORMS = {
@@ -159,12 +159,21 @@ PREDICTOR = {
 FAST_FILTER_MODEL = {
     'trained_model_path': os.path.join(os.path.dirname(__file__), 'data', 'fast_filter','my_model.h5'),
 }
-# Hard coded mincounts to maintain compatibility of the relevance method
+
+# Hard coded mincounts to maintain compatibility of the relevance method (weights are numpy matrices)
 Relevance_Prioritization = {
-    'trained_model_path_True': os.path.join(prioritization_data, 'template_relevance_network_weights.pickle'),
-    'min_chiral':10,
-    'min':25
+    'trained_model_path_True': os.path.join(prioritization_data, 'template_relevance_network_weights_v9_10_5.pickle'),
+    'output_size': 163723,
+    'min_chiral':5,
+    'min':10
 }
+
+# Relevance_Prioritization_OLD = {
+#     'trained_model_path_True': os.path.join(prioritization_data, 'template_relevance_network_weights_v9_25_10.pickle'),
+#     'output_size': 61142,
+#     'min_chiral':10,
+#     'min':25
+# }
 
 # Different SCScore models that are all functionally similary
 SCScore_Prioritiaztion = {
