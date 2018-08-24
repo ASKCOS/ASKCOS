@@ -64,7 +64,8 @@ urlpatterns += [
 
     # Template examination (by str(ObjectID))
     url(r'^template/target=(?P<id>.+)$', views.template_target, name='template_target'),
-
+    url(r'^template/download/target=(?P<id>.+)$', views.template_target_export, name='template_target_export'),
+    
     # Reaction examination
     url(r'^reaxys/rxid=(?P<rxid>.+)$', views.rxid_target, name='rxid_target'),
 
