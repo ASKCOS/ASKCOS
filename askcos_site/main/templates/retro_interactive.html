@@ -60,6 +60,60 @@ window.onload = function() {
     console.log("{{ form.forward_scorer }}");
     showFieldsEvaluation("{{ forward_scorer }}");
 }
+function resetSettings() {
+    $("#max_depth").val(4);
+    $("#max_branching").val(20);
+    $("#retro_mincount").val(0);
+    $("#expansion_time").val(60);
+    $("#id_template_prioritzation").val('Relevance');
+    $("#id_precursor_prioritization").val('RelevanceHeuristic');
+    $("#template_count").val(100);
+    $("#max_cum_prob").val(0.995);
+    $("#max_ppg").val(100);
+    $("#chiral").prop("checked", true);
+    $("#id_chemical_property_logic").val('none');
+    showFieldsChemProp('none');
+    $("#id_chemical_popularity_logic").val('none');
+    showFieldsChemPop('none');
+    $("#min_chempop_reactants").val(5);
+    $("#min_chempop_products").val(5);
+    $("#filter_threshold").val(0.75);
+    showFieldsEvaluation("Template_Free");
+    showFields("Relevance");
+}
+function liberalSettings() {
+    resetSettings();
+    $("#max_depth").val(4);
+    $("#max_branching").val(20);
+    $("#retro_mincount").val(0);
+    $("#expansion_time").val(60);
+    $("#template_count").val(1000);
+    $("#max_cum_prob").val(0.999);
+    $("#filter_threshold").val(0.1);
+}
+function longliberalSettings() {
+    resetSettings();
+    $("#max_depth").val(5);
+    $("#max_branching").val(25);
+    $("#expansion_time").val(120);
+    $("#template_count").val(1000);
+    $("#max_cum_prob").val(0.9999);
+    $("#filter_threshold").val(0.01);
+}
+function strugglingSettings() {
+    resetSettings();
+    $("#max_depth").val(6);
+    $("#max_branching").val(25);
+    $("#retro_mincount").val(0);
+    $("#expansion_time").val(120);
+    $("#template_count").val(1000);
+    $("#max_cum_prob").val(0.9999);
+    $("#id_chemical_popularity_logic").val('or');
+    showFieldsChemPop('or');
+    $("#min_chempop_reactants").val(5);
+    $("#min_chempop_products").val(5);
+    $("#filter_threshold").val(0.0001);
+}
 $("#id_smiles").change(function () {
     console.log( $(this).val() );
     $.ajax({
@@ -263,6 +317,22 @@ $(document).ready(function() {
 
 <!-- Settings -->
 <tbody id="settings_wrapper" style="display:none">
+<!-- Shortcut buttons -->
+<tr><th>Quick settings: </th>
+<td colspan="4">
+    <button type="button" style="width:100%" onclick="resetSettings();">Default settings</button>
+</td></tr>
+<tr><th></th><td colspan="4">
+    <button type="button" style="width:100%" onclick="liberalSettings();">I don't mind seeing unrealistic suggestions</button>
+</td></tr>
+<tr><th></th><td colspan="4">
+    <button type="button" style="width:100%" onclick="longliberalSettings();">I don't mind waiting slightly longer</button>
+</td></tr>
+<tr><th></th><td colspan="4">
+    <button type="button" style="width:100%" onclick="strugglingSettings();">I don't mind if trees end in known (not buyable) compounds</button>
+</td></tr>
+
+
 <tr><th>Expansion settings: </th>
 
 <td>

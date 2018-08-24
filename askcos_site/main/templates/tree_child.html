@@ -14,7 +14,7 @@
         <br><br>{% if target.as_reactant %}{{ target.as_reactant }} precedents as reactant{% else %}<i>no precedent as reactant</i>{% endif %}
         <br>{% if target.as_product %}{{ target.as_product }} precedents as product{% else %}<i>no precedent as product</i>{% endif %}
         <br><br>{% if target.ppg %}${{ target.ppg }}/g{% else %}<i>not buyable</i>{% endif %}
-
+        <br><br><span class="pseudolink" onclick="window.open('{% url 'retro_interactive_target' target.smiles %}')"><i>Synthesize this target</i></span>
 	</center>
 </div>
 </a>

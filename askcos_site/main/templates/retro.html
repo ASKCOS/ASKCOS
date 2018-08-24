@@ -27,6 +27,18 @@ window.onload = function() {
     // console.log("{{ form.template_prioritization }}");
     showFields("{{ form.template_prioritization }}");
 }
+function resetSettings() {
+    $("#template_count").val(100);
+    $("#max_cum_prob").val(0.995);
+    $("#filter_threshold").val(0.75);
+    showFields("Relevance");
+}
+function liberalSettings() {
+    $("#template_count").val(1000);
+    $("#max_cum_prob").val(0.9999);
+    $("#filter_threshold").val(0.01);
+    showFields("Relevance");
+}
 </script>
 {% endblock %}
 
@@ -43,6 +55,14 @@ window.onload = function() {
             <input id="id_smiles" maxlength="400" name="smiles" type="text" value="{{ form.smiles }}"><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('id_smiles')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a>
         </td>
     </tr>
+    <!-- Shortcut buttons -->
+    <tr><th>Quick settings: </th>
+    <td colspan="4">
+        <button type="button" style="width:100%" onclick="resetSettings();">Default settings</button>
+    </td></tr>
+    <tr><th></th><td colspan="4">
+        <button type="button" style="width:100%" onclick="liberalSettings();">Idea generation settings</button>
+    </td></tr>
     <tr>
         <th>Template prioritization:</td>
         <td>
@@ -53,10 +73,10 @@ window.onload = function() {
         </td>
     </th>
     <tr><th></th>
-        <td id="RelevanceSettings1">Num. templates: <input name="template_count" maxlength="6" size="6" type="text" value="{{ form.template_count }}"></td>
+        <td id="RelevanceSettings1">Num. templates: <input name="template_count" id="template_count" maxlength="6" size="6" type="text" value="{{ form.template_count }}"></td>
     </tr>
     <tr><th></th>
-        <td id="RelevanceSettings2">Max. cum. prob.: <input name="max_cum_prob" maxlength="6" size="6" type="text" value="{{ form.max_cum_prob }}"></td>
+        <td id="RelevanceSettings2">Max. cum. prob.: <input name="max_cum_prob" id="max_cum_prob" maxlength="6" size="6" type="text" value="{{ form.max_cum_prob }}"></td>
     </tr>
     <tr>
         <th>Precursor scoring:</th>
@@ -71,7 +91,7 @@ window.onload = function() {
     </tr>
     <tr>
         <th></th>
-        <td>Min. plausibility: <input name="filter_threshold" maxlength="6" size="6" type="text" value="{{ form.filter_threshold }}"></td>
+        <td>Min. plausibility: <input name="filter_threshold" id="filter_threshold" maxlength="6" size="6" type="text" value="{{ form.filter_threshold }}"></td>
     </tr>
 
     <th>{% csrf_token %}</th>
