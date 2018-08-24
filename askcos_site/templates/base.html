@@ -4,6 +4,14 @@
 
 <html lang="en">
 <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-28798435-4"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'UA-28798435-4');
+    </script>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>{% block title %}ASKCOS{% endblock %}</title>
     <!-- Bootstrap -->
@@ -30,7 +38,6 @@
                 <a class="navbar-brand" href="{% url 'index' %}">ASKCOS</a>
             </div>
 
-            {% if user.is_authenticated %}
             <ul class="nav navbar-nav">
                 <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span class="glyphicon glyphicon-th-large"></span> Modules
@@ -103,6 +110,8 @@
                 
                 <li><a href="mailto:ccoley@mit.edu?subject=Feedback about askcos.mit.edu website"><span class="glyphicon glyphicon-comment"></span> Comment</a></li>
             </ul>
+
+            {% if user.is_authenticated %}
             <ul class="nav navbar-nav navbar-right">
                 <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span class="glyphicon glyphicon-cog"></span> Settings
