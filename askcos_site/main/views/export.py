@@ -16,7 +16,7 @@ from ..globals import SYNTH_FOOTNOTE
 from ..utils import get_name_from_smiles
 from .users import can_control_robot
 
-@login_required
+#@login_required
 def export_synth_results(request):
     if 'last_synth_interactive' not in request.session:
         return index(request, err='Could not find synth results to save?')
@@ -36,7 +36,7 @@ def export_synth_results(request):
     response['Content-Disposition'] = 'attachment;filename=export.csv'
     return response
     
-@login_required
+#@login_required
 def export_retro_results(request, _id=1):
     if 'last_retro_interactive' not in request.session:
         return index(request, err='Could not find retro results to save?')

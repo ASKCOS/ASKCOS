@@ -18,7 +18,7 @@ from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recom
 from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
     trim_trailing_period
 
-@login_required
+#@login_required
 def context_rxnsmiles(request, smiles=None, reactants=None, product=None):
     context = {}
     if smiles is not None:
@@ -82,12 +82,12 @@ def context_to_dict(context):
         'yield': y1,
     }
 
-@login_required
+#@login_required
 def context_rxnsmiles_target(request, smiles):
     '''Synth interactive initialized w/ reaction smiles'''
     return context_rxnsmiles(request, reactants=smiles.split('>')[0], product=smiles.split('>')[-1])
 
-@login_required
+#@login_required
 def context_rxnsmiles_target2(request, reactants, product):
     '''Synth interactive initialized w/ reaction smiles'''
     return context_rxnsmiles(request, reactants=reactants, product=product)

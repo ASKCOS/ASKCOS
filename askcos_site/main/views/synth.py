@@ -21,7 +21,7 @@ from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
     trim_trailing_period
 from makeit.utilities.contexts import clean_context
 
-@login_required
+#@login_required
 def synth_interactive(request, reactants='', reagents='', solvent='default', 
         temperature='20', mincount='25', product=None, forward_scorer='Template_Free'):
     '''Builds an interactive forward synthesis page'''
@@ -70,7 +70,7 @@ def synth_interactive(request, reactants='', reagents='', solvent='default',
     context['mincount'] = mincount if mincount != '' else settings.SYNTH_TRANSFORMS['mincount']
     return render(request, 'synth_interactive.html', context)
 
-@login_required
+#@login_required
 def synth_interactive_smiles(request, smiles):
     '''Synth interactive initialized w/ reaction smiles'''
     return synth_interactive(request, reactants=smiles.split('>')[0], product=smiles.split('>')[-1])
@@ -116,6 +116,10 @@ def ajax_start_synth(request):
 
 
     # context expected is (T1, slvt1, rgt1, cat1, t1, y1)
+    if solvent == 'default':
+        solvent = ''
+        print('reset default solvent')
+
     res = evaluate.delay(reactants, '',
         contexts=[clean_context((temperature, solvent, reagents, '', -1, -1))], 
         forward_scorer=forward_scorer, top_n=maxreturn, return_all_outcomes=True)

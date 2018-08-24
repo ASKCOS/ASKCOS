@@ -19,6 +19,6 @@ def ajax_scscore_smiles(request):
     data['html'] = 'Perceived synthetic complexity [1-5]: {:.4f}'.format(scscore)
     return JsonResponse(data)
 
-@login_required 
+#@login_required 
 def scscoring(request):
     return render(request, 'scscoring.html', {})

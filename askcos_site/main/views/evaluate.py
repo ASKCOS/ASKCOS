@@ -21,7 +21,7 @@ from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
     trim_trailing_period
 from makeit.utilities.contexts import clean_context
 
-@login_required
+#@login_required
 def evaluate_rxnsmiles(request):
     return render(request, 'evaluate.html', {})
 
