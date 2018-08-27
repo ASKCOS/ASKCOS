@@ -421,7 +421,7 @@ class TreeBuilder:
                         if parent_chem_doc['depth'] >= self.max_depth - 1:
                             if gc.DEBUG:
                                 MyLogger.print_and_log('Reached maximum depth, so will not expand around {}'.format(
-                                    tree_dict[chem_id]), treebuilder_loc)
+                                    self.tree_dict[chem_id]), treebuilder_loc)
                         else:
                             self.expand(mol, chem_id, parent_chem_doc['depth'])
 
