@@ -54,7 +54,7 @@ Please note that this code relies on either (1) additional data files not contai
 
 	```
 	source activate askcos
-	conda install rdkit 
+	conda install rdkit -c rdkit
 	pip install pymongo
 	sudo apt install libxrender-dev 
 
