@@ -71,7 +71,7 @@ Please note that this code relies on either (1) additional data files not contai
 	pip install tensorflow==1.4.1
 	```
 
-1. Set the default Keras backend to Theano by editing ```~/.keras/keras.json```
+1. Set the default Keras backend to Theano by editing ```~/.keras/keras.json```. If this is the first time you're running keras, this file won't exist. Run ```python -c "import keras"``` to have this file be generated.
 
 1. Test Make-It by running any of the individual modules below and/or the full planning script.
 
