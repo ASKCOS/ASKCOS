@@ -135,7 +135,7 @@ class DirectCandRanker():
             for i in range(min(len(cand_smiles), top_n)):
                 outcomes.append({
                     'rank': i + 1,
-                    'smiles': cand_smiles[i],
+                    'smiles': '.'.join(cand_smiles[i]),
                     'score': cand_scores[i],
                     'prob': cand_probs[i],
                 })
@@ -143,7 +143,7 @@ class DirectCandRanker():
             for i in range(min(len(cand_smiles), top_n)):
                 outcomes.append({
                     'rank': i + 1,
-                    'smiles': cand_smiles[i],
+                    'smiles': '.'.join(cand_smiles[i]),
                 })
 
         return outcomes
