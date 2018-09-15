@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}ASKCOS Examples{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block page_title %}Pathway Examples{% endblock %}
+
+{% block page_body %}
+
+<!-- <h1>Temporarily under construction - some modules may not work</h1>
+ -->
+
+
+<table class="table table-borderless fluid" style="width:100%">
+<tr>
+    <td width="50%" style="vertical-align:middle">
+        <center>
+            <a href="http://askcos.mit.edu/saved/id=246" target="_blank">
+                <img src="{% url 'draw_smiles' 'O=C(O)c1cn(C2CC2)c2cc(N3CCNCC3)c(F)cc2c1=O' %}"><br>
+                <h2>Ciprofloxacin (antibiotic)</h2>
+            </a>
+        </center>
+    </td>
+    <td width="50%" style="vertical-align:middle">
+        <center>
+            <a href="http://askcos.mit.edu/saved/id=240" target="_blank">
+                <img src="{% url 'draw_smiles' 'CN1C(=O)CN=C(c2ccccc2)c2cc(Cl)ccc21' %}"><br>
+                <h2>Valium (antianxiety)</h2>
+            </a>
+        </center>
+    </td>
+</tr>
+
+
+<tr>
+    <td width="50%" style="vertical-align:middle">
+        <center>
+            <a href="http://askcos.mit.edu/saved/id=242" target="_blank">
+                <img src="{% url 'draw_smiles' 'O=C1CCc2ccc(OCCCCN3CCN(c4cccc(Cl)c4Cl)CC3)cc2N1' %}"><br>
+                <h2>Abilify (antipsychotic)</h2>
+            </a>
+        </center>
+    </td>
+    <td width="50%" style="vertical-align:middle">
+        <center>
+            <a href="http://askcos.mit.edu/saved/id=244" target="_blank">
+                <img src="{% url 'draw_smiles' 'Cc1ccc(-c2cc(C(F)(F)F)nn2-c2ccc(S(N)(=O)=O)cc2)cc1 ' %}"><br>
+                <h2>Celebrex (NSAID)</h2>
+            </a>
+        </center>
+    </td>
+</tr>
+
+
+<tr>
+    <td width="50%" style="vertical-align:middle">
+        <center>
+            <a href="http://askcos.mit.edu/saved/id=245" target="_blank">
+                <img src="{% url 'draw_smiles' 'CCN(CC)CC(=O)Nc1c(C)cccc1C' %}"><br>
+                <h2>Lidocaine (anesthetic)</h2>
+            </a>
+        </center>
+    </td>
+    <td width="50%" style="vertical-align:middle">
+        <center>
+            <a href="http://askcos.mit.edu/saved/id=243" target="_blank">
+                <img src="{% url 'draw_smiles' 'CNCC[C@H](Oc1cccc2ccccc12)c1cccs1' %}"><br>
+                <h2>Cymbalta (SNRI)</h2>
+            </a>
+        </center>
+    </td>
+</tr>
+
+
+
+<tr>
+    <td width="50%" style="vertical-align:middle">
+        <center>
+            <a href="http://askcos.mit.edu/saved/id=251" target="_blank">
+                <img src="{% url 'draw_smiles' 'CCC(C)OC(=O)N1CCCCC1CCO' %}"><br>
+                <h2>Icaridin (insect repellent)</h2>
+            </a>
+        </center>
+    </td>
+    <td width="50%" style="vertical-align:middle">
+        <center>
+            <a href="http://askcos.mit.edu/saved/id=248" target="_blank">
+                <img src="{% url 'draw_smiles' 'CC(=O)CC/C=C(\C)CCC=C(C)C' %}"><br>
+                <h2>Geranylacetone (leafy flavor)</h2>
+            </a>
+        </center>
+    </td>
+</tr>
+
+
+
+<tr>
+    <td width="50%" style="vertical-align:middle">
+        <center>
+            <a href="http://askcos.mit.edu/saved/id=250" target="_blank">
+                <img src="{% url 'draw_smiles' 'CNCC(O)c1ccc(O)cc1' %}"><br>
+                <h2>Synephrine (sympathomimetic)</h2>
+            </a>
+        </center>
+    </td>
+    <td width="50%" style="vertical-align:middle">
+        <center>
+            <a href="http://askcos.mit.edu/saved/id=247" target="_blank">
+                <img src="{% url 'draw_smiles' 'CC1CCCCCCCCCCCCC(=O)C1' %}"><br>
+                <h2>Muscone (musk scent)</h2>
+            </a>
+        </center>
+    </td>
+</tr>
+
+</table>
+</center>
+
+
+{% endblock %}
