@@ -19,7 +19,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <!-- Our CSS (overrides) -->
-    <link href="{% static 'default.css' %}?v2" rel="stylesheet" type="text/css"/>
+    <link href="{% static 'default.css' %}?v3" rel="stylesheet" type="text/css"/>
     <script src="{% static 'default.js' %}"></script>
     <script src="{% static 'date.js' %}"></script>
     <!-- Javascript drawing -->
@@ -132,8 +132,7 @@
     </nav>
 
 
-    <div class="container" style="margin-top:50px; margin-bottom:24pt">
-        <div class="warning">We are in the process of upgrading our servers; the computational power allocated to this site is currently limited.</div>
+    <div class="container" style="margin-top:50px; margin-bottom:24pt; width:80%" >
         {% if err or warn %}
         <div class="container" style="padding-top:10px">
             {% if err %}
@@ -156,7 +155,7 @@
         <footer class="footer">
             <div class="container">
                 {% block footer %}
-                ASKCOS v0.1.6 Copyright &copy; 2018,
+                ASKCOS v0.1.7 Copyright &copy; 2018,
                 Created using <a href="http://www.djangoproject.com/">Django</a>.
                 <!-- 
                 Secret changelog! 
@@ -166,7 +165,8 @@
                 - v0.1.4 was released with massive UI overhaul and integration of fast filter
                 - v0.1.5 was released with new context rec. weights and SCScore module
                 - v0.1.6 was released with a larger retrosynthetic template set
-                -->
+                - v0.1.7 was released with new template-free forward predictor
+                 -->
                 {% endblock %}
             </div>
         </footer>
