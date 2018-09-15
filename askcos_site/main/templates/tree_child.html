@@ -36,7 +36,7 @@
         {% for tform in target.tforms %}
         <br><span class="pseudolink" onclick="window.open('{% url 'template_target' tform %}')">Template {{ tform }}</span>
         {% endfor %}
-        <br><br><span class="pseudolink" onclick="window.open('{% url 'synth_interactive_target_smiles' target.smiles %}')"><i>Evaluate in new tab</i></span>
+        <br><br><span class="pseudolink" onclick="window.open('{% url 'context_rxnsmiles_target' target.smiles %}')"><i>Evaluate in new tab</i></span>
     </center>
 </div>
 </a>
