@@ -64,7 +64,8 @@ class TemplateFreeNeuralNetScorer(Scorer):
                     continue # no reaction?
 
                 smiles = max(smiles_canonical, key=len) # NOTE: this is not great...byproducts may be longer
-
+                if not smiles:
+                    continue
                 if smiles in outcomes_to_ret:
                     outcomes_to_ret[smiles]['rank'] = min(outcomes_to_ret[smiles]['rank'], outcome['rank'])
                     outcomes_to_ret[smiles]['score'] = max(outcomes_to_ret[smiles]['score'], outcome['score'])
@@ -96,9 +97,14 @@ class TemplateFreeNeuralNetScorer(Scorer):
                 
 
 if __name__ == '__main__':
+    import sys
+    if len(sys.argv) > 1:
+        react = str(sys.argv[1])
+    else:
+        react = 'CCCCO.CCCCBr'
     MyLogger.initialize_logFile()
     scorer = TemplateFreeNeuralNetScorer()
-    res = scorer.evaluate('Fc1ccc(C2(Cn3cncn3)CO2)c(F)c1.c1nc[nH]n1')
+    res = scorer.evaluate(react)
     for re in res[0]:
         print(re['outcome']['smiles'] + " {}".format(re['prob']))
     print('done!')

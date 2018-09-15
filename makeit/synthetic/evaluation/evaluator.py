@@ -116,33 +116,13 @@ if __name__ == '__main__':
 
     MyLogger.initialize_logFile()
     evaluator = Evaluator(celery=False)
-    # res = evaluator.evaluate('Cc1cccc(C)c1NC(=O)CCl.N', 'Cc1cccc(C)c1NC(=O)CN',
-    #                          [[10.0, '', 'N', '', 2.0, -1]], mincount=25, forward_scorer=gc.templatebased,
-    #                          batch_size=1000, nproc=16)
-    # print res
-    
-    res = evaluator.evaluate('O=C1CCCCCCC1.OO', 'O=C1CCCCCCCO1', [(20,'','','','','')], forward_scorer=gc.templatefree)
-    print(res)
 
-    # ## the specificationo of other parameters should be automatically ignored if useing fastfilter
-    # res = evaluator.evaluate('[ClH:8].[O:6]=[CH2:7].[s:1]1[cH:2][cH:3][cH:4][cH:5]1', 'O=Cc1cccs1',
-    #                          [[10.0, '', 'O=C(Cl)C(=O)Cl', '', 2.0, -1]], mincount=25, forward_scorer=gc.fastfilter,
-    #                          batch_size=1000, nproc=16)
-    # print res
+    import sys 
+    if len(sys.argv) > 1:
+        react = str(sys.argv[1])
+    else:
+        react = 'CCCCO.CCCCBr'
     
-    # res = evaluator.evaluate('Cc1cccc(C)c1NC(=O)CCl', 'Cc1cccc(C)c1NC(=O)CN', ['unk.'], forward_scorer=gc.fastfilter)
-    # print(res)
-    
-    '''
-    a = []
-    for batch_size in range(250,1000,250):
-        for nproc in range (4,8,2):
-            a.append({'u':evaluator.evaluate('NC(=O)[C@H](CCC=O)N1C(=O)c2ccccc2C1=O', 'O=C1CC[C@H](N2C(=O)c3ccccc3C2=O)C(=O)N1', 
-                             [(25, 'CN(C)C=O', '', '', 50, 60)], mincount = 25, forward_scorer=gc.templatebased,
-                             batch_size = batch_size, nproc=nproc),
-                      'b':batch_size,
-                      'n':nproc})
-    for aa in a:
-        if aa['u'][0]['number_of_outcomes'] != 213:
-            print('Incorrect outcomes for {} - {}'.format(aa['b'], aa['n']))
-    c1cccc(C)c1NC(=O)CCl'''
+    res = evaluator.evaluate(react, 'O=C1CCCCCCCO1', [(20,'','','','','')], forward_scorer=gc.templatefree, 
+        return_all_outcomes=True)
+    print(res)
