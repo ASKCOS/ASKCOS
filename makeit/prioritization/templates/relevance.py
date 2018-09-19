@@ -55,11 +55,11 @@ class RelevanceTemplatePrioritizer(Prioritizer):
                 config.gpu_options.allow_growth = True
                 self.session = tf.Session(config=config)
                 self.input_mol = tf.placeholder(tf.float32, [self.batch_size, self.FP_len])
-                self.mol_hiddens = tf.nn.relu(linearND(self.input_mol, hidden_size, scope="encoder0", reuse=None))
+                self.mol_hiddens = tf.nn.relu(linearND(self.input_mol, hidden_size, scope="encoder0", reuse=tf.AUTO_REUSE))
                 for d in range(1, depth):
-                    self.mol_hiddens = tf.nn.relu(linearND(self.mol_hiddens, hidden_size, scope="encoder%i"%d, reuse=None))
+                    self.mol_hiddens = tf.nn.relu(linearND(self.mol_hiddens, hidden_size, scope="encoder%i"%d, reuse=tf.AUTO_REUSE))
 
-                self.score = linearND(self.mol_hiddens, output_size, scope="output", reuse=None)
+                self.score = linearND(self.mol_hiddens, output_size, scope="output", reuse=tf.AUTO_REUSE)
                 _, self.topk = tf.nn.top_k(self.score, k=self.NK)
 
                 tf.global_variables_initializer().run(session=self.session)
@@ -137,14 +137,6 @@ class RelevanceTemplatePrioritizer(Prioritizer):
                 break
         return top_templates
 
-    # def load_model(self):
-    #     with open(gc.Relevance_Prioritization['trained_model_path_{}'.format(self.retro)], 'rb') as fid:
-    #         self.vars = pickle.load(fid)
-    #     if gc.DEBUG:
-    #         MyLogger.print_and_log('Loaded relevance based template prioritization model from {}'.format(
-    #         gc.Relevance_Prioritization['trained_model_path_{}'.format(self.retro)]), relevance_template_prioritizer_loc)
-    #     return self
-
     def apply(self, x):
         # Each pair of vars is a weight and bias term
         # (only used for numpy)
@@ -164,8 +156,6 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         if not mol:
             return []
         return self.get_topk_from_mol(mol, k=k)
-
-    
 
     def sigmoid(x):
         return 1 / (1 + math.exp(-x))
