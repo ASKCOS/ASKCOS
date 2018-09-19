@@ -179,7 +179,74 @@ class RetroTransformer(TemplateTransformer):
                     result.add_precursor(precursor, self.precursor_prioritizer, **kwargs)
         return result
 
-    def apply_one_template(self, react_mol, smiles, template, **kwargs):
+    def apply_one_template_by_idx(self, smiles, template_idx, calculate_next_probs=True, **kwargs):
+        '''Takes a SMILES and applies the template with index template_idx. Returns
+        results including the template relevance probabilities of all resulting precursors when
+        calculate_next_probs is True
+
+        This is useful in the MCTS code.'''
+
+        apply_fast_filter = kwargs.pop('apply_fast_filter', True)
+        filter_threshold = kwargs.pop('filter_threshold', 0.75)
+        template_count = kwargs.pop('template_count', 100)
+        max_cum_prob = kwargs.pop('max_cum_prob', 0.995)
+        if (apply_fast_filter and not self.fast_filter):
+            self.load_fast_filter()
+        print('Getting template prioritizer')
+        self.get_template_prioritizers(gc.relevance)
+
+        # Define mol to operate on
+        mol = Chem.MolFromSmiles(smiles)
+        smiles = Chem.MolToSmiles(mol, isomericSmiles=True)  # to canonicalize
+        if self.chiral:
+            mol = rdchiralReactants(smiles)
+
+        all_outcomes = []; seen_reactants = {}; seen_reactant_combos = [];
+        for smiles_list in self.apply_one_template(mol, smiles, self.templates[template_idx], smiles_list_only=True):
+
+            # Avoid duplicate outcomes (e.g., by symmetry)
+            reactant_smiles = '.'.join(smiles_list)
+            if reactant_smiles in seen_reactant_combos:
+                continue
+            seen_reactant_combos.append(reactant_smiles)
+
+            # Should we add this to the results?
+            filter_score = 1.0
+            if apply_fast_filter:
+                filter_flag, filter_score = self.fast_filter.filter_with_threshold(reactant_smiles, smiles, filter_threshold)
+                if not filter_flag:
+                    continue
+
+            # Should we calculate template relevance scores for each precursor?
+            reactants = []
+            if calculate_next_probs:
+                for reactant_smi in smiles_list:
+                    if reactant_smi not in seen_reactants:
+                        probs, indeces = self.template_prioritizer.get_topk_from_smi(reactant_smi, k=template_count)
+                        # Truncate based on max_cum_prob?
+                        truncate_to = np.argwhere(np.cumsum(probs) >= max_cum_prob)
+                        if len(truncate_to):
+                            truncate_to = truncate_to[0][0] + 1 # Truncate based on max_cum_prob?
+                        else:
+                            truncate_to = template_count
+                        value = 1 # current value assigned to precursor (note: may replace with real value function)
+                        # Save to dict
+                        seen_reactants[reactant_smi] = (reactant_smi, probs[:truncate_to], indeces[:truncate_to], value)
+                    reactants.append(seen_reactants[reactant_smi])
+                
+                all_outcomes.append((smiles, template_idx, reactants, filter_score))
+            
+            else:
+                all_outcomes.append((smiles, template_idx, smiles_list, filter_score))
+
+        if not all_outcomes:
+            all_outcomes.append((smiles, template_idx, [], 0.0)) # dummy outcome
+
+        return all_outcomes
+
+
+
+    def apply_one_template(self, react_mol, smiles, template, smiles_list_only=False, **kwargs):
         """Takes a mol object and applies a single template
                 
         Arguments:
@@ -189,6 +256,8 @@ class RetroTransformer(TemplateTransformer):
             smiles {string} -- Product SMILES (no atom mapping)
             template {dict} -- Template to be applied, containing an initialized
                 rdchiralReaction object as its 'rxn' field
+            smiles_list_only -- boolean for whether we only care about the
+                list of reactant smiles strings
             **kwargs -- Additional kwargs to accept deprecated options
         
         Returns:
@@ -236,17 +305,21 @@ class RetroTransformer(TemplateTransformer):
                 # no transformation
                 continue
 
-            precursor = RetroPrecursor(
-                smiles_list=sorted(smiles_list),
-                template_id=str(template['_id']),
-                template_score=template['score'],
-                num_examples=template['count'],
-                necessary_reagent=template['necessary_reagent']
-            )
+            if smiles_list_only:
+                yield sorted(smiles_list)
+            else:
+                precursor = RetroPrecursor(
+                    smiles_list=sorted(smiles_list),
+                    template_id=str(template['_id']),
+                    template_score=template['score'],
+                    num_examples=template['count'],
+                    necessary_reagent=template['necessary_reagent']
+                )
 
-            results.append(precursor)
+                results.append(precursor)
 
-        return results
+        if not smiles_list_only:
+            return results
 
     def top_templates(self, target, **kwargs):
         """Generator to return only top templates. 
@@ -277,5 +350,7 @@ if __name__ == '__main__':
 
     print([precursor.smiles_list for precursor in precursors])
 
+    outcomes = t.apply_one_template_by_idx('C1=CC(=C(C=C1F)F)C(CN2C=NC=N2)(CN3C=NC=N3)O', 3986)
+    print(outcomes)
 
 
