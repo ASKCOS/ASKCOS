@@ -192,7 +192,6 @@ class RetroTransformer(TemplateTransformer):
         max_cum_prob = kwargs.pop('max_cum_prob', 0.995)
         if (apply_fast_filter and not self.fast_filter):
             self.load_fast_filter()
-        print('Getting template prioritizer')
         self.get_template_prioritizers(gc.relevance)
 
         # Define mol to operate on

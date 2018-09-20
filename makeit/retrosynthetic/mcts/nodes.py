@@ -31,10 +31,10 @@ class Chemical(object):
     def __str__(self):
         return "%s" % self.smiles
 
-    def set_price(self, value):
+    def set_price(self, value, all_cost_1=True):
         try:
             ppg = float(value)
-            if ppg > 0:
+            if ppg > 0 and all_cost_1:
                 ppg = 1.
             self.purchase_price = ppg
             self.price = ppg
@@ -43,20 +43,11 @@ class Chemical(object):
         except:
             pass
 
-    def set_prob_value(self, prob, value):
-        '''Prob = vector of template relevance scores
-
-        TODO: deprecate this function'''
-        self.prob = prob
-        self.sorted_id = prob.argsort()[::-1]
-        self.value = value
-        self.update_estimate_price(value)
-
     def set_template_relevance_probs(self, top_probs, top_indeces, value):
         '''Information about how we might expand this chemical later'''
         self.top_probs = top_probs 
         self.top_indeces = top_indeces
-        self.prob = {top_indeces[i]: top_probs[i] for i in range(len(top_probs))} 
+        self.prob = {top_indeces[i]: top_probs[i] for i in range(len(top_probs))} # dict
         self.sorted_id = top_indeces # copy
         self.value = value 
         self.update_estimate_price(value)
@@ -68,6 +59,24 @@ class Chemical(object):
 
     def reset(self):
         return
+
+    # def uniquify_templates(self):
+    #     '''Looks through all single-step precursors and merges the CTAs that
+    #     give identical results'''
+    #     seen_reactants = {}
+    #     template_idx_static = list(self.template_idx_results.keys())
+    #     for template_idx in template_idx_static:
+    #         CTA = self.template_idx_results[template_idx]
+    #         for reactant_smiles in CTA.reactions:
+    #             if reactant_smiles not in seen_reactants:
+    #                 seen_reactants[reactant_smiles] = template_idx 
+    #             else:
+    #                 # do the merge
+    #                 prev_CTA = self.template_idx_results[seen_reactants[reactant_smiles]]
+    #                 prev_CTA.tforms.append(CTA.template_idx)
+    #                 prev_CTA.template_score = max(CTA.template_score, prev_CTA.template_score)
+    #                 assert prev_CTA.plausibility == CTA.plausibility
+    #                 del self.template_idx_results[template_idx]
 
 class ChemicalTemplateApplication(object):
     """Represents the application of a template to a chemical. This is essentially
@@ -96,7 +105,7 @@ class Reaction(object):
         self.reactant_smiles = []
         self.visit_count = 0
 
-        self.waiting = True
+        # self.waiting = True
         self.done = False
 
         self.estimate_price = -1
@@ -108,6 +117,15 @@ class Reaction(object):
         self.pathway_count = 0
 
         self.filter_score = 1.0
+
+
+        # Attributes that will need to be merged if there are two templates that can lead
+        # to the same reactant SMILES - will need to check if exists
+        self.tforms = [template_idx] # will be list if multiple template_idx possible
+        # when merging, the redundant template_idx will be considered INVALID
+        self.template_score = 0.0 # template relevance score
+        self.plausibility = 0.0 # fast filter score
+        # note: no necessary_reagent or num_examples considered yet
 
     def __repr__(self):
         return "%s(%r)" % (self.__class__, self.smiles)
