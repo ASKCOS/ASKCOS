@@ -179,10 +179,12 @@ class RetroTransformer(TemplateTransformer):
                     result.add_precursor(precursor, self.precursor_prioritizer, **kwargs)
         return result
 
-    def apply_one_template_by_idx(self, smiles, template_idx, calculate_next_probs=True, **kwargs):
+    def apply_one_template_by_idx(self, _id, smiles, template_idx, calculate_next_probs=True, **kwargs):
         '''Takes a SMILES and applies the template with index template_idx. Returns
         results including the template relevance probabilities of all resulting precursors when
         calculate_next_probs is True
+
+        _id just gets carrie dthrough
 
         This is useful in the MCTS code.'''
 
@@ -233,13 +235,13 @@ class RetroTransformer(TemplateTransformer):
                         seen_reactants[reactant_smi] = (reactant_smi, probs[:truncate_to], indeces[:truncate_to], value)
                     reactants.append(seen_reactants[reactant_smi])
                 
-                all_outcomes.append((smiles, template_idx, reactants, filter_score))
+                all_outcomes.append((_id, smiles, template_idx, reactants, filter_score))
             
             else:
-                all_outcomes.append((smiles, template_idx, smiles_list, filter_score))
+                all_outcomes.append((_id, smiles, template_idx, smiles_list, filter_score))
 
         if not all_outcomes:
-            all_outcomes.append((smiles, template_idx, [], 0.0)) # dummy outcome
+            all_outcomes.append((_id, smiles, template_idx, [], 0.0)) # dummy outcome
 
         return all_outcomes
 

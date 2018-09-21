@@ -121,6 +121,7 @@ class MCTS:
             self.pricer = Pricer()
             self.pricer.load()
 
+        # Initialize vars, reset dicts, etc.
         self.reset()
 
 
@@ -146,24 +147,25 @@ class MCTS:
 
 
         if self.celery:
-            def expand(smiles, template_idx): # TODO: figure out new expansion with template_idx
+            def expand(_id, smiles, template_idx): # TODO: make Celery workers
                 # Chiral transformation or heuristic prioritization requires
-                # same database
-                if self.chiral or self.template_prioritization == gc.relevance:
-                    self.pending_results.append(tb_c_worker.apply_one_template_by_idx.apply_async(
-                        args=(smiles, template_idx),
-                        kwargs={'template_count': self.template_count,
-                                'max_cum_prob': self.max_cum_template_prob,
-                                'apply_fast_filter': self.apply_fast_filter,
-                                'filter_threshold': self.filter_threshold},
-                        priority=int(depth), # TODO: figure out priority
-                        queue=self.private_worker_queue,
-                    ))
+                # same database. _id is _id of active pathway
+                self.pending_results.append(tb_c_worker.apply_one_template_by_idx.apply_async(
+                    args=(_id, smiles, template_idx),
+                    kwargs={'template_count': self.template_count,
+                            'max_cum_prob': self.max_cum_template_prob,
+                            'apply_fast_filter': self.apply_fast_filter,
+                            'filter_threshold': self.filter_threshold},
+                    priority=int(depth), # TODO: figure out priority
+                    queue=self.private_worker_queue,
+                ))
                 self.status[(chem_smi, template_idx)] = WAITING
+                self.active_pathways_pending[_id] += 1
         else:
-            def expand(smiles, template_idx):
-                self.expansion_queue.put((smiles, template_idx))
+            def expand(_id, smiles, template_idx):
+                self.expansion_queue.put((_id, smiles, template_idx))
                 self.status[(smiles, template_idx)] = WAITING
+                self.active_pathways_pending[_id] += 1
         self.expand = expand
 
         self.status = {}
@@ -184,26 +186,13 @@ class MCTS:
                         'Did not find an available pool of workers! Try again later ({})'.format(e))
         else:
             def prepare():
-                MyLogger.print_and_log('Tree builder spinning off {} child processes'.format(
-                    self.nproc), treebuilder_loc)
+                MyLogger.print_and_log('Tree builder spinning off {} child processes'.format(self.nproc), treebuilder_loc)
                 for i in range(self.nproc):
                     p = Process(target=self.work, args=(i,))
-                    p.daemon = True
+                    # p.daemon = True
                     self.workers.append(p)
                     p.start()
         self.prepare = prepare
-
-        ##### NOT USED ANY MORE
-        # # Define method to check if all results processed
-        # if self.celery:
-        #     def waiting_for_results():
-        #         # update
-        #         time.sleep(1)
-        #         return self.pending_results != [] or self.is_ready != []
-        # else:
-        #     def waiting_for_results():
-        #         return (not self.expansion_queue.empty()) or (not self.results_queue.empty()) or (not self.idle)
-        # self.waiting_for_results = waiting_for_results
 
         # Define method to get a processed result.
         if self.celery:
@@ -217,17 +206,16 @@ class MCTS:
         else:
             def get_ready_result():
                 while not self.results_queue.empty():
-                    yield self.results_queue.get(timeout=0.1)
+                    yield self.results_queue.get(timeout=0.5)
         self.get_ready_result = get_ready_result
 
-
         # Define how first target is set.
-        def set_initial_target(leaves):
+        def set_initial_target(_id, leaves): # i = index of active pathway
             for leaf in leaves:
-                if leaf in self.status:
+                if leaf in self.status: # already being worked on
                     continue
                 chem_smi, template_idx = leaf
-                self.expand(chem_smi, template_idx)     
+                self.expand(_id, chem_smi, template_idx)     
         self.set_initial_target = set_initial_target
 
         # Define method to stop working.
@@ -265,9 +253,14 @@ class MCTS:
 
 
     def coordinate(self):
+
+        while not all(self.initialized):
+            MyLogger.print_and_log('Waiting for workers to initialize...', treebuilder_loc)
+            time.sleep(2)
         start_time = time.time()
         elapsed_time = time.time() - start_time
         next = 1
+        MyLogger.print_and_log('Starting cooridnation loop', treebuilder_loc)
         while (elapsed_time < self.expansion_time): # and self.waiting_for_results():
 
             if (int(elapsed_time)//5 == next):
@@ -275,10 +268,11 @@ class MCTS:
                 print ("Worked for {}/{} s".format(int(elapsed_time*10)/10.0, self.expansion_time))
                 print ("... current min-price {}".format(self.Chemicals[self.smiles].price))
                 print ("... |C| = {} |R| = {}".format(len(self.Chemicals), len(self.status)))
-                for i in range(len(self.num_active_pathways)):
-                    print('Active pathway {}: {}'.format(i, self.active_pathways[i]))
+                for _id in range(self.num_active_pathways):
+                    print('Active pathway {}: {}'.format(_id, self.active_pathways[_id]))
                 print('Expansion empty? {}'.format(self.expansion_queue.empty()))
                 print('results_queue empty? {}'.format(self.results_queue.empty()))
+                print('Active pathway pending? {}'.format(self.active_pathways_pending))
                 print('All idle? {}'.format(self.idle))
                 # print(self.expansion_queue.qsize()) # TODO: make this Celery compatible
                 # print(self.results_queue.qsize())
@@ -288,8 +282,12 @@ class MCTS:
                 # time.sleep(2)
 
             for all_outcomes in self.get_ready_result():
+                # Record that we've gotten a result for the _id of the active pathway
+                _id = all_outcomes[0][0]
+                self.active_pathways_pending[_id] -= 1
+
                 # Result of applying one template_idx to one chem_smi can be multiple eoutcomes
-                for (chem_smi, template_idx, reactants, filter_score) in all_outcomes:
+                for (_id, chem_smi, template_idx, reactants, filter_score) in all_outcomes:                        
                     # print('coord pulled {} result from result queue'.format(chem_smi))
                     self.status[(chem_smi, template_idx)] = DONE
                     # R = self.Chemicals[chem_smi].reactions[template_idx]
@@ -337,15 +335,15 @@ class MCTS:
                     CTA.reactions[reactant_smiles] = R
                        
             # See if this rollout is done (TODO: make this Celery compatible)
-            for i in range(self.num_active_pathways):
-                if self.active_pathways_pending[i] == 0: # this expansion step is done
+            for _id in range(self.num_active_pathways):
+                if self.active_pathways_pending[_id] == 0: # this expansion step is done
                     # This expansion step is done = record!
-                    self.update(self.smiles, self.active_pathways[i])
+                    self.update(self.smiles, self.active_pathways[_id])
 
                     # Set new target
                     leaves, pathway = self.select_leaf()
-                    self.active_pathways[i] = pathway 
-                    self.set_initial_target(i, leaves)
+                    self.active_pathways[_id] = pathway 
+                    self.set_initial_target(_id, leaves)
 
 
             # if self.expansion_queue.empty() and self.results_queue.empty() and all(self.idle):
@@ -377,14 +375,14 @@ class MCTS:
 
             if self.Chemicals[self.smiles].price != -1 and self.time_for_first_path == -1:
                 self.time_for_first_path = elapsed_time
+                MyLogger.print_and_log('Found the first pathway after {:.2f} seconds'.format(elapsed_time), treebuilder_loc)
 
         self.stop()
 
-        self.update(self.smiles, self.active_pathway)
-        self.active_pathway = {}
+        for _id in range(self.num_active_pathways):
+            self.update(self.smiles, self.active_pathways[_id])
+        self.active_pathways = [{} for _id in range(self.num_active_pathways)]
         # print(self.active_pathway)
-
-        print("... exited prematurely.")
 
     def work(self, i):
         # with tf.device('/gpu:%d' % (i % self.ngpus)):
@@ -393,6 +391,7 @@ class MCTS:
 
         # Load models that are required
         self.retroTransformer.get_template_prioritizers(gc.relevance)
+        self.initialized[i] = True
 
         while True:
             # If done, stop
@@ -404,25 +403,17 @@ class MCTS:
             if not self.expansion_queue.empty():
                 try:
                     self.idle[i] = False
-                    (smiles, template_idx) = self.expansion_queue.get(timeout=0.1)  # short timeout
+                    (_id, smiles, template_idx) = self.expansion_queue.get(timeout=0.1)  # short timeout
                 
-                    # print('{} grabbed {} and {} from queue'.format(i, smiles, template_idx))
-
-                    # print(_id, smiles, template_idx)
-                    # prioritizers = (self.precursor_prioritization, self.template_prioritization)
+                    # print('{} grabbed {} and {} from queue'.format(_id, smiles, template_idx))
                     try:
-                        all_outcomes = self.retroTransformer.apply_one_template_by_idx(smiles, template_idx) # TODO: add settings
+                        all_outcomes = self.retroTransformer.apply_one_template_by_idx(_id, smiles, template_idx) # TODO: add settings
                     except Exception as e:
                         print(e)
+                        all_outcomes = [(_id, smiles, template_idx, [], 0.0)]
                     # print('{} applied one template and got {}'.format(i, all_outcomes))
-
-                    # all_outcomes = list of (smiles, template_idx, reactants, filter_score)
-                    
-                    # if len(result) > 0:
-                    #     for smi in result[0]:
-                    #         prob, value = self.model.get_prob_value_from_smi(smi)
-                    #         reactants.append((smi, prob, value))
-                    #     # print(_id, smiles, template_idx, result)
+                    # all_outcomes = list of (_id, smiles, template_idx, reactants, filter_score)
+               
                     
                     self.results_queue.put(all_outcomes)
                     # print('{} put {} outcomes on queue'.format(i, len(all_outcomes)))
@@ -669,27 +660,21 @@ class MCTS:
         value = 1 # current value assigned to precursor (note: may replace with real value function)
         self.Chemicals[self.smiles] = Chemical(self.smiles)
         self.Chemicals[self.smiles].set_template_relevance_probs(probs[:truncate_to], indeces[:truncate_to], value)
+        MyLogger.print_and_log('Calculating initial probs for target', treebuilder_loc)
 
-        # print(prob, value)
-
-        # for k in range(self.nproc):
-        #     leaves = False
-        #     leaf_counter = 0 
-        #     leaves, pathway = self.select_leaf()
-        #     self.pathways[k] = pathway
-        #     self.set_initial_target(k, leaves)
-
+        # First selection is all the same
         leaves, pathway = self.select_leaf()
-        for i in range(self.num_active_pathways):
-            self.active_pathways[i] = pathway
-        self.set_initial_target(leaves)
+        for _id in range(self.num_active_pathways):
+            self.active_pathways[_id] = pathway
+            self.set_initial_target(_id, leaves)
+        MyLogger.print_and_log('Set initial leaves for active pathways', treebuilder_loc)
         
         # Coordinate workers.
         self.prepare()
         self.coordinate()
 
-
-        
+        # Do a final pass to get counts
+        MyLogger.print_and_log('Doing final update of pathway counts / prices', treebuilder_loc)
         self.full_update(self.smiles)
         C = self.Chemicals[self.smiles]
 
@@ -715,79 +700,35 @@ class MCTS:
 
 
     def reset(self):
+        '''Prepare for a new expansion'''
         if self.celery:
             # general parameters in celery format
             # TODO: anything goes here?
             pass
         else:
             self.workers = []
-            self.coordinator = None
             self.running = False
+            self.manager = Manager()
+            self.done = self.manager.Value('i', 0)
+            self.idle = self.manager.list()
+            self.initialized = self.manager.list()
+            for i in range(self.nproc):
+                self.idle.append(True)
+                self.initialized.append(False)
+            self.expansion_queue = Queue()
+            self.results_queue = Queue()
             
-        # self.pathways = [0 for i in range(self.nproc)]
-        self.active_pathways = [{} for i in range(self.num_active_pathways)]
-        self.active_pathways_pending = [False for i in range(self.num_active_pathways)]
+        self.status = {}
+        self.active_pathways = [{} for _id in range(self.num_active_pathways)]
+        self.active_pathways_pending = [0 for _id in range(self.num_active_pathways)]
         self.pathway_count = 0 
         self.mincost = 10000.0        
         self.Chemicals = {} # new
         self.Reactions = {} # new
-
-    # TODO: use these settings...
-    def get_buyable_paths(self, 
-                            smiles, 
-                            max_depth=10,
-                            max_branching=25,
-                            expansion_time=120,
-                            nproc=4,
-                            chiral=True,
-                            max_trees=5000,
-                            max_ppg=1e10,
-                            known_bad_reactions=[],
-                            forbidden_molecules=[],
-                            template_count=100,
-                            max_cum_template_prob=0.995, 
-                            max_natom_dict=defaultdict(lambda: 1e9, {'logic': None}),
-                            min_chemical_history_dict={'as_reactant':1e9, 'as_product':1e9,'logic':None},
-                            apply_fast_filter= True, 
-                            filter_threshold=0.75,
-                            **kwargs):
-
-        self.reset()
-
-        self.smiles = smiles 
-        self.max_depth = max_depth
-        self.expansion_time = expansion_time
-        self.nproc = nproc
-
-        self.manager = Manager()
-        # specificly for python multiprocessing
-        self.done = self.manager.Value('i', 0)
-        # Keep track of idle workers
-        self.idle = self.manager.list()
-        self.workers = []
-        self.coordinator = None
-        self.running = False
-
-        self.status = {}
-            
-        if not self.celery:
-            for i in range(nproc):
-                self.idle.append(True)
-
-            self.expansion_queue = Queue()
-            self.results_queue = Queue()
-
-            # if self.nproc != 1:
-            #     self.expansion_queues = [Queue() for i in range(self.nproc)]
-            #     self.results_queues   = [Queue() for i in range(self.nproc)]
-            # else:
-            #     self.expansion_queues = [Queue()]
-            #     self.results_queues   = [Queue()]
-
         self.time_for_first_path = -1
 
-        print("Starting search for {}".format(smiles))
-        self.build_tree()
+
+    def return_trees(self):
 
         def IDDFS():
             """Perform an iterative deepening depth-first search to find buyable
@@ -895,6 +836,8 @@ class MCTS:
                 print('There probably are not any real 5 component reactions')
                 print(R.reactant_smiles)
 
+
+        MyLogger.print_and_log('Retrieving trees...', treebuilder_loc)
         trees = [tree for tree in IDDFS()]
 
         # Sort by some metric
@@ -909,25 +852,57 @@ class MCTS:
                     return 1.0 + max(number_of_reactions(tree_child) for tree_child in tree['children'][0]['children'])
             return 0.0
 
+        MyLogger.print_and_log('Sorting {} trees...'.format(len(trees)), treebuilder_loc)
         trees = sorted(trees, key=lambda x: number_of_reactions(x))
 
         return self.tree_status(), trees 
 
 
-if __name__ == '__main__':
+    # TODO: use these settings...
+    def get_buyable_paths(self, 
+                            smiles, 
+                            max_depth=10,
+                            max_branching=25,
+                            expansion_time=120,
+                            nproc=4,
+                            num_active_pathways=None,
+                            chiral=True,
+                            max_trees=5000,
+                            max_ppg=1e10,
+                            known_bad_reactions=[],
+                            forbidden_molecules=[],
+                            template_count=100,
+                            max_cum_template_prob=0.995, 
+                            max_natom_dict=defaultdict(lambda: 1e9, {'logic': None}),
+                            min_chemical_history_dict={'as_reactant':1e9, 'as_product':1e9,'logic':None},
+                            apply_fast_filter= True, 
+                            filter_threshold=0.75,
+                            **kwargs):
 
-    import argparse
+        
+
+        self.smiles = smiles 
+        self.max_depth = max_depth
+        self.expansion_time = expansion_time
+        self.nproc = nproc
+        if num_active_pathways is None:
+            num_active_pathways = nproc
+        self.num_active_pathways = num_active_pathways
+
+        self.reset()
+        
+        MyLogger.print_and_log('Starting search for {}'.format(smiles), treebuilder_loc)
+        self.build_tree()
+
+        return self.return_trees()
+
+
+if __name__ == '__main__':
 
     random.seed(1)
     np.random.seed(1)
-
     MyLogger.initialize_logFile()
-    simulation_time = 60.
-    
-    smiles = "C1=CC(=C(C=C1F)F)C(CN2C=NC=N2)(CN3C=NC=N3)O"
-
-    import rdkit.Chem as Chem 
-    smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
+    simulation_time = 30.
 
     # Load tree builder 
     NCPUS = 4
@@ -935,12 +910,61 @@ if __name__ == '__main__':
     Tree = MCTS(nproc=NCPUS, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'], 
         mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'])
 
+
+    ####################################################################################
+    ############################# DEBUGGING ############################################
+    ####################################################################################
+
+    smiles = "C1=CC(=C(C=C1F)F)C(CN2C=NC=N2)(CN3C=NC=N3)O"
+    import rdkit.Chem as Chem 
+    smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
     status, paths = Tree.get_buyable_paths(smiles,
                                         nproc=NCPUS,
                                         expansion_time=simulation_time)
-
     print(status)
     for path in paths[:5]:
         print(path)
-
     print('Total num paths: {}'.format(len(paths)))
+
+    ####################################################################################
+    ############################# TESTING ##############################################
+    ####################################################################################
+
+    f = open('test_smiles.txt')
+    N = 5
+    smiles_list = [line.strip() for line in f]
+
+    ########### STAGE 1 - PROCESS ALL CHEMICALS
+    with open('chemicals.pkl', 'wb') as fid:
+        for _id, smiles in enumerate(smiles_list[:N]): 
+            smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
+            status, paths = Tree.get_buyable_paths(smiles,
+                                                nproc=NCPUS,
+                                                expansion_time=simulation_time)
+    
+            pickle.dump((Tree.Chemicals, Tree.time_for_first_path, paths), fid)
+
+    ########### STAGE 2 - ANALYZE RESULTS
+    success = 0
+    total = 0
+    first_time = []
+    pathway_count = []
+    min_price = []
+    with open('chemicals.pkl', 'rb') as fid:
+        for _id, smiles in enumerate(smiles_list[:N]): 
+            smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
+            (Chemicals, ftime, paths) = pickle.load(fid)
+
+            total += 1
+            if Chemicals[smiles].price != -1:
+                success += 1
+                first_time.append(ftime)
+                pathway_count.append(len(paths))
+                min_price.append(Chemicals[smiles].price)
+
+        print('After looking at chemical index {}'.format(_id))
+        print('Success ratio: %f (%d/%d)' % (float(success)/total), success, total)        
+        print('average time for first pathway: %f' % np.mean(first_time))
+        print('average number of pathways:     %f' % np.mean(pathway_count))
+        print('average minimum price:          %f' % np.mean(min_price))
+    
