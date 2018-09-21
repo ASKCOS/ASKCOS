@@ -585,7 +585,7 @@ class MCTS:
                         C.price = R.price
 
         if sum(len(CTA.reactions) for tid,CTA in C.template_idx_results.items()) >= self.max_branching:
-            print('{} hit max branching, checking if "done"'.format(chem_smi))
+            # print('{} hit max branching, checking if "done"'.format(chem_smi))
             C.done = all([(R.done or (not R.valid)) for rsmi,R in CTA.reactions.items() for tid,CTA in C.template_idx_results.items()])
 
         # if C.price != -1 and C.price < C.estimate_price:
@@ -930,11 +930,11 @@ if __name__ == '__main__':
     ############################# TESTING ##############################################
     ####################################################################################
 
-    f = open('test_smiles.txt')
-    N = 5
+    f = open(os.path.join(os.path.dirname(__file__), 'test_smiles.txt'))
+    N = 500
     smiles_list = [line.strip() for line in f]
 
-    ########### STAGE 1 - PROCESS ALL CHEMICALS
+    # ########### STAGE 1 - PROCESS ALL CHEMICALS
     with open('chemicals.pkl', 'wb') as fid:
         for _id, smiles in enumerate(smiles_list[:N]): 
             smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
@@ -963,7 +963,7 @@ if __name__ == '__main__':
                 min_price.append(Chemicals[smiles].price)
 
         print('After looking at chemical index {}'.format(_id))
-        print('Success ratio: %f (%d/%d)' % (float(success)/total), success, total)        
+        print('Success ratio: %f (%d/%d)' % (float(success)/total, success, total)  )      
         print('average time for first pathway: %f' % np.mean(first_time))
         print('average number of pathways:     %f' % np.mean(pathway_count))
         print('average minimum price:          %f' % np.mean(min_price))
