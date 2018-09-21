@@ -247,7 +247,7 @@ class RetroTransformer(TemplateTransformer):
 
 
 
-    def apply_one_template(self, react_mol, smiles, template, smiles_list_only=False, **kwargs):
+    def apply_one_template(self, react_mol, smiles, template, **kwargs):
         """Takes a mol object and applies a single template
                 
         Arguments:
@@ -306,21 +306,17 @@ class RetroTransformer(TemplateTransformer):
                 # no transformation
                 continue
 
-            if smiles_list_only:
-                yield sorted(smiles_list)
-            else:
-                precursor = RetroPrecursor(
-                    smiles_list=sorted(smiles_list),
-                    template_id=str(template['_id']),
-                    template_score=template['score'],
-                    num_examples=template['count'],
-                    necessary_reagent=template['necessary_reagent']
-                )
+            precursor = RetroPrecursor(
+                smiles_list=sorted(smiles_list),
+                template_id=str(template['_id']),
+                template_score=template['score'],
+                num_examples=template['count'],
+                necessary_reagent=template['necessary_reagent']
+            )
 
-                results.append(precursor)
+            results.append(precursor)
 
-        if not smiles_list_only:
-            return results
+        return results
 
     def top_templates(self, target, **kwargs):
         """Generator to return only top templates. 
