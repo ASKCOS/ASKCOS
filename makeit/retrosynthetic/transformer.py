@@ -203,7 +203,7 @@ class RetroTransformer(TemplateTransformer):
             mol = rdchiralReactants(smiles)
 
         all_outcomes = []; seen_reactants = {}; seen_reactant_combos = [];
-        for smiles_list in self.apply_one_template(mol, smiles, self.templates[template_idx], smiles_list_only=True):
+        for smiles_list in self.apply_one_template_smilesonly(mol, smiles, self.templates[template_idx]):
 
             # Avoid duplicate outcomes (e.g., by symmetry)
             reactant_smiles = '.'.join(smiles_list)
@@ -245,7 +245,50 @@ class RetroTransformer(TemplateTransformer):
 
         return all_outcomes
 
+    def apply_one_template_smilesonly(self, react_mol, smiles, template, **kwargs):
+        """Takes a mol object and applies a single template
+                
+        Arguments:
+            react_mol {rdchiralReactants} -- Initialized reactant object using
+                RDChiral helper package; is the target compound to find 
+                precursors for
+            smiles {string} -- Product SMILES (no atom mapping)
+            template {dict} -- Template to be applied, containing an initialized
+                rdchiralReaction object as its 'rxn' field
+            smiles_list_only -- boolean for whether we only care about the
+                list of reactant smiles strings
+            **kwargs -- Additional kwargs to accept deprecated options
+        
+        Returns:
+            yields results in the form of smiles_lists
+        """
+        if template is None:
+            return []
+        try:
+            if self.chiral:
+                outcomes = rdchiralRun(template['rxn'], react_mol)
+            else:
+                outcomes = template['rxn'].RunReactants([react_mol])
+        except Exception as e:
+            return []
 
+        results = []
+        for j, outcome in enumerate(outcomes):
+            smiles_list = []
+            # Output of rdchiral is (a list of) smiles of the products.
+            smiles_list = outcome.split('.')
+
+            if template['intra_only'] and len(smiles_list) > 1:
+                # Disallowed intermolecular reaction
+                continue
+            if template['dimer_only'] and (len(set(smiles_list)) != 1 or len(smiles_list) != 2):
+                # Not a dimer
+                continue
+            if '.'.join(smiles_list) == smiles:
+                # no transformation
+                continue
+
+            yield smiles_list
 
     def apply_one_template(self, react_mol, smiles, template, **kwargs):
         """Takes a mol object and applies a single template
