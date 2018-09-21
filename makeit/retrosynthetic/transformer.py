@@ -262,7 +262,7 @@ class RetroTransformer(TemplateTransformer):
         Returns:
             yields results in the form of smiles_lists
         """
-        if template not is None:
+        if template is not None:
             try:
                 if self.chiral:
                     outcomes = rdchiralRun(template['rxn'], react_mol)
