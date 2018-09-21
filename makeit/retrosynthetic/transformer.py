@@ -262,33 +262,30 @@ class RetroTransformer(TemplateTransformer):
         Returns:
             yields results in the form of smiles_lists
         """
-        if template is None:
-            return []
-        try:
-            if self.chiral:
-                outcomes = rdchiralRun(template['rxn'], react_mol)
-            else:
-                outcomes = template['rxn'].RunReactants([react_mol])
-        except Exception as e:
-            return []
+        if template not is None:
+            try:
+                if self.chiral:
+                    outcomes = rdchiralRun(template['rxn'], react_mol)
+                else:
+                    outcomes = template['rxn'].RunReactants([react_mol])
+                results = []
+                for j, outcome in enumerate(outcomes):
+                    smiles_list = []
+                    # Output of rdchiral is (a list of) smiles of the products.
+                    smiles_list = outcome.split('.')
 
-        results = []
-        for j, outcome in enumerate(outcomes):
-            smiles_list = []
-            # Output of rdchiral is (a list of) smiles of the products.
-            smiles_list = outcome.split('.')
-
-            if template['intra_only'] and len(smiles_list) > 1:
-                # Disallowed intermolecular reaction
-                continue
-            if template['dimer_only'] and (len(set(smiles_list)) != 1 or len(smiles_list) != 2):
-                # Not a dimer
-                continue
-            if '.'.join(smiles_list) == smiles:
-                # no transformation
-                continue
-
-            yield smiles_list
+                    if template['intra_only'] and len(smiles_list) > 1:
+                        # Disallowed intermolecular reaction
+                        continue
+                    if template['dimer_only'] and (len(set(smiles_list)) != 1 or len(smiles_list) != 2):
+                        # Not a dimer
+                        continue
+                    if '.'.join(smiles_list) == smiles:
+                        # no transformation
+                        continue
+                    yield smiles_list
+            except Exception as e:
+                pass
 
     def apply_one_template(self, react_mol, smiles, template, **kwargs):
         """Takes a mol object and applies a single template
