@@ -491,3 +491,9 @@ if __name__ == '__main__':
     reactant_smiles = 'CC(=O)OCCCO'
     outcomes = rdchiralRunText(reaction_smarts, reactant_smiles)
     print(outcomes)
+
+    PLEVEL = 5
+    reaction_smarts = '[#7:1]-[C:2](=[O;D1;H0:3])-[CH;@;D3;+0:4]1-[CH2;D2;+0:5]-[CH;@;D3;+0:9](-[C:7](-[#8:6])=[O;D1;H0:8])-[NH;D2;+0:10]-[CH;@;D3;+0:11]-1-[c:12]>>[#7:1]-[C:2](=[O;D1;H0:3])-[CH;D2;+0:4]=[CH2;D1;+0:5].[#8:6]-[C:7](=[O;D1;H0:8])-[CH2;D2;+0:9]/[N;H0;D2;+0:10]=[CH;D2;+0:11]/[c:12]'
+    reactant_smiles = 'CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1'
+    outcomes = rdchiralRunText(reaction_smarts, reactant_smiles)
+    print(outcomes)
