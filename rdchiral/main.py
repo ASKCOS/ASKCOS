@@ -150,6 +150,7 @@ def rdchiralRun(rxn, reactants, keep_isotopes=False, combine_enantiomers=True):
         prev = None
         skip_outcome = False
         for match in (atom_chirality_matches(atoms_rt[i], atoms_r[i]) for i in atoms_rt):
+            print(match)
             if match == 0: 
                 if PLEVEL >= 2: print('Chirality violated! Should not have gotten this match')
                 skip_outcome = True 
