@@ -122,7 +122,7 @@ class MCTS:
             self.pricer.load()
 
         # Initialize vars, reset dicts, etc.
-        self.reset()
+        self.reset(soft_reset=False) # hard
 
 
         # Get template relevance model - need for target to get things started
@@ -186,6 +186,14 @@ class MCTS:
                         'Did not find an available pool of workers! Try again later ({})'.format(e))
         else:
             def prepare():
+                if len(self.workers) == self.nproc:
+                    all_alive = True 
+                    for p in self.workers:
+                        if not (p and p.is_alive()):
+                            all_alive = False
+                    if all_alive:
+                        MyLogger.print_and_log('Found {} alive child processes, not generating new ones'.format(self.nproc), treebuilder_loc)
+                        return
                 MyLogger.print_and_log('Tree builder spinning off {} child processes'.format(self.nproc), treebuilder_loc)
                 for i in range(self.nproc):
                     p = Process(target=self.work, args=(i,))
@@ -220,17 +228,19 @@ class MCTS:
 
         # Define method to stop working.
         if self.celery:
-            def stop():
+            def stop(soft_stop=False):
+                self.running = False
                 pass
         else:
-            def stop():
+            def stop(soft_stop=False):
                 if not self.running:
                     return
-                self.done.value = 1
                 #MyLogger.print_and_log('Terminating tree building process.', treebuilder_loc)
-                for p in self.workers:
-                    if p and p.is_alive():
-                        p.terminate()
+                if not soft_stop:
+                    self.done.value = 1
+                    for p in self.workers:
+                        if p and p.is_alive():
+                            p.terminate()
                 #MyLogger.print_and_log('All tree building processes done.', treebuilder_loc)
                 self.running = False
         self.stop = stop
@@ -252,7 +262,7 @@ class MCTS:
             self.Reactions[rxn_key].rewards = []
 
 
-    def coordinate(self):
+    def coordinate(self, soft_stop=False):
 
         while not all(self.initialized):
             MyLogger.print_and_log('Waiting for workers to initialize...', treebuilder_loc)
@@ -284,6 +294,7 @@ class MCTS:
             for all_outcomes in self.get_ready_result():
                 # Record that we've gotten a result for the _id of the active pathway
                 _id = all_outcomes[0][0]
+                print('coord got outcomes for pathway ID {}'.format(_id))
                 self.active_pathways_pending[_id] -= 1
 
                 # Result of applying one template_idx to one chem_smi can be multiple eoutcomes
@@ -298,6 +309,7 @@ class MCTS:
                     # Any proposed reactants?
                     if len(reactants) == 0: 
                         CTA.valid = False # no precursors, reaction failed
+                        print('No reactants found for {} {}'.format(_id, chem_smi))
                         continue
 
                     # Get reactants SMILES
@@ -377,7 +389,7 @@ class MCTS:
                 self.time_for_first_path = elapsed_time
                 MyLogger.print_and_log('Found the first pathway after {:.2f} seconds'.format(elapsed_time), treebuilder_loc)
 
-        self.stop()
+        self.stop(soft_stop=soft_stop)
 
         for _id in range(self.num_active_pathways):
             self.update(self.smiles, self.active_pathways[_id])
@@ -639,14 +651,9 @@ class MCTS:
         #   print(prefix + chem_smi + ' %d paths, price: %.1f' % (C.pathway_count, C.price))
 
 
-    def build_tree(self):
+    def build_tree(self, soft_stop=False):
 
         self.running = True
-
-        # Reset dicts
-        Chemicals, Reactions = {}, {}
-        self.Chemicals = Chemicals
-        self.Reactions = Reactions
         
         # Define first chemical node (target)
         max_cum_prob = 0.995 # TODO: make setting
@@ -661,6 +668,8 @@ class MCTS:
         self.Chemicals[self.smiles] = Chemical(self.smiles)
         self.Chemicals[self.smiles].set_template_relevance_probs(probs[:truncate_to], indeces[:truncate_to], value)
         MyLogger.print_and_log('Calculating initial probs for target', treebuilder_loc)
+        print(probs)
+        print(indeces)
 
         # First selection is all the same
         leaves, pathway = self.select_leaf()
@@ -671,7 +680,7 @@ class MCTS:
         
         # Coordinate workers.
         self.prepare()
-        self.coordinate()
+        self.coordinate(soft_stop=soft_stop)
 
         # Do a final pass to get counts
         MyLogger.print_and_log('Doing final update of pathway counts / prices', treebuilder_loc)
@@ -699,25 +708,45 @@ class MCTS:
         return (num_chemicals, num_reactions, [])
 
 
-    def reset(self):
-        '''Prepare for a new expansion'''
+    def reset(self, soft_reset=False):
+        '''Prepare for a new expansion
+
+        TODO: add "soft" feature which does not spin up new workers'''
         if self.celery:
             # general parameters in celery format
             # TODO: anything goes here?
             pass
         else:
-            self.workers = []
-            self.running = False
-            self.manager = Manager()
-            self.done = self.manager.Value('i', 0)
-            self.idle = self.manager.list()
-            self.initialized = self.manager.list()
-            for i in range(self.nproc):
-                self.idle.append(True)
-                self.initialized.append(False)
-            self.expansion_queue = Queue()
-            self.results_queue = Queue()
             
+            if not soft_reset:
+                MyLogger.print_and_log('Doing a hard worker reset', treebuilder_loc)
+                self.workers = []
+                self.manager = Manager()
+                self.done = self.manager.Value('i', 0)
+                self.idle = self.manager.list()
+                self.initialized = self.manager.list()
+                for i in range(self.nproc):
+                    self.idle.append(True)
+                    self.initialized.append(False)
+                self.expansion_queue = Queue()
+                self.results_queue = Queue()
+            else:
+                MyLogger.print_and_log('Doing a soft worker reset', treebuilder_loc)
+                for i in range(self.nproc):
+                    self.idle[i] = True 
+                try:
+                    while True:
+                        self.expansion_queue.get(timeout=1)
+                except VanillaQueue.Empty:
+                    pass
+            
+                try:
+                    while True:
+                        self.results_queue.get(timeout=1)
+                except VanillaQueue.Empty:
+                    pass
+
+        self.running = False  
         self.status = {}
         self.active_pathways = [{} for _id in range(self.num_active_pathways)]
         self.active_pathways_pending = [0 for _id in range(self.num_active_pathways)]
@@ -838,7 +867,11 @@ class MCTS:
 
 
         MyLogger.print_and_log('Retrieving trees...', treebuilder_loc)
-        trees = [tree for tree in IDDFS()]
+        trees = []
+        for tree in IDDFS():
+            trees.append(tree)
+            if len(trees) >= self.max_trees:
+                break
 
         # Sort by some metric
         def number_of_starting_materials(tree):
@@ -875,8 +908,9 @@ class MCTS:
                             max_cum_template_prob=0.995, 
                             max_natom_dict=defaultdict(lambda: 1e9, {'logic': None}),
                             min_chemical_history_dict={'as_reactant':1e9, 'as_product':1e9,'logic':None},
-                            apply_fast_filter= True, 
+                            apply_fast_filter=True, 
                             filter_threshold=0.75,
+                            soft_reset=False,
                             **kwargs):
 
         
@@ -888,11 +922,12 @@ class MCTS:
         if num_active_pathways is None:
             num_active_pathways = nproc
         self.num_active_pathways = num_active_pathways
+        self.max_trees = max_trees
 
-        self.reset()
+        self.reset(soft_reset=soft_reset)
         
         MyLogger.print_and_log('Starting search for {}'.format(smiles), treebuilder_loc)
-        self.build_tree()
+        self.build_tree(soft_stop=kwargs.pop('soft_stop', False))
 
         return self.return_trees()
 
@@ -915,16 +950,19 @@ if __name__ == '__main__':
     ############################# DEBUGGING ############################################
     ####################################################################################
 
-    smiles = "C1=CC(=C(C=C1F)F)C(CN2C=NC=N2)(CN3C=NC=N3)O"
+    smiles = "CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1"
     import rdkit.Chem as Chem 
     smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
     status, paths = Tree.get_buyable_paths(smiles,
                                         nproc=NCPUS,
-                                        expansion_time=simulation_time)
+                                        expansion_time=simulation_time,
+                                        soft_reset=False,
+                                        soft_stop=True)
     print(status)
     for path in paths[:5]:
         print(path)
     print('Total num paths: {}'.format(len(paths)))
+    quit(1)
 
     ####################################################################################
     ############################# TESTING ##############################################
@@ -932,7 +970,7 @@ if __name__ == '__main__':
 
     f = open(os.path.join(os.path.dirname(__file__), 'test_smiles.txt'))
     N = 500
-    smiles_list = [line.strip() for line in f]
+    smiles_list = [line.strip().split('.')[0] for line in f]
 
     # ########### STAGE 1 - PROCESS ALL CHEMICALS
     with open('chemicals.pkl', 'wb') as fid:
@@ -940,7 +978,9 @@ if __name__ == '__main__':
             smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
             status, paths = Tree.get_buyable_paths(smiles,
                                                 nproc=NCPUS,
-                                                expansion_time=simulation_time)
+                                                expansion_time=simulation_time,
+                                                soft_reset=True,
+                                                soft_stop=True)
     
             pickle.dump((Tree.Chemicals, Tree.time_for_first_path, paths), fid)
 
