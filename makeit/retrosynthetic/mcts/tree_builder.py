@@ -12,7 +12,7 @@ from makeit.utilities.io.logger import MyLogger
 from makeit.utilities.io import model_loader
 from makeit.utilities.formats import chem_dict, rxn_dict
 import askcos_site.askcos_celery.treebuilder.tb_c_worker as tb_c_worker
-
+import rdkit.Chem as Chem 
 from collections import defaultdict 
 
 import makeit.global_config as gc
@@ -285,7 +285,7 @@ class MCTS:
             self.Reactions[rxn_key].rewards = []
 
 
-    def coordinate(self, soft_stop=False, known_bad_reactions=[], forbidden_molecules=[]):
+    def coordinate(self, soft_stop=False, known_bad_reactions=[], forbidden_molecules=[], return_first=False):
 
         if not self.celery:
             while not all(self.initialized):
@@ -439,6 +439,9 @@ class MCTS:
             if self.Chemicals[self.smiles].price != -1 and self.time_for_first_path == -1:
                 self.time_for_first_path = elapsed_time
                 MyLogger.print_and_log('Found the first pathway after {:.2f} seconds'.format(elapsed_time), treebuilder_loc)
+                if return_first:
+                    MyLogger.print_and_log('Stoping expansion to return first pathway as requested', treebuilder_loc)
+                    break
 
             if  all(pathway == {} for pathway in self.active_pathways) and len(self.pending_results) == 0:
                 MyLogger.print_and_log('Cannot expand any further! Stuck?', treebuilder_loc)
@@ -706,7 +709,7 @@ class MCTS:
         #   print(prefix + chem_smi + ' %d paths, price: %.1f' % (C.pathway_count, C.price))
 
 
-    def build_tree(self, soft_stop=False, known_bad_reactions=[], forbidden_molecules=[]):
+    def build_tree(self, soft_stop=False, known_bad_reactions=[], forbidden_molecules=[], return_first=False):
 
         self.running = True
 
@@ -744,7 +747,7 @@ class MCTS:
             
             # Coordinate workers.
             self.coordinate(soft_stop=soft_stop, known_bad_reactions=known_bad_reactions,
-                forbidden_molecules=forbidden_molecules)
+                forbidden_molecules=forbidden_molecules, return_first=return_first)
 
             # Do a final pass to get counts
             MyLogger.print_and_log('Doing final update of pathway counts / prices', treebuilder_loc)
@@ -1009,6 +1012,7 @@ class MCTS:
                             apply_fast_filter=True, 
                             filter_threshold=0.75,
                             soft_reset=False,
+                            return_first=False,
                             **kwargs):
 
         
@@ -1091,6 +1095,7 @@ class MCTS:
         self.build_tree(soft_stop=kwargs.pop('soft_stop', False), 
             known_bad_reactions=known_bad_reactions,
             forbidden_molecules=forbidden_molecules,
+            return_first=return_first,
         )
 
         return self.return_trees()
