@@ -381,16 +381,18 @@ class MCTS:
                             
                             ppg = self.pricer.lookup_smiles(smi, alreadyCanonical=True)
                             self.Chemicals[smi].purchase_price = ppg
-                            if ppg is not None and ppg > 0:
-                                self.Chemicals[smi].set_price(ppg)
-                                self.Chemicals[smi].terminal = True 
+                            # if ppg is not None and ppg > 0:
+                            #     self.Chemicals[smi].set_price(ppg)
 
                             hist = self.chemhistorian.lookup_smiles(smi, alreadyCanonical=True)
                             self.Chemicals[smi].as_reactant = hist['as_reactant']
                             self.Chemicals[smi].as_product = hist['as_product']
 
                             if self.is_a_terminal_node(smi, ppg, hist):
+                                self.Chemicals[smi].set_price(1) # all nodes treated the same for now
                                 self.Chemicals[smi].terminal = True
+                                self.Chemicals[smi].done = True 
+                                # print('TERMINAL: {}'.format(self.Chemicals[smi]))# DEBUG
 
                     R.estimate_price = sum([self.Chemicals[smi].estimate_price for smi in R.reactant_smiles])
 
@@ -667,7 +669,7 @@ class MCTS:
         C = self.Chemicals[chem_smi]
         C.pathway_count = 0
 
-        if C.terminal != -1:
+        if C.terminal:
             C.pathway_count = 1
             return
 
@@ -830,7 +832,7 @@ class MCTS:
             '''Prepares extra info'''
             return {
                 'smiles': smi,
-                'ppg': self.Chemicals[smi].price,
+                'ppg': self.Chemicals[smi].purchase_price,
                 'as_reactant': self.Chemicals[smi].as_reactant,
                 'as_product': self.Chemicals[smi].as_product,
             }
@@ -1125,6 +1127,26 @@ if __name__ == '__main__':
         mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
         celery=celery)
 
+    ####################################################################################
+    ############################# SCOPOLAMINE TEST #####################################
+    ####################################################################################
+
+    smiles = 'CN1[C@H]2CC(OC(=O)[C@H](CO)c3ccccc3)C[C@@H]1[C@H]1O[C@@H]21'
+    import rdkit.Chem as Chem 
+    smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
+    status, paths = Tree.get_buyable_paths(smiles,
+                                        nproc=NCPUS,
+                                        expansion_time=30,
+                                        max_cum_template_prob=0.9999,
+                                        template_count=1000,
+                                        min_chemical_history_dict={'as_reactant':5, 'as_product':5,'logic':'or'},
+                                        soft_reset=False,
+                                        soft_stop=True)
+    print(status)
+    for path in paths[:5]:
+        print(path)
+    print('Total num paths: {}'.format(len(paths)))
+    quit(1)
 
     ####################################################################################
     ############################# DEBUGGING ############################################
