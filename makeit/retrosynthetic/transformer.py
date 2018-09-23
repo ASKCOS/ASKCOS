@@ -203,9 +203,7 @@ class RetroTransformer(TemplateTransformer):
             mol = rdchiralReactants(smiles)
 
         all_outcomes = []; seen_reactants = {}; seen_reactant_combos = [];
-        print(self.templates[template_idx])
         for smiles_list in self.apply_one_template_smilesonly(mol, smiles, self.templates[template_idx]):
-            print(smiles_list)
             # Avoid duplicate outcomes (e.g., by symmetry)
             reactant_smiles = '.'.join(smiles_list)
             if reactant_smiles in seen_reactant_combos:
