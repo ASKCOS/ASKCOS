@@ -840,22 +840,20 @@ class MCTS:
             }
 
         seen_rxnsmiles = {}
-        current_index = 1
+        self.current_index = 1
         def rxnsmiles_to_id(smi):
-            global current_index
             if smi in seen_rxnsmiles:
                 return seen_rxnsmiles[smi]
             else:
-                seen_rxnsmiles[smi] = current_index
-                current_index += 1
+                seen_rxnsmiles[smi] = self.current_index
+                self.current_index += 1
         seen_chemsmiles = {}
         def chemsmiles_to_id(smi):
-            global current_index
             if smi in seen_chemsmiles:
                 return seen_chemsmiles[smi]
             else:
-                seen_chemsmiles[smi] = current_index
-                current_index += 1
+                seen_chemsmiles[smi] = self.current_index
+                self.current_index += 1
 
         def IDDFS():
             """Perform an iterative deepening depth-first search to find buyable
