@@ -731,6 +731,9 @@ class MCTS:
             self.Chemicals[self.smiles] = Chemical(self.smiles)
             self.Chemicals[self.smiles].set_template_relevance_probs(probs[:truncate_to], indeces[:truncate_to], value)
             MyLogger.print_and_log('Calculating initial probs for target', treebuilder_loc)
+            hist = self.chemhistorian.lookup_smiles(self.smiles, alreadyCanonical=False)
+            self.Chemicals[self.smiles].as_reactant = hist['as_reactant']
+            self.Chemicals[self.smiles].as_product = hist['as_product']
 
             # First selection is all the same
             leaves, pathway = self.select_leaf()
