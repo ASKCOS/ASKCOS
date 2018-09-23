@@ -7,7 +7,10 @@ class Chemical(object):
         # self.reactions = {} # TODO: deprecate, since it doesn't allow for branching
         self.template_idx_results = {} # key is template_idx, value is a CTA
         self.purchase_price = -1
+        self.as_reactant = -1
+        self.as_product = -1
         self.visit_count = 0
+        self.terminal = False 
 
         # Counter param used for the DFS search. 
         self.estimate_price = -1         # estimated min cost
@@ -34,10 +37,9 @@ class Chemical(object):
     def set_price(self, value, all_cost_1=True):
         try:
             ppg = float(value)
-            self.price = ppg
             if ppg > 0 and all_cost_1:
                 ppg = 1.
-            self.purchase_price = ppg
+            self.price = ppg
             self.estimate_price = ppg
             self.done = True
         except:

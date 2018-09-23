@@ -124,6 +124,13 @@ class MCTS:
             self.pricer = Pricer()
             self.pricer.load()
 
+
+        self.chemhistorian = chemhistorian
+        if chemhistorian is None:
+            from makeit.utilities.historian.chemicals import ChemHistorian 
+            self.chemhistorian = ChemHistorian()
+            self.chemhistorian.load_from_file(refs=False, compressed=True)
+
         # Initialize vars, reset dicts, etc.
         self.reset(soft_reset=False) # hard
 
@@ -147,6 +154,14 @@ class MCTS:
                                                                             chiral=self.chiral)
                 self.retroTransformer.load_fast_filter()
                 # don't load template prioritizer until later, TF doesn't like forking
+        else:
+            # Still need to load to have num refs, etc.
+            MyLogger.print_and_log('Loading transforms for informational purposes only', treebuilder_loc)
+            self.retroTransformer = RetroTransformer(mincount=self.mincount, mincount_chiral=self.mincount_chiral)
+            self.retroTransformer.load(chiral=True, rxns=False)
+            MyLogger.print_and_log('...done loading informational transforms!', treebuilder_loc)
+
+
 
         if self.celery:
             def expand(_id, smiles, template_idx): # TODO: make Celery workers
@@ -252,9 +267,9 @@ class MCTS:
                 self.running = False
         self.stop = stop
 
-    def get_price(self, chem_smi):
-        ppg = self.pricer.lookup_smiles(chem_smi, alreadyCanonical=True)
-        return ppg
+    # def get_price(self, chem_smi):
+    #     ppg = self.pricer.lookup_smiles(chem_smi, alreadyCanonical=True)
+    #     return ppg
         # if ppg:
         #   return 0.0
         # else:
@@ -351,9 +366,20 @@ class MCTS:
                         if smi not in self.Chemicals:
                             self.Chemicals[smi] = Chemical(smi)
                             self.Chemicals[smi].set_template_relevance_probs(top_probs, top_indeces, value)
-                            ppg = self.get_price(smi)
+                            
+                            ppg = self.pricer.lookup_smiles(smi, alreadyCanonical=True)
+                            self.Chemicals[smi].purchase_price = ppg
                             if ppg is not None and ppg > 0:
                                 self.Chemicals[smi].set_price(ppg)
+                                self.Chemicals[smi].terminal = True 
+
+                            hist = self.chemhistorian.lookup_smiles(smi, alreadyCanonical=True)
+                            self.Chemicals[smi].as_reactant = hist['as_reactant']
+                            self.Chemicals[smi].as_product = hist['as_product']
+
+                            if self.is_a_terminal_node(smi, ppg, hist):
+                                self.Chemicals[smi].terminal = True
+
                     R.estimate_price = sum([self.Chemicals[smi].estimate_price for smi in R.reactant_smiles])
 
                     # Add this reaction result to CTA (key = reactant smiles)
@@ -626,7 +652,7 @@ class MCTS:
         C = self.Chemicals[chem_smi]
         C.pathway_count = 0
 
-        if C.purchase_price != -1:
+        if C.terminal != -1:
             C.pathway_count = 1
             return
 
@@ -778,8 +804,15 @@ class MCTS:
             '''Prepares extra info'''
             return {
                 'ppg': self.Chemicals[smi].price,
-                'as_reactant': 0,
-                'as_product': 0,
+                'as_reactant': self.Chemicals[smi].as_reactant,
+                'as_product': self.Chemicals[smi].as_product,
+            }
+
+        def tidlisttoinfodict(tids):
+            return {
+                'tforms': [str(self.retroTransformer.templates[tid]['_id']) for tid in tids],
+                'num_examples': int(sum([self.retroTransformer.templates[tid]['count'] for tid in tids])),
+                'necessary_reagent': self.retroTransformer.templates[tids[0]]['necessary_reagent'],
             }
 
         def IDDFS():
@@ -796,7 +829,7 @@ class MCTS:
         def DLS_chem(chem_smi, depth, headNode=False):
             """Expand at a fixed depth for the current node chem_id."""
             C = self.Chemicals[chem_smi]
-            if C.purchase_price != -1:
+            if C.terminal:
                 yield []
 
             if depth > self.max_depth:
@@ -813,7 +846,7 @@ class MCTS:
                     if rxn_smiles not in done_children_of_this_chemical: # necessary to avoid duplicates
                         for path in DLS_rxn(chem_smi, tid, rct_smi, depth):
                             yield [rxn_dict(tid, rxn_smiles, children=path, plausibility=R.plausibility,
-                                tforms=R.tforms, template_score=R.template_score)]
+                                template_score=R.template_score, **tidlisttoinfodict(R.tforms))]
                             # TODO: figure out when to include num_examples
                         done_children_of_this_chemical.append(rxn_smiles)
 
@@ -955,6 +988,61 @@ class MCTS:
         self.min_chemical_history_dict = min_chemical_history_dict
         self.max_natom_dict = max_natom_dict
         self.max_ppg = max_ppg
+
+
+        if min_chemical_history_dict['logic'] not in [None, 'none'] and \
+                self.chemhistorian is None:
+            from makeit.utilities.historian.chemicals import ChemHistorian 
+            self.chemhistorian = ChemHistorian()
+            self.chemhistorian.load_from_file(refs=False, compressed=True)
+            MyLogger.print_and_log('Loaded compressed chemhistorian from file', treebuilder_loc, level=1)
+
+        # Define stop criterion
+        def is_buyable(ppg):
+            return ppg and (ppg <= self.max_ppg)
+        def is_small_enough(smiles):
+            # Get structural properties
+            natom_dict = defaultdict(lambda: 0)
+            mol = Chem.MolFromSmiles(smiles)
+            if not mol:
+                return False
+            for a in mol.GetAtoms():
+                natom_dict[a.GetSymbol()] += 1
+            natom_dict['H'] = sum(a.GetTotalNumHs() for a in mol.GetAtoms())
+            max_natom_satisfied = all(natom_dict[k] <= v for (
+                k, v) in max_natom_dict.items() if k != 'logic')
+            return max_natom_satisfied
+        def is_popular_enough(hist):
+            return hist['as_reactant'] >= min_chemical_history_dict['as_reactant'] or \
+                    hist['as_product'] >= min_chemical_history_dict['as_product']
+        
+        if min_chemical_history_dict['logic'] in [None, 'none']:
+            if max_natom_dict['logic'] in [None, 'none']:
+                def is_a_terminal_node(smiles, ppg, hist):
+                    return is_buyable(ppg)
+            elif max_natom_dict['logic'] == 'or':
+                def is_a_terminal_node(smiles, ppg, hist):
+                    return is_buyable(ppg) or is_small_enough(smiles)
+            else:
+                def is_a_terminal_node(smiles, ppg, hist):
+                    return is_buyable(ppg) and is_small_enough(smiles)
+        else:
+            if max_natom_dict['logic'] in [None, 'none']:
+                def is_a_terminal_node(smiles, ppg, hist):
+                    return is_buyable(ppg) or is_popular_enough(hist)
+            elif max_natom_dict['logic'] == 'or':
+                def is_a_terminal_node(smiles, ppg, hist):
+                    return is_buyable(ppg) or is_popular_enough(hist) or is_small_enough(smiles)
+            else:
+                def is_a_terminal_node(smiles, ppg, hist):
+                    return is_popular_enough(hist) or (is_buyable(ppg) and is_small_enough(smiles))
+            
+        self.is_a_terminal_node = is_a_terminal_node
+
+
+
+
+
 
 
         self.reset(soft_reset=soft_reset)
