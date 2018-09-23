@@ -26,7 +26,7 @@ from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors
 from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors
 from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
 
-@login_required
+#@login_required
 def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
     '''
     Retrosynthesis homepage
@@ -172,7 +172,8 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             {'name': 'Nevirapine', 'smiles': 'Cc1ccnc2N(C3CC3)c4ncccc4C(=O)Nc12'},
             {'name': 'Atropine', 'smiles': 'CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3'},
             {'name': 'Diazepam', 'smiles': 'CN1C(=O)CN=C(c2ccccc2)c3cc(Cl)ccc13'},
-            {'name': 'Hydroxychloroquine', 'smiles': 'CCN(CCO)CCCC(C)Nc1ccnc2cc(Cl)ccc12'},
+        ]
+        hidden = [{'name': 'Hydroxychloroquine', 'smiles': 'CCN(CCO)CCCC(C)Nc1ccnc2cc(Cl)ccc12'},
             {'name': 'Ibuprofen', 'smiles': 'CC(C)Cc1ccc(cc1)C(C)C(O)=O'},
             {'name': 'Tramadol', 'smiles': 'CN(C)C[C@H]1CCCC[C@@]1(C2=CC(=CC=C2)OC)O'},
             {'name': 'Lamivudine', 'smiles': 'NC1=NC(=O)N(C=C1)[C@@H]2CS[C@H](CO)O2'},
@@ -192,7 +193,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
     context['footnote'] = RETRO_CHIRAL_FOOTNOTE
     return render(request, 'retro.html', context)
 
-@login_required
+#@login_required
 def retro_target(request, smiles):
     '''
     Given a target molecule, render page

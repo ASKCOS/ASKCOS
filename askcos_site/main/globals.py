@@ -6,10 +6,11 @@ from database import db_client
 from django.conf import settings
 import makeit.utilities.io.pickle as pickle
 import os 
+import makeit.global_config as gc
 
 # Retro transformer
 import makeit.retrosynthetic.transformer as transformer 
-RetroTransformer = transformer.RetroTransformer()
+RetroTransformer = transformer.RetroTransformer(mincount=gc.RETRO_TRANSFORMS['mincount'])
 RetroTransformer.load(chiral=False, refs=True, rxns=False) 
 RetroTransformer.reorder()
 RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.format(len(RetroTransformer.templates),

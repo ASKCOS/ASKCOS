@@ -13,16 +13,35 @@ from ..globals import RetroTransformer, SynthTransformer, \
 from .users import can_view_reaxys
 from ..utils import fancyjoin, xrn_lst_to_name_lst
 
+def template_target_export(request, id):
+    rx_ids = template_target(request, id, return_refs_only=True)
+    
+    txt = '{"fileName":"reaxys_query.json", "version":"1.0","content": {"id":"root","facts": ['
+    for i, rx_id in enumerate(rx_ids):
+        if i != 0:
+            txt += ','
+        txt += '{"id":"Reaxys487",'
+        if i != 0:
+            txt += '"logicOperator":"OR",'
+        txt += '"fields": [{"value":"%i","boundOperator":"op_num_equal","id":"RX.ID","displayName":"Reaction ID"}],' % (rx_id)
+        txt += '"fieldsLogicOperator":"AND","exist":false,"bio":false}'
 
+    txt += '], "exist":false,"bio":false } }'
 
-@login_required
-def template_target(request, id):
+    response = HttpResponse(txt, content_type='text/csv')
+    response['Content-Disposition'] = 'attachment;filename=reaxys_query.json'
+    return response
+
+#@login_required
+def template_target(request, id, return_refs_only=False):
     '''
     Examines a template from its id in the database
     where id == str(_id)
 
     Reaxys templates refer to instances, but we need the
     reactions for visualization
+
+    If return_refs_only, builds .json query for Reaxys
     '''
     context = {}
 
@@ -52,6 +71,7 @@ def template_target(request, id):
     references = []
     rx_docs = {}; xrn_to_smiles = {}
     context['total_references'] = len(reference_ids)
+
 
     try:
         for rxd_doc in INSTANCE_DB.find({'_id': {'$in': reference_ids}}):
@@ -94,15 +114,22 @@ def template_target(request, id):
             references.append(ref)
             
         context['references'] = sorted(references, key=lambda x: x['y'] if x['y'] != 'unk' else -1, reverse=True)[:500]
+
+        if return_refs_only:
+            return [x['rx_id'] for x in context['references']]
+
         if not can_view_reaxys(request):
             context['ref_ids'] = ', '.join([str(y) for y in sorted(set(x['rx_id'] for x in context['references']))])
-            context['references'] = context['references'][:3]
+            context['references'] = context['references'][:1]
             context['cannot_view_all'] = True 
 
     except ServerSelectionTimeoutError:
         context['ref_ids'] = ', '.join([str(y) for y in sorted(set(int(_id.split('-')[0]) for _id in reference_ids))])
         context['references'] = []
         context['cannot_view_any'] = True 
+
+        if return_refs_only:
+            return list(sorted(set(int(_id.split('-')[0]) for _id in reference_ids)))[:500]
 
     #from makeit.retro.conditions import average_template_list
     #context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)

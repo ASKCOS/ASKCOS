@@ -18,7 +18,7 @@ from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recom
 from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
     trim_trailing_period
 
-@login_required
+#@login_required
 def context_rxnsmiles(request, smiles=None, reactants=None, product=None):
     context = {}
     if smiles is not None:
@@ -62,22 +62,32 @@ def ajax_context_rxnsmiles(request):
 
 def context_to_dict(context):
     (T1, slvt1, rgt1, cat1, t1, y1) = context
+    parsible_slvt = '.'.join([x for x in slvt1.split('.') if 'Reaxys' not in x])
+    nonparsible_slvt = '.'.join([x for x in slvt1.split('.') if 'Reaxys' in x])
+    parsible_rgt = '.'.join([x for x in rgt1.split('.') if 'Reaxys' not in x])
+    nonparsible_rgt = '.'.join([x for x in rgt1.split('.') if 'Reaxys' in x])
+    parsible_cat = '.'.join([x for x in cat1.split('.') if 'Reaxys' not in x])
+    nonparsible_cat = '.'.join([x for x in cat1.split('.') if 'Reaxys' in x])
+
     return {
         'temperature': T1,
-        'solvents': slvt1 if slvt1 != '.' else '',
-        'reagents': rgt1,
-        'reagents_combined': '.'.join([x for x in rgt1.split('.') + cat1.split('.') if x]),
-        'catalysts': cat1,
+        'solvents': parsible_slvt if parsible_slvt != '.' else '',
+        'solvents_name_only': nonparsible_slvt if nonparsible_slvt != '.' else '',
+        'reagents': parsible_rgt if parsible_rgt != '.' else '',
+        'reagents_name_only': nonparsible_rgt if nonparsible_rgt != '.' else '',
+        'reagents_combined': '.'.join([x for x in parsible_rgt.split('.') + parsible_cat.split('.') if x]),
+        'catalysts': parsible_cat if parsible_cat != '.' else '',
+        'catalysts_name_only': nonparsible_cat if nonparsible_cat != '.' else '',
         'time': t1,
         'yield': y1,
     }
 
-@login_required
+#@login_required
 def context_rxnsmiles_target(request, smiles):
     '''Synth interactive initialized w/ reaction smiles'''
     return context_rxnsmiles(request, reactants=smiles.split('>')[0], product=smiles.split('>')[-1])
 
-@login_required
+#@login_required
 def context_rxnsmiles_target2(request, reactants, product):
     '''Synth interactive initialized w/ reaction smiles'''
     return context_rxnsmiles(request, reactants=reactants, product=product)

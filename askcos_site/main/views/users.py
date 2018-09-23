@@ -50,7 +50,8 @@ def user_saved_results_id(request, _id=-1):
     saved_result = SavedResults.objects.filter(user=request.user, id=_id)
     if saved_result.count() == 0:
         return user_saved_results(request, err='Could not find that ID')
-    with open(saved_result[0].fpath, 'r') as fid:
+    base = os.path.basename(saved_result[0].fpath)
+    with open(os.path.join(settings.LOCAL_STORAGE['user_saves'], base), 'r') as fid:
         if sys.version_info[0] < 3:
             html = fid.read().decode('utf8')
         else:

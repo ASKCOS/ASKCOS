@@ -64,7 +64,7 @@ def draw_smiles(request, smiles):
     return response
 
 
-@login_required
+#@login_required
 def draw_template(request, template):
     '''
     Returns a png response for a reaction SMARTS template
@@ -86,7 +86,7 @@ def draw_reaction(request, smiles):
     return response
 
 
-@login_required
+#@login_required
 def draw(request):
     '''
     Landing page for al draw_*_page functions

@@ -4,7 +4,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 admin.autodiscover()
 import django.contrib.auth.urls
-
+from django.views.generic import TemplateView
 import askcos_site.main.views as views 
 
 # Static (not good for deployment)
@@ -16,6 +16,9 @@ urlpatterns += [
     # Examples:
     # url(r'^$', 'askcos_site.views.home', name='home'),
     # url(r'^blog/', include('blog.urls')),
+
+    url(r'^robots.txt$', TemplateView.as_view(template_name="robots.txt", content_type="text/plain"), name="robots_file"),
+    url(r'^examples/$', TemplateView.as_view(template_name='examples.html')),
 
     # Admin page
     url(r'^admin/', include(admin.site.urls)),
@@ -64,7 +67,8 @@ urlpatterns += [
 
     # Template examination (by str(ObjectID))
     url(r'^template/target=(?P<id>.+)$', views.template_target, name='template_target'),
-
+    url(r'^template/download/target=(?P<id>.+)$', views.template_target_export, name='template_target_export'),
+    
     # Reaction examination
     url(r'^reaxys/rxid=(?P<rxid>.+)$', views.rxid_target, name='rxid_target'),
 
