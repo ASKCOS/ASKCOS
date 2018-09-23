@@ -34,14 +34,14 @@ class Chemical(object):
     def __str__(self):
         return "%s" % self.smiles
 
-    def set_price(self, value, all_cost_1=True):
+    def set_price(self, value):
         try:
             ppg = float(value)
-            if ppg > 0 and all_cost_1:
-                ppg = 1.
+            # if ppg > 0 and all_cost_1:
+            #     ppg = 1.
             self.price = ppg
             self.estimate_price = ppg
-            self.done = True
+            # self.done = True # done isn't determined by price
         except:
             pass
 

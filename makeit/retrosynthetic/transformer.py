@@ -268,7 +268,6 @@ class RetroTransformer(TemplateTransformer):
                 else:
                     outcomes = template['rxn'].RunReactants([react_mol])
                 results = []
-                print(outcomes)
                 for j, outcome in enumerate(outcomes):
                     smiles_list = []
                     # Output of rdchiral is (a list of) smiles of the products.
