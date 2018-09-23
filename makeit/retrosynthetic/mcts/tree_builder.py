@@ -835,6 +835,15 @@ class MCTS:
                 'necessary_reagent': self.retroTransformer.templates[tids[0]]['necessary_reagent'],
             }
 
+        seen_rxnsmiles = {}
+        current_index = 1
+        def rxnsmiles_to_id(smi):
+            if smi in seen_rxnsmiles:
+                return seen_rxnsmiles[smi]
+            else:
+                seen_rxnsmiles[smi] = current_index
+                current_index += 1
+
         def IDDFS():
             """Perform an iterative deepening depth-first search to find buyable
             pathways.
@@ -844,7 +853,6 @@ class MCTS:
             """
             for path in DLS_chem(self.smiles, depth=0, headNode=True):
                 yield chem_dict(self.smiles, children=path, **cheminfodict(self.smiles))
-
 
         def DLS_chem(chem_smi, depth, headNode=False):
             """Expand at a fixed depth for the current node chem_id."""
@@ -865,7 +873,8 @@ class MCTS:
                     rxn_smiles = '.'.join(sorted(R.reactant_smiles)) + '>>' + chem_smi
                     if rxn_smiles not in done_children_of_this_chemical: # necessary to avoid duplicates
                         for path in DLS_rxn(chem_smi, tid, rct_smi, depth):
-                            yield [rxn_dict(tid, rxn_smiles, children=path, plausibility=R.plausibility,
+                            yield [rxn_dict(rxnsmiles_to_id(rxn_smiles), rxn_smiles, children=path, 
+                                plausibility=R.plausibility,
                                 template_score=R.template_score, **tidlisttoinfodict(R.tforms))]
                             # TODO: figure out when to include num_examples
                         done_children_of_this_chemical.append(rxn_smiles)
