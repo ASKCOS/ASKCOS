@@ -47,7 +47,8 @@ DONE = 1
 class MCTS:
 
     def __init__(self, retroTransformer=None, pricer=None, max_branching=20, max_depth=3, expansion_time=60,
-                 celery=False, mincount=25, chiral=True, mincount_chiral=10,
+                 celery=False, chiral=True, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'], 
+                 mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
                  template_prioritization=gc.relevance, precursor_prioritization=gc.relevanceheuristic,
                  chemhistorian=None, nproc=8, num_active_pathways=None):
         """Class for retrosynthetic tree expansion using a depth-first search
@@ -159,7 +160,7 @@ class MCTS:
             MyLogger.print_and_log('Loading transforms for informational purposes only', treebuilder_loc)
             self.retroTransformer = RetroTransformer(mincount=self.mincount, mincount_chiral=self.mincount_chiral)
             self.retroTransformer.load(chiral=True, rxns=False)
-            MyLogger.print_and_log('...done loading informational transforms!', treebuilder_loc)
+            MyLogger.print_and_log('...done loading {} informational transforms!'.format(len(self.retroTransformer.templates)), treebuilder_loc)
 
 
 
@@ -698,35 +699,42 @@ class MCTS:
 
         self.running = True
 
-        MyLogger.print_and_log('Preparing workers...', treebuilder_loc)
-        self.prepare()
-        
-        # Define first chemical node (target)
-        probs, indeces = self.template_prioritizer.get_topk_from_smi(self.smiles, k=self.template_count)
-        truncate_to = np.argwhere(np.cumsum(probs) >= self.max_cum_template_prob)
-        if len(truncate_to):
-            truncate_to = truncate_to[0][0] + 1 # Truncate based on max_cum_prob?
+        if self.celery:
+            from celery.result import allow_join_result
         else:
-            truncate_to = self.template_count
-        value = 1 # current value assigned to precursor (note: may replace with real value function)
-        self.Chemicals[self.smiles] = Chemical(self.smiles)
-        self.Chemicals[self.smiles].set_template_relevance_probs(probs[:truncate_to], indeces[:truncate_to], value)
-        MyLogger.print_and_log('Calculating initial probs for target', treebuilder_loc)
+            from makeit.utilities.with_dummy import with_dummy as allow_join_result
 
-        # First selection is all the same
-        leaves, pathway = self.select_leaf()
-        for _id in range(self.num_active_pathways):
-            self.active_pathways[_id] = pathway
-            self.set_initial_target(_id, leaves)
-        MyLogger.print_and_log('Set initial leaves for active pathways', treebuilder_loc)
-        
-        # Coordinate workers.
-        self.coordinate(soft_stop=soft_stop)
+        with allow_join_result():
 
-        # Do a final pass to get counts
-        MyLogger.print_and_log('Doing final update of pathway counts / prices', treebuilder_loc)
-        self.full_update(self.smiles)
-        C = self.Chemicals[self.smiles]
+            MyLogger.print_and_log('Preparing workers...', treebuilder_loc)
+            self.prepare()
+            
+            # Define first chemical node (target)
+            probs, indeces = self.template_prioritizer.get_topk_from_smi(self.smiles, k=self.template_count)
+            truncate_to = np.argwhere(np.cumsum(probs) >= self.max_cum_template_prob)
+            if len(truncate_to):
+                truncate_to = truncate_to[0][0] + 1 # Truncate based on max_cum_prob?
+            else:
+                truncate_to = self.template_count
+            value = 1 # current value assigned to precursor (note: may replace with real value function)
+            self.Chemicals[self.smiles] = Chemical(self.smiles)
+            self.Chemicals[self.smiles].set_template_relevance_probs(probs[:truncate_to], indeces[:truncate_to], value)
+            MyLogger.print_and_log('Calculating initial probs for target', treebuilder_loc)
+
+            # First selection is all the same
+            leaves, pathway = self.select_leaf()
+            for _id in range(self.num_active_pathways):
+                self.active_pathways[_id] = pathway
+                self.set_initial_target(_id, leaves)
+            MyLogger.print_and_log('Set initial leaves for active pathways', treebuilder_loc)
+            
+            # Coordinate workers.
+            self.coordinate(soft_stop=soft_stop)
+
+            # Do a final pass to get counts
+            MyLogger.print_and_log('Doing final update of pathway counts / prices', treebuilder_loc)
+            self.full_update(self.smiles)
+            C = self.Chemicals[self.smiles]
 
         print("Finished working.")
         print("=== found %d pathways (overcounting duplicate templates)" % C.pathway_count)
@@ -954,7 +962,7 @@ class MCTS:
                             smiles, 
                             max_depth=10,
                             max_branching=25,
-                            expansion_time=120,
+                            expansion_time=30,
                             nproc=12,
                             num_active_pathways=None,
                             chiral=True,
@@ -1082,7 +1090,7 @@ if __name__ == '__main__':
     ############################# DEBUGGING ############################################
     ####################################################################################
 
-    smiles = "CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1"
+    smiles = 'CCCCCN(CCCCC)CCCC(=O)OCCC'
     import rdkit.Chem as Chem 
     smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
     status, paths = Tree.get_buyable_paths(smiles,
@@ -1096,6 +1104,7 @@ if __name__ == '__main__':
     for path in paths[:5]:
         print(path)
     print('Total num paths: {}'.format(len(paths)))
+    quit(1)
 
     ####################################################################################
     ############################# TESTING ##############################################
