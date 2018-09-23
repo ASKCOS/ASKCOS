@@ -109,7 +109,7 @@ function liberalSettings() {
         <tr>
             <td>
                 <a href="{% url 'retro_target' suggestion.smiles %}">{{ suggestion.name }}</a><br>
-                <a href="{% url 'retro_interactive_target' suggestion.smiles %}"><i>tree builder</i></a>
+                <a href="{% url 'retro_interactive_mcts_target' suggestion.smiles %}"><i>tree builder</i></a>
             </td>
             <td><img src="{% url 'draw_smiles' suggestion.smiles %}"></td>
         </tr>

@@ -25,10 +25,10 @@
 
 
  <div class="jumbotron">
-    <a href="{% url 'retro_interactive' %}"><h1 class="display-3">Tree Builder</h1></a>
+    <a href="{% url 'retro_interactive_mcts' %}"><h1 class="display-3">Tree Builder</h1></a>
     <p class="lead">Generate and view possible synthesis plans, with manual step-wise evaluation</p>
     <hr class="my-4">
-    <p>This module allows you to run a time-limited tree expansion that will recursively apply retrosynthetic transforms in a heuristic-driven depth-first search until it reaches either (a) a buyable chemical, or (b) the maximum depth. Once the expansion time has elapsed and (ideally) candidate pathways are found and displayed, you can interact with those suggestions by hovering over the reaction nodes to evaluate the reaction using the Forward Prediction tool or to see the transform rules upon which the suggestion is based. It is also possible to "hide all" of the tree suggestions that use a certain reaction if you know that reaction to be improbable. A more extreme option is to "blacklist" that reaction, which will add it to a user-specific list of forbidden reactions. Any subsequent tree expansions you perform will exclude that reaction. The same can be done for chemicals if a particular intermediate should be avoided. You can access your blacklisted reactions or chemicals and activate/deactivate/delete them by clicking your username in the upper-right corner of the screen.</p>
+    <p>This module allows you to run a time-limited tree expansion that will recursively apply retrosynthetic transforms in a parallelized best-first tree search until it reaches either (a) a buyable chemical, or (b) the maximum depth. Once the expansion time has elapsed and (ideally) candidate pathways are found and displayed, you can interact with those suggestions by hovering over the reaction nodes to evaluate the reaction using the Forward Prediction tool or to see the transform rules upon which the suggestion is based. It is also possible to "hide all" of the tree suggestions that use a certain reaction if you know that reaction to be improbable. A more extreme option is to "blacklist" that reaction, which will add it to a user-specific list of forbidden reactions. Any subsequent tree expansions you perform will exclude that reaction. The same can be done for chemicals if a particular intermediate should be avoided. You can access your blacklisted reactions or chemicals and activate/deactivate/delete them by clicking your username in the upper-right corner of the screen.</p>
 </div>
 
 
