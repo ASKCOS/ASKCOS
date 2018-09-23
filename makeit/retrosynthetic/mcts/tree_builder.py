@@ -285,7 +285,7 @@ class MCTS:
             self.Reactions[rxn_key].rewards = []
 
 
-    def coordinate(self, soft_stop=False):
+    def coordinate(self, soft_stop=False, known_bad_reactions=[], forbidden_molecules=[]):
 
         if not self.celery:
             while not all(self.initialized):
@@ -343,6 +343,17 @@ class MCTS:
 
                     # Get reactants SMILES
                     reactant_smiles = '.'.join([smi for (smi, _, _, _) in reactants])
+
+                    # Banned reaction?
+                    if '{}>>{}'.format(reactant_smiles, chem_smi) in known_bad_reactions:
+                        CTA.valid = False
+                        continue
+
+                    # Banned molecule?
+                    if any(smi in forbidden_molecules for (smi, _, _, _) in reactants):
+                        CTA.valid = False 
+                        continue
+
                     # TODO: check if banned reaction
                     matched_prev = False
                     for prev_tid, prev_cta in C.template_idx_results.items():
@@ -695,7 +706,7 @@ class MCTS:
         #   print(prefix + chem_smi + ' %d paths, price: %.1f' % (C.pathway_count, C.price))
 
 
-    def build_tree(self, soft_stop=False):
+    def build_tree(self, soft_stop=False, known_bad_reactions=[], forbidden_molecules=[]):
 
         self.running = True
 
@@ -729,7 +740,8 @@ class MCTS:
             MyLogger.print_and_log('Set initial leaves for active pathways', treebuilder_loc)
             
             # Coordinate workers.
-            self.coordinate(soft_stop=soft_stop)
+            self.coordinate(soft_stop=soft_stop, known_bad_reactions=known_bad_reactions,
+                forbidden_molecules=forbidden_molecules)
 
             # Do a final pass to get counts
             MyLogger.print_and_log('Doing final update of pathway counts / prices', treebuilder_loc)
@@ -1056,7 +1068,10 @@ class MCTS:
         self.reset(soft_reset=soft_reset)
         
         MyLogger.print_and_log('Starting search for {}'.format(smiles), treebuilder_loc)
-        self.build_tree(soft_stop=kwargs.pop('soft_stop', False))
+        self.build_tree(soft_stop=kwargs.pop('soft_stop', False), 
+            known_bad_reactions=known_bad_reactions,
+            forbidden_molecules=forbidden_molecules,
+        )
 
         return self.return_trees()
 
