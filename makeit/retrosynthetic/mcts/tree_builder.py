@@ -849,18 +849,16 @@ class MCTS:
         seen_rxnsmiles = {}
         self.current_index = 1
         def rxnsmiles_to_id(smi):
-            if smi in seen_rxnsmiles:
-                return seen_rxnsmiles[smi]
-            else:
+            if smi not in seen_rxnsmiles:
                 seen_rxnsmiles[smi] = self.current_index
                 self.current_index += 1
+            return seen_rxnsmiles[smi]
         seen_chemsmiles = {}
         def chemsmiles_to_id(smi):
-            if smi in seen_chemsmiles:
-                return seen_chemsmiles[smi]
-            else:
+            if smi not in seen_chemsmiles:
                 seen_chemsmiles[smi] = self.current_index
                 self.current_index += 1
+            return seen_chemsmiles[smi]
 
         def IDDFS():
             """Perform an iterative deepening depth-first search to find buyable
@@ -1133,12 +1131,12 @@ if __name__ == '__main__':
     ############################# SCOPOLAMINE TEST #####################################
     ####################################################################################
 
-    smiles = 'CN1[C@H]2CC(OC(=O)[C@H](CO)c3ccccc3)C[C@@H]1[C@H]1O[C@@H]21'
+    smiles = 'CN(C)CCOC(c1ccccc1)c1ccccc1'
     import rdkit.Chem as Chem 
     smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
     status, paths = Tree.get_buyable_paths(smiles,
                                         nproc=NCPUS,
-                                        expansion_time=30,
+                                        expansion_time=10,
                                         max_cum_template_prob=0.9999,
                                         template_count=1000,
                                         min_chemical_history_dict={'as_reactant':5, 'as_product':5,'logic':'or'},
