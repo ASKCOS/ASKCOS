@@ -41,7 +41,6 @@ def configure_coordinator(options={}, **kwargs):
     global evaluator
 
     treeBuilder = MCTSTreeBuilder(celery=True, nproc=8) # 8 active pathways
-
     print('Finished initializing treebuilder MCTS coordinator')
 
 
