@@ -842,6 +842,7 @@ class MCTS:
         seen_rxnsmiles = {}
         current_index = 1
         def rxnsmiles_to_id(smi):
+            global current_index
             if smi in seen_rxnsmiles:
                 return seen_rxnsmiles[smi]
             else:
@@ -849,6 +850,7 @@ class MCTS:
                 current_index += 1
         seen_chemsmiles = {}
         def chemsmiles_to_id(smi):
+            global current_index
             if smi in seen_chemsmiles:
                 return seen_chemsmiles[smi]
             else:
