@@ -826,6 +826,7 @@ class MCTS:
         def cheminfodict(smi):
             '''Prepares extra info'''
             return {
+                'smiles': smi,
                 'ppg': self.Chemicals[smi].price,
                 'as_reactant': self.Chemicals[smi].as_reactant,
                 'as_product': self.Chemicals[smi].as_product,
@@ -846,6 +847,13 @@ class MCTS:
             else:
                 seen_rxnsmiles[smi] = current_index
                 current_index += 1
+        seen_chemsmiles = {}
+        def chemsmiles_to_id(smi):
+            if smi in seen_chemsmiles:
+                return seen_chemsmiles[smi]
+            else:
+                seen_chemsmiles[smi] = current_index
+                current_index += 1
 
         def IDDFS():
             """Perform an iterative deepening depth-first search to find buyable
@@ -855,7 +863,7 @@ class MCTS:
                 nested dictionaries defining synthesis trees
             """
             for path in DLS_chem(self.smiles, depth=0, headNode=True):
-                yield chem_dict(self.smiles, children=path, **cheminfodict(self.smiles))
+                yield chem_dict(chemsmiles_to_id(self.smiles), children=path, **cheminfodict(self.smiles))
 
         def DLS_chem(chem_smi, depth, headNode=False):
             """Expand at a fixed depth for the current node chem_id."""
@@ -904,7 +912,7 @@ class MCTS:
                 chem_smi0 = R.reactant_smiles[0]
                 for path in DLS_chem(chem_smi0, depth+1):
                     yield [
-                        chem_dict(chem_smi0, children=path, **cheminfodict(chem_smi0))
+                        chem_dict(chemsmiles_to_id(chem_smi0), children=path, **cheminfodict(chem_smi0))
                     ]
 
             # Two reactants? want to capture all combinations of each node's
@@ -915,8 +923,8 @@ class MCTS:
                 for path0 in DLS_chem(chem_smi0, depth+1):
                     for path1 in DLS_chem(chem_smi1, depth+1):
                         yield [
-                            chem_dict(chem_smi0, children=path0, **cheminfodict(chem_smi0)),
-                            chem_dict(chem_smi1, children=path1, **cheminfodict(chem_smi1)),
+                            chem_dict(chemsmiles_to_id(chem_smi0), children=path0, **cheminfodict(chem_smi0)),
+                            chem_dict(chemsmiles_to_id(chem_smi1), children=path1, **cheminfodict(chem_smi1)),
                         ]
 
             # Three reactants? This is not elegant...
@@ -928,9 +936,9 @@ class MCTS:
                     for path1 in DLS_chem(chem_smi1, depth+1):
                         for path2 in DLS_chem(chem_smi2, depth+1):
                             yield [
-                                chem_dict(chem_smi0, children=path0, **cheminfodict(chem_smi0)),
-                                chem_dict(chem_smi1, children=path1, **cheminfodict(chem_smi1)),
-                                chem_dict(chem_smi2, children=path2, **cheminfodict(chem_smi2)),
+                                chem_dict(chemsmiles_to_id(chem_smi0), children=path0, **cheminfodict(chem_smi0)),
+                                chem_dict(chemsmiles_to_id(chem_smi1), children=path1, **cheminfodict(chem_smi1)),
+                                chem_dict(chemsmiles_to_id(chem_smi2), children=path2, **cheminfodict(chem_smi2)),
                             ]
 
             # I am ashamed
@@ -944,10 +952,10 @@ class MCTS:
                         for path2 in DLS_chem(chem_smi2, depth+1):
                             for path3 in DLS_chem(chem_smi3, depth+1):
                                 yield [
-                                    chem_dict(chem_smi0, children=path0, **cheminfodict(chem_smi0)),
-                                    chem_dict(chem_smi1, children=path1, **cheminfodict(chem_smi1)),
-                                    chem_dict(chem_smi2, children=path2, **cheminfodict(chem_smi2)),
-                                    chem_dict(chem_smi3, children=path3, **cheminfodict(chem_smi3)),
+                                    chem_dict(chemsmiles_to_id(chem_smi0), children=path0, **cheminfodict(chem_smi0)),
+                                    chem_dict(chemsmiles_to_id(chem_smi1), children=path1, **cheminfodict(chem_smi1)),
+                                    chem_dict(chemsmiles_to_id(chem_smi2), children=path2, **cheminfodict(chem_smi2)),
+                                    chem_dict(chemsmiles_to_id(chem_smi3), children=path3, **cheminfodict(chem_smi3)),
                                 ]
 
             else:
