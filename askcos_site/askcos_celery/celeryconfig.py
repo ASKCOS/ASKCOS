@@ -29,10 +29,12 @@ worker_prefetch_multiplier = 1
 TASK_ROUTES = {
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.get_top_precursors': {'queue': 'tb_c_worker'},
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.fast_filter_check': {'queue': 'tb_c_worker'},
+    'askcos_site.askcos_celery.treebuilder.tb_c_worker.apply_one_template_by_idx': {'queue': 'tb_c_worker'},
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.reserve_worker_pool': {'queue': 'tb_c_worker_reservable'},
     'askcos_site.askcos_celery.treebuilder.tb_worker.get_top_precursors': {'queue': 'tb_worker'},
     'askcos_site.askcos_celery.treebuilder.tb_worker.reserve_worker_pool': {'queue': 'tb_worker_reservable'},
     'askcos_site.askcos_celery.treebuilder.tb_coordinator.*':{'queue': 'tb_coordinator'},
+    'askcos_site.askcos_celery.treebuilder.tb_coordinator_mcts.*':{'queue': 'tb_coordinator_mcts'},
     'askcos_site.askcos_celery.treeevaluator.tree_evaluation_coordinator.*':{'queue':'te_coordinator'},
     'askcos_site.askcos_celery.treeevaluator.scoring_coordinator.*':{'queue':'sc_coordinator'},   
     'askcos_site.askcos_celery.treeevaluator.forward_trans_worker.*': {'queue':'ft_worker'},

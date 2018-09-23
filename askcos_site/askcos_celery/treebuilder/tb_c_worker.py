@@ -67,6 +67,9 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
     precursors = result.return_top(n=max_branching)
     return (smiles, precursors)
 
+@shared_task
+def apply_one_template_by_idx(*args, **kwargs):
+    return retroTransformer.apply_one_template_by_idx(*args, **kwargs)
 
 @shared_task
 def fast_filter_check(*args, **kwargs):
