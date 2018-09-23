@@ -34,10 +34,10 @@ class Chemical(object):
     def set_price(self, value, all_cost_1=True):
         try:
             ppg = float(value)
+            self.price = ppg
             if ppg > 0 and all_cost_1:
                 ppg = 1.
             self.purchase_price = ppg
-            self.price = ppg
             self.estimate_price = ppg
             self.done = True
         except:

@@ -11,7 +11,7 @@ from makeit.retrosynthetic.mcts.nodes import Chemical, Reaction, ChemicalTemplat
 from makeit.utilities.io.logger import MyLogger
 from makeit.utilities.io import model_loader
 from makeit.utilities.formats import chem_dict, rxn_dict
-
+import askcos_site.askcos_celery.treebuilder.tb_c_worker as tb_c_worker
 
 from collections import defaultdict 
 
@@ -49,7 +49,7 @@ class MCTS:
     def __init__(self, retroTransformer=None, pricer=None, max_branching=20, max_depth=3, expansion_time=60,
                  celery=False, mincount=25, chiral=True, mincount_chiral=10,
                  template_prioritization=gc.relevance, precursor_prioritization=gc.relevanceheuristic,
-                 chemhistorian=None, nproc=4, num_active_pathways=None):
+                 chemhistorian=None, nproc=8, num_active_pathways=None):
         """Class for retrosynthetic tree expansion using a depth-first search
 
         Initialization of an object of the TreeBuilder class sets default values
@@ -95,6 +95,9 @@ class MCTS:
                 prioritization, as a string. There are a limited number of available
                 options - consult the global configuration file for info (default: {gc.heuristic})
         """
+
+        if not chiral:
+            raise ValueError('MCTS only works for chiral expansion!')
 
         self.celery = celery
         self.mincount = mincount
@@ -145,7 +148,6 @@ class MCTS:
                 self.retroTransformer.load_fast_filter()
                 # don't load template prioritizer until later, TF doesn't like forking
 
-
         if self.celery:
             def expand(_id, smiles, template_idx): # TODO: make Celery workers
                 # Chiral transformation or heuristic prioritization requires
@@ -156,10 +158,9 @@ class MCTS:
                             'max_cum_prob': self.max_cum_template_prob,
                             'apply_fast_filter': self.apply_fast_filter,
                             'filter_threshold': self.filter_threshold},
-                    priority=int(depth), # TODO: figure out priority
-                    queue=self.private_worker_queue,
+                    # queue=self.private_worker_queue, ## CWC TEST: don't reserve
                 ))
-                self.status[(chem_smi, template_idx)] = WAITING
+                self.status[(smiles, template_idx)] = WAITING
                 self.active_pathways_pending[_id] += 1
         else:
             def expand(_id, smiles, template_idx):
@@ -174,16 +175,20 @@ class MCTS:
         if self.celery:
             def prepare():
                 try:
-                    if self.chiral:
-                        request = tb_c_worker.reserve_worker_pool.delay()
-                        self.private_worker_queue = request.get(timeout=10)
-                    else:
-                        request = tb_worker.reserve_worker_pool.delay()
-                        self.private_worker_queue = request.get(timeout=10)
+                    # if self.chiral:
+                    #     request = tb_c_worker.reserve_worker_pool.delay()
+                    #     self.private_worker_queue = request.get(timeout=10)
+                    # else:
+                    #     request = tb_worker.reserve_worker_pool.delay()
+                    #     self.private_worker_queue = request.get(timeout=10)
+
+                    ## CWC TEST: don't reserve
+                    res = tb_c_worker.apply_one_template_by_idx.delay(1, 'CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1', 109659)
+                    res.get(20)
                 except Exception as e:
-                    request.revoke()
+                    res.revoke()
                     raise IOError(
-                        'Did not find an available pool of workers! Try again later ({})'.format(e))
+                        'Did not find any workers? Try again later ({})'.format(e))
         else:
             def prepare():
                 if len(self.workers) == self.nproc:
@@ -230,7 +235,9 @@ class MCTS:
         if self.celery:
             def stop(soft_stop=False):
                 self.running = False
-                pass
+                if self.pending_results != []: # clear anything left over - might not be necessary
+                    for i in range(len(self.pending_results)):
+                        self.pending_results[i].revoke() 
         else:
             def stop(soft_stop=False):
                 if not self.running:
@@ -264,9 +271,10 @@ class MCTS:
 
     def coordinate(self, soft_stop=False):
 
-        while not all(self.initialized):
-            MyLogger.print_and_log('Waiting for workers to initialize...', treebuilder_loc)
-            time.sleep(2)
+        if not self.celery:
+            while not all(self.initialized):
+                MyLogger.print_and_log('Waiting for workers to initialize...', treebuilder_loc)
+                time.sleep(2)
         start_time = time.time()
         elapsed_time = time.time() - start_time
         next = 1
@@ -280,10 +288,15 @@ class MCTS:
                 print ("... |C| = {} |R| = {}".format(len(self.Chemicals), len(self.status)))
                 for _id in range(self.num_active_pathways):
                     print('Active pathway {}: {}'.format(_id, self.active_pathways[_id]))
-                print('Expansion empty? {}'.format(self.expansion_queue.empty()))
-                print('results_queue empty? {}'.format(self.results_queue.empty()))
                 print('Active pathway pending? {}'.format(self.active_pathways_pending))
-                print('All idle? {}'.format(self.idle))
+
+                if self.celery:
+                    print('Pending results? {}'.format(len(self.pending_results)))
+                else:
+                    print('Expansion empty? {}'.format(self.expansion_queue.empty()))
+                    print('results_queue empty? {}'.format(self.results_queue.empty()))    
+                    print('All idle? {}'.format(self.idle))
+
                 # print(self.expansion_queue.qsize()) # TODO: make this Celery compatible
                 # print(self.results_queue.qsize())
 
@@ -294,7 +307,7 @@ class MCTS:
             for all_outcomes in self.get_ready_result():
                 # Record that we've gotten a result for the _id of the active pathway
                 _id = all_outcomes[0][0]
-                print('coord got outcomes for pathway ID {}'.format(_id))
+                # print('coord got outcomes for pathway ID {}'.format(_id))
                 self.active_pathways_pending[_id] -= 1
 
                 # Result of applying one template_idx to one chem_smi can be multiple eoutcomes
@@ -309,7 +322,7 @@ class MCTS:
                     # Any proposed reactants?
                     if len(reactants) == 0: 
                         CTA.valid = False # no precursors, reaction failed
-                        print('No reactants found for {} {}'.format(_id, chem_smi))
+                        # print('No reactants found for {} {}'.format(_id, chem_smi))
                         continue
 
                     # Get reactants SMILES
@@ -388,6 +401,10 @@ class MCTS:
             if self.Chemicals[self.smiles].price != -1 and self.time_for_first_path == -1:
                 self.time_for_first_path = elapsed_time
                 MyLogger.print_and_log('Found the first pathway after {:.2f} seconds'.format(elapsed_time), treebuilder_loc)
+
+            if  all(pathway == {} for pathway in self.active_pathways) and len(self.pending_results) == 0:
+                MyLogger.print_and_log('Cannot expand any further! Stuck?', treebuilder_loc)
+                break
 
         self.stop(soft_stop=soft_stop)
 
@@ -654,22 +671,21 @@ class MCTS:
     def build_tree(self, soft_stop=False):
 
         self.running = True
+
+        MyLogger.print_and_log('Preparing workers...', treebuilder_loc)
+        self.prepare()
         
         # Define first chemical node (target)
-        max_cum_prob = 0.995 # TODO: make setting
-        template_count = 100 # TODO: make setting
-        probs, indeces = self.template_prioritizer.get_topk_from_smi(self.smiles, k=template_count)
-        truncate_to = np.argwhere(np.cumsum(probs) >= max_cum_prob)
+        probs, indeces = self.template_prioritizer.get_topk_from_smi(self.smiles, k=self.template_count)
+        truncate_to = np.argwhere(np.cumsum(probs) >= self.max_cum_template_prob)
         if len(truncate_to):
             truncate_to = truncate_to[0][0] + 1 # Truncate based on max_cum_prob?
         else:
-            truncate_to = template_count
+            truncate_to = self.template_count
         value = 1 # current value assigned to precursor (note: may replace with real value function)
         self.Chemicals[self.smiles] = Chemical(self.smiles)
         self.Chemicals[self.smiles].set_template_relevance_probs(probs[:truncate_to], indeces[:truncate_to], value)
         MyLogger.print_and_log('Calculating initial probs for target', treebuilder_loc)
-        print(probs)
-        print(indeces)
 
         # First selection is all the same
         leaves, pathway = self.select_leaf()
@@ -679,7 +695,6 @@ class MCTS:
         MyLogger.print_and_log('Set initial leaves for active pathways', treebuilder_loc)
         
         # Coordinate workers.
-        self.prepare()
         self.coordinate(soft_stop=soft_stop)
 
         # Do a final pass to get counts
@@ -715,7 +730,7 @@ class MCTS:
         if self.celery:
             # general parameters in celery format
             # TODO: anything goes here?
-            pass
+            self.pending_results = []
         else:
             
             if not soft_reset:
@@ -759,6 +774,14 @@ class MCTS:
 
     def return_trees(self):
 
+        def cheminfodict(smi):
+            '''Prepares extra info'''
+            return {
+                'ppg': self.Chemicals[smi].price,
+                'as_reactant': 0,
+                'as_product': 0,
+            }
+
         def IDDFS():
             """Perform an iterative deepening depth-first search to find buyable
             pathways.
@@ -767,7 +790,7 @@ class MCTS:
                 nested dictionaries defining synthesis trees
             """
             for path in DLS_chem(self.smiles, depth=0, headNode=True):
-                yield chem_dict(self.smiles, children=path, **{})
+                yield chem_dict(self.smiles, children=path, **cheminfodict(self.smiles))
 
 
         def DLS_chem(chem_smi, depth, headNode=False):
@@ -789,7 +812,9 @@ class MCTS:
                     rxn_smiles = '.'.join(sorted(R.reactant_smiles)) + '>>' + chem_smi
                     if rxn_smiles not in done_children_of_this_chemical: # necessary to avoid duplicates
                         for path in DLS_rxn(chem_smi, tid, rct_smi, depth):
-                            yield [rxn_dict(tid, rxn_smiles, children=path, **{})]
+                            yield [rxn_dict(tid, rxn_smiles, children=path, plausibility=R.plausibility,
+                                tforms=R.tforms, template_score=R.template_score)]
+                            # TODO: figure out when to include num_examples
                         done_children_of_this_chemical.append(rxn_smiles)
 
 
@@ -814,7 +839,7 @@ class MCTS:
                 chem_smi0 = R.reactant_smiles[0]
                 for path in DLS_chem(chem_smi0, depth+1):
                     yield [
-                        chem_dict(chem_smi0, children=path, **{})
+                        chem_dict(chem_smi0, children=path, **cheminfodict(chem_smi0))
                     ]
 
             # Two reactants? want to capture all combinations of each node's
@@ -825,8 +850,8 @@ class MCTS:
                 for path0 in DLS_chem(chem_smi0, depth+1):
                     for path1 in DLS_chem(chem_smi1, depth+1):
                         yield [
-                            chem_dict(chem_smi0, children=path0, **{}),
-                            chem_dict(chem_smi1, children=path1, **{}),
+                            chem_dict(chem_smi0, children=path0, **cheminfodict(chem_smi0)),
+                            chem_dict(chem_smi1, children=path1, **cheminfodict(chem_smi1)),
                         ]
 
             # Three reactants? This is not elegant...
@@ -838,9 +863,9 @@ class MCTS:
                     for path1 in DLS_chem(chem_smi1, depth+1):
                         for path2 in DLS_chem(chem_smi2, depth+1):
                             yield [
-                                chem_dict(chem_smi0, children=path0, **{}),
-                                chem_dict(chem_smi1, children=path1, **{}),
-                                chem_dict(chem_smi2, children=path2, **{}),
+                                chem_dict(chem_smi0, children=path0, **cheminfodict(chem_smi0)),
+                                chem_dict(chem_smi1, children=path1, **cheminfodict(chem_smi1)),
+                                chem_dict(chem_smi2, children=path2, **cheminfodict(chem_smi2)),
                             ]
 
             # I am ashamed
@@ -854,10 +879,10 @@ class MCTS:
                         for path2 in DLS_chem(chem_smi2, depth+1):
                             for path3 in DLS_chem(chem_smi3, depth+1):
                                 yield [
-                                    chem_dict(chem_smi0, children=path0, **{}),
-                                    chem_dict(chem_smi1, children=path1, **{}),
-                                    chem_dict(chem_smi2, children=path2, **{}),
-                                    chem_dict(chem_smi3, children=path3, **{}),
+                                    chem_dict(chem_smi0, children=path0, **cheminfodict(chem_smi0)),
+                                    chem_dict(chem_smi1, children=path1, **cheminfodict(chem_smi1)),
+                                    chem_dict(chem_smi2, children=path2, **cheminfodict(chem_smi2)),
+                                    chem_dict(chem_smi3, children=path3, **cheminfodict(chem_smi3)),
                                 ]
 
             else:
@@ -897,7 +922,7 @@ class MCTS:
                             max_depth=10,
                             max_branching=25,
                             expansion_time=120,
-                            nproc=4,
+                            nproc=12,
                             num_active_pathways=None,
                             chiral=True,
                             max_trees=5000,
@@ -923,6 +948,14 @@ class MCTS:
             num_active_pathways = nproc
         self.num_active_pathways = num_active_pathways
         self.max_trees = max_trees
+        self.max_cum_template_prob = max_cum_template_prob
+        self.template_count = template_count
+        self.filter_threshold = filter_threshold
+        self.apply_fast_filter = apply_fast_filter
+        self.min_chemical_history_dict = min_chemical_history_dict
+        self.max_natom_dict = max_natom_dict
+        self.max_ppg = max_ppg
+
 
         self.reset(soft_reset=soft_reset)
         
@@ -934,16 +967,27 @@ class MCTS:
 
 if __name__ == '__main__':
 
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-t', '--simulation_time', default=30)
+    parser.add_argument('-c', '--celery', default=False)
+    args = parser.parse_args()
+
+
     random.seed(1)
     np.random.seed(1)
     MyLogger.initialize_logFile()
-    simulation_time = 30.
+    simulation_time = int(args.simulation_time)
+    celery = args.celery in ['true', 'True', True, '1', 1, 'y', 'Y']
+    print('Use celery? {}'.format(celery))
 
     # Load tree builder 
     NCPUS = 4
     print("There are {} processes available ... ".format(NCPUS))
     Tree = MCTS(nproc=NCPUS, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'], 
-        mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'])
+        mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
+        celery=celery)
 
 
     ####################################################################################
@@ -956,13 +1000,14 @@ if __name__ == '__main__':
     status, paths = Tree.get_buyable_paths(smiles,
                                         nproc=NCPUS,
                                         expansion_time=simulation_time,
+                                        max_cum_template_prob=0.995,
+                                        template_count=100,
                                         soft_reset=False,
                                         soft_stop=True)
     print(status)
     for path in paths[:5]:
         print(path)
     print('Total num paths: {}'.format(len(paths)))
-    quit(1)
 
     ####################################################################################
     ############################# TESTING ##############################################
@@ -981,7 +1026,8 @@ if __name__ == '__main__':
                                                 expansion_time=simulation_time,
                                                 soft_reset=True,
                                                 soft_stop=True)
-    
+            if len(paths) > 0:
+                print(paths[0])
             pickle.dump((Tree.Chemicals, Tree.time_for_first_path, paths), fid)
 
     ########### STAGE 2 - ANALYZE RESULTS

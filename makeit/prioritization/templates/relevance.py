@@ -94,19 +94,19 @@ class RelevanceTemplatePrioritizer(Prioritizer):
                 cur_scores, = self.session.run([self.score], feed_dict={
                     self.input_mol: fp,
                 })
-                indices = list(cur_scores[0,:].argsort()[-k:][::-1])
+                indices = cur_scores[0,:].argsort()[-k:][::-1].tolist()
                 cur_scores.sort()
                 probs = softmax(cur_scores[0,:])
-                return probs[-k:][::-1], indices
+                return probs[-k:][::-1].tolist(), indices
 
         else:
             def get_topk_from_mol(mol, k=100):
                 fp = self.mol_to_fp(mol).astype(np.float32)
                 cur_scores = self.apply(fp)
-                indices = list(cur_scores.argsort()[-k:][::-1])
+                indices = cur_scores.argsort()[-k:][::-1].tolist()
                 cur_scores.sort()
                 probs = softmax(cur_scores)
-                return probs[-k:][::-1], indices
+                return probs[-k:][::-1].tolist(), indices
         self.get_topk_from_mol = get_topk_from_mol
 
     def mol_to_fp(self, mol):

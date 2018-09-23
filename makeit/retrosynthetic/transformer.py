@@ -203,8 +203,9 @@ class RetroTransformer(TemplateTransformer):
             mol = rdchiralReactants(smiles)
 
         all_outcomes = []; seen_reactants = {}; seen_reactant_combos = [];
+        print(self.templates[template_idx])
         for smiles_list in self.apply_one_template_smilesonly(mol, smiles, self.templates[template_idx]):
-
+            print(smiles_list)
             # Avoid duplicate outcomes (e.g., by symmetry)
             reactant_smiles = '.'.join(smiles_list)
             if reactant_smiles in seen_reactant_combos:
@@ -269,6 +270,7 @@ class RetroTransformer(TemplateTransformer):
                 else:
                     outcomes = template['rxn'].RunReactants([react_mol])
                 results = []
+                print(outcomes)
                 for j, outcome in enumerate(outcomes):
                     smiles_list = []
                     # Output of rdchiral is (a list of) smiles of the products.
@@ -382,12 +384,13 @@ if __name__ == '__main__':
     t = RetroTransformer()
     t.load(chiral=True, refs=False, rxns=True)
 
-    outcomes = t.get_outcomes('C1C(=O)OCC12CC(C)CC2', 100, (gc.relevanceheuristic, gc.relevance))
+
+    outcomes = t.get_outcomes('CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1', 100, (gc.relevanceheuristic, gc.relevance))
     precursors = outcomes.precursors
 
     print([precursor.smiles_list for precursor in precursors])
 
-    outcomes = t.apply_one_template_by_idx('C1=CC(=C(C=C1F)F)C(CN2C=NC=N2)(CN3C=NC=N3)O', 3986)
+    outcomes = t.apply_one_template_by_idx(1, 'CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1', 109659)
     print(outcomes)
 
 
