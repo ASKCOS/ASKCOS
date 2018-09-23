@@ -41,9 +41,12 @@ urlpatterns += [
     # Interactive retrosynthesis
     url(r'^retro_interactive/$', views.retro_interactive, name='retro_interactive'),
     url(r'^retro_interactive/target=(?P<target>.+)$', views.retro_interactive, name='retro_interactive_target'),
+    url(r'^retro_interactive_mcts/$', views.retro_interactive_mcts, name='retro_interactive_mcts'),
+    url(r'^retro_interactive_mcts/target=(?P<target>.+)$', views.retro_interactive_mcts, name='retro_interactive_mcts_target'),
     url(r'^ajax/smiles_to_image/$', views.ajax_smiles_to_image, name='ajax_smiles_to_image'),
     url(r'^ajax/rxn_to_image/$', views.ajax_rxn_to_image, name='ajax_rxn_to_image'),
     url(r'^ajax/start_retro_celery/$', views.ajax_start_retro_celery, name='ajax_start_retro_celery'),
+    url(r'^ajax/start_retro_mcts_celery/$', views.ajax_start_retro_mcts_celery, name='ajax_start_retro_mcts_celery'),
     url(r'^retro_interactive/export/(?P<_id>.+)$', views.export_retro_results, name='export_retro_results'),
     
     # Evaluation

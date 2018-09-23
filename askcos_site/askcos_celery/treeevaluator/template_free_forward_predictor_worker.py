@@ -14,6 +14,7 @@ CORRESPONDING_QUEUE = 'tffp_worker'
 
 @celeryd_init.connect
 def configure_worker(options={}, **kwargs):
+    print(options)
     if 'queues' not in options:
         return
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
