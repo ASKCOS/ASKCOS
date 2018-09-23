@@ -21,10 +21,10 @@ templates = None
 @celeryd_init.connect
 def configure_worker(options={}, **kwargs):
     if 'queues' not in options:
-        print('Queues not in options')
+        # print('Queues not in options')
         return
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
-        print('Queues not in options as key')
+        # print('Queues not in options as key')
         return
     print('### STARTING UP A FORWARD ENUMERATION WORKER ###')
 
