@@ -493,7 +493,7 @@ class TreeBuilder:
                     #print('Queue {} empty for worker {}'.format(j, i))
                     pass
                 except Exception as e:
-                    sys.stdout.write(e)
+                    sys.stdout.write(str(e))
                     sys.stdout.flush()
             time.sleep(0.01)
             self.idle[i] = True
