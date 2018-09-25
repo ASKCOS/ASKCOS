@@ -113,6 +113,7 @@ class MCTS:
         self.nproc = nproc
         self.chiral = chiral
         self.max_cum_template_prob = 1
+        self.sort_trees_by = 'plausibility'
 
         if num_active_pathways is None:
             num_active_pathways = self.nproc
@@ -987,9 +988,22 @@ class MCTS:
                 if tree['children']:
                     return 1.0 + max(number_of_reactions(tree_child) for tree_child in tree['children'][0]['children'])
             return 0.0
+        def overall_plausibility(tree):
+            if tree != []:
+                if tree['children']:
+                    producing_reaction = tree['children'][0]
+                    return producing_reaction['plausibility'] * np.prod([overall_plausibility(tree_child) for tree_child in producing_reaction['children']])
+            return 1.0
 
         MyLogger.print_and_log('Sorting {} trees...'.format(len(trees)), treebuilder_loc)
-        trees = sorted(trees, key=lambda x: number_of_reactions(x))
+        if self.sort_trees_by == 'plausibility':
+            trees = sorted(trees, key=lambda x: overall_plausibility(x), reverse=True)
+        elif self.sort_trees_by == 'number_of_starting_materials':
+            trees = sorted(trees, key=lambda x: number_of_starting_materials(x))
+        elif self.sort_trees_by == 'number_of_reactions':
+            trees = sorted(trees, key=lambda x: number_of_reactions(x))
+        else:
+            raise ValueError('Need something to sort by! Invalid option provided {}'.format(self.sort_trees_by))
 
         return self.tree_status(), trees 
 
@@ -1015,6 +1029,7 @@ class MCTS:
                             filter_threshold=0.75,
                             soft_reset=False,
                             return_first=False,
+                            sort_trees_by='plausibility',
                             **kwargs):
 
         
@@ -1034,6 +1049,7 @@ class MCTS:
         self.min_chemical_history_dict = min_chemical_history_dict
         self.max_natom_dict = max_natom_dict
         self.max_ppg = max_ppg
+        self.sort_trees_by = sort_trees_by
 
 
         if min_chemical_history_dict['logic'] not in [None, 'none'] and \
@@ -1131,15 +1147,15 @@ if __name__ == '__main__':
     ############################# SCOPOLAMINE TEST #####################################
     ####################################################################################
 
-    smiles = 'CN(C)CCOC(c1ccccc1)c1ccccc1'
+    smiles = 'Cc1ncc([N+](=O)[O-])n1CC(C)O'
     import rdkit.Chem as Chem 
     smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
     status, paths = Tree.get_buyable_paths(smiles,
                                         nproc=NCPUS,
-                                        expansion_time=10,
-                                        max_cum_template_prob=0.9999,
-                                        template_count=1000,
-                                        min_chemical_history_dict={'as_reactant':5, 'as_product':5,'logic':'or'},
+                                        expansion_time=30,
+                                        max_cum_template_prob=0.995,
+                                        template_count=100,
+                                        # min_chemical_history_dict={'as_reactant':5, 'as_product':5,'logic':'none'},
                                         soft_reset=False,
                                         soft_stop=True)
     print(status)
