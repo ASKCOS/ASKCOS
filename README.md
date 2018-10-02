@@ -32,6 +32,7 @@ Please note that this code relies on either (1) additional data files not contai
 	```
 	sudo apt install heimdal-dev
 	sudo apt install libkrb5-dev 
+	sudo apt-get install libhdf5-dev
 	sudo apt-get install build-essential
 	```
 
