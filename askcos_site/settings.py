@@ -74,7 +74,7 @@ ROOT_URLCONF = 'askcos_site.urls'
 WSGI_APPLICATION = 'askcos_site.wsgi.application'
 
 # LOGIN
-LOGIN_URL = '/login'
+LOGIN_URL = '/registration/login'
 LOGIN_REDIRECT_URL = '/'
 REGISTRATION_OPEN = True
 ACCOUNT_ACTIVATION_DAYS=7
