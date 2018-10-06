@@ -24,9 +24,9 @@ urlpatterns += [
     url(r'^admin/', include(admin.site.urls)),
 
     # User pages
-    url('^registration/', include('registration.urls')),
-    url(r'^login$', views.login, name='login'),
-    url(r'^logout$', views.logout, name='logout'),
+    url('^registration/', include('registration.backends.hmac.urls')),
+    # url(r'^login$', views.login, name='login'),
+    # url(r'^logout$', views.logout, name='logout'),
 
     # Homepage
     url(r'^$', views.index, name='index'),

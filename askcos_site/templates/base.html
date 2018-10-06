@@ -118,14 +118,14 @@
                     <span class="caret"></span></a>
                     <ul class="dropdown-menu">
                         <li><a href="/registration/password/change/">Change password</a></li>
-                        <li><a href="{% url 'logout' %}">Logout</a></li>
+                        <li><a href="{% url 'auth_logout' %}">Logout</a></li>
                     </ul>
                 </li>
             </ul>
             {% else %}
             <ul class="nav navbar-nav navbar-right">
                 <li><a href="/registration/register/"><span class="glyphicon glyphicon-user"></span> Register</a></li>
-                <li><a href="{% url 'login' %}?next={{ request.path }}"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
+                <li><a href="{% url 'auth_login' %}?next={{ request.path }}"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
             </ul>
             {% endif %}
         </div>
@@ -155,7 +155,7 @@
         <footer class="footer">
             <div class="container">
                 {% block footer %}
-                ASKCOS v0.2 Copyright &copy; 2018,
+                ASKCOS v0.2.1 Copyright &copy; 2018,
                 Created using <a href="http://www.djangoproject.com/">Django</a>.
                 <!-- 
                 Secret changelog! 
@@ -167,6 +167,7 @@
                 - v0.1.6 was released with a larger retrosynthetic template set
                 - v0.1.7 was released with new template-free forward predictor
                 - v0.2 was released with the new best first search
+                - v0.2.1 was released with new server
                  -->
                 {% endblock %}
             </div>

@@ -17,15 +17,12 @@ from askcos_site.askcos_celery.celeryconfig import *
 # Get settings from makeit
 import makeit.global_config as gc
 
-# Email notification for registration - must be set up to work!!
-USE_EMAIL_NOTIFICATION = False
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'notsecret'
+SECRET_KEY = 'notsosecret'
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['0.0.0.0']
+ALLOWED_HOSTS = ['0.0.0.0', 'askcos4.mit.edu']
 
 TEMPLATE_LOADERS = ['django.template.loaders.filesystem.Loader',
  'django.template.loaders.app_directories.Loader']
@@ -62,11 +59,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'askcos_site.main',
-    'registration',
 )
-
-if USE_EMAIL_NOTIFICATION:
-    INSTALLED_APPS = INSTALLED_APPS + ('registration.contrib.notification',)
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -83,20 +76,21 @@ WSGI_APPLICATION = 'askcos_site.wsgi.application'
 # LOGIN
 LOGIN_URL = '/login'
 LOGIN_REDIRECT_URL = '/'
+REGISTRATION_OPEN = True
+ACCOUNT_ACTIVATION_DAYS=7
+REGISTRATION_SALT='saltystring'
 
 # Registration
-if USE_EMAIL_NOTIFICATION:
-    REGISTRATION_SUPPLEMENT_CLASS = None
-    ACCOUNT_ACTIVATION_DAYS = 7
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = 'localhost'
-    EMAIL_PORT = 25
-    EMAIL_HOST_USER = ''
-    EMAIL_HOST_PASSWORD = ''
-    EMAIL_USE_TLS = False
-    DEFAULT_FROM_EMAIL = 'ccoley@mit.edu'
-    REGISTRATION_NOTIFICATION = True
-    REGISTRATION_NOTIFICATION_RECIPIENTS = ['ccoley@mit.edu']
+REGISTRATION_SUPPLEMENT_CLASS = None
+ACCOUNT_ACTIVATION_DAYS = 7
+# Uses postfix server running at localhost:25
+#EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+#EMAIL_HOST = 'localhost'
+#    EMAIL_PORT = 25
+#EMAIL_HOST_USER = ''
+#EMAIL_HOST_PASSWORD = ''
+#EMAIL_USE_TLS = False
+DEFAULT_FROM_EMAIL = 'no-reply@askcos4.mit.edu'
 
 # Where are user settings / banlists / etc. saved?
 # NOTE: we recommend relocating the db to an ssd for speed

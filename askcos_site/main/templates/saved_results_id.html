@@ -299,10 +299,11 @@ $(document).ready(function() {
         $("#id_smiles").val("{{target_mol}}");
         console.log('Found target from passed context');
     }
-    if ($("#id_smiles").val() != "") {
-        $("#id_smiles").trigger("change");
-        console.log('triggered change in target definition');
-    }
+    // Don't change on load
+    // if ($("#id_smiles").val() != "") {
+    //     $("#id_smiles").trigger("change");
+    //     console.log('triggered change in target definition');
+    // }
 });
 </script>
 
