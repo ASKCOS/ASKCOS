@@ -455,7 +455,7 @@ Min freq. as product: <input type="number" id="min_chempop_products" style="widt
         <select id="id_forward_scorer" name="forward_scorer" onchange="showFieldsEvaluation(this.options[this.selectedIndex].value)">
             <option value="Fast_Filter" {% if forward_scorer == 'Fast_Filter' %}selected{% endif %}>Fast filter</option>
             <option value="Template_Free" {% if forward_scorer == 'Template_Free' %}selected{% endif %}>Template-free</option>
-            <option value="Template_Based" {% if forward_scorer == 'Template_Based' %}selected{% endif %}>Template-based</option>
+            <option disabled value="Template_Based" {% if forward_scorer == 'Template_Based' %}selected{% endif %}>Template-based</option>
         </select>
     </td>
 <tr>
