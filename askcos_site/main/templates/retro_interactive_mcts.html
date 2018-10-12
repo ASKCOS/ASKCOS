@@ -353,7 +353,7 @@ $(document).ready(function() {
 </td>
 <td>
     Expansion time (s): <a href="#" data-toggle="tooltip" title="How long would you like to let the expansion run for? Right now, the tree builder runs in the background and you will not see any results until it terminates based on this expansion time. The expansion time is highly dependent on the depth and branching ratio of your search. For shorter syntheses (~3 steps and ~25 branching), 60 seconds might be sufficient. For longer or broader syntheses, you may want to try up to 300 seconds. The maximum we allow is 600 seconds."><span class="glyphicon glyphicon-info-sign"></span></a></td>
-    <td><input type="number" id="expansion_time" style="width: 5em" min="5" max="{% if user.username == 'JLUMMISS' %}1200{% else %}600{% endif %}" value="{{expansion_time_default}}">
+    <td><input type="number" id="expansion_time" style="width: 5em" min="5" max="{% if user.username == 'JLUMMISS' %}1200{% else %}600{% endif %}" value="30">
 </td>
 </tr>
 <!-- <tr><th></th>
@@ -475,7 +475,7 @@ Min freq. as product: <input type="number" id="min_chempop_products" style="widt
 <!-- Controls -->
 <tr id="controls_wrapper" style="display:none"><th style="vertical-align: bottom; text-align:left">Controls:</th>
 <td colspan="1">
-    <button type="button" style="width:120px" id="start_retro">Start</button>
+    <button type="button" style="width:120px" id="start_retro" class="btn-success">Start</button>
 </td>
 <td colspan="3">
     <input type="checkbox" id="return_first"> Return as soon as <i>any</i> pathway found <a href="#" data-toggle="tooltip" title="Check this if you would like to see the first result as soon as we find one instead of waiting for the full expansion time."><span class="glyphicon glyphicon-info-sign"></span></a><br>
