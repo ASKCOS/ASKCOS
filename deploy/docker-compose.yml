@@ -21,7 +21,6 @@ services:
     expose:
       - '8000'
     volumes:
-      - './data:/home/askcos/ASKCOS/makeit/data'
       - 'staticdata:/home/askcos/ASKCOS/askcos/askcos_site/static'
     depends_on:
       - redis
@@ -32,8 +31,6 @@ services:
     env_file:
       - .env
     command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 4 -Q tb_c_worker,tb_c_worker_reservable,tb_worker,tb_worker_reservable,tb_coordinator,tb_coordinator_mcts,te_coordinator" 
-    volumes:
-      - './data:/home/askcos/ASKCOS/makeit/data'
     depends_on:
       - redis
       - rabbit
@@ -43,8 +40,6 @@ services:
     env_file:
       - .env
     command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 4 -Q sc_coordinator,ft_worker,tffp_worker,cr_coordinator,cr_nn_worker,cr_network_worker" 
-    volumes:
-      - './data:/home/askcos/ASKCOS/makeit/data'
     depends_on:
       - redis
       - rabbit
