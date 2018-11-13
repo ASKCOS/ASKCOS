@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Image{% endblock %}
+{% block page_title %}Image{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block page_body %}
+
+<form method="post" id="draw_form" action="{% url 'draw' %}">
+<table class="table table-borderless table-nonfluid">
+{{ form.as_table }}
+	<th>{% csrf_token %}</th>
+	<td>
+		<input type="submit" value="Molecule SMILES" name="mol">
+		<input type="submit" value="Reaction SMILES" name="rxn">
+		<input type="submit" value="Template SMARTS" name="tform">
+	</td>
+</table>
+</form>
+
+{% if err %}
+<div class="error">{{ err }}</div>
+{% endif %}
+{% if warn %}
+<div class="warning">{{ warn }}</div>
+{% endif %}
+
+<h5>
+	{% if label_title %}{{ label_title }}: {% endif %}
+	{% if label %}<font class="smiles">{{ label }}</font><br>{% endif %}
+</h5>
+
+{% if image_url %}
+<img src="{{ image_url }}" >
+{% endif %}
+
+{% endblock %}

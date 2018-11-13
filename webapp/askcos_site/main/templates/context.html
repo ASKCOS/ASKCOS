@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Context Recommendation{% endblock %}
+{% block page_title %}Context Recommendation<span id="status"></span>{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'context_rxnsmiles' %}">Context</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block javascript %}
+<script>
+$("#reactants, #product").change(function () {
+	console.log( $(this).val() );
+	$("#results").hide();
+	$.ajax({
+		url: '/ajax/rxn_to_image/',
+		data: {
+			reactants: $("#reactants").val(),
+			product: $("#product").val(),
+		},
+		dataType: 'json',
+		success: function (data) {
+			if (data.err) {
+				$("#rxn_mol_wrapper").show();
+				$("#rxn_image").html('error! could not parse');
+				$("#controls_wrapper").hide();
+				$("#rxn_smiles_wrapper").hide();
+			} else {
+				$("#rxn_image").html(data.html);
+				$("#rxn_mol_wrapper").show();
+				$("#rxn_smiles_wrapper").show();
+				$("#controls_wrapper").show();
+				$("#reactants").val(data.reactants);
+				$("#product").val(data.product);
+				$("#rxn_smiles").val(data.smiles);
+			}
+		},
+	});
+
+});
+$("#get_contexts").click(function () {
+	console.log('starting to get recs');
+	$.ajax({
+		url: '/ajax/context_rxnsmiles/',
+		data: {
+			smiles: $("#rxn_smiles").val(),
+			context_recommender: $("#id_context_recommender").val(),
+		},
+		dataType: 'json',
+		success: function (data) {
+			if (data.err) {
+				alert(data.message);
+			} else {
+				$("#results").html(data.html);
+				$("#results").show();
+			}
+		}
+	});
+});
+// On load, if entries defined, switch it out and trigger recommender
+$(document).ready(function() {
+	if ("{{reactants}}" != "") {
+		$("#reactants").val("{{reactants}}");
+		$("#reactants").trigger("change");
+	}
+	if ("{{product}}" != "") {
+		$("#product").val("{{product}}");
+		$("#product").trigger("change");
+	}
+	if (("{{reactants}}" != "") && ("{{product}}" != "")) {
+		$("#rxn_smiles").val("{{ reactants }}>>{{ product }}");
+		setTimeout(function() {
+			$("#get_contexts").trigger('click');
+		}, 10); 
+	}
+});
+</script>
+{% endblock %}
+
+
+{% block page_body %}
+
+<table class="table table-borderless table-nonfluid">
+<tr><th>{% csrf_token %}</th></tr>
+
+<tr><th style="vertical-align: text-top; text-align:left">Reactants: </th><td><input id="reactants" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('reactants')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
+<tr><th style="vertical-align: text-top; text-align:left">Product: </th><td><input id="product" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('product')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
+
+<!-- Placeholder for rendering image after a SMILES string is entered -->
+<tr id="rxn_mol_wrapper" style="display:none"><td colspan="2" id="rxn_image"></td></tr>
+<tr id="rxn_smiles_wrapper" style="display:none"><td colspan="2" id="rxn_smiles"></td></tr>
+
+<tr>
+    <th style="vertical-align:text-top;">Context recommender: <a href="#" data-toggle="tooltip" title="Which version of the context recommender would you like to use? The nearest neighbor model is probably strictly worse than the neural network model at this point...both in terms of speed and accuracy"><span class="glyphicon glyphicon-info-sign"></span></a></th>
+    <td>
+        <select id="id_context_recommender" name="context_recommender">
+            <option value="Neural_Network" {% if form.context_recommender == 'Neural_Network' %}selected{% endif %}>Neural Network</option>
+            <option disabled value="Nearest_Neighbor"  {% if form.context_recommender == 'Nearest_Neighbor' %}selected{% endif %}>Nearest Neighbor</option>
+        </select>
+    </td>
+</tr>
+
+<tr id="controls_wrapper" style="display:none">
+<td>
+	<button type="button" style="width:100%" id="get_contexts">Get Context Recommendations</button>
+</td>
+</tr>
+
+</table>
+
+<!-- Results -->
+<br>
+<div id="results"></div>
+<br>
+
+{% if footnote %}
+<br>
+<div style="font-size:smaller"><i>{{ footnote }}</i></div>
+{% endif %}
+
+<!-- drawing box -->
+{% include "drawing_modal.html" %}
+
+{% endblock %}

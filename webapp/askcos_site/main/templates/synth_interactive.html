@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Synthesis Predictor{% endblock %}
+{% block page_title %}Synthesis Predictor<span id="status"></span>{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'synth_interactive' %}">Predictor</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block javascript %}
+<script>
+function showFields(name) {
+    if (name=='Template_Based') {
+        // $("#reagents_control").show();
+        // $("#reagent_mol_wrapper").show();
+        // $("#solvent_control").show();
+        $("#temperature_control").show();
+        $("#mincount_control").show();
+    } else {
+        // $("#reagents_control").hide();
+        // $("#reagent_mol_wrapper").hide();
+        // $("#solvent_control").hide();
+        $("#temperature_control").hide();
+        $("#mincount_control").hide();
+    }
+}
+window.onload = function() {
+    showFields("{{ forward_scorer }}");
+}
+$("#reactants").change(function () {
+    console.log( $(this).val() );
+    $.ajax({
+        url: '/ajax/smiles_to_image/',
+        data: {
+            smiles: $(this).val(),
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data.err) {
+                $("#reactant_mol_wrapper").show();
+                $("#reactants_image").html('error! could not parse');
+                $("#controls_wrapper").hide();
+            } else {
+                $("#reactants_image").html(data.html);
+                $("#reactants").val(data.smiles)
+                $("#reactant_mol_wrapper").show();
+                $("#controls_wrapper").show();
+            }
+        },
+    });
+
+});
+$("#reagents").change(function () {
+    console.log( $(this).val() );
+    if ($(this).val()) {
+        $.ajax({
+            url: '/ajax/smiles_to_image/',
+            data: {
+                smiles: $(this).val(),
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.err) {
+                    $("#reagents_image").html('error! could not parse');
+                    $("#reagent_mol_wrapper").show();
+                    $("#controls_wrapper").hide();
+                } else {
+                    $("#reagents").val(data.smiles)
+                    $("#reagents_image").html(data.html);
+                    $("#reagent_mol_wrapper").show();
+                    $("#controls_wrapper").show();
+                }
+            },
+        });
+    } else {
+        $("#reagent_mol_wrapper").hide();
+    };
+
+});
+$("#start_synth").click(function () {
+    console.log('starting synth');
+    $.ajax({
+        url: '/ajax/start_synth/',
+        data: {
+            reactants: $("#reactants").val(),
+            reagents: $("#reagents").val(),
+            solvent: $("#solvent").val(),
+            temperature: $("#temperature").val(),
+            mincount: $("#mincount").val(),
+            maxreturn: $("#maxreturn").val(),
+            forward_scorer: $("#id_forward_scorer").val(),
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data.err) {
+                alert(data.message);
+            } else {
+                $("#results").html(data.html);
+                $("#time").html(data.html_time);
+            }
+        }
+    });
+});
+// On load, if entries defined, switch it out
+$(document).ready(function() {
+    if ("{{reactants}}" != "") {
+        $("#reactants").val("{{reactants}}");
+        $("#reactants").trigger("change");
+    }
+    if ("{{reagents}}" != "") {
+        $("#reagents").val("{{reagents}}");
+        $("#reagents").trigger("change");
+    }
+    if ("{{solvent}}" != "") {
+        $("#solvent").val("{{solvent}}");
+    }
+    if ("{{temperature}}" != "") {
+        $("#temperature").val("{{temperature}}");
+    }
+    if ("{{mincount}}" != "") {
+        $("#mincount").val("{{mincount}}");
+    }
+});
+</script>
+{% endblock %}
+
+
+{% block page_body %}
+<i>Note: using the template-based enumerator, reagents are not allowed to contribute atoms to the final product, but can influence the perceived likelihoods of different outcomes. Please include all compounds that can contribute atoms to the product as reactants. Stereochemistry is not perceived during the forward prediction. Using the template-free enumerator, reagents and solvents are allowed to contribute atoms.</i>
+
+<table class="table table-borderless table-nonfluid">
+
+<tr><th style="vertical-align: text-top;">Reactants: </th><td><input id="reactants" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('reactants')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
+
+<!-- Placeholder for rendering image after a SMILES string is entered -->
+<tr id="reactant_mol_wrapper" style="display:none"><th style="vertical-align: text-top">Parsed reactants:</th><td id="reactants_image"></td></tr>
+
+<tr><th style="vertical-align:text-top;">Prediction approach: <a href="#" data-toggle="tooltip" title="How would you like to try to predict the outcome of this reaction? There is the classic template-based approach, which is somewhat context-dependent, but can be slow (5-45 seconds). There is also the template-free approach, which can allow for inventive chemistry and tends to be more accurate overall, but is not sensitive to context. It is very fast."><span class="glyphicon glyphicon-info-sign"></span></a></th>
+    <td>
+        <select id="id_forward_scorer" name="forward_scorer" onchange="showFields(this.options[this.selectedIndex].value)">
+            <option value="Template_Free" {% if forward_scorer == 'Template_Free' %}selected{% endif %}>Template-free</option>
+            <option disabled value="Template_Based" {% if forward_scorer == 'Template_Based' %}selected{% endif %}>Template-based</option>
+        </select>
+    </td>
+</tr>
+
+<tr><th>{% csrf_token %}</th></tr>
+
+<tr id="reagents_control"><th style="vertical-align: text-top; text-align:left">Reagents: </th><td><input id="reagents" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('reagents')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
+
+<!-- Placeholder for rendering image after a SMILES string is entered -->
+<tr id="reagent_mol_wrapper" style="display:none"><th style="vertical-align: text-top;"">Parsed reagents:</th><td id="reagents_image"></td></tr>
+
+<tr id="solvent_control"><th>Solvent: </th><td><select id="solvent"><option value="">None</option>{% for solvent in solvent_choices %}<option value="{{ solvent.smiles }}" {% if solvent.name == solventselected %}selected{% endif %}>{{ solvent.name }}</option>{% endfor %}</select></td></tr>
+
+
+<tr id="temperature_control" style="display:none"><th>Temperature (Celsius): </th><td><input id="temperature" maxlength="6" size="6" type="text" value="{{ temperature }}"/></td></tr>
+
+<tr id="mincount_control" style="display:none"><th>Minimum template count: <a href="#" data-toggle="tooltip" title="What is the minimum template popularity you would like to use during the forward enumeration when evaluating suggested reactions? The default value of {{ mincount }} shows the value used during intiialization, so you cannot specify a value lower than this."><span class="glyphicon glyphicon-info-sign"></span></a></th><td><input id="mincount" maxlength="6" size="6" type="text" value="{{ mincount }}"/></td></tr>
+
+<tr><th>Maximum num. products: <a href="#" data-toggle="tooltip" title="Up to how many candidate outcomes should be returned? The only downside to returning a large number is the time it takes to render the images; it does not increase the computational time."><span class="glyphicon glyphicon-info-sign"></span></a></th><td><input id="maxreturn" maxlength="6" size="6" type="text" value="100"/></td></tr>
+
+<!-- Controls -->
+<tr id="controls_wrapper" style="display:none">
+<td colspan="2" style="width:100%">
+    <button type="button" style="width:100%" id="start_synth">Go</button>
+</td>
+</tr>
+</table>
+
+<!-- Results -->
+<br>
+<div id="time"></div>
+<br>
+<div id="results"></div>
+
+{% if footnote %}
+<br>
+<div style="font-size:smaller"><i>{{ footnote }}</i></div>
+{% endif %}
+
+
+<!-- drawing box -->
+{% include "drawing_modal.html" %}
+
+{% endblock %}

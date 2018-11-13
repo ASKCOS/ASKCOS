@@ -1,0 +1,57 @@
+<table class="table table-nonfluid borderless">
+{% for context in contexts %}
+<thead>
+	<th><br><a href="{% url 'synth_interactive_contextspec' reactants context.reagents_combined context.solvents context.temperature %}">Recommendation {{ forloop.counter }}</a></th>
+	<td></td>
+</thead>
+<tbody>
+<tr>
+	<td>Reagent(s): </td>
+	{% if context.reagents or context.reagents_name_only %}
+	<td width="70%" colspan=7><div style="overflow-x:auto; width=100%">
+		{% if context.reagents %} 
+		<img src="" data-async-load="{% url 'draw_smiles' context.reagents %}" alt="{{ context.reagents }}" max-width="100%">
+		{% endif %}
+	{{context.reagents_name_only}}</div></td>
+	{% else %}
+	<td>none</td>
+	{% endif %}
+
+</tr>
+<tr>
+	<td>Catalyst(s): </td>
+	{% if context.catalysts or context.catalysts_name_only %}
+	<td width="70%" colspan=7><div style="overflow-x:auto; width=100%">
+		{% if context.catalysts %} 
+		<img src="" data-async-load="{% url 'draw_smiles' context.catalysts %}" alt="{{ context.catalysts }}" max-width="100%">
+		{% endif %}
+	{{context.catalysts_name_only}}</div></td>
+	{% else %}
+	<td>none</td>
+	{% endif %}
+
+</tr>
+<tr>
+	<td>Solvent(s): </td>
+	{% if context.solvents or context.solvents_name_only %}
+	<td width="70%" colspan=7><div style="overflow-x:auto; width=100%">
+		{% if context.solvents %}
+		<img src="" data-async-load="{% url 'draw_smiles' context.solvents %}" alt="{{ context.smiles }}" max-width="100%">
+		{% endif %}
+	{{context.solvents_name_only}}</div></td>
+	{% else %}
+	<td>neat</td>
+	{% endif %}
+
+</tr>
+<tr>
+	<td>Temperature: </td>
+	{% if context.temperature and context.temperature != -1 %}
+	<td>{{ context.temperature|floatformat:.1 }} Celsius</td>
+	{% else %}
+	<td>unknown</td>
+	{% endif %}
+</tr>
+</tbody>
+{% endfor %}
+</table>
