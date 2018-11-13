@@ -1,9 +1,8 @@
-# ASKCOS - Containerized with Docker, deployed with docker-compose
+# ASKCOS Deployment - Containerized with Docker, deployed with docker-compose
 
 ### Prerequisites
 
- - Make sure git is installed on your machine
- - You may need git-lfs to acquire Make-It/makeit/data
+ - If you're buidling the image from scratch, make sure git (and git lfs) is installed on your machine
  - Install Docker [OS specific instructions](https://docs.docker.com/install/)
  - Install docker-compose [installation instructions](https://docs.docker.com/compose/install/#install-compose)
 
@@ -12,33 +11,26 @@
 The askcos image itself can be built using the Dockerfile in this repository `Make-It/Dockerfile`.
 
 ```bash
-# from directory with Dockerfile
+$ git clone https://github.com/connorcoley/Make-It  
+$ cd Make-It/makeit/data  
+$ git lfs pull  
+$ cd ../../  
 $ docker build -t askcos .
 ```
 
-
-__*NOTE*__: The docker image is built excluding the Make-It/makeit/data directory. This data directory is intended to be mounted into the container when it is run:
-
-```bash
-$ docker run -it --name=askcos -v /full/path/to/Make-It/makeit/data:/home/askcos/ASKCOS/makeit/data askcos
-```
-
-
 ### Deploy with docker-compose
 
-The `Make-It/deploy/docker-compose.yml` file contains the configuration to deploy the askcos stack with docker-compose. This requires that the askcos image is built, the makeit/data directory is intact (must use git lfs to pull large data files), and a few environment variables are set in the .env file.
+The `Make-It/deploy/docker-compose.yml` file contains the configuration to deploy the askcos stack with docker-compose. This requires that the askcos image is built (see previous step), and a few environment variables are set in the .env file.
 
 ```bash
-$ cd deploy
-
-$ ln -s ../makeit/data # this allows the data directory to be mounted into container during deployment
-
-$ vi .env # fill out missing environment variables
-
+$ cd deploy  
+$ vi .env # fill out missing environment variables  
 $ docker-compose up -d
 ```
 
 The services will start in a detached state. You can view logs with `docker-compose logs [-f]`.
+
+To stop the containers use `docker-compose down`
 
 ## Important Notes
 
