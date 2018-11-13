@@ -1,0 +1,15 @@
+amqp==2.3.2
+celery==4.2.1
+Django==1.8
+django-extensions
+django-registration==2.4
+h5py==2.8.0
+matplotlib==2.2.3
+pillow
+pycairo
+pymongo==3.7.2
+PyYAML==3.13
+redis
+tensorflow==1.4.1
+tqdm
+uWSGI==2.0.17.1
