@@ -92,9 +92,13 @@ database = 'reaxys_v2'
 # Define databases (should be nonessential if all local files present)
 ################################################################################
 
+MONGO_URL = os.environ.get('MONGO_URL', '')
+MONGO_USER = os.environ.get('MONGO_USER', '')
+MONGO_PW = os.environ.get('MONGO_PW', '')
+
 # TODO: change this to your local Mongo DB!
 MONGO = {
-    'path': 'mongodb://guest:askcos_guest@askcos2.mit.edu/admin',
+    'path': 'mongodb://{}:{}@{}/admin'.format(MONGO_USER, MONGO_PW, MONGO_URL),
     'id': 27017,
     'connect': False
 }
