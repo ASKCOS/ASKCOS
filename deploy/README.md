@@ -18,6 +18,15 @@ $ cd ../../
 $ docker build -t askcos .
 ```
 
+Alternatively pull from docker hub
+
+```bash
+$ docker login  
+# login with credentials  
+$ docker pull mefortunato/askcos  
+$ docker tag mefortunato/askcos askcos # docker-compose expects there to be an image names askcos  
+```
+
 ### Deploy with docker-compose
 
 The `Make-It/deploy/docker-compose.yml` file contains the configuration to deploy the askcos stack with docker-compose. This requires that the askcos image is built (see previous step), and a few environment variables are set in the .env file.
