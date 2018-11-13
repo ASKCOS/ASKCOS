@@ -23,6 +23,8 @@ SECRET_KEY = 'notsosecret'
 DEBUG = False
 
 ALLOWED_HOSTS = ['0.0.0.0', 'askcos.mit.edu', 'askcos4.mit.edu']
+if os.environ.get('CURRENT_HOST'):
+    ALLOWED_HOSTS.append(os.environ.get('CURRENT_HOST'))
 
 TEMPLATE_LOADERS = ['django.template.loaders.filesystem.Loader',
  'django.template.loaders.app_directories.Loader']
