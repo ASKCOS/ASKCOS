@@ -7,9 +7,10 @@ from django.conf import settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'askcos_site.settings')
 
 # Note: cannot use guest for authenticating with broker unless on localhost
-SERVERHOST = 'localhost'
-app = Celery('askcos_site', broker='amqp://{}:5672'.format(SERVERHOST), 
-    backend='redis://{}:6379'.format(SERVERHOST),
+REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
+RABBIT_HOST = os.environ.get('RABBIT_HOST', 'localhost')
+app = Celery('askcos_site', broker='amqp://{}:5672'.format(RABBIT_HOST), 
+    backend='redis://{}:6379'.format(REDIS_HOST),
     include=[
         'askcos_site.askcos_celery.treebuilder.tb_worker',
         'askcos_site.askcos_celery.treebuilder.tb_c_worker',
