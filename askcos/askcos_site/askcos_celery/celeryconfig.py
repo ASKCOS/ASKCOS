@@ -19,6 +19,8 @@ TASK_QUEUES = [
 ]
 CELERY_QUEUES = TASK_QUEUES
 
+BROKER_POOL_LIMIT = None
+
 # global max priority setting
 task_acks_late = True 
 CELERY_ACKS_LATE = True
