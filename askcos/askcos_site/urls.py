@@ -24,7 +24,7 @@ urlpatterns += [
     url(r'^admin/', include(admin.site.urls)),
 
     # User pages
-    url('^registration/', include('registration.backends.hmac.urls')),
+    url('^registration/', include('registration.backends.simple.urls')),
     # url(r'^login$', views.login, name='login'),
     # url(r'^logout$', views.logout, name='logout'),
 
