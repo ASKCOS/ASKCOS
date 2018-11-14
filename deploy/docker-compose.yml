@@ -26,20 +26,65 @@ services:
       - redis
       - rabbit
 
-  tb_worker:
+  te_coordinator:
     image: askcos
     env_file:
       - .env
-    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 4 -Q tb_c_worker,tb_c_worker_reservable,tb_worker,tb_worker_reservable,tb_coordinator,tb_coordinator_mcts,te_coordinator" 
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q te_coordinator"
     depends_on:
       - redis
       - rabbit
 
-  synth_worker:
+  sc_coordinator:
     image: askcos
     env_file:
       - .env
-    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 4 -Q sc_coordinator,ft_worker,tffp_worker,cr_coordinator,cr_nn_worker,cr_network_worker" 
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q sc_coordinator"
+    depends_on:
+      - redis
+      - rabbit
+
+  ft_worker:
+    image: askcos
+    env_file:
+      - .env
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q ft_worker"
+    depends_on:
+      - redis
+      - rabbit
+
+  cr_coordinator:
+    image: askcos
+    env_file:
+      - .env
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q cr_coordinator"
+    depends_on:
+      - redis
+      - rabbit
+
+  cr_network_worker:
+    image: askcos
+    env_file:
+      - .env
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q cr_network_worker"
+    depends_on:
+      - redis
+      - rabbit
+
+  tb_coordinator_mcts:
+    image: askcos
+    env_file:
+      - .env
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q tb_coordinator_mcts"
+    depends_on:
+      - redis
+      - rabbit
+
+  tb_c_worker:
+    image: askcos
+    env_file:
+      - .env
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 10 -Q tb_c_worker"
     depends_on:
       - redis
       - rabbit
