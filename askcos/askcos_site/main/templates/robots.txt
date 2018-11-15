@@ -1,0 +1,11 @@
+User-agent: *
+crawl-delay: 10
+Disallow: /retro/target*
+Disallow: /context/target*
+
+User-agent: Baidu
+Disallow: /*target=
+
+
+User-agent: Yandex
+Disallow: /

@@ -1,0 +1,499 @@
+{% extends "base.html" %}
+
+{% block title %}Retrosynthesis Planner{% endblock %}
+{% block page_title %}Retrosynthesis Planner<span id="status"></span>{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'retro_interactive' %}">Planner</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block javascript %}
+<script>
+function showFields(name) {
+    if (name=='Relevance') {
+        $(".retro_relevance_settings").show();
+    } else {
+        $(".retro_relevance_settings").hide();
+    }
+}
+function showFieldsEvaluation(name) {
+    if (name=='Template_Based') {
+        $("#synth_mincount_control").show();
+        $("#synth_mincount_control2").show();
+    } else {
+        $("#synth_mincount_control").hide();
+        $("#synth_mincount_control2").hide();
+    }
+}
+function showFieldsChemProp(name) {
+    if (name=='none') {
+        $(".chemical_property_settings").hide();
+    } else {
+        $(".chemical_property_settings").show();
+        if (name=='and') {
+            $("#max_chemprop_c").val(1000);
+            $("#max_chemprop_n").val(1000);
+            $("#max_chemprop_o").val(1000);
+            $("#max_chemprop_h").val(1000);
+        } else {
+            $("#max_chemprop_c").val(0);
+            $("#max_chemprop_n").val(0);
+            $("#max_chemprop_o").val(0);
+            $("#max_chemprop_h").val(0);
+        }
+    }
+}
+function showFieldsChemPop(name) {
+    if (name=='none') {
+        $(".chemical_popularity_settings").hide();
+    } else {
+        $(".chemical_popularity_settings").show();
+    }
+}
+window.onload = function() {
+    console.log("{{ form.template_prioritization }}");
+    showFields("{{ template_prioritization }}");
+    console.log("{{ form.forward_scorer }}");
+    showFieldsEvaluation("{{ forward_scorer }}");
+}
+function resetSettings() {
+    $("#max_depth").val(4);
+    $("#max_branching").val(20);
+    $("#retro_mincount").val(0);
+    $("#expansion_time").val(60);
+    $("#id_template_prioritzation").val('Relevance');
+    $("#id_precursor_prioritization").val('RelevanceHeuristic');
+    $("#template_count").val(100);
+    $("#max_cum_prob").val(0.995);
+    $("#max_ppg").val(100);
+    $("#chiral").prop("checked", true);
+    $("#id_chemical_property_logic").val('none');
+    showFieldsChemProp('none');
+    $("#id_chemical_popularity_logic").val('none');
+    showFieldsChemPop('none');
+    $("#min_chempop_reactants").val(5);
+    $("#min_chempop_products").val(5);
+    $("#filter_threshold").val(0.75);
+    showFieldsEvaluation("Template_Free");
+    showFields("Relevance");
+}
+function liberalSettings() {
+    resetSettings();
+    $("#max_depth").val(4);
+    $("#max_branching").val(20);
+    $("#retro_mincount").val(0);
+    $("#expansion_time").val(60);
+    $("#template_count").val(1000);
+    $("#max_cum_prob").val(0.999);
+    $("#filter_threshold").val(0.1);
+}
+function longliberalSettings() {
+    resetSettings();
+    $("#max_depth").val(5);
+    $("#max_branching").val(25);
+    $("#expansion_time").val(120);
+    $("#template_count").val(1000);
+    $("#max_cum_prob").val(0.9999);
+    $("#filter_threshold").val(0.01);
+}
+function strugglingSettings() {
+    resetSettings();
+    $("#max_depth").val(6);
+    $("#max_branching").val(25);
+    $("#retro_mincount").val(0);
+    $("#expansion_time").val(120);
+    $("#template_count").val(1000);
+    $("#max_cum_prob").val(0.9999);
+    $("#id_chemical_popularity_logic").val('or');
+    showFieldsChemPop('or');
+    $("#min_chempop_reactants").val(5);
+    $("#min_chempop_products").val(5);
+    $("#filter_threshold").val(0.0001);
+}
+$("#id_smiles").change(function () {
+    console.log( $(this).val() );
+    $.ajax({
+        url: '/ajax/smiles_to_image/',
+        data: {
+            smiles: $(this).val(),
+        },
+        dataType: 'json',
+        success: function (data) {
+            $("#status").html('');
+            $("#statistics").html('');
+            $("#results").html('');
+            $("#start_retro").html('Start');
+            if (data.err) {
+                $("#target_mol").html('error! could not parse');
+                $("#target_mol_wrapper").show();
+                $("#controls_wrapper").hide();
+                $("#settings_wrapper").hide();
+            } else {
+                $("#target_mol").html(data.html);
+                $("#target_mol_wrapper").show();
+                $("#controls_wrapper").show();
+                $("#settings_wrapper").show();
+                $("#id_smiles").val(data.smiles);
+            }
+        },
+    });
+
+});
+$("#start_retro").click(function () {
+    if ($("#start_retro").prop('disabled')) {
+        alert('Be patient! It is running');
+    } else {
+        console.log('starting retro');
+        $("#start_retro").prop('disabled', true);
+        $("#status").html(': running...');
+        $("#start_retro").html('Running...');
+        $.ajax({
+            url: '/ajax/start_retro_celery/',
+            data: {
+                smiles: $("#id_smiles").val(),
+                max_depth: $("#max_depth").val(),
+                max_branching: $("#max_branching").val(),
+                retro_mincount: $("#retro_mincount").val(),
+                expansion_time: $("#expansion_time").val(),
+                template_prioritization: $("#id_template_prioritzation").val(),
+                precursor_prioritization: $("#id_precursor_prioritization").val(),
+                template_count: $("#template_count").val(),
+                max_cum_prob: $("#max_cum_prob").val(),
+                max_ppg: $("#max_ppg").val(),
+                chiral: $("#chiral").is(":checked"),
+                chemical_property_logic: $("#id_chemical_property_logic").val(),
+                max_chemprop_c: $("#max_chemprop_c").val(),
+                max_chemprop_n: $("#max_chemprop_n").val(),
+                max_chemprop_o: $("#max_chemprop_o").val(),
+                max_chemprop_h: $("#max_chemprop_h").val(),
+                chemical_popularity_logic: $("#id_chemical_popularity_logic").val(),
+                min_chempop_reactants: $("#min_chempop_reactants").val(),
+                min_chempop_products: $("#min_chempop_products").val(),
+                filter_threshold: $("#filter_threshold").val(),
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.err) {
+                    alert(data.message);
+                    $("#status").html(': failed?');
+                } else {
+                    $("#statistics").html(data.html_stats);
+                    $("#results").html(data.html_trees);
+                    $("#status").html(': done!');
+                }
+                $("#start_retro").html('Start');
+                $("#start_retro").prop('disabled', false);
+            }
+        });
+    }
+});
+$('#results').on('click', '.rxn', function(){
+    console.log('clicked on a rxn box');
+    smiles = $(this).attr("smiles");
+    targetid = $(this).attr("targetid");
+    necessaryreagent = $(this).attr("necessaryreagent");
+    console.log(smiles);
+    console.log(targetid);
+    $.ajax({
+        url: '/ajax/evaluate_rxnsmiles/',
+        data: {
+            smiles: smiles,
+            synth_mincount: $("#synth_mincount").val(),
+            necessary_reagent: necessaryreagent,
+            forward_scorer: $("#id_forward_scorer").val(),
+
+        },
+        dataType: 'json',
+        success: function (data) {
+            console.log(data)
+            if (data.err) {
+                alert(data.message);
+            } else {
+                $(".rxnbox" + targetid).css('background-color', data.html_color);
+                $(".eval" + targetid).html(data.html);
+            }
+        }
+    });
+});
+$('#results').on('click', '.hiderxn', function () {
+    console.log('trying to hide a rxn');
+    targetid = $(this).attr("targetid");
+    console.log(targetid);
+    $(".rxnbox" + targetid).closest('.tree').hide();
+    $(".rxnbox" + targetid).closest('.tree').collapse('hide');
+});
+$('#results').on('click', '.hidechem', function () {
+    console.log('trying to hide a rxn');
+    targetid = $(this).attr("targetid");
+    console.log(targetid);
+    $(".chembox" + targetid).closest('.tree').hide();
+    $(".chembox" + targetid).closest('.tree').collapse('hide');
+});
+$('#results').on('click', '.blacklistrxn', function () {
+    console.log('trying to blacklist a reaction');
+    var smiles = $(this).attr("smiles");
+    console.log(smiles);
+    var desc = prompt("Please enter a reason (for your records only)", "no reason");
+    if (desc) {
+        var now = Date.now();
+        var datetime = now.toString('MMMM dd, yyyy, hh:mm:ss tt');
+        $.ajax({
+            type: 'POST',
+            url: '/ajax/user_blacklist_reaction/',
+            data: {
+                smiles: smiles,
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+                desc: desc,
+                datetime: datetime,
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.err) {
+                    alert(data.err);
+                } else {
+                    alert('Blacklisted reaction "' + smiles + '" at ' + datetime);
+                }
+            }
+        });
+    };
+});
+$('#results').on('click', '.blacklistchem', function () {
+    console.log('trying to blacklist a chemical');
+    var smiles = $(this).attr("smiles");
+    console.log(smiles);
+    var desc = prompt("Please enter a reason (for your records only)", "no reason");
+    if (desc) {
+        var now = Date.now();
+        var datetime = now.toString('MMMM dd, yyyy, hh:mm:ss tt');
+        $.ajax({
+            type: 'POST',
+            url: '/ajax/user_blacklist_chemical/',
+            data: {
+                smiles: smiles,
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+                desc: desc,
+                datetime: datetime,
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.err) {
+                    alert(data.err);
+                } else {
+                    alert('Blacklisted chemical "' + smiles + '" at ' + datetime);
+                }
+            }
+        });
+    };
+});
+// On load, if entries defined, switch it out
+$(document).ready(function() {
+    if ("{{target_mol}}" != "") {
+        $("#id_smiles").val("{{target_mol}}");
+        console.log('Found target from passed context');
+    }
+    if ($("#id_smiles").val() != "") {
+        $("#id_smiles").trigger("change");
+        console.log('triggered change in target definition');
+    }
+});
+</script>
+
+{% endblock %}
+
+
+{% block page_body %}
+<table class="table table-borderless table-nonfluid">
+
+<tr><th>Target compound:</th><td colspan="4"><input id="id_smiles" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('id_smiles')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
+
+<tr><th>{% csrf_token %}</th></tr>
+
+<!-- Placeholder for rendering image after a SMILES string is entered -->
+<tr id="target_mol_wrapper" style="display:none"><th style="vertical-align: text-top">Parsed structure:</th><td id="target_mol" colspan="4"></td></tr>
+
+<!-- Settings -->
+<tbody id="settings_wrapper" style="display:none">
+<!-- Shortcut buttons -->
+<tr><th>Quick settings: </th>
+<td colspan="4">
+    <button type="button" style="width:100%" onclick="resetSettings();">Default settings</button>
+</td></tr>
+<tr><th></th><td colspan="4">
+    <button type="button" style="width:100%" onclick="liberalSettings();">I don't mind seeing unrealistic suggestions</button>
+</td></tr>
+<tr><th></th><td colspan="4">
+    <button type="button" style="width:100%" onclick="longliberalSettings();">I don't mind waiting slightly longer</button>
+</td></tr>
+<tr><th></th><td colspan="4">
+    <button type="button" style="width:100%" onclick="strugglingSettings();">I don't mind if trees end in known (not buyable) compounds</button>
+</td></tr>
+
+
+<tr><th>Expansion settings: </th>
+
+<td>
+    Max. depth (1-9): <a href="#" data-toggle="tooltip" title="What is the maximum number of sequential reaction steps you would like to see in the results? This setting tells the tree builder when to stop expanding chemical nodes and 'give up' on unsuccessful branches. Because the tree builder roughly follows a depth-first search, a max depth that is too high may mean that the search is not able to explore many alternatives for the first retrosynthetic disconnection. We recommend that you set this number to equal 1 + the length of the shortest route you expect to find."><span class="glyphicon glyphicon-info-sign"></span></a>
+</td>
+<td>
+    <input type="number" id="max_depth" min="1" max="{% if user.username == 'JLUMMISS' %}20{% else %}9{% endif %}" style="width: 5em" value="{{max_depth_default}}">
+</td>
+
+<td>
+    Max. branching factor: <a href="#" data-toggle="tooltip" title="What is the maximum branching ratio to use during expansion? The tree is built up using a heuristic-driven depth first search with truncated branching. That means that after a chemical node is expanded into possible precursors, we only keep the most promising ones to continue expanding. The scoring function used for this truncation favors (a) buyability, first and foremost, and (b) smaller chemicals with fewer ring atoms and chiral centers. We recommend choosing a value between 20 and 50. Please note that the use of an approximate depth-first search means that it is unlikely that all branches will be explored, especially if the branching ratio and depth are both large."><span class="glyphicon glyphicon-info-sign"></span></a>
+</td>
+    <td><input type="number" id="max_branching" min="1" max="200" style="width: 5em"value="{{max_branching_default}}">
+</td>
+</tr>
+<tr><th></th>
+<td>
+    Min. retro template count: <a href="#" data-toggle="tooltip" title="What is the minimum template popularity you would like to use during the retrosynthetic expansion? We highly recommend leaving this at 0 unless you have a strong reason to only examine the most common chemistries. In that case, you could increase it to 50, 100, or 250. Note that the default value of 0 is not truly a minimum of 0 - rather, it uses all of the templates that have been pre-initialized by the expansion workers. The exact information about the templates used is displayed as a footnote."><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td><input type="number" id="retro_mincount" style="width: 5em" min="0" value="0">
+</td>
+<td>
+    Expansion time (s): <a href="#" data-toggle="tooltip" title="How long would you like to let the expansion run for? Right now, the tree builder runs in the background and you will not see any results until it terminates based on this expansion time. The expansion time is highly dependent on the depth and branching ratio of your search. For shorter syntheses (~3 steps and ~25 branching), 60 seconds might be sufficient. For longer or broader syntheses, you may want to try up to 300 seconds. The maximum we allow is 600 seconds."><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td><input type="number" id="expansion_time" style="width: 5em" min="5" max="{% if user.username == 'JLUMMISS' %}1200{% else %}600{% endif %}" value="30">
+</td>
+</tr>
+<tr><th></th>
+<td>Template prioritization: <a href="#" data-toggle="tooltip" title="How would you like to prioritize template application? If only relevant tempaltes are applied, the expansion is more focused and can be conducted much faster. This setting is recommended."><span class="glyphicon glyphicon-info-sign"></span></a></td>
+<td>
+    <select id="id_template_prioritzation" name="template_prioritization" onchange="showFields(this.options[this.selectedIndex].value)">
+        <option value="Popularity" {% if template_prioritization == 'Popularity' %}selected{% endif %}>All templates</option>
+        <option value="Relevance" {% if template_prioritization == 'Relevance' %}selected{% endif %}>Relevant templates</option>
+    </select>
+</td>
+<td>Precursor scoring: <a href="#" data-toggle="tooltip" title="How would you like precursors to be ranked? This determines the priority of different branches, so it is quite important. If using only relevant templates, we suggest heuristic, relevance-heuristic, or natural. If using all templates, we recommend heuristic or SCScore."><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td>
+        <select id="id_precursor_prioritization" name="precursor_prioritization">
+            <option value="Heuristic" {% if precursor_prioritization == 'Heuristic' %}selected{% endif %}>Heuristic</option>
+            <option value="RelevanceHeuristic" {% if precursor_prioritization == 'RelevanceHeuristic' %}selected{% endif %}>Relevance+Heuristic</option>
+            <option value="SCScore" {% if precursor_prioritization == 'SCScore' %}selected{% endif %}>SCScore</option>
+            <option value="Natural" {% if precursor_prioritization == 'Natural' %}selected{% endif %}>Natural</option>
+        </select>
+    </td>
+</tr>
+<tr class='retro_relevance_settings'><th></th>
+    <td>
+        Num. templates: <a href="#" data-toggle="tooltip" title="Maximum number of tempaltes to apply using the relevance prioritizer. The fewer that are chosen, the faster the expansion can be."><span class="glyphicon glyphicon-info-sign"></span></a>
+    </td>
+   
+    <td class='retro_relevance_settings'><input id="template_count" maxlength="6" size="6" type="text" value="{{ template_count_default }}"></td>
+</tr>
+<tr class='retro_relevance_settings'><th></th>  
+    <td>
+        Max cum. prob: <a href="#" data-toggle="tooltip" title="The relevance prioritizer assigns a proability to each template based on the current target (product) molecule. Templates are applied in decreasing relevance. What is the maximum cumulative probability you would like to reach before templates are no longer applied?"><span class="glyphicon glyphicon-info-sign"></span></a>
+    </td>
+    <td class='retro_relevance_settings'><input id="max_cum_prob" maxlength="6" size="6" type="text" value="{{ max_cum_prob_default }}"></td>
+</tr>
+
+
+<tr><th>Stop criteria:</th>
+<td>
+    Maximum chemical price ($/g): <a href="#" data-toggle="tooltip" title="What is the maximum price per gram you are willing to pay for starting materials? We recommend that you keep this high for your initial search (e.g., $100/g). If you see a route that terminates in an expensive starting material and you would like to expand further, you can make that compound the target and decrease the maximum allowed price."><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td><input type="number" id="max_ppg" style="width: 5em" max="{{max_ppg_default}}" value="{{max_ppg_default}}">
+</td>
+</tr>
+<tr><th></th>
+<td>
+    Chemical property logic: <a href="#" data-toggle="tooltip" title="Do you want properties of the molecules to determine whether or not they should count as 'buyable'? This setting chooses the logic that will be used with the pricer. If 'none', then only the pricer is used. If 'and', then both the price constraint and heavy atom constraints must be satisfied. If 'or', then satisfying one or the other constraint is sufficient."><span class="glyphicon glyphicon-info-sign"></span></a>
+</td>
+<td>
+    <select id="id_chemical_property_logic" name="chemical_property_logic" onchange="showFieldsChemProp(this.options[this.selectedIndex].value)">
+        <option value="none" {% if chemical_property_logic == 'none' %}selected{% endif %}>None (price only)</option>
+        <option value="and" {% if chemical_property_logic == 'and' %}selected{% endif %}>AND (both are necessary)</option>
+        <option value="or" {% if chemical_property_logic == 'or' %}selected{% endif %}>OR (either is sufficient)</option>
+    </select>
+</td>
+</tr>
+<tr class="chemical_property_settings" style="display:none"><th></th>
+<td>
+Max C atoms: <input type="number" id="max_chemprop_c" style="width: 5em" value="0">
+</td>
+<td>
+Max N atoms: <input type="number" id="max_chemprop_n" style="width: 5em" value="0">
+</td>
+</tr>
+<tr class="chemical_property_settings" style="display:none"><th></th>
+<td>
+Max O atoms: <input type="number" id="max_chemprop_o" style="width: 5em" value="0">
+</td>
+<td>
+Max H atoms: <input type="number" id="max_chemprop_h" style="width: 5em" value="0">
+</td>
+</tr>
+
+
+<tr><th></th>
+<td>
+    Chemical popularity logic: <a href="#" data-toggle="tooltip" title="Do you want to consider popular chemicals as reasonable stopping points for the expansion? These conditions (if used) are used with an OR logic. Meaning, chemicals will be treated as leaves if they are (buyable and/or simple enough) OR appear as reactants or products at least a certain number of times."><span class="glyphicon glyphicon-info-sign"></span></a>
+</td>
+<td>
+    <select id="id_chemical_popularity_logic" name="chemical_popularity_logic" onchange="showFieldsChemPop(this.options[this.selectedIndex].value)">
+        <option value="none" {% if chemical_popularity_logic == 'none' %}selected{% endif %}>None (use price/properties)</option>
+        <option value="or" {% if chemical_popularity_logic == 'or' %}selected{% endif %}>OR (either is sufficient)</option>
+    </select>
+</td>
+</tr>
+<tr class="chemical_popularity_settings" style="display:none"><th></th>
+<td>
+Min freq. as reactant: <input type="number" id="min_chempop_reactants" style="width: 5em" value="5">
+</td>
+<td>
+Min freq. as product: <input type="number" id="min_chempop_products" style="width: 5em" value="5">
+</td>
+</tr>
+
+<tr><th>Evaluation settings: </th>
+    <td>Min. plausibility: <a href="#" data-toggle="tooltip" title="Minimum plausibility of each reaction to use as a filter during expansion. This uses a model trained to evaluate the likelihood that a proposed reaction is feasible under *any* set of conditions"><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td><input id="filter_threshold" maxlength="6" size="6" type="text" value="{{ filter_threshold_default }}"></td>
+</tr>
+<tr><th></th>
+     <td>Manual forward prediction: <a href="#" data-toggle="tooltip" title="How would you like to evaluate reactions in the forward direction (after building the tree)? The template-based method is quite slow. The template-free method is faster, but is not condition-dependent (except when a retro transform has a necessary reagent)"><span class="glyphicon glyphicon-info-sign"></span></a></td>
+    <td>
+        <select id="id_forward_scorer" name="forward_scorer" onchange="showFieldsEvaluation(this.options[this.selectedIndex].value)">
+            <option value="Fast_Filter" {% if forward_scorer == 'Fast_Filter' %}selected{% endif %}>Fast filter</option>
+            <option value="Template_Free" {% if forward_scorer == 'Template_Free' %}selected{% endif %}>Template-free</option>
+            <option disabled value="Template_Based" {% if forward_scorer == 'Template_Based' %}selected{% endif %}>Template-based</option>
+        </select>
+    </td>
+<tr>
+<tr id="synth_mincount_control"  style="display:none"><th></th>
+    <td>
+        Min. synth template count: <a href="#" data-toggle="tooltip" title="What is the minimum template popularity you would like to use during the forward enumeration when evaluating suggested reactions? This setting does not affect the tree builder directly, but will affect any subsequent evaluations that you request (i.e., by clicking on the reaction nodes in the trees)."><span class="glyphicon glyphicon-info-sign"></span></a>
+    </td>
+
+    <td id="synth_mincount_control2"><input type="number" id="synth_mincount" style="width: 5em" min="0" value="25">
+    </td>
+</tr>
+
+
+
+</tbody>
+
+<!-- Controls -->
+<tr id="controls_wrapper" style="display:none"><th style="vertical-align: bottom; text-align:left">Controls:</th>
+<td colspan="1">
+    <button type="button" style="width:120px" id="start_retro">Start</button>
+</td>
+<td colspan="3">
+    <input type="checkbox" id="chiral" checked> Pay close attention to chirality <a href="#" data-toggle="tooltip" title="Would you like to spend a little extra computational effort to have reliable stereochemistry handling? We recommend that you keep this checked. It prevents the mis-application of chiral templates to achiral targets or achiral tempaltes to chiral targets."><span class="glyphicon glyphicon-info-sign"></span></a><br>
+</td>
+
+</tr>
+
+</table>
+
+<!-- Results -->
+<div id="statistics"></div>
+<br/>
+<div id="results"></div>
+
+<!-- drawing box -->
+{% include "drawing_modal.html" %}
+
+{% endblock %}
+

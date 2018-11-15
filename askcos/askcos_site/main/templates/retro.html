@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}One-step Retrosynthesis{% endblock %}
+{% block page_title %}One-step Retrosynthesis{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'retro_home' %}">One-step Retro</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+
+{% block javascript %}
+<script>
+function showFields(name) {
+    if (name=='Relevance') {
+        $('#RelevanceSettings1').show();
+        $('#RelevanceSettings2').show();
+    } else {
+        $('#RelevanceSettings1').hide();
+        $('#RelevanceSettings2').hide();
+    }
+}
+window.onload = function() {
+    // console.log("{{ form.template_prioritization }}");
+    showFields("{{ form.template_prioritization }}");
+}
+function resetSettings() {
+    $("#template_count").val(100);
+    $("#max_cum_prob").val(0.995);
+    $("#filter_threshold").val(0.75);
+    showFields("Relevance");
+}
+function liberalSettings() {
+    $("#template_count").val(1000);
+    $("#max_cum_prob").val(0.9999);
+    $("#filter_threshold").val(0.01);
+    showFields("Relevance");
+}
+</script>
+{% endblock %}
+
+
+{% block page_body %}
+
+<p>Begin by entering in the SMILES string or name of the target molecule, or choose from one of the proposal targets below.</p>
+
+<form method="post" id="smiles_form" action="{% url 'retro_home' %}">
+<table class="table table-borderless table-nonfluid">
+    <tr>
+        <th>Target compound:</td>
+        <td>
+            <input id="id_smiles" maxlength="400" name="smiles" type="text" value="{{ form.smiles }}"><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('id_smiles')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a>
+        </td>
+    </tr>
+    <!-- Shortcut buttons -->
+    <tr><th>Quick settings: </th>
+    <td colspan="4">
+        <button type="button" style="width:100%" onclick="resetSettings();">Default settings</button>
+    </td></tr>
+    <tr><th></th><td colspan="4">
+        <button type="button" style="width:100%" onclick="liberalSettings();">Idea generation settings</button>
+    </td></tr>
+    <tr>
+        <th>Template prioritization:</td>
+        <td>
+            <select id="id_template_prioritzation" name="template_prioritization" onchange="showFields(this.options[this.selectedIndex].value)">
+                <option value="Popularity" {% if form.template_prioritization == 'Popularity' %}selected{% endif %}>Apply all templates</option>
+                <option value="Relevance"  {% if form.template_prioritization == 'Relevance' %}selected{% endif %}>Apply relevant templates</option>
+            </select>
+        </td>
+    </th>
+    <tr><th></th>
+        <td id="RelevanceSettings1">Num. templates: <input name="template_count" id="template_count" maxlength="6" size="6" type="text" value="{{ form.template_count }}"></td>
+    </tr>
+    <tr><th></th>
+        <td id="RelevanceSettings2">Max. cum. prob.: <input name="max_cum_prob" id="max_cum_prob" maxlength="6" size="6" type="text" value="{{ form.max_cum_prob }}"></td>
+    </tr>
+    <tr>
+        <th>Precursor scoring:</th>
+        <td>
+            <select id="id_precursor_prioritization" name="precursor_prioritization">
+                <option value="Heuristic" {% if form.precursor_prioritization == 'Heuristic' %}selected{% endif %}>Heuristic</option>
+                <option value="RelevanceHeuristic" {% if form.precursor_prioritization == 'RelevanceHeuristic' %}selected{% endif %}>Relevance+Heuristic</option>
+                <option value="SCScore"  {% if form.precursor_prioritization == 'SCScore' %}selected{% endif %}>SCScore</option>
+                <option value="Natural"  {% if form.precursor_prioritization == 'Natural' %}selected{% endif %}>Natural ordering</option>
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <th></th>
+        <td>Min. plausibility: <input name="filter_threshold" id="filter_threshold" maxlength="6" size="6" type="text" value="{{ form.filter_threshold }}"></td>
+    </tr>
+
+    <th>{% csrf_token %}</th>
+    <td>
+        <!-- <input type="submit" value="Search (achiral)" name="retro"> -->
+        <!-- <input type="submit" value="Search (literature)" name="retro_lit"> -->
+        <input type="submit" value="Search" name="retro">
+    </td>
+</table>
+</form>
+
+{% if suggestions %}
+    <table>
+    {% for suggestion in suggestions %}
+        <tr>
+            <td>
+                <a href="{% url 'retro_target' suggestion.smiles %}">{{ suggestion.name }}</a><br>
+                <a href="{% url 'retro_interactive_mcts_target' suggestion.smiles %}"><i>tree builder</i></a>
+            </td>
+            <td><img src="{% url 'draw_smiles' suggestion.smiles %}"></td>
+        </tr>
+    {% endfor %}
+    </table>
+
+
+{% endif %}
+
+{% if target %}
+    <h5>Target molecule: <font class="smiles">{{ target.smiles }}</font></h5>
+    <img src="{{ target.img }}" alt="{{ target.smiles }}">
+    <br>
+    <br>
+    <i>Results generated in {{ time }} seconds</i>
+    <br>
+    <br>
+
+    <table class="table table_precursors" id="results">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th><font class="smiles"><center>Precursor(s)</center></font></th>
+                <th>Score</th>
+                <th># Examples</th>
+                {% if form.template_prioritization == 'Relevance' %}<th>Max template relevance</th>{% endif %}
+                {% if form.filter_threshold %}<th>Fast filter score</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for precursor in precursors %}
+
+        <tr>
+            <td>{{ precursor.rank }}</td>
+            <td>
+                {% for mol in precursor.mols %}
+                <font class="smiles">
+                    {% if lit_only %}
+                    <a href="{% url 'retro_lit_target' mol.smiles %}">{{ mol.smiles }}</a><i> ({{ mol.ppg }})</i>
+                    {% else %}
+                    <a href="{% url 'retro_target' mol.smiles %}">{{ mol.smiles }}</a><i> ({{ mol.ppg }})</i>
+                    {% endif %}
+                </font>
+                {% if not forloop.last %} + {% endif %}{% endfor %}
+                <a href="{% url 'context_rxnsmiles_target2' precursor.smiles target.smiles %}">&rarr; ?</a>
+                <br>
+                <a><img src="" data-async-load="{% url 'draw_smiles' precursor.smiles %}" alt="{{ precursor.smiles }}" onclick="toggle_visibility('expand{{ precursor.rank }}');"></a>
+                
+                <div id='expand{{ precursor.rank }}' style='display:none'>  
+                    {% if precursor.tforms %}
+                    <font class="smiles"><b>Based on retrosynthetic transform template(s):</b></font><br>
+                    {% for tform in precursor.tforms %}
+                        <font class="smiles">
+                            <a href="{% url 'template_target' tform.id %}">Template {{ tform.id }} ({{ tform.count }} examples)</a>
+                        </font>{% if not forloop.last %}<br>{% endif %}
+                    {% endfor %}
+                    {% endif %}
+                    {% if precursor.rxid %}
+                    <font class="smiles"><b>Based on Reaxys reaction ID: <a href="{% url 'rxid_target' precursor.rxid %}">{{ precursor.rxid }}</a></b></font>
+                    {% endif %}
+                </div>
+                
+            </td>
+            <td>{{ precursor.score }}</td>
+            <td>{{ precursor.num_examples }}</td>
+            {% if form.template_prioritization == 'Relevance' %}<td>{{ precursor.template_score|floatformat:5 }}</td>{% endif %}
+            {% if form.filter_threshold %}<td>{{ precursor.plausibility|floatformat:5 }}</td>{% endif %}
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+{% if footnote %}
+<br>
+<div align="center"><i>{{ footnote }}</i></div>
+{% endif %}
+
+<!-- drawing box -->
+{% include "drawing_modal.html" %}
+
+{% endblock %}

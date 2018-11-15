@@ -1,0 +1,58 @@
+<!-- Describe this node -->
+{% if target.is_chemical %}
+
+<div id="{{ target.id }}" class="chem chembox{{ target.id }}">
+<a class="treetooltip treebox" style="border-color: {% if target.ppg %}green{% else %}orange{% endif %}">
+<img src="" data-async-load="{% url 'draw_smiles' target.smiles %}" alt="{{ target.smiles }}" width="75%">
+<div>
+	<center>
+        <span class="hidechem" targetid="{{ target.id }}"><span class="pseudolink" style="float:right; font-size:smaller">hide all</span></span><span class="blacklistchem pseudolink" style="padding-right:5px; float:right; font-size:smaller" smiles="{{ target.smiles }}">blacklist</span></span><br>
+		<font class="smiles">{{ target.smiles }}</font>
+        {% if target.score %}<br>score: {{ target.score }}{% endif %}
+		
+        <br><br>{% if target.as_reactant %}{{ target.as_reactant }} precedents as reactant{% else %}<i>no precedent as reactant</i>{% endif %}
+        <br>{% if target.as_product %}{{ target.as_product }} precedents as product{% else %}<i>no precedent as product</i>{% endif %}
+        <br><br>{% if target.ppg %}${{ target.ppg }}/g{% else %}<i>not buyable</i>{% endif %}
+        <br><br><span class="pseudolink" onclick="window.open('{% url 'retro_interactive_mcts_target' target.smiles %}')"><i>Synthesize this target</i></span>
+	</center>
+</div>
+</a>
+</div>
+
+{% else %} 
+
+<div>
+<a targetid="{{ target.id }}" class="treetooltip treetooltip{{ target.id }} treebox rxnbox{{ target.id }}" style="border-color:black">
+{% if target.num_examples %}{{ target.num_examples }} examples{% endif %}
+{% if target.plausibility %}<br>FF score: {{ target.plausibility|floatformat:3 }}{% endif %}
+<div style="width:300px">
+    <center>
+        <span class="hiderxn" targetid="{{ target.id }}"><span class="pseudolink" style="float:right; font-size:smaller">hide all</span></span><span class="blacklistrxn pseudolink" style="padding-right:5px; float:right; font-size:smaller" smiles="{{ target.smiles }}">blacklist</span></span><br>
+        <span class="rxn rxn{{ target.id }} eval{{ target.id }}" smiles="{{ target.smiles }}" necessaryreagent="{{ target.necessary_reagent }}" targetid="{{ target.id }}"><span class="pseudolink">Click to evaluate (v0.1)!</span></span><br>
+        {% if target.info %}{{ target.info }}<br>{% endif %}
+        {% if target.necessary_reagent %}Needs source of {{ target.necessary_reagent }}<br>{% endif %}
+        <br>Based on templates...
+        {% for tform in target.tforms %}
+        <br><span class="pseudolink" onclick="window.open('{% url 'template_target' tform %}')">Template {{ tform }}</span>
+        {% endfor %}
+        <br><br><span class="pseudolink" onclick="window.open('{% url 'context_rxnsmiles_target' target.smiles %}')"><i>Evaluate in new tab</i></span>
+    </center>
+</div>
+</a>
+</div>
+
+{% endif %}
+
+
+<!-- Now add children recursively -->
+{% if target.children %}
+{% if target.children|length > 0 %}
+    <ul>
+        {% for child in target.children %}
+        <li>
+            {% include 'tree_child.html' with target=child %}
+        </li>
+        {% endfor %}
+    </ul>
+{% endif %}
+{% endif %}

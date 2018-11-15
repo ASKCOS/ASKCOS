@@ -10,3 +10,5 @@ makeit/data/context/flow_condition_data4
 test/*
 makeit/predict/output/*
 output/*
+askcos_site/static/admin/*
+*celery_logs*
