@@ -1,6 +1,6 @@
 
 # Make-It:
-Software package for the prediction of feasible synthetic routes towards a desired compound and associated tasks. Is interdependent with ASKCOS_WEBSITE [https://github.com/connorcoley/ASKCOS_Website/].
+Software package for the prediction of feasible synthetic routes towards a desired compound and associated tasks. 
 
 ## Dependencies
 The code has primarily been developed for Python 2.7.6 on Ubuntu 16.04. However, we have made an effort to make it work on Python 3.6.1 as well (tested on macOS 10.13.3). There are likely some lingering bugs, so please let us know if you find any.
@@ -15,7 +15,7 @@ We also have an installation guide for the Django web interface, which uses Cele
 Please note that this code relies on either (1) additional data files not contained in this repo, but available from ccoley@mit.edu or (2) connection to a MongoDB with specific expectations for databases/collections/etc.
 
 #### Make-It installation instructions (Ubuntu 16.04, Python 2.7.6)
-1. Place the Make-It and ASKCOS_Website repositories inside an ```ASKCOS``` folder in your home folder
+1. Place the Make-It repository inside an ```ASKCOS``` folder in your home folder
 
 1. Download miniconda2 (or miniconda3 for Python 3) and add it to the system path
 	```
@@ -42,11 +42,11 @@ Please note that this code relies on either (1) additional data files not contai
 	conda-env create -f askcos.yml -n askcos
 	```
 
-1. Add Make-It and ASKCOS_Website folders to your ```PYTHONPATH``` environment variable
+1. Add Make-It folder and askcos subfolder to your ```PYTHONPATH``` environment variable
 
 	```
-	export PYTHONPATH=~/ASKCOS/Make-It:~/ASKCOS/ASKCOS_Website:$PYTHONPATH
-	echo 'export PYTHONPATH=~/ASKCOS/Make-It:~/ASKCOS/ASKCOS_Website:$PYTHONPATH' >> ~/.bashrc 
+	export PYTHONPATH=~/ASKCOS/Make-It:~/ASKCOS/Make-It/askcos:$PYTHONPATH
+	echo 'export PYTHONPATH=~/ASKCOS/Make-It:~/ASKCOS/Make-It/askcos:$PYTHONPATH' >> ~/.bashrc 
 	```
 
 1. [OPTIONAL] create a link between ```Make-It/makeit/data``` and wherever you actually want to store the data
@@ -76,7 +76,7 @@ Please note that this code relies on either (1) additional data files not contai
 
 1. Test Make-It by running any of the individual modules below and/or the full planning script.
 
-#### ASKCOS_Website installation instructions (Ubuntu 16.04, Python 2.7.6)
+#### Website installation instructions (Ubuntu 16.04, Python 2.7.6)
 
 1. Install Redis as the results backend
 
@@ -125,13 +125,13 @@ Please note that this code relies on either (1) additional data files not contai
 	curl http://localhost:8000
 	```
 
-1. Inside the ASKCOS_Website folder, get uwsgi_params
+1. Inside the askcos folder, get uwsgi_params
 
 	```
 	wget https://raw.githubusercontent.com/nginx/nginx/master/conf/uwsgi_params
 	```
 
-1. Edit /etc/nginx/nginx.conf as needed, according to http://uwsgi-docs.readthedocs.io/en/latest/tutorials/Django_and_nginx.html
+1. Edit /etc/nginx/nginx.conf as needed, according to http://uwsgi-docs.readthedocs.io/en/latest/tutorials/Django_and_nginx.html and/or using the nginx.conf file provided in the deploy subfolder as a template
 
 1. Start the uWSGI server (long-term, this should be run as a service)
 
@@ -162,7 +162,7 @@ Please note that this code relies on either (1) additional data files not contai
 	
 1. Edit ```spawn_workers.sh``` to reflect the anticipated server load (i.e., number of workers needed to support each task) before running the script to spawn them.
 
-	_note: if you want the workers to run on a separate server, you will need to edit ```ASKCOS_Website/askcos_site/celery.py``` to give an explicit SERVERHOST instead of localhost. You will also need to open up the ports for the message broker (5672) and redis server (6379) to the other server._
+	_note: if you want the workers to run on a separate server, you will need to edit ```askcos/askcos_site/celery.py``` to give an explicit SERVERHOST instead of localhost. You will also need to open up the ports for the message broker (5672) and redis server (6379) to the other server._
 
 
 #### Setting up the Celery workers on a different server from the Webserver
@@ -180,9 +180,9 @@ For scalability, it is possible to have the webserver and compute servers comple
 1. [On the webserver] Edit ```/etc/redis/redis.conf``` to allow remote connections from worker machine. Ideally, you can bind to a specific IP by editing the ```bind 127.0.0.1``` line. This seems to work fine on our local servers but did not work well on AWS. The alternative is to completely open up connections by changing the ```bind``` line to ```bind 0.0.0.0``` and edit the following block to say ```protected-mode off```. As with the RabbitMQ settings, this means that Redis will rely on other firewalls/security measures.
 
 
-1. [On the compute server] Change the ```SERVERHOST``` in ```ASKCOS_Website/askcos_site/celery.py``` to the IP of the webserver, so the Celery workers know where to look for the RabbitMQ/Redis servers. If using AWS, this should be the _private_ IP of the webserver instance.
+1. [On the compute server] Change the ```SERVERHOST``` in ```askcos/askcos_site/celery.py``` to the IP of the webserver, so the Celery workers know where to look for the RabbitMQ/Redis servers. If using AWS, this should be the _private_ IP of the webserver instance.
 
-1. [On the compute server] Spin up as many workers as desired using ```spawn_workers.sh``` from inside the ```ASKCOS_Website``` folder. The most computationally intensive task is the TreeBuilder, for which we generally allocate 4-12 processes in each worker pool. Each process requires 3-4 GB of RAM. The other Celery workers (aside from the nearest neighbor context recommender, which should be deprecated) are relatively small in memory footprint.
+1. [On the compute server] Spin up as many workers as desired using ```spawn_workers.sh``` from inside the ```askcos``` folder. The most computationally intensive task is the TreeBuilder, for which we generally allocate 4-12 processes in each worker pool. Each process requires 3-4 GB of RAM. The other Celery workers (aside from the nearest neighbor context recommender, which should be deprecated) are relatively small in memory footprint.
 
 
 ## How to run individual modules
