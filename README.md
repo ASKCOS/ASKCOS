@@ -7,7 +7,10 @@ The code has primarily been developed for Python 2.7.6 on Ubuntu 16.04. However,
 
 Included in this repository is a conda environment ```askcos.yml```. Note that this is a fairly messy file and there are some extraneous packages listed. Additionally, some packages are slightly out of date and could be updated without any issues. We are woring to clean this script up and streamline the deployment process. 
 
-## How to install
+## How to install (Docker)
+Refer to the ```README.md``` file in the ```deploy``` subfolder
+
+## How to install (not Docker)
 A coarse installation guide can be found in ```install_cli.sh``` (i.e., "install command line interface"). Note that this shell script is  _not_ meant to actually be run as a shell script. 
 
 We also have an installation guide for the Django web interface, which uses Celery for asynchronous task management (```install_webapp.sh```). This relies on RabbitMQ and Redis servers and uWSGI/NGINX or Apache for deployment.
