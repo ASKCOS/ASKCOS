@@ -38,7 +38,7 @@ $ docker-compose up -d
 
 The services will start in a detached state. You can view logs with `docker-compose logs [-f]`.
 
-To stop the containers use `docker-compose down`
+To stop the containers use `docker-compose stop`. To restart the containers use `docker-compose start`. To completely delete the containers and volumes use `docker-compose down -v` (this deletes user database and saves).
 
 ## Important Notes
 
