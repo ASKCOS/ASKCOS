@@ -40,6 +40,14 @@ The services will start in a detached state. You can view logs with `docker-comp
 
 To stop the containers use `docker-compose stop`. To restart the containers use `docker-compose start`. To completely delete the containers and volumes use `docker-compose down -v` (this deletes user database and saves).
 
+### Managing Django
+
+If you'd like to manage the Django app (i.e. - run python manage.py ...), for example, to create an admin superuser, you can run commands in the _running_ app service (do this _after_ `docker-compose up`) as follows:
+
+`docker-compose exec app bash -c "source activate askcos && python /home/askcos/ASKCOS/askcos/manage.py createsuperuser"`
+
+In this case you'll be presented an interactive prompt to create a superuser with your desired credentials.
+
 ## Important Notes
 
 #### First startup
