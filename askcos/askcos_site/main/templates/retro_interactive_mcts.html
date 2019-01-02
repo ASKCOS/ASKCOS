@@ -183,6 +183,12 @@ $("#start_retro").click(function () {
                 }
                 $("#start_retro").html('Start');
                 $("#start_retro").prop('disabled', false);
+            },
+            error: function (jqXhr, textStatus, errorMessage) {
+                alert(errorMessage);
+                $("#status").html(': failed');
+                $("#start_retro").html('Start');
+                $("#start_retro").prop('disabled', false);
             }
         });
     }
