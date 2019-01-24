@@ -1,5 +1,6 @@
 from django.shortcuts import render, HttpResponse, redirect
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.conf import settings
 import django.contrib.auth.views
 from pymongo.message import bson
@@ -11,7 +12,7 @@ from ..globals import RetroTransformer, SynthTransformer, \
     INSTANCE_DB_OLD, CHEMICAL_DB_OLD
 
 from .users import can_view_reaxys
-from ..utils import fancyjoin, xrn_lst_to_name_lst
+from ..utils import fancyjoin, xrn_lst_to_name_lst, get_celery_worker_statuses
 
 def template_target_export(request, id):
     rx_ids = template_target(request, id, return_refs_only=True)
@@ -161,6 +162,10 @@ def rxid_target(request, rxid):
     context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
 
     return render(request, 'rxid.html', context)
+
+def celery_status(request):
+    status = get_celery_worker_statuses()
+    return JsonResponse(status)
 
 # @login_required
 # def chemical_history(smiles, **kwargs):
