@@ -25,8 +25,8 @@ def price_smiles(request, smiles):
 @ajax_error_wrapper
 def ajax_price_smiles(request):
     print('Got price request')
-    data = {'err': False}
     smiles = request.GET.get('smiles', None)
+    data = {'err': False, 'smiles': smiles}
     isomericSmiles = json.loads(request.GET.get('isomericSmiles', 'false'))
     print('isomericSmiles: {}'.format(isomericSmiles))
     data['ppg'] = Pricer.lookup_smiles(smiles, alreadyCanonical=False, isomericSmiles=isomericSmiles)
