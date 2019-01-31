@@ -51,6 +51,9 @@ function addReaction(reaction, sourceNode, nodes, edges) {
         .then(json => {
             var mysmi = json['smiles'];
             var ppg = json['ppg'];
+            if (ppg == 0) {
+                ppg = "N/A"
+            }
             var buyable = (json['ppg']!=0);
             if (buyable) {
                 var color = "#008800"
@@ -180,18 +183,44 @@ var app = new Vue({
         },
         nodeStructure: {},
         showReactionModal: false,
+        showChemicalModal: false,
         showSettingsModal: false,
         showLoadModal: false,
         showDownloadModal: false,
         downloadName: "network.json",
         modalData: {},
         reactionLimit: 5,
-        reactionSorting: "retroscore"
+        reactionSorting: "retroscore",
+        templatePrioritization: "Relevance",
+        precursorScoring: "RelevanceHeuristic",
+        numTemplates: 100,
+        minPlausibility: 0.75
     },
     methods: {
+        requestUrl: function(smiles) {
+            var url = '/api/retro/?';
+            var params = {
+                smiles: smiles,
+                template_prioritization: this.templatePrioritization,
+                precursor_prioritization: this.precursorScoring,
+                num_templates: this.numTemplates,
+                filter_threshold: this.minPlausibility,
+            }
+            var queryString = Object.keys(params).map((key) => {
+                return encodeURIComponent(key) + '=' + encodeURIComponent(params[key])
+            }).join('&');
+            return url+queryString;
+        },
         changeTarget: function() {
             showLoader();
-            fetch('/api/retro/?smiles='+encodeURIComponent(this.target))
+            var url = this.requestUrl(this.target);
+            fetch(url)
+                .then(resp => {
+                    if (!resp.ok) {
+                        throw Error(resp.statusText);
+                    }
+                    return resp;
+                })
                 .then(resp => resp.json())
                 .then(json => {
                     this.data.nodes = new vis.DataSet([
@@ -211,7 +240,11 @@ var app = new Vue({
                     initializeNetwork(this.data);
                     addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit, this.reactionSorting);
                     hideLoader();
-            })
+                })
+                .catch(error => {
+                    hideLoader();
+                    alert('There was an error fetching precursors for this target with the supplied settings')
+                })
         },
         expandNode: function() {
             showLoader();
@@ -223,7 +256,14 @@ var app = new Vue({
                     continue
                 }
                 var smi = node.smiles;
-                fetch('/api/retro/?smiles='+encodeURIComponent(smi))
+                var url = this.requestUrl(smi);
+                fetch(url)
+                    .then(resp => {
+                        if (!resp.ok) {
+                            throw Error(resp.statusText);
+                        }
+                        return resp;
+                    })
                     .then(resp => resp.json())
                     .then(json => {
                         var reactions = json['precursors'];
@@ -232,7 +272,11 @@ var app = new Vue({
                         }
                         addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit, this.reactionSorting);
                         hideLoader();
-                })
+                    })
+                    .catch(error => {
+                        hideLoader();
+                        alert('There was an error fetching precursors for this target with the supplied settings')
+                    })
             }
         },
         deleteNode: function() {
@@ -253,21 +297,34 @@ var app = new Vue({
         nodeInfo: function() {
             var selected = network.getSelectedNodes();
             var node = this.data.nodes.get(selected[0]);
-            if (node.type != 'reaction') {
-                alert('Cannot show reaction details for non-reaction node; try again with a reaction node selected');
-                return
+            if (node.type == 'reaction') {
+                this.reactionInfo(node);
             }
+            else if (node.type == 'chemical') {
+                this.chemicalInfo(node);
+            }
+            else {
+                alert('Cannot show information for this node.')
+            }
+        },
+        reactionInfo: function(node) {
             var reactants = [];
-            var childrenId = childrenOf(selected[0], this.data.nodes, this.data.edges);
-            var parentId = parentOf(selected[0], this.data.nodes, this.data.edges);
+            var childrenId = childrenOf(node.id, this.data.nodes, this.data.edges);
+            var parentId = parentOf(node.id, this.data.nodes, this.data.edges);
             var product = this.data.nodes.get(parentId).smiles
             for (childId of childrenId) {
                 reactants.push(this.data.nodes.get(childId).smiles)
             }
-            this.modalData['reactionSmiles'] = reactants.join('.')+'>>'+product
-            this.modalData['reactionSmilesImg'] = "/draw/reaction/"+reactants.join('.')+'>>'+product
-            this.modalData['ff-score'] = this.data.nodes.get(selected[0]).ffScore;
+            var rxnSmiles = reactants.join('.')+'>>'+product
+            this.modalData['product'] = product;
+            this.modalData['reactionSmiles'] = rxnSmiles;
+            this.modalData['reactionSmilesImg'] = "/draw/reaction/"+rxnSmiles;
+            this.modalData['node'] = node;
             this.showReactionModal = true;
+        },
+        chemicalInfo: function(node) {
+            this.modalData['node'] = node;
+            this.showChemicalModal = true;
         },
         download: function() {
             if (this.data.nodes.length == null) {

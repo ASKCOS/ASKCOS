@@ -50,6 +50,14 @@ transform: translate(-50%, -50%) !important;
     margin: 10px auto;
 }
 
+.mb-10 {
+    margin-bottom: 10px;
+}
+
+.ml-25 {
+    margin-left: 25px;
+}
+
 .modal-mask {
   position: fixed;
   z-index: 9998;
