@@ -291,6 +291,12 @@ $('#results').on('click', '.blacklistchem', function () {
         });
     };
 });
+
+$('#expand-width').click(function() {
+    var orig_width = $('#results').width();
+    $('#results').width(orig_width+500);
+})
+    
 // On load, if entries defined, switch it out
 $(document).ready(function() {
     if ("{{target_mol}}" != "") {
@@ -483,13 +489,18 @@ Min freq. as product: <input type="number" id="min_chempop_products" style="widt
 <td colspan="1">
     <button type="button" style="width:120px" id="start_retro" class="btn-success">Start</button>
 </td>
-<td colspan="3">
+<td colspan="2">
     <input type="checkbox" id="return_first"> Return as soon as <i>any</i> pathway found <a href="#" data-toggle="tooltip" title="Check this if you would like to see the first result as soon as we find one instead of waiting for the full expansion time."><span class="glyphicon glyphicon-info-sign"></span></a><br>
+</td>
+
+<td colspan="1">
+    <button id="expand-width" class="btn-info">Expand page width</button> <a href="#" data-toggle="tooltip" title="If the tree results look broken, or wrap from one line to the next instead of displaying horizontally correctly, click this to expand the width of the page."><span class="glyphicon glyphicon-info-sign"></span></a>
 </td>
 
 </tr>
 
 </table>
+
 
 <!-- Results -->
 <div id="statistics"></div>
