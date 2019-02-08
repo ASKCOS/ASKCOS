@@ -17,6 +17,7 @@ services:
     hostname: app
     env_file:
       - .env
+      - customization
     command: bash -c "source activate askcos && KERAS_BACKEND=theano uwsgi --socket :8000 --master --processes=4 --wsgi-file /home/askcos/ASKCOS/askcos/wsgi.py"
     expose:
       - '8000'

@@ -33,6 +33,11 @@ body {
     margin-top: 10px;
 }
 
+/* Customization styles*/
+.org-text {
+    font-size: xx-small;
+}
+
 /* Colors */
 
 body, #document {
