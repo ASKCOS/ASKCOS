@@ -35,7 +35,10 @@
     <nav class="navbar navbar-inverse  navbar-fixed-top">
         <div class="container-fluid">
             <div class="navbar-header">
-                <a class="navbar-brand" href="{% url 'index' %}">ASKCOS</a>
+                <a class="navbar-brand" href="{% url 'index' %}">
+                    ASKCOS
+                    <span class="org-text">{{ organization }}</span>
+                </a>
             </div>
 
             <ul class="nav navbar-nav">
@@ -108,7 +111,7 @@
                 </li>
 
                 
-                <li><a href="mailto:ccoley@mit.edu?subject=Feedback about askcos.mit.edu website"><span class="glyphicon glyphicon-comment"></span> Comment</a></li>
+                <li><a href="mailto:{{ contact_email }}?subject=Feedback about askcos website"><span class="glyphicon glyphicon-comment"></span> Comment</a></li>
             </ul>
 
             {% if user.is_authenticated %}
