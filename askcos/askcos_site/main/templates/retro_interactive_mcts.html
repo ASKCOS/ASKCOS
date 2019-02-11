@@ -291,6 +291,12 @@ $('#results').on('click', '.blacklistchem', function () {
         });
     };
 });
+
+$('#expand-width').click(function() {
+    var orig_width = $('#results').width();
+    $('#results').width(orig_width+500);
+})
+    
 // On load, if entries defined, switch it out
 $(document).ready(function() {
     if ("{{target_mol}}" != "") {
@@ -490,6 +496,11 @@ Min freq. as product: <input type="number" id="min_chempop_products" style="widt
 </tr>
 
 </table>
+
+<div style="position: fixed; bottom: 25px; right: 15px;">
+    <button id="expand-width" class="btn-info" >Expand page width</button> <a href="#" data-toggle="tooltip" title="If the tree results look broken, or wrap from one line to the next instead of displaying horizontally correctly, click this to expand the width of the page."><span class="glyphicon glyphicon-info-sign"></span></a>
+</div>
+
 
 <!-- Results -->
 <div id="statistics"></div>
