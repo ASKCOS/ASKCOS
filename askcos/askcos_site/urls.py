@@ -121,4 +121,6 @@ urlpatterns += [
     url(r'^blacklisted/chemicals/delete/id=(?P<_id>.+)$', views.user_blacklisted_chemicals_del, name='user_blacklisted_chemicals_del'),
     url(r'^ajax/user_deactivate_chemical/$', views.ajax_user_deactivate_chemical, name='ajax_user_deactivate_chemical'),
     url(r'^ajax/user_activate_chemical/$', views.ajax_user_activate_chemical, name='ajax_user_activate_chemical'),
+    
+    url(r'^api/celery/$', views.celery_status, name='celery_status'),
 ]
