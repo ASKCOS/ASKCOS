@@ -20,7 +20,6 @@ body {
     line-height:16pt;
 }
 
-
 .center {
     display:block;
     margin-left:auto;
@@ -32,6 +31,11 @@ body {
     width: 60%;
     margin-bottom: 15px;
     margin-top: 10px;
+}
+
+/* Customization styles*/
+.org-text {
+    font-size: xx-small;
 }
 
 /* Colors */
