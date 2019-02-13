@@ -8,10 +8,8 @@ class MyLogger:
     Create logger. Four different levels of information output. A level 3 ("FATAL") 
     log will exit the program.
     '''
-    logRoot = os.path.join(os.path.expanduser('~'), '.makeit')
-    if not os.path.isdir(logRoot):
-        os.mkdir(logRoot)
-    logFile = os.path.join(logRoot, 'log.txt')
+    logFile = os.path.join(os.path.dirname(
+        os.path.dirname(os.path.dirname(__file__))), 'log.txt')
     levels = {
         0: 'INFO',
         1: 'WARN',
@@ -20,7 +18,7 @@ class MyLogger:
     }
 
     @staticmethod
-    def initialize_logFile(ROOT=logRoot, name=''):
+    def initialize_logFile(ROOT=os.path.dirname(os.path.dirname(os.path.dirname(__file__))), name=''):
         MyLogger.logFile = os.path.join(ROOT, '{}_log.txt'.format(name))
         if os.path.isfile(MyLogger.logFile):
             os.remove(MyLogger.logFile)
