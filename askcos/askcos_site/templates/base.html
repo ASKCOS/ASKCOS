@@ -36,7 +36,10 @@
     <nav class="navbar navbar-inverse  navbar-fixed-top">
         <div class="container-fluid">
             <div class="navbar-header">
-                <a class="navbar-brand" href="{% url 'index' %}">ASKCOS</a>
+                <a class="navbar-brand" href="{% url 'index' %}">
+                    ASKCOS
+                    <span class="org-text">{{ organization }}</span>
+                </a>
             </div>
 
             <ul class="nav navbar-nav">
@@ -109,7 +112,7 @@
                 </li>
 
                 
-                <li><a href="mailto:ccoley@mit.edu?subject=Feedback about askcos.mit.edu website"><span class="glyphicon glyphicon-comment"></span> Comment</a></li>
+                <li><a href="mailto:{{ contact_email }}?subject=Feedback about askcos website"><span class="glyphicon glyphicon-comment"></span> Comment</a></li>
             </ul>
 
             {% if user.is_authenticated %}
@@ -156,7 +159,7 @@
         <footer class="footer">
             <div class="container">
                 {% block footer %}
-                ASKCOS v0.2.1 Copyright &copy; 2018,
+                ASKCOS v0.2.3 Copyright &copy; 2019,
                 Created using <a href="http://www.djangoproject.com/">Django</a>.
                 <!-- 
                 Secret changelog! 
@@ -169,6 +172,8 @@
                 - v0.1.7 was released with new template-free forward predictor
                 - v0.2 was released with the new best first search
                 - v0.2.1 was released with new server
+                - v0.2.2 was released with docker deployment
+                - v0.2.3 was released with small bugfixes and feature introduction
                  -->
                 {% endblock %}
             </div>

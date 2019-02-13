@@ -1,5 +1,6 @@
 from django.shortcuts import render, HttpResponse, redirect
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.conf import settings
 import django.contrib.auth.views
 from pymongo.message import bson
@@ -11,7 +12,7 @@ from ..globals import RetroTransformer, SynthTransformer, \
     INSTANCE_DB_OLD, CHEMICAL_DB_OLD
 
 from .users import can_view_reaxys
-from ..utils import fancyjoin, xrn_lst_to_name_lst
+from ..utils import fancyjoin, xrn_lst_to_name_lst, get_celery_worker_statuses
 
 def template_target_export(request, id):
     rx_ids = template_target(request, id, return_refs_only=True)
@@ -119,12 +120,12 @@ def template_target(request, id, return_refs_only=False):
             return [x['rx_id'] for x in context['references']]
 
         if not can_view_reaxys(request):
-            context['ref_ids'] = ', '.join([str(y) for y in sorted(set(x['rx_id'] for x in context['references']))])
+            context['ref_ids'] = '; '.join([str(y) for y in sorted(set(x['rx_id'] for x in context['references']))])
             context['references'] = context['references'][:1]
             context['cannot_view_all'] = True 
 
     except ServerSelectionTimeoutError:
-        context['ref_ids'] = ', '.join([str(y) for y in sorted(set(int(_id.split('-')[0]) for _id in reference_ids))])
+        context['ref_ids'] = '; '.join([str(y) for y in sorted(set(int(_id.split('-')[0]) for _id in reference_ids))])
         context['references'] = []
         context['cannot_view_any'] = True 
 
@@ -161,6 +162,10 @@ def rxid_target(request, rxid):
     context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
 
     return render(request, 'rxid.html', context)
+
+def celery_status(request):
+    status = get_celery_worker_statuses()
+    return JsonResponse(status)
 
 # @login_required
 # def chemical_history(smiles, **kwargs):

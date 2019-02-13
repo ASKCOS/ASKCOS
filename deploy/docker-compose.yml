@@ -17,6 +17,7 @@ services:
     hostname: app
     env_file:
       - .env
+      - customization
     command: bash -c "source activate askcos && KERAS_BACKEND=theano uwsgi --socket :8000 --master --processes=4 --wsgi-file /home/askcos/ASKCOS/askcos/wsgi.py"
     expose:
       - '8000'
@@ -28,7 +29,7 @@ services:
     image: askcos
     env_file:
       - .env
-    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q te_coordinator"
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q te_coordinator -n te_coordinator@${HOSTNAME}"
     depends_on:
       - redis
       - rabbit
@@ -37,7 +38,7 @@ services:
     image: askcos
     env_file:
       - .env
-    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q sc_coordinator"
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q sc_coordinator -n sc_coordinator@${HOSTNAME}"
     depends_on:
       - redis
       - rabbit
@@ -46,7 +47,7 @@ services:
     image: askcos
     env_file:
       - .env
-    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q ft_worker"
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q ft_worker -n ft_worker@${HOSTNAME}"
     depends_on:
       - redis
       - rabbit
@@ -55,7 +56,7 @@ services:
     image: askcos
     env_file:
       - .env
-    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q cr_coordinator"
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q cr_coordinator -n cr_coordinator@${HOSTNAME}"
     depends_on:
       - redis
       - rabbit
@@ -64,7 +65,7 @@ services:
     image: askcos
     env_file:
       - .env
-    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q cr_network_worker"
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q cr_network_worker -n cr_network_worker@${HOSTNAME}"
     depends_on:
       - redis
       - rabbit
@@ -73,7 +74,7 @@ services:
     image: askcos
     env_file:
       - .env
-    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q tb_coordinator_mcts"
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 2 -Q tb_coordinator_mcts -n tb_coordinator_mcts@${HOSTNAME}"
     depends_on:
       - redis
       - rabbit
@@ -82,7 +83,7 @@ services:
     image: askcos
     env_file:
       - .env
-    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 10 -Q tb_c_worker"
+    command: bash -c "source activate askcos && KERAS_BACKEND=theano celery -A askcos_site worker -c 10 -Q tb_c_worker -n tb_c_worker@${HOSTNAME}"
     depends_on:
       - redis
       - rabbit

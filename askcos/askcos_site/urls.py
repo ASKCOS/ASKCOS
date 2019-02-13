@@ -125,7 +125,8 @@ urlpatterns += [
     
     # API endpoints
     url(r'^api/retro/$', retro.singlestep),
-    
+    url(r'^api/celery/$', views.celery_status, name='celery_status'),
+  
     # Reaction network
-    url(r'retro/network/$', views.retro_network)
+    url(r'retro/network/$', views.retro_network),
 ]
