@@ -15,5 +15,5 @@ def template_free(request):
         contexts=contexts, 
         forward_scorer='Template_Free', top_n=maxreturn, return_all_outcomes=True)
     outcomes = res.get(300)[0]['outcomes']
-    resp['products'] = [o['outcome'] for o in outcomes]
+    resp['outcomes'] = outcomes
     return JsonResponse(resp)
