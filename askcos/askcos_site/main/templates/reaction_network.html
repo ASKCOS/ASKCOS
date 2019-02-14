@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+{% block title %}Reaction Network Explorer{% endblock %}
+{% block extrahead %}
+<script src="https://cdn.jsdelivr.net/npm/vue"></script>
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" type="text/css">
+<link rel="stylesheet" href="{% static 'css/network.css' %}" type="text/css">
+<link rel="stylesheet" href="{% static 'css/bootstrap-tour.css' %}" type="text/css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+<script src="{% static 'js/bootstrap-tour.min.js' %}"></script>
+{% endblock %}
+
+{% block page_title %}Reaction Network Explorer{% endblock %}
+
+{% block page_body %}
+        <div id="app">
+            <main>
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-12 text-center">
+                        
+<!-- template for the modal component -->
+<script type="text/x-template" id="modal-template">
+  <transition name="modal">
+    <div class="modal-mask">
+      <div class="modal-wrapper">
+        <div class="modal-container">
+
+          <div class="modal-header">
+            <slot name="header">
+              default header
+            </slot>
+          </div>
+
+          <div class="modal-body">
+            <slot name="body">
+              default body
+            </slot>
+          </div>
+
+          <div class="modal-footer">
+            <slot name="footer">
+              <button class="btn btn-dark modal-default-button" @click="$emit('close')">
+                <slot name="button-text">
+                  Close
+                </slot>
+              </button>
+            </slot>
+          </div>
+        </div>
+      </div>
+    </div>
+  </transition>
+</script>
+                            
+<div class="mx-auto">
+    <button class="btn btn-default" @click="clear" title="Clear reactions"><i class="fas fa-times"></i></button>
+    <button id="settings-btn" class="btn btn-default" @click="showSettingsModal = true" title="Settings"><i class="fas fa-cog"></i></button>
+    <button id="download-btn" class="btn btn-default" @click="showDownloadModal = true" title="Download reaction network"><i class="fas fa-download"></i></button>
+    <button id="load-btn" class="btn btn-default" @click="showLoadModal = true" title="Upload reaction network"><i class="fas fa-upload"></i></button>
+    <button class="btn btn-default" @click="startTour" title="Start tutorial"><i class="fas fa-question"></i></button>
+</div>
+                            
+<div class="mx-auto">
+    <form class="form-inline" autocomplete="off" v-on:submit.prevent="changeTarget">
+        <div class="form-group">
+            Target: <input id="target" type="text" class="form-control text-center" v-model="target">
+            <input id="submit" type="submit" value="Submit" class="btn btn-default" />
+            <div class="loader"></div>
+        </div>
+    
+    </form>    
+</div>
+                            
+<button id="expand-btn" class="btn btn-success" v-on:click="expandNode">Expand node</button>
+<button class="btn btn-danger" v-on:click="deleteNode">Delete node</button>
+<button class="btn btn-danger" v-on:click="deleteChildren">Delete children</button>
+<button class="btn btn-info" v-on:click="collapseNode">Toggle cluster</button>
+<button class="btn btn-info" v-on:click="nodeInfo">Node info</button>
+
+<div id="network" class="mx-auto mt-2"></div>
+                            
+<modal v-if="showReactionModal" @close="showReactionModal = false">
+    <div class="mx-auto" slot="header">
+        <img class="mx-auto" v-bind:src="modalData['reactionSmilesImg']"/>
+        <div>%% this.modalData['reactionSmiles'] %%</div>
+    </div>
+    <div slot="body" class="text-left">
+        <div><b>Retroscore:</b> %% this.modalData['node'].retroscore %% </div>
+        <div><b>Fast filter score:</b> %% this.modalData['node'].ffScore %%</div>
+        <div><b>Num. Examples:</b> %% this.modalData['node'].numExamples %%</div>
+        <div><b>Templates:</b> 
+            <li v-for="templateId in modalData['node'].templateIds" class="ml-25">
+                <a v-bind:href="'/template/target='+templateId" target="_blank">%% templateId %%</a>
+            </li>
+        </div>
+    </div>
+</modal>
+                            
+
+<modal v-if="showChemicalModal" @close="showChemicalModal = false">
+    <div class="mx-auto" slot="header">
+        <img class="mx-auto" v-bind:src="modalData['node'].image"/>
+        <div>%% this.modalData['node'].smiles %%</div>
+    </div>
+    <div slot="body">
+        <div class="text-center mb-10"><a v-bind:href="'/retro/target='+modalData['node'].smiles" target="_blank">Traditional retrosynthetic list view for this chemical <i class="fas fa-external-link-alt" aria-hidden="true"></i></a></div>
+        <div><b>Price ($/g):</b> %% this.modalData['node'].ppg %% </div>
+    </div>
+</modal>
+                            
+<modal v-if="showSettingsModal" @close="showSettingsModal = false">
+    <div class="mx-auto" slot="header">
+        <h3>Settings</h3>
+    </div>
+    <div slot="body" class="text-left">
+        <form class="form-inline mb-10">
+            <div class="form-group">
+                Limit number of predicted reactions to <input style="width: 50px" type="number" v-model.number="reactionLimit" class="form-control text-center"> sorted by
+                <select v-model="reactionSorting" class="form-control">
+                    <option value="ffScore">Fast filter score</option>
+                    <option value="retroscore">Retroscore</option>
+                </select>
+            </div>
+        </form>
+        <form class="form-inline mb-10">
+            <div class="form-group">
+                Template prioritization: 
+                <select v-model="templatePrioritization" class="form-control">
+                    <option value="Popularity">Popularity</option>
+                    <option value="Relevance">Relevance</option>
+                </select>
+            </div>
+        </form>
+        <form class="form-inline mb-10">
+            <div class="form-group">
+                Precursor scoring: 
+                <select v-model="precursorScoring" class="form-control">
+                    <option value="Heuristic">Heuristic</option>
+                    <option value="RelevanceHeuristic">Relevance+Heuristic</option>
+                    <option value="SCScore">SCScore</option>
+                </select>
+            </div>
+        </form>
+        <form class="form-inline mb-10">
+            <div class="form-group">
+                Num. templates:
+                <input style="width: 50px" type="number" v-model.number="numTemplates" class="form-control text-center">
+            </div>
+        </form>
+        <form class="form-inline mb-10">
+            <div class="form-group">
+                Min. plausibility:
+                <input style="width: 75px" type="number" v-model.number="minPlausibility" class="form-control text-center">
+            </div>
+        </form>
+    </div>
+</modal>
+                            
+<modal v-if="showLoadModal" @close="showLoadModal = false; load()">
+    <div class="mx-auto" slot="header">
+        <h3>Load Network JSON</h3>
+    </div>
+    <div slot="body">
+        <input id="loadNetwork" type="file"/>
+    </div>
+    <div slot="button-text">
+        Load
+    </div>
+</modal>
+                            
+<modal 
+       v-if="showDownloadModal"
+>
+    <div class="mx-auto" slot="header">
+        <h3>Download name</h3>
+    </div>
+    <div slot="body">
+        File name: <input type="text" v-model="downloadName"/>
+    </div>
+    <div slot="footer">
+        <button class="btn btn-danger modal-default-button" @click="showDownloadModal = false">
+          Cancel
+        </button>
+        <button class="btn btn-dark modal-default-button" @click="showDownloadModal = false; download()">
+          Download
+        </button>
+    </div>
+</modal>
+
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+<a id="downloadAnchorElem" style="display:none"></a>
+
+<script src="{% static 'js/network.js' %}"></script>
+{% endblock %}
