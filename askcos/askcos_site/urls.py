@@ -6,6 +6,7 @@ admin.autodiscover()
 import django.contrib.auth.urls
 from django.views.generic import TemplateView
 import askcos_site.main.views as views 
+from askcos_site.api import retro
 
 # Static (not good for deployment)
 urlpatterns = static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
@@ -122,5 +123,10 @@ urlpatterns += [
     url(r'^ajax/user_deactivate_chemical/$', views.ajax_user_deactivate_chemical, name='ajax_user_deactivate_chemical'),
     url(r'^ajax/user_activate_chemical/$', views.ajax_user_activate_chemical, name='ajax_user_activate_chemical'),
     
+    # API endpoints
+    url(r'^api/retro/$', retro.singlestep),
     url(r'^api/celery/$', views.celery_status, name='celery_status'),
+  
+    # Reaction network
+    url(r'retro/network/$', views.retro_network),
 ]

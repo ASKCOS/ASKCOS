@@ -201,6 +201,10 @@ def retro_target(request, smiles):
     '''
     return retro(request, smiles=smiles)
 
+def retro_network(request):
+    context = {}
+    return render(request, 'reaction_network.html', context)
+
 @login_required
 def retro_interactive(request, target=None):
     '''Builds an interactive retrosynthesis page'''

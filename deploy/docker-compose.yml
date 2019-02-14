@@ -7,7 +7,7 @@ services:
     volumes:
       - './nginx.conf:/etc/nginx/nginx.conf'
       - './uwsgi_params:/etc/nginx/uwsgi_params'
-      - 'staticdata:/static'
+      - '../askcos/askcos_site/static:/static'
     ports:
       - '80:80'
       - '443:443'
@@ -21,8 +21,6 @@ services:
     command: bash -c "source activate askcos && KERAS_BACKEND=theano uwsgi --socket :8000 --master --processes=4 --wsgi-file /home/askcos/ASKCOS/askcos/wsgi.py"
     expose:
       - '8000'
-    volumes:
-      - 'staticdata:/home/askcos/ASKCOS/askcos/askcos_site/static'
     depends_on:
       - redis
       - rabbit
@@ -106,4 +104,3 @@ services:
 
 volumes:
   redisdata:
-  staticdata:
