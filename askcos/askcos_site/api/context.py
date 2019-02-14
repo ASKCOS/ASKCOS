@@ -4,7 +4,9 @@ from askcos_site.askcos_celery.contextrecommender.cr_network_worker import get_n
 
 def neural_network(request):
     resp = {}
-    rxn = request.GET.get('rxn')
+    reactants = request.GET.get('reactants')
+    products = request.GET.get('products')
+    rxn = reactants+'>>'+products
     n = request.GET.get('n', 10)
     singleSlvt = request.GET.get('singleSlvt', True)
     with_smiles = request.GET.get('with_smiles', True)

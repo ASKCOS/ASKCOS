@@ -200,7 +200,7 @@ var app = new Vue({
         requestUrl: function(smiles) {
             var url = '/api/retro/?';
             var params = {
-                smiles: smiles,
+                target: smiles,
                 template_prioritization: this.templatePrioritization,
                 precursor_prioritization: this.precursorScoring,
                 num_templates: this.numTemplates,
