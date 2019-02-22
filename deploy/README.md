@@ -5,8 +5,30 @@
  - If you're buidling the image from scratch, make sure git (and git lfs) is installed on your machine
  - Install Docker [OS specific instructions](https://docs.docker.com/install/)
  - Install docker-compose [installation instructions](https://docs.docker.com/compose/install/#install-compose)
+ 
+### Upgrading from a previous version (backing up user data)
 
-### ASKCOS Image
+If you are upgrading the deployment from a previous version, you may want to retain user accounts and user-saved data. These are stored in an sqlite db at `askcos/db.sqlite3`, _in the running app container service_. The name of the running app service can be found using `docker-compose ps`; it should be called `deploy_app_1` Follow these steps to backup and restore this database:
+
+```bash
+$ docker cp deploy_app_1:/home/askcos/ASKCOS/askcos/db.sqlite3 .
+# deploy new version
+$ docker cp db.sqlite3 deploy_app_1:/home/askcos/ASKCOS/askcos/db.sqlite3
+```
+ 
+### Pulling the image from DockerHub
+
+Prebuilt images for versioned releases are available from [DockerHub](https://hub.docker.com/). You will need an DockerHub account, and you will need to be added to the private repository. Contact [mef231@mit.edu](mef231@mit.edu) with your username to be given access. If you pull the image from DockerHub, you can skip the (slow) build process below.
+
+```bash
+$ docker login # enter credentials
+$ docker pull mefortunato/askcos # optionally supply :<version-number>
+$ docker tag mefortunato/askcos askcos # docker-compose still looks for 'askcos' image
+```
+
+__If you pull from DockerHub, skip the build process below.__
+
+### (Optional) Building the ASKCOS Image
 
 The askcos image itself can be built using the Dockerfile in this repository `Make-It/Dockerfile`.
 
@@ -18,14 +40,13 @@ $ cd ../../
 $ docker build -t askcos .
 ```
 
-Alternatively pull from docker hub
+### Add customization
 
-```bash
-$ docker login  
-# login with credentials; must have access to private repo  
-$ docker pull mefortunato/askcos  
-$ docker tag mefortunato/askcos askcos # docker-compose expects there to be an image names askcos  
-```
+There are a few parts of the application that you can customize:
+* Header sub-title next to ASKCOS (to designate this as a local deployment at your organization)
+* Contact emails for centralized IT support
+
+These are handled as environment variables that can change upon deployment (and are therefore not tied into the image directly). They can be found in `deploy/customization`. Please let us know what other degrees of customization you would like.
 
 ### Deploy with docker-compose
 
@@ -38,7 +59,7 @@ $ docker-compose up -d
 
 The services will start in a detached state. You can view logs with `docker-compose logs [-f]`.
 
-To stop the containers use `docker-compose stop`. To restart the containers use `docker-compose start`. To completely delete the containers and volumes use `docker-compose down -v` (this deletes user database and saves).
+To stop the containers use `docker-compose stop`. To restart the containers use `docker-compose start`. To completely delete the containers and volumes use `docker-compose down -v` (this deletes user database and saves; read section about backuping up data first).
 
 ### Managing Django
 
