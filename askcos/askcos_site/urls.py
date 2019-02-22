@@ -6,7 +6,7 @@ admin.autodiscover()
 import django.contrib.auth.urls
 from django.views.generic import TemplateView
 import askcos_site.main.views as views 
-from askcos_site.api import retro
+from askcos_site import api
 
 # Static (not good for deployment)
 urlpatterns = static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
@@ -124,8 +124,15 @@ urlpatterns += [
     url(r'^ajax/user_activate_chemical/$', views.ajax_user_activate_chemical, name='ajax_user_activate_chemical'),
     
     # API endpoints
-    url(r'^api/retro/$', retro.singlestep),
-    url(r'^api/celery/$', views.celery_status, name='celery_status'),
+    url(r'^api/retro/$', api.retro.singlestep, name='retro_api'),
+    url(r'^api/fast-filter/$', api.fast_filter.fast_filter, name='fast_filter_api'),
+    url(r'^api/context/$', api.context.neural_network, name='context_api'),
+    url(r'^api/forward/$', api.forward.template_free, name='forward_api'),
+    url(r'^api/template/$', api.template.template, name='template_api'),
+    url(r'^api/treebuilder/$', api.tree_builder.tree_builder, name='tree_builder_api'),
+    url(r'^api/scscore/$', api.scscore.scscore, name='scscore_api'),
+    url(r'^api/price/$', api.price.price, name='price_api'),
+    url(r'^api/celery/$', api.celery.celery_status, name='celery_api'),
   
     # Reaction network
     url(r'retro/network/$', views.retro_network),
