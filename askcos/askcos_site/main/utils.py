@@ -88,20 +88,4 @@ def trim_trailing_period(txt):
     if txt:
         if txt[-1] == '.':
             return txt[:-1]
-    return txt
-
-def get_celery_worker_statuses():
-    status = {}
-    stats = app.control.inspect().stats()
-    active = app.control.inspect().active()
-    if not stats or not active:
-        return status
-    worker_names = stats.keys()
-    for worker in worker_names:
-        name, server = worker.split('@')
-        if not status.get(name):
-            status[name] = {'available': 0, 'active': 0}
-        status[name]['active'] += len(active[worker])
-        status[name]['available'] += stats[worker]['pool']['max-concurrency'] - status[name]['active']
-    return status
-        
+    return txt        

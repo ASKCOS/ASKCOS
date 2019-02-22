@@ -4,13 +4,23 @@ from askcos_site.askcos_celery.contextrecommender.cr_network_worker import get_n
 
 def neural_network(request):
     resp = {}
+    resp['request'] = dict(**request.GET)
     reactants = request.GET.get('reactants')
     products = request.GET.get('products')
     rxn = reactants+'>>'+products
-    n = request.GET.get('n', 10)
-    singleSlvt = request.GET.get('singleSlvt', True)
-    with_smiles = request.GET.get('with_smiles', True)
-    return_scores = request.GET.get('return_scores', False)
+    n = int(request.GET.get('num_results', 10))
+    if request.GET.get('singleSlvt'):
+        singleSlvt = request.GET.get('singleSlvt') in ['True', 'true']
+    else:
+        singleSlvt = True
+    if request.GET.get('with_smiles'):
+        with_smiles = request.GET.get('with_smiles') in ['True', 'true']
+    else:
+        with_smiles = True
+    if request.GET.get('return_scores'):
+        return_scores = request.GET.get('return_scores') in ['True', 'true']
+    else:
+        return_scores = False
     res = network_get_n_conditions.delay(rxn, n, singleSlvt, with_smiles, return_scores)
     contexts = res.get(60)
     json_contexts = []
@@ -19,9 +29,7 @@ def neural_network(request):
             'temperature': context[0],
             'solvent': context[1],
             'reagent': context[2],
-            'catalyst': context[3],
-            'time': context[4],
-            'yield': context[5],
+            'catalyst': context[3]
         }
         json_contexts.append(c)
     resp['contexts'] = json_contexts

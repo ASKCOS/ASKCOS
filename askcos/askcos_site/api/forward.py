@@ -4,16 +4,27 @@ from askcos_site.askcos_celery.treeevaluator.scoring_coordinator import evaluate
 
 def template_free(request):
     resp = {}
+    resp['request'] = dict(**request.GET)
     reactants = request.GET.get('reactants')
     solvent = request.GET.get('solvent', '')
-    temperature = request.GET.get('temperature', None)
     reagents = request.GET.get('reagents', '')
-    maxreturn = int(request.GET.get('maxreturn', 100))
-    contexts=[clean_context((temperature, solvent, reagents, '', -1, -1))]
-    print(reagents)
-    res = evaluate.delay(reactants, '',
-        contexts=contexts, 
-        forward_scorer='Template_Free', top_n=maxreturn, return_all_outcomes=True)
-    outcomes = res.get(300)[0]['outcomes']
+    num_results = int(request.GET.get('num_results', 100))
+    contexts=[clean_context((None, solvent, reagents, '', -1, -1))]
+    res = evaluate.delay(
+        reactants, '', contexts=contexts, forward_scorer='Template_Free', 
+        top_n=num_results, return_all_outcomes=True
+    )
+    
+    try:
+        outcomes = res.get(60)
+    except:
+        resp['error'] = 'API request timed out (limit 60s)'
+        res.revoke()
+        return JsonResponse(resp)
+    
+    outcoes = outcomes[0]['outcomes']
+    for out in outcomes:
+        o = out.pop('outcome')
+        out['smiles'] = o['smiles']
     resp['outcomes'] = outcomes
     return JsonResponse(resp)
