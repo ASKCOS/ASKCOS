@@ -22,7 +22,7 @@ def template_free(request):
         res.revoke()
         return JsonResponse(resp)
     
-    outcoes = outcomes[0]['outcomes']
+    outcomes = outcomes[0]['outcomes']
     for out in outcomes:
         o = out.pop('outcome')
         out['smiles'] = o['smiles']
