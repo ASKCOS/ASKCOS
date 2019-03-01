@@ -135,5 +135,8 @@ urlpatterns += [
     url(r'^api/celery/$', api.celery.celery_status, name='celery_api'),
   
     # Reaction network
-    url(r'retro/network/$', views.retro_network),
+    url(r'^retro/network/$', views.retro_network),
+    
+    # Celery status
+    url(r'^status/$', views.status),
 ]
