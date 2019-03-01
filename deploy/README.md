@@ -8,12 +8,14 @@
  
 ### Upgrading from a previous version (backing up user data)
 
-If you are upgrading the deployment from a previous version, you may want to retain user accounts and user-saved data. These are stored in an sqlite db at `askcos/db.sqlite3`, _in the running app container service_. The name of the running app service can be found using `docker-compose ps`; it should be called `deploy_app_1` Follow these steps to backup and restore this database:
+If you are upgrading the deployment from a previous version, you may want to retain user accounts and user-saved data. These are stored in an sqlite db at `askcos/db.sqlite3` and a user\_saves directory at `makeit/data/user_saves`, _in the running app container service_. The name of the running app service can be found using `docker-compose ps`; it should be called `deploy_app_1` Follow these steps to backup and restore user data:
 
 ```bash
 $ docker cp deploy_app_1:/home/askcos/ASKCOS/askcos/db.sqlite3 .
+$ docker cp deploy_app_1:/home/askcos/ASKCOS/makeit/data/user_saves .
 # deploy new version
 $ docker cp db.sqlite3 deploy_app_1:/home/askcos/ASKCOS/askcos/db.sqlite3
+$ docker cp user_saves deploy_app_1:/home/askcos/ASKCOS/makeit/data/
 ```
  
 ### Pulling the image from DockerHub
