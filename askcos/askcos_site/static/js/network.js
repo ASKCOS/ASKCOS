@@ -45,7 +45,8 @@ function addReaction(reaction, sourceNode, nodes, edges) {
         to: rId,
         color: '#000000'
     })
-    for (smi of reaction['smiles_split']) {
+    for (n in reaction['smiles_split']) {
+        var smi = reaction['smiles_split'][n];
         fetch('/ajax/price_smiles/?smiles='+encodeURIComponent(smi))
         .then(resp => resp.json())
         .then(json => {
@@ -109,9 +110,11 @@ function allChildrenOf(id, nodes, edges) {
     var children = [];
     edges.forEach(function(e) {
         if (e!=null && e.from==id) {
-            children.push(e.to)
-            for (child of allChildrenOf(e.to, nodes, edges)) {
-                children.push(child)
+            children.push(e.to);
+            var tmpChildren = allChildrenOf(e.to, nodes, edges);
+            for (n in tmpChildren) {
+                var child = tmpChildren[n];
+                children.push(child);
             }
         }
     })
@@ -249,7 +252,8 @@ var app = new Vue({
         expandNode: function() {
             showLoader();
             var selected = network.getSelectedNodes();
-            for (nodeId of selected) {
+            for (n in selected) {
+                var nodeId = selected[n];
                 var node = this.data.nodes.get(nodeId)
                 if (node.type != 'chemical') {
                     alert('Cannot expand reaction; try expanding with a chemical node selected');
@@ -281,7 +285,8 @@ var app = new Vue({
         },
         deleteNode: function() {
             var selected = network.getSelectedNodes();
-            for (nodeId of selected) {
+            for (n in selected) {
+                var nodeId = selected[n];
                 removeChildrenFrom(nodeId, this.data.nodes, this.data.edges);
                 this.data.nodes.remove(nodeId);
             }
@@ -289,7 +294,8 @@ var app = new Vue({
         },
         deleteChildren: function() {
             var selected = network.getSelectedNodes();
-            for (nodeId of selected) {
+            for (n in selected) {
+                var nodeId = selected[n];
                 removeChildrenFrom(nodeId, this.data.nodes, this.data.edges);
             }
             cleanUpEdges(this.data.nodes, this.data.edges);
@@ -312,7 +318,8 @@ var app = new Vue({
             var childrenId = childrenOf(node.id, this.data.nodes, this.data.edges);
             var parentId = parentOf(node.id, this.data.nodes, this.data.edges);
             var product = this.data.nodes.get(parentId).smiles
-            for (childId of childrenId) {
+            for (n in childrenId) {
+                var childId = childrenId[n];
                 reactants.push(this.data.nodes.get(childId).smiles)
             }
             var rxnSmiles = reactants.join('.')+'>>'+product
