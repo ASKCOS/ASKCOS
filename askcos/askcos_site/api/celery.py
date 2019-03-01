@@ -15,5 +15,12 @@ def celery_status(request):
             status[name] = {'available': 0, 'active': 0}
         status[name]['active'] += len(active[worker])
         status[name]['available'] += stats[worker]['pool']['max-concurrency'] - status[name]['active']
-    resp['queues'] = status
+    status_list = []
+    for key in status:
+        status_list.append({
+            'name': key,
+            'active': status[key]['active'],
+            'available': status[key]['available']
+        })
+    resp['queues'] = sorted(status_list, key=lambda x: x['name'])
     return JsonResponse(resp)
