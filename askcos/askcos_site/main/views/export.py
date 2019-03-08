@@ -22,14 +22,14 @@ def export_synth_results(request):
         return index(request, err='Could not find synth results to save?')
     
     synth_data = request.session['last_synth_interactive']
-    txt = '%s\r\n' % SYNTH_FOOTNOTE
-    txt += 'Forward prediction approach: %s\r\n' % synth_data['forward_scorer']
-    txt += 'Reactants: %s\r\n' % synth_data['reactants']
-    txt += 'Reagents: %s\r\n' % synth_data['reagents']
-    txt += 'Temperature: %s\r\n' % synth_data['temperature']
-    txt += 'Solvent: %s\r\n' % synth_data['solvent']
-    txt += '\r\n'
-    txt += '%s\t%s\t%s\t%s\r\n' % ('Rank', 'SMILES', 'Probability', 'Score')
+    #uncomment to export full data
+    # txt = 'Forward prediction approach: %s\r\n' % synth_data['forward_scorer']
+    # txt += 'Reactants: %s\r\n' % synth_data['reactants']
+    # txt += 'Reagents: %s\r\n' % synth_data['reagents']
+    # txt += 'Temperature: %s\r\n' % synth_data['temperature']
+    # txt += 'Solvent: %s\r\n' % synth_data['solvent']
+    # txt += '\r\n'
+    txt = '%s\t%s\t%s\t%s\r\n' % ('Rank', 'SMILES', 'Probability', 'Score')
     for outcome in synth_data['outcomes']:
         txt += '%s\t%s\t%s\t%s\r\n' % (outcome['rank'], outcome['outcome']['smiles'], outcome['prob'], outcome['score'])
     response = HttpResponse(txt, content_type='text/csv')
