@@ -20,11 +20,34 @@
 }
 
 .popover[class*="tour-"].orphan {
-left: 25% !important;
+left: 50% !important;
 top: 50% !important;
 margin-top: 0;
 position: absolute;
 transform: translate(-50%, -50%) !important;
+}
+
+.details {
+    border-left: 1px solid lightgray;
+    min-height: 700px;
+}
+
+.scroll-list {
+    height: 600px;
+    overflow-y: scroll;
+}
+
+.card {
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    transition: 0.3s;
+    border-radius: 5px; /* 5px rounded corners */
+    margin: 5px;
+    padding: 5px;
+    border: 1px solid lightgray;
+}
+
+.card:hover {
+  box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
 }
 
 .loader {
@@ -32,7 +55,9 @@ transform: translate(-50%, -50%) !important;
     z-index: 999;
     position: absolute;
     top: 50%;
+    margin-top: -75px;
     left: 50%;
+    margin-left: -75px;
     border: 16px solid #f3f3f3; /* Light grey */
     border-top: 16px solid #3498db; /* Blue */
     border-radius: 50%;

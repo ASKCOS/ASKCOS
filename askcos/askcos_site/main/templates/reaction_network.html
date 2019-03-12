@@ -22,7 +22,7 @@
             <main>
                 <div class="container-fluid">
                     <div class="row">
-                        <div class="col-12 text-center">
+                        <div class="col-md-7 text-center">
                         
 <!-- template for the modal component -->
 <script type="text/x-template" id="modal-template">
@@ -60,9 +60,10 @@
                             
 <div class="mx-auto">
     <button class="btn btn-default" @click="clear" title="Clear reactions"><i class="fas fa-times"></i></button>
-    <button id="settings-btn" class="btn btn-default" @click="showSettingsModal = true" title="Settings"><i class="fas fa-cog"></i></button>
-    <button id="download-btn" class="btn btn-default" @click="showDownloadModal = true" title="Download reaction network"><i class="fas fa-download"></i></button>
-    <button id="load-btn" class="btn btn-default" @click="showLoadModal = true" title="Upload reaction network"><i class="fas fa-upload"></i></button>
+    <button id="settings-btn" class="btn btn-default" @click="openModal('settings')" title="Settings"><i class="fas fa-cog"></i></button>
+    <button id="download-btn" class="btn btn-default" @click="openModal('download')" title="Download reaction network"><i class="fas fa-download"></i></button>
+    <button id="load-btn" class="btn btn-default" @click="openModal('load')" title="Upload reaction network"><i class="fas fa-upload"></i></button>
+    <button id="keyboard-overlay" class="btn btn-default" @click="openModal('keyboard')" title="Show keyboard shortcuts"><i class="fas fa-keyboard"></i></button>
     <button class="btn btn-default" @click="startTour" title="Start tutorial"><i class="fas fa-question"></i></button>
 </div>
                             
@@ -114,6 +115,49 @@
     </div>
 </modal>
                             
+
+<modal v-if="showKeyboardOverlay" @close="showKeyboardOverlay = false">
+    <div class="mx-auto" slot="header">
+        <h3>Keyboard Shortcuts</h3>
+    </div>
+    <div slot="body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th class="text-center">Key</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Escape</td>
+                    <td>Close popup</td>
+                </tr>
+                <tr>
+                    <td>Backspace</td>
+                    <td>Delete selected nodes</td>
+                </tr>
+                <tr>
+                    <td>Delete</td>
+                    <td>Delete selected nodes</td>
+                </tr>
+                <tr>
+                    <td>d</td>
+                    <td>Delete selected nodes</td>
+                </tr>
+                <tr>
+                    <td>e</td>
+                    <td>Expand selected nodes</td>
+                </tr>
+                <tr>
+                    <td>i</td>
+                    <td>Show node information</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</modal>
+                            
 <modal v-if="showSettingsModal" @close="showSettingsModal = false">
     <div class="mx-auto" slot="header">
         <h3>Settings</h3>
@@ -162,21 +206,24 @@
     </div>
 </modal>
                             
-<modal v-if="showLoadModal" @close="showLoadModal = false; load()">
+<modal v-if="showLoadModal">
     <div class="mx-auto" slot="header">
         <h3>Load Network JSON</h3>
     </div>
     <div slot="body">
         <input id="loadNetwork" type="file"/>
     </div>
-    <div slot="button-text">
-        Load
+    <div slot="footer">
+        <button style="margin: 0 5px;" class="btn btn-success modal-default-button" @click="showLoadModal = false; load()">
+          Load
+        </button>
+        <button style="margin: 0 5px;" class="btn btn-danger modal-default-button" @click="showLoadModal = false">
+          Cancel
+        </button>
     </div>
 </modal>
                             
-<modal 
-       v-if="showDownloadModal"
->
+<modal v-if="showDownloadModal">
     <div class="mx-auto" slot="header">
         <h3>Download name</h3>
     </div>
@@ -184,15 +231,112 @@
         File name: <input type="text" v-model="downloadName"/>
     </div>
     <div slot="footer">
-        <button class="btn btn-danger modal-default-button" @click="showDownloadModal = false">
-          Cancel
-        </button>
-        <button class="btn btn-dark modal-default-button" @click="showDownloadModal = false; download()">
+        <button style="margin: 0 5px;" class="btn btn-success modal-default-button" @click="showDownloadModal = false; download()">
           Download
+        </button>
+        <button style="margin: 0 5px;" class="btn btn-danger modal-default-button" @click="showDownloadModal = false">
+          Cancel
         </button>
     </div>
 </modal>
 
+                        </div>
+                        <div id="details" class="col-md-5 text-center details">
+                            <h2>Currently selected:</h2>
+
+                            <template v-if="selected">
+                                <template v-if="selected.type=='chemical'">
+                                    <div class="details-top">
+                                        <div class="text-center">
+                                            <div><b>Smiles: </b>%% selected.smiles %%</div>
+                                            <div><b>Price ($/g): </b>%% selected.ppg %%</div>
+                                            <div style="margin-bottom: 10px">
+                                                <img width="50%" v-bind:src="selected.image" />
+                                            </div>
+                                            <h2>Precursors</h2>
+                                        </div>
+                                    </div>
+<div class="scroll-list">
+    <div class="text-center">
+        <template v-if="typeof(results[selected.smiles]) == 'undefined'">
+            <div class="text-center">
+                <h3>Click button below to expand this node and predict precursors for this target.</h3>
+                <button id="expand-btn-side" class="btn btn-success" v-on:click="expandNode">Expand node</button>
+            </div>
+        </template>
+        <template v-for="res in results[selected.smiles]">
+            <div class="card">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-xs-6">
+                            <img width="100%" v-bind:src="'/draw/smiles/'+res.smiles" />
+                        </div>
+                        <div class="col-xs-6">
+                            <table class="table table-condensed table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <td>Score</td>
+                                        <td>%% res.score.toFixed(3) %%</td>
+                                    </tr>
+                                    <tr>
+                                        <td># Examples</td>
+                                        <td>%% res.num_examples %%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Max relevance</td>
+                                        <td>%% res.template_score.toFixed(3) %%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Plausibility</td>
+                                        <td>%% res.plausibility.toFixed(3) %%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 mx-auto">
+                            <button class="btn btn-success" v-on:click="addFromResults(selected, res)"><i class="fas fa-plus"></i></button>
+                            <button class="btn btn-danger" @click="remFromResults(selected, res)"><i class="fas fa-minus"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+</div>
+                                </template>
+                                <template v-else-if="selected.type=='reaction'">
+                                    <div class="details-top">
+                                        <div class="text-left">
+                                            <div class="text-center">
+                                                <b>Reaction Smiles: </b>%% selected.reactionSmiles %%
+                                                <img width="100%" v-bind:src="'/draw/reaction/'+selected.reactionSmiles" />
+                                            </div>
+                                            <div class="text-center" style="margin: 10px 0">
+                                                <a :href="'/context/smiles='+selected.reactionSmiles" target="_blank">
+                                                    Evaluate reaction in new tab
+                                                </a>
+                                            </div>
+                                            <div><b>Retroscore: </b>%% selected.retroscore %%</div>
+                                            <div><b>Plausibility: </b>%% selected.ffScore %%</div>
+                                            <div><b>Num. Examples: </b>%% selected.numExamples %%</div>
+                                            <div><b>Supporting templates:</b>
+                                                <ul>
+                                                    <li v-for="id in selected.templateIds">
+                                                        <a v-bind:href="'/template/target='+id" target="_blank">%% id %%</a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </template>
+                            <template v-else>
+                                Select a node from the graph to the left to see more detailed information.
+                            </template>
+                            
+                            
                         </div>
                     </div>
                 </div>

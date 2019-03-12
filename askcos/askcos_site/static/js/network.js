@@ -1,3 +1,6 @@
+var container = document.getElementsByClassName('container')[0];
+container.style.width=null;
+
 function showLoader() {
     var loader = document.getElementsByClassName("loader")[0];
     loader.style.display = "block";
@@ -28,7 +31,8 @@ function addReaction(reaction, sourceNode, nodes, edges) {
         ffScore: reaction['plausibility'].toFixed(3),
         retroscore: reaction['score'].toFixed(3),
         numExamples: reaction['num_examples'],
-        templateIds: reaction['tforms'],
+        templateIds: reaction['templates'],
+        reactionSmiles: reaction.smiles+'>>'+sourceNode.smiles,
         type: 'reaction',
         value: 1,
         mass: 0.5
@@ -184,14 +188,17 @@ var app = new Vue({
             nodes: {},
             edges: {}
         },
+        results: {},
         nodeStructure: {},
         showReactionModal: false,
         showChemicalModal: false,
         showSettingsModal: false,
         showLoadModal: false,
         showDownloadModal: false,
+        showKeyboardOverlay: false,
         downloadName: "network.json",
         modalData: {},
+        selected: null,
         reactionLimit: 5,
         reactionSorting: "retroscore",
         templatePrioritization: "Relevance",
@@ -241,8 +248,19 @@ var app = new Vue({
                     ])
                     this.data.edges = new vis.DataSet([]);
                     initializeNetwork(this.data);
+                    network.on('selectNode', this.showInfo);
+                    network.on('deselectNode', this.clearSelection);
+                    this.results[this.target] = json['precursors'];
                     addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit, this.reactionSorting);
                     hideLoader();
+                    fetch('/api/price/?smiles='+this.target)
+                        .then(resp => resp.json())
+                        .then(json => {
+                            var ppg = json['price'];
+                            this.data.nodes.update({id: 0, ppg: ppg});
+                            network.selectNodes([0]);
+                            this.selected = this.data.nodes.get(0);
+                    })
                 })
                 .catch(error => {
                     hideLoader();
@@ -250,6 +268,9 @@ var app = new Vue({
                 })
         },
         expandNode: function() {
+            if (this.isModalOpen()) {
+                return
+            }
             showLoader();
             var selected = network.getSelectedNodes();
             for (n in selected) {
@@ -271,10 +292,12 @@ var app = new Vue({
                     .then(resp => resp.json())
                     .then(json => {
                         var reactions = json['precursors'];
+                        this.results[smi] = reactions;
                         if (reactions.length==0) {
                             alert('No precursors found!')
                         }
                         addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit, this.reactionSorting);
+                        this.selected = node;
                         hideLoader();
                     })
                     .catch(error => {
@@ -284,6 +307,9 @@ var app = new Vue({
             }
         },
         deleteNode: function() {
+            if (this.isModalOpen()) {
+                return
+            }
             var selected = network.getSelectedNodes();
             for (n in selected) {
                 var nodeId = selected[n];
@@ -301,6 +327,9 @@ var app = new Vue({
             cleanUpEdges(this.data.nodes, this.data.edges);
         },
         nodeInfo: function() {
+            if (this.isModalOpen()) {
+                return
+            }
             var selected = network.getSelectedNodes();
             var node = this.data.nodes.get(selected[0]);
             if (node.type == 'reaction') {
@@ -361,13 +390,19 @@ var app = new Vue({
                 app.data.nodes = new vis.DataSet(data.nodes);
                 app.data.edges = new vis.DataSet(data.edges);
                 network = initializeNetwork(app.data)
+                network.on('selectNode', app.showInfo);
+                network.on('deselectNode', app.clearSelection);
             }})(file);
             reader.readAsText(file)
         },
         clear: function() {
             this.target = '';
-            this.data.nodes.remove(this.data.nodes.getIds())
-            this.data.edges.remove(this.data.edges.getIds())
+            this.data.nodes.remove(this.data.nodes.getIds());
+            this.data.edges.remove(this.data.edges.getIds());
+            this.selected = null;
+        },
+        clearSelection: function() {
+            this.selected = null;
         },
         collapseNode: function() {
             var selected = network.getSelectedNodes();
@@ -386,6 +421,57 @@ var app = new Vue({
                 }
                 network.clustering.cluster(options);
             }
+        },
+        addFromResults: function(selected, reaction) {
+            addReaction(reaction, selected, this.data.nodes, this.data.edges)
+        },
+        remFromResults: function(selected, reaction) {
+            var rsmi = reaction.smiles+'>>'+selected.smiles;
+            var selectedChildren = this.data.nodes.get(childrenOf(selected.id, this.data.nodes, this.data.edges));
+            for (var child of selectedChildren) {
+                console.log(child, rsmi);
+                if (child.reactionSmiles == rsmi) {
+                    removeChildrenFrom(child.id, this.data.nodes, this.data.edges);
+                    this.data.nodes.remove(child.id);
+                    cleanUpEdges(this.data.nodes, this.data.edges);
+                    break;
+                }
+            }
+        },
+        showInfo: function(obj) {
+            var nodeId = obj.nodes[obj.nodes.length-1];
+            var node = this.data.nodes.get(nodeId);
+            this.selected = node;
+            if (node.type == 'chemical') {
+                console.log('chemical', node);
+                if (typeof(this.results[node.smiles]) != 'undefined') {
+                    console.log(this.results[node.smiles])
+                }
+            }
+            else if (node.type == 'reaction') {
+                console.log('reaction', node)
+            }
+        },
+        openModal: function(modalName) {
+            this.clearSelection();
+            if (network) {
+                network.unselectAll();
+            }
+            if (modalName == "settings") {
+                this.showSettingsModal = true
+            }
+            else if (modalName == "download") {
+                this.showDownloadModal = true
+            }
+            else if (modalName == "load") {
+                this.showLoadModal = true
+            }
+            else if (modalName == "keyboard") {
+                this.showKeyboardOverlay = true
+            }
+        },
+        isModalOpen: function() {
+            return app.showSettingsModal || app.showChemicalModal || app.showDownloadModal || app.showLoadModal || app.showReactionModal || app.showKeyboardOverlay
         },
         startTour: function() {
             tour.init();
@@ -416,7 +502,7 @@ var tour = new Tour({
         {
             element: "#target",
             title: "Fluconazole",
-            content: "Here's the SMILES string for Fluconazole. If you're unfamiliar with the SMILES format, try using a software like ChemDraw to draw a structure and get it's SMILES string. Click the 'Submit' button then click next to continue!",
+            content: "Here's the SMILES string for Fluconazole. If you're unfamiliar with the SMILES format, try using a software like ChemDraw to draw a structure and get it's SMILES string. Click next to continue!",
             placement: "bottom",
             onNext: function() {
                 if (app.data.nodes.length == null | app.data.nodes.length == 0) {
@@ -425,53 +511,109 @@ var tour = new Tour({
             }
         },
         {
+            element: "#network",
             title: "One-step retrosynthesis results",
-            content: "When the results are ready, they will be shown in the main window. The target molecule you entereted will be shown in the middle inside a <span class='blue-text'>blue</span> box. You can click and drag on empty space in the window to translate the entire network. You can try to rearrange nodes by clicking and dragging on them. Take a second to enjoy the inverted gravity model, courtesy of <a href='http://visjs.org' target='_blank'>vis.js</a>. Scrolling inside the window will zoom in and out.",
-            orphan: true,
+            content: "When the results are ready, they will be shown in the main window. The target molecule you entereted will be shown in the middle inside a <span class='blue-text'>blue</span> box (it is currently selected). You can click and drag on empty space in the window to translate the entire network. You can try to rearrange nodes by clicking and dragging on them. Take a second to enjoy the inverted gravity model, courtesy of <a href='http://visjs.org' target='_blank'>vis.js</a>. Scrolling inside the window will zoom in and out.",
+            placement: 'right',
             backdropContainer: '#network'
         },
         {
+            element: "#network",
             title: "Predicted reactions",
-            content: "The children nodes of your target molecule (one is highlighted, for example) represent predicted <b>reactions</b> that result in your target molecule. The number inside this node represents a fast filter score related to reaction likelyhood.",
+            content: "The children nodes of your target molecule (one is highlighted, for example) represent predicted <b>reactions</b> that may result in your target molecule. The number inside this node represents a fast filter score, or plausibility, related to reaction likelyhood.",
             onShown: function () {
-                network.selectNodes([1])
+                network.selectNodes([1]);
+                app.selected = app.data.nodes.get(1);
             },
-            orphan: true
+            placement: 'right',
         },
         {
+            element: "#network",
             title: "Reactants",
-            content: "The children node of the <b>reaction</b> represent <b>chemicals</b>, and are the predicted reactants for this reaction. Chemicals in a <span class='red-text'>red</span> box weren't found in our buyables database. Chemicals in a <span class='green-text'>green</span> box are buyable. For this example, we'll see if we can predict a reaction to make this reaction's non-buyable chemical from buyable starting materials.",
-            orphan: true,
+            content: "The children node(s) of <b>reactions</b> represent <b>chemicals</b>, and are the predicted reactants for this reaction. Chemicals in a <span class='red-text'>red</span> box weren't found in our buyables database. <b>Chemicals</b> in a <span class='green-text'>green</span> box are buyable.",
+            placement: 'right',
             onNext: function() {
                 app.data.nodes.forEach(function(n) {
                     if (n.smiles == 'Fc1ccc(C2(Cn3cncn3)CO2)c(F)c1') {
                         network.selectNodes([n.id])
+                        app.selected = app.data.nodes.get(n.id);
                     }
                 })
             }
         },
         {
+            element: "#network",
+            placement: 'right',
+            title: "Reactants",
+            content: "For this example, we'll see if we can predict a reaction to make this reaction's non-buyable reactant (it's been selected for you) from buyable starting materials."
+        },
+        {
             element: '#expand-btn',
             title: "Expanding chemical nodes",
-            content: "The non-buyable chemical for which we'd like to make a new prediction has been highlighted for you. Click this 'Expand node' button to run a one-step retrosynthetic prediction for the selected chemical and add the results to your reaction network.",
+            content: "The non-buyable chemical for which we'd like to make a new prediction has been highlighted for you. Next you'd click the <b>Expand Node</b> button. Click next to see what happens when you click this button.",
             placement: "bottom",
-            reflex: true
+            reflex: true,
+            onNext: function() {
+                app.expandNode();
+            }
         },
         {
             element: '#network',
             title: "Expanding chemical nodes",
-            content: "When the results are ready they'll be added to the network. It might look hectic at first, but appropriate node positions should resolve quickly. If not, click and drag a node to give it a jiggle.",
-            placement: "top"
+            content: "A new prediction was made for this non-buyable chemical, and when everything is ready the results will be added to the network visualization. It might look hectic at first, but the appropriate node positions should resolve quickly (thanks again to the <a href='http://visjs.org' target='_blank'>vis.js</a> inverted gravity!). If not, click and drag a node to give it a jiggle.",
+            placement: "right"
         },
         {
+            element: '#details',
+            title: "Result details",
+            content: "You may have noticed there's been a lot going on on the right side of the screen in addition to the changes in the graph visualization. On this side, details of the currently selected node are shown. In this case, a <b>chemical</b> node is selected. At the top you can see its SMILES string, its cost in $/g and a 2d rendering of its structure. Note: a price of N/A means it was not found in our buyables database.",
+            placement: "left"
+        },
+        {
+            element: '#details',
+            title: "Precursors",
+            content: "Additionally, if you've already made a retrosynthetic prediction for the currently selected <b>chemical</b>, you'll see list of the precursor results. Each entry shows the reactants for the reaction to make the currently selected chemical with some additional information such as a relative score and the number of examples there were for the templates that support the suggested reaction. If you haven't performed a retrosynthetic prediction for the selected chemical, the same <b>Expand Node</b> button you used before will be shown.",
+            placement: "left"
+        },
+        {
+            element: '#details',
+            title: "Adding and removing reactions",
+            content: "You may also notice there are many more precursor results shown on the right side here than were added into the graph visualization (it's a scrolling list) - this is to keep things tidy in the visualization. By default, only the top 5 results are added to the visualization (this can be changed in the settings menu). The plus (+) and minus (-) buttons can be used to add and remove each reaction to the visualization. Go ahead and give it a try if you'd like.",
+            placement: "left",
+            onNext: function() {
+                app.data.nodes.forEach(function(n) {
+                    if (n.reactionSmiles == 'Fc1ccc(C2(Cn3cncn3)CO2)c(F)c1.c1nc[nH]n1>>OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F') {
+                        network.selectNodes([n.id])
+                        app.selected = app.data.nodes.get(n.id);
+                    }
+                })
+            }
+        },
+        {
+            element: '#details',
+            title: "Viewing reaction details",
+            content: "If you have a reaction node selected, the right side of your screen will show you details for that reaction. At the top you can see the reaction SMILES, a 2d rendering, and similar reaction scores that you have seen before. You will also see a list of links to templates that support the reaction. Clicking one will open a new tab with more details about each template. There is also a link to 'Evaluate reaction in new tab', which will let you predict reaction conditions and evaluate the reaction in the forward direction.",
+            placement: "left",
+            onNext: function() {
+                app.data.nodes.forEach(function(n) {
+                    if (n.smiles == 'Fc1ccc(C2(Cn3cncn3)CO2)c(F)c1') {
+                        network.selectNodes([n.id])
+                        app.selected = app.data.nodes.get(n.id);
+                    }
+                })
+            }
+        },
+        {
+            element: "#network",
             title: "Understanding the network",
             content: "We can see that the prediction gave us a few reactions that use buyable starting materials (<b>reaction</b> nodes with children <b>chemical</b> nodes highlighted in green) to make the new target we were interested in. Now we have a full path to our original target, Fluconazole, starting with buyable compounds.",
-            orphan: true
+            placement: "right"
         },
         {
+            element: "#expand-btn",
             title: "Other buttons",
-            content: "Some of the other buttons are self-explanatory. You can delete selected nodes, delete children of selected nodes, collapse/cluster nodes and their children, and view more detailed reaction information.",
-            orphan: true
+            content: "Some of the other buttons next to <b>Expand node</b> are self-explanatory. You can delete selected nodes, delete children of selected nodes, collapse/cluster nodes and their children, and view node info in a popup window.",
+            placement: "top"
         },
         {
             element: "#settings-btn",
@@ -489,6 +631,11 @@ var tour = new Tour({
             content: "You can restore a previously saved network here."
         },
         {
+            element: "#keyboard-overlay",
+            title: "Keyboard shortcuts",
+            content: "There are a few keyboard shortcuts to help expand or delete nodes that are explained here."
+        },
+        {
             title: "End of tour",
             content: "That's the end of the guided tour. Go ahead and change the target, and build your own reaction networks, or continue to expand this one further.",
             orphan: true
@@ -496,6 +643,19 @@ var tour = new Tour({
     ]
 });
 
+function closeAll() {
+    app.showReactionModal = false;
+    app.showChemicalModal = false;
+    app.showSettingsModal = false;
+    app.showLoadModal = false;
+    app.showDownloadModal = false;
+    app.showKeyboardOverlay = false;
+}
+
 var keys = vis.keycharm();
+keys.bind("esc", closeAll, 'keyup');
 keys.bind("backspace", app.deleteNode, 'keyup');
 keys.bind("delete", app.deleteNode, 'keyup');
+keys.bind("d", app.deleteNode, 'keyup');
+keys.bind("e", app.expandNode, 'keyup');
+keys.bind("i", app.nodeInfo, 'keyup');

@@ -3,7 +3,7 @@ from makeit import global_config as gc
 from askcos_site.main.globals import RetroTransformer
 from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors as get_top_precursors_c
 
-TIMEOUT = 15
+TIMEOUT = 30
 TIMEOUT_ALL = 60
 
 def singlestep(request):
