@@ -70,7 +70,7 @@ function addReaction(reaction, sourceNode, nodes, edges) {
             nodes.add({
                 id: nId,
                 smiles: mysmi,
-                image: window.location.origin+"/draw/smiles/"+mysmi,
+                image: window.location.origin+"/draw/smiles/"+encodeURIComponent(mysmi),
                 shape: "image",
                 type: 'chemical',
                 mass: 0.5,
@@ -237,7 +237,7 @@ var app = new Vue({
                         {
                             id: 0,
                             smiles: this.target,
-                            image: window.location.origin+"/draw/smiles/"+this.target,
+                            image: window.location.origin+"/draw/smiles/"+encodeURIComponent(this.target),
                             shape: "image",
                             type: 'chemical',
                             value: 15,
@@ -253,7 +253,7 @@ var app = new Vue({
                     this.results[this.target] = json['precursors'];
                     addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit, this.reactionSorting);
                     hideLoader();
-                    fetch('/api/price/?smiles='+this.target)
+                    fetch('/api/price/?smiles='+encodeURIComponent(this.target))
                         .then(resp => resp.json())
                         .then(json => {
                             var ppg = json['price'];
@@ -354,7 +354,7 @@ var app = new Vue({
             var rxnSmiles = reactants.join('.')+'>>'+product
             this.modalData['product'] = product;
             this.modalData['reactionSmiles'] = rxnSmiles;
-            this.modalData['reactionSmilesImg'] = "/draw/reaction/"+rxnSmiles;
+            this.modalData['reactionSmilesImg'] = "/draw/reaction/"+encodeURIComponent(rxnSmiles);
             this.modalData['node'] = node;
             this.showReactionModal = true;
         },
@@ -486,7 +486,7 @@ var tour = new Tour({
     steps: [
         {
             title: "A guided tour through retrosynthesis",
-            content: "Welcome to this guided tour through retrosynthesis planning using our reaction network explorer. This will deomnstrate the purpose of the tool and explain the user interface using a real example. Thanks to <a href='http://bootstraptour.com/' target='_blank'>bootstrap-tour</a> for the great guided tour JavaScript package making it very easy to provide this tour to you!",
+            content: "Welcome to this guided tour through retrosynthesis planning using our reaction network explorer. This will demonstrate the purpose of the tool and explain the user interface using a real example. Thanks to <a href='http://bootstraptour.com/' target='_blank'>bootstrap-tour</a> for the great guided tour JavaScript package making it very easy to provide this tour to you!",
             orphan: true,
             backdropContainer: '#body'
         },
@@ -502,7 +502,7 @@ var tour = new Tour({
         {
             element: "#target",
             title: "Fluconazole",
-            content: "Here's the SMILES string for Fluconazole. If you're unfamiliar with the SMILES format, try using a software like ChemDraw to draw a structure and get it's SMILES string. Click next to continue!",
+            content: "Here's the SMILES string for Fluconazole. If you're unfamiliar with the SMILES format, try using a software like ChemDraw to draw a structure and copy it's SMILES string (right click -> molecule -> copy as -> SMILES). Click next to continue!",
             placement: "bottom",
             onNext: function() {
                 if (app.data.nodes.length == null | app.data.nodes.length == 0) {
@@ -520,7 +520,7 @@ var tour = new Tour({
         {
             element: "#network",
             title: "Predicted reactions",
-            content: "The children nodes of your target molecule (one is highlighted, for example) represent predicted <b>reactions</b> that may result in your target molecule. The number inside this node represents a fast filter score, or plausibility, related to reaction likelyhood.",
+            content: "The children nodes of your target molecule (one is highlighted, for example) represent predicted <b>reactions</b> that may result in your target molecule. The number inside this node represents a fast filter score, or plausibility, related to reaction likelihood.",
             onShown: function () {
                 network.selectNodes([1]);
                 app.selected = app.data.nodes.get(1);
@@ -612,7 +612,7 @@ var tour = new Tour({
         {
             element: "#expand-btn",
             title: "Other buttons",
-            content: "Some of the other buttons next to <b>Expand node</b> are self-explanatory. You can delete selected nodes, delete children of selected nodes, collapse/cluster nodes and their children, and view node info in a popup window.",
+            content: "In addition to expanding nodes, you can easily delete selected nodes, or children of a selected node using the corresponding red buttons above the graph visualization. The 'Toggle cluster' button will group the currently selected node and its children into one node cluster (this may be useful to keep things organized). Clicking this button with a cluster selected will expand it to show all of the nodes again.",
             placement: "top"
         },
         {

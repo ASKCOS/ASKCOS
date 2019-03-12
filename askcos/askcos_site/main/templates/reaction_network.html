@@ -82,7 +82,6 @@
 <button class="btn btn-danger" v-on:click="deleteNode">Delete node</button>
 <button class="btn btn-danger" v-on:click="deleteChildren">Delete children</button>
 <button class="btn btn-info" v-on:click="collapseNode">Toggle cluster</button>
-<button class="btn btn-info" v-on:click="nodeInfo">Node info</button>
 
 <div id="network" class="mx-auto mt-2"></div>
                             
@@ -269,7 +268,7 @@
                 <div class="container-fluid">
                     <div class="row">
                         <div class="col-xs-6">
-                            <img width="100%" v-bind:src="'/draw/smiles/'+res.smiles" />
+                            <img width="100%" v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" />
                         </div>
                         <div class="col-xs-6">
                             <table class="table table-condensed table-bordered">
@@ -311,10 +310,10 @@
                                         <div class="text-left">
                                             <div class="text-center">
                                                 <b>Reaction Smiles: </b>%% selected.reactionSmiles %%
-                                                <img width="100%" v-bind:src="'/draw/reaction/'+selected.reactionSmiles" />
+                                                <img width="100%" v-bind:src="'/draw/reaction/'+encodeURIComponent(selected.reactionSmiles)" />
                                             </div>
                                             <div class="text-center" style="margin: 10px 0">
-                                                <a :href="'/context/smiles='+selected.reactionSmiles" target="_blank">
+                                                <a :href="'/context/smiles='+encodeURIComponent(selected.reactionSmiles)" target="_blank">
                                                     Evaluate reaction in new tab
                                                 </a>
                                             </div>
