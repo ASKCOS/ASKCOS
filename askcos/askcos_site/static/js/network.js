@@ -59,7 +59,7 @@ function addReaction(reaction, sourceNode, nodes, edges) {
             var mysmi = json['smiles'];
             var ppg = json['ppg'];
             if (ppg == 0) {
-                ppg = "N/A"
+                ppg = "not buyable"
             }
             var buyable = (json['ppg']!=0);
             if (buyable) {
@@ -271,6 +271,9 @@ var app = new Vue({
                         .then(resp => resp.json())
                         .then(json => {
                             var ppg = json['price'];
+                            if (ppg == 0) {
+                                ppg = "not buyable"
+                            }
                             this.data.nodes.update({id: 0, ppg: ppg});
                             network.selectNodes([0]);
                             this.selected = this.data.nodes.get(0);
