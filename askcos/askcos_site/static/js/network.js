@@ -11,7 +11,8 @@ function hideLoader() {
     loader.style.display = "none";
 }
 
-function addReactions(reactions, sourceNode, nodes, edges, reactionLimit, reactionSorting) {
+function addReactions(reactions, sourceNode, nodes, edges, reactionLimit) {
+    var reactionSorting = "retroscore";
     reactions.sort(function(a, b) {
         return b[reactionSorting] - a[reactionSorting]
     })
@@ -30,6 +31,7 @@ function addReaction(reaction, sourceNode, nodes, edges) {
         label: reaction['plausibility'].toFixed(3),
         ffScore: reaction['plausibility'].toFixed(3),
         retroscore: reaction['score'].toFixed(3),
+        templateScore: reaction['template_score'].toFixed(3),
         numExamples: reaction['num_examples'],
         templateIds: reaction['templates'],
         reactionSmiles: reaction.smiles+'>>'+sourceNode.smiles,
@@ -190,8 +192,7 @@ var app = new Vue({
         },
         results: {},
         nodeStructure: {},
-        showReactionModal: false,
-        showChemicalModal: false,
+        allowResolve: false,
         showSettingsModal: false,
         showLoadModal: false,
         showDownloadModal: false,
@@ -200,12 +201,14 @@ var app = new Vue({
         modalData: {},
         selected: null,
         reactionLimit: 5,
-        reactionSorting: "retroscore",
         templatePrioritization: "Relevance",
         precursorScoring: "RelevanceHeuristic",
         numTemplates: 100,
         minPlausibility: 0.75
     },
+    beforeMount: function() {
+        this.allowResolve = this.$el.querySelector('[ref="allowResolve"]').value;
+    }
     methods: {
         requestUrl: function(smiles) {
             var url = '/api/retro/?';
@@ -220,6 +223,20 @@ var app = new Vue({
                 return encodeURIComponent(key) + '=' + encodeURIComponent(params[key])
             }).join('&');
             return url+queryString;
+        },
+        resolveTarget: function() {
+            if (this.allowResolve) {
+                var url = 'https://cactus.nci.nih.gov/chemical/structure/'+encodeURIComponent(this.target)+'/smiles'
+                fetch(url)
+                    .then(resp => resp.text())
+                    .then(text => {
+                        this.target = text;
+                        this.changeTarget();
+                })
+            }
+            else {
+                this.changeTarget();
+            }
         },
         changeTarget: function() {
             showLoader();
@@ -251,7 +268,7 @@ var app = new Vue({
                     network.on('selectNode', this.showInfo);
                     network.on('deselectNode', this.clearSelection);
                     this.results[this.target] = json['precursors'];
-                    addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit, this.reactionSorting);
+                    addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit);
                     hideLoader();
                     fetch('/api/price/?smiles='+encodeURIComponent(this.target))
                         .then(resp => resp.json())
@@ -296,7 +313,7 @@ var app = new Vue({
                         if (reactions.length==0) {
                             alert('No precursors found!')
                         }
-                        addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit, this.reactionSorting);
+                        addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit);
                         this.selected = node;
                         hideLoader();
                     })

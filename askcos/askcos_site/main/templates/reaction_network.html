@@ -83,37 +83,7 @@
 <button class="btn btn-danger" v-on:click="deleteChildren">Delete children</button>
 <button class="btn btn-info" v-on:click="collapseNode">Toggle cluster</button>
 
-<div id="network" class="mx-auto mt-2"></div>
-                            
-<modal v-if="showReactionModal" @close="showReactionModal = false">
-    <div class="mx-auto" slot="header">
-        <img class="mx-auto" v-bind:src="modalData['reactionSmilesImg']"/>
-        <div>%% this.modalData['reactionSmiles'] %%</div>
-    </div>
-    <div slot="body" class="text-left">
-        <div><b>Retroscore:</b> %% this.modalData['node'].retroscore %% </div>
-        <div><b>Fast filter score:</b> %% this.modalData['node'].ffScore %%</div>
-        <div><b>Num. Examples:</b> %% this.modalData['node'].numExamples %%</div>
-        <div><b>Templates:</b> 
-            <li v-for="templateId in modalData['node'].templateIds" class="ml-25">
-                <a v-bind:href="'/template/target='+templateId" target="_blank">%% templateId %%</a>
-            </li>
-        </div>
-    </div>
-</modal>
-                            
-
-<modal v-if="showChemicalModal" @close="showChemicalModal = false">
-    <div class="mx-auto" slot="header">
-        <img class="mx-auto" v-bind:src="modalData['node'].image"/>
-        <div>%% this.modalData['node'].smiles %%</div>
-    </div>
-    <div slot="body">
-        <div class="text-center mb-10"><a v-bind:href="'/retro/target='+modalData['node'].smiles" target="_blank">Traditional retrosynthetic list view for this chemical <i class="fas fa-external-link-alt" aria-hidden="true"></i></a></div>
-        <div><b>Price ($/g):</b> %% this.modalData['node'].ppg %% </div>
-    </div>
-</modal>
-                            
+<div id="network" class="mx-auto mt-2"></div>                            
 
 <modal v-if="showKeyboardOverlay" @close="showKeyboardOverlay = false">
     <div class="mx-auto" slot="header">
@@ -163,12 +133,13 @@
     </div>
     <div slot="body" class="text-left">
         <form class="form-inline mb-10">
+            <div>
+                <input type="checkbox" ref="allowResolve" v-model="allowResolve" />
+            </div>
             <div class="form-group">
-                Limit number of predicted reactions to <input style="width: 50px" type="number" v-model.number="reactionLimit" class="form-control text-center"> sorted by
-                <select v-model="reactionSorting" class="form-control">
-                    <option value="ffScore">Fast filter score</option>
-                    <option value="retroscore">Retroscore</option>
-                </select>
+                Automatically add top 
+                <input style="width: 50px" type="number" v-model.number="reactionLimit" class="form-control text-center"> 
+                results to graph visualization
             </div>
         </form>
         <form class="form-inline mb-10">
@@ -193,13 +164,13 @@
         <form class="form-inline mb-10">
             <div class="form-group">
                 Num. templates:
-                <input style="width: 50px" type="number" v-model.number="numTemplates" class="form-control text-center">
+                <input style="width: 100px" type="number" v-model.number="numTemplates" class="form-control text-center">
             </div>
         </form>
         <form class="form-inline mb-10">
             <div class="form-group">
                 Min. plausibility:
-                <input style="width: 75px" type="number" v-model.number="minPlausibility" class="form-control text-center">
+                <input style="width: 100px" type="number" v-model.number="minPlausibility" class="form-control text-center">
             </div>
         </form>
     </div>
@@ -318,6 +289,7 @@
                                                 </a>
                                             </div>
                                             <div><b>Retroscore: </b>%% selected.retroscore %%</div>
+                                            <div><b>Template score: </b>%% selected.templateScore %%</div>
                                             <div><b>Plausibility: </b>%% selected.ffScore %%</div>
                                             <div><b>Num. Examples: </b>%% selected.numExamples %%</div>
                                             <div><b>Supporting templates:</b>
