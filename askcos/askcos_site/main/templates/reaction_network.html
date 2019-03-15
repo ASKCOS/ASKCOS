@@ -63,15 +63,19 @@
     <button id="settings-btn" class="btn btn-default" @click="openModal('settings')" title="Settings"><i class="fas fa-cog"></i></button>
     <button id="download-btn" class="btn btn-default" @click="openModal('download')" title="Download reaction network"><i class="fas fa-download"></i></button>
     <button id="load-btn" class="btn btn-default" @click="openModal('load')" title="Upload reaction network"><i class="fas fa-upload"></i></button>
-    <button id="keyboard-overlay" class="btn btn-default" @click="openModal('keyboard')" title="Show keyboard shortcuts"><i class="fas fa-keyboard"></i></button>
     <button class="btn btn-default" @click="startTour" title="Start tutorial"><i class="fas fa-question"></i></button>
 </div>
                             
 <div class="mx-auto">
-    <form class="form-inline" autocomplete="off" v-on:submit.prevent="changeTarget">
+    <form class="form-inline" autocomplete="off" v-on:submit.prevent="resolveTarget">
         <div class="form-group">
             Target: <input id="target" type="text" class="form-control text-center" v-model="target">
             <input id="submit" type="submit" value="Submit" class="btn btn-default" />
+            <i class="fas fa-server"></i> 
+            <span @click="toggleResolver">
+                <span v-if="allowResolve" title="Connection to NIH name resolver is ON, structures may be sent to an external service. This can be turned off in the settings menu.">&#10003;</span>
+                <span v-else title="Connection to NIH name resolver is OFF, structures will NOT be sent to an external service. Target query must be a SMILES string. This can be turned on in the settings menu.">&#10005;</span>
+            </span>
             <div class="loader"></div>
         </div>
     
@@ -83,49 +87,7 @@
 <button class="btn btn-danger" v-on:click="deleteChildren">Delete children</button>
 <button class="btn btn-info" v-on:click="collapseNode">Toggle cluster</button>
 
-<div id="network" class="mx-auto mt-2"></div>                            
-
-<modal v-if="showKeyboardOverlay" @close="showKeyboardOverlay = false">
-    <div class="mx-auto" slot="header">
-        <h3>Keyboard Shortcuts</h3>
-    </div>
-    <div slot="body">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th class="text-center">Key</th>
-                    <th class="text-center">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Escape</td>
-                    <td>Close popup</td>
-                </tr>
-                <tr>
-                    <td>Backspace</td>
-                    <td>Delete selected nodes</td>
-                </tr>
-                <tr>
-                    <td>Delete</td>
-                    <td>Delete selected nodes</td>
-                </tr>
-                <tr>
-                    <td>d</td>
-                    <td>Delete selected nodes</td>
-                </tr>
-                <tr>
-                    <td>e</td>
-                    <td>Expand selected nodes</td>
-                </tr>
-                <tr>
-                    <td>i</td>
-                    <td>Show node information</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</modal>
+<div id="network" class="mx-auto mt-2"></div>
                             
 <modal v-if="showSettingsModal" @close="showSettingsModal = false">
     <div class="mx-auto" slot="header">
@@ -134,7 +96,8 @@
     <div slot="body" class="text-left">
         <form class="form-inline mb-10">
             <div>
-                <input type="checkbox" ref="allowResolve" v-model="allowResolve" />
+                <input type="checkbox" ref="allowResolve" v-model="allowResolve" {{ allowResolve }}/>
+                Allow queries to be sent to NIH name -> smiles resolver?
             </div>
             <div class="form-group">
                 Automatically add top 

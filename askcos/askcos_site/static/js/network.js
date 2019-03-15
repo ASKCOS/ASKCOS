@@ -164,14 +164,10 @@ function initializeNetwork(data) {
     };
     network = new vis.Network(container, data, options);
     network.on("beforeDrawing",  function(ctx) {
-        // save current translate/zoom
         ctx.save();
-        // reset transform to identity
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        // fill background with solid white
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-        // restore old transform
         ctx.restore();
     })
     return network
@@ -196,7 +192,6 @@ var app = new Vue({
         showSettingsModal: false,
         showLoadModal: false,
         showDownloadModal: false,
-        showKeyboardOverlay: false,
         downloadName: "network.json",
         modalData: {},
         selected: null,
@@ -207,8 +202,8 @@ var app = new Vue({
         minPlausibility: 0.75
     },
     beforeMount: function() {
-        this.allowResolve = this.$el.querySelector('[ref="allowResolve"]').value;
-    }
+        this.allowResolve = this.$el.querySelector('[ref="allowResolve"]').checked;
+    },
     methods: {
         requestUrl: function(smiles) {
             var url = '/api/retro/?';
@@ -227,9 +222,11 @@ var app = new Vue({
         resolveTarget: function() {
             if (this.allowResolve) {
                 var url = 'https://cactus.nci.nih.gov/chemical/structure/'+encodeURIComponent(this.target)+'/smiles'
+                console.log(url)
                 fetch(url)
                     .then(resp => resp.text())
                     .then(text => {
+                        console.log(text);
                         this.target = text;
                         this.changeTarget();
                 })
@@ -285,7 +282,7 @@ var app = new Vue({
                 })
         },
         expandNode: function() {
-            if (this.isModalOpen()) {
+            if (this.isModalOpen() || typeof(network) == "undefined") {
                 return
             }
             showLoader();
@@ -324,7 +321,7 @@ var app = new Vue({
             }
         },
         deleteNode: function() {
-            if (this.isModalOpen()) {
+            if (this.isModalOpen() || typeof(network) == "undefined") {
                 return
             }
             var selected = network.getSelectedNodes();
@@ -343,41 +340,13 @@ var app = new Vue({
             }
             cleanUpEdges(this.data.nodes, this.data.edges);
         },
-        nodeInfo: function() {
-            if (this.isModalOpen()) {
-                return
-            }
-            var selected = network.getSelectedNodes();
-            var node = this.data.nodes.get(selected[0]);
-            if (node.type == 'reaction') {
-                this.reactionInfo(node);
-            }
-            else if (node.type == 'chemical') {
-                this.chemicalInfo(node);
+        toggleResolver: function() {
+            if (this.allowResolve) {
+                this.allowResolve = false
             }
             else {
-                alert('Cannot show information for this node.')
+                this.allowResolve = true
             }
-        },
-        reactionInfo: function(node) {
-            var reactants = [];
-            var childrenId = childrenOf(node.id, this.data.nodes, this.data.edges);
-            var parentId = parentOf(node.id, this.data.nodes, this.data.edges);
-            var product = this.data.nodes.get(parentId).smiles
-            for (n in childrenId) {
-                var childId = childrenId[n];
-                reactants.push(this.data.nodes.get(childId).smiles)
-            }
-            var rxnSmiles = reactants.join('.')+'>>'+product
-            this.modalData['product'] = product;
-            this.modalData['reactionSmiles'] = rxnSmiles;
-            this.modalData['reactionSmilesImg'] = "/draw/reaction/"+encodeURIComponent(rxnSmiles);
-            this.modalData['node'] = node;
-            this.showReactionModal = true;
-        },
-        chemicalInfo: function(node) {
-            this.modalData['node'] = node;
-            this.showChemicalModal = true;
         },
         download: function() {
             if (this.data.nodes.length == null) {
@@ -483,12 +452,9 @@ var app = new Vue({
             else if (modalName == "load") {
                 this.showLoadModal = true
             }
-            else if (modalName == "keyboard") {
-                this.showKeyboardOverlay = true
-            }
         },
         isModalOpen: function() {
-            return app.showSettingsModal || app.showChemicalModal || app.showDownloadModal || app.showLoadModal || app.showReactionModal || app.showKeyboardOverlay
+            return app.showSettingsModal || app.showDownloadModal || app.showLoadModal
         },
         startTour: function() {
             tour.init();
@@ -648,11 +614,6 @@ var tour = new Tour({
             content: "You can restore a previously saved network here."
         },
         {
-            element: "#keyboard-overlay",
-            title: "Keyboard shortcuts",
-            content: "There are a few keyboard shortcuts to help expand or delete nodes that are explained here."
-        },
-        {
             title: "End of tour",
             content: "That's the end of the guided tour. Go ahead and change the target, and build your own reaction networks, or continue to expand this one further.",
             orphan: true
@@ -661,18 +622,12 @@ var tour = new Tour({
 });
 
 function closeAll() {
-    app.showReactionModal = false;
-    app.showChemicalModal = false;
     app.showSettingsModal = false;
     app.showLoadModal = false;
     app.showDownloadModal = false;
-    app.showKeyboardOverlay = false;
 }
 
 var keys = vis.keycharm();
 keys.bind("esc", closeAll, 'keyup');
 keys.bind("backspace", app.deleteNode, 'keyup');
 keys.bind("delete", app.deleteNode, 'keyup');
-keys.bind("d", app.deleteNode, 'keyup');
-keys.bind("e", app.expandNode, 'keyup');
-keys.bind("i", app.nodeInfo, 'keyup');
