@@ -17,6 +17,7 @@ function addReactions(reactions, sourceNode, nodes, edges, reactionLimit) {
         return b[reactionSorting] - a[reactionSorting]
     })
     for (n in reactions) {
+        console.log(n)
         if (n >= reactionLimit) {
             break;
         }
@@ -28,7 +29,8 @@ function addReaction(reaction, sourceNode, nodes, edges) {
     var rId = nodes.max('id').id+1;
     nodes.add({
         id: rId,
-        label: reaction['plausibility'].toFixed(3),
+        label: '#'+reaction['rank'],
+	rank: reaction['rank'],
         ffScore: reaction['plausibility'].toFixed(3),
         retroscore: reaction['score'].toFixed(3),
         templateScore: reaction['template_score'].toFixed(3),
@@ -37,7 +39,7 @@ function addReaction(reaction, sourceNode, nodes, edges) {
         reactionSmiles: reaction.smiles+'>>'+sourceNode.smiles,
         type: 'reaction',
         value: 1,
-        mass: 0.5
+        mass: 1
     })
     if (edges.max('id')) {
         var eId = edges.max('id').id+1
@@ -74,8 +76,9 @@ function addReaction(reaction, sourceNode, nodes, edges) {
                 smiles: mysmi,
                 image: window.location.origin+"/draw/smiles/"+encodeURIComponent(mysmi),
                 shape: "image",
+                borderWidth: 2,
                 type: 'chemical',
-                mass: 0.5,
+                mass: 1,
                 value: 10,
                 ppg: ppg,
                 color: {
@@ -253,6 +256,7 @@ var app = new Vue({
                             smiles: this.target,
                             image: window.location.origin+"/draw/smiles/"+encodeURIComponent(this.target),
                             shape: "image",
+                            borderWidth: 5,
                             type: 'chemical',
                             value: 15,
                             color: {
