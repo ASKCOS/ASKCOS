@@ -30,7 +30,7 @@ function addReaction(reaction, sourceNode, nodes, edges) {
     nodes.add({
         id: rId,
         label: '#'+reaction['rank'],
-	rank: reaction['rank'],
+        rank: reaction['rank'],
         ffScore: reaction['plausibility'].toFixed(3),
         retroscore: reaction['score'].toFixed(3),
         templateScore: reaction['template_score'].toFixed(3),
@@ -51,7 +51,15 @@ function addReaction(reaction, sourceNode, nodes, edges) {
         id: eId,
         from: sourceNode.id,
         to: rId,
-        color: '#000000'
+        scaling: {
+            min: 1,
+            max: 5,
+        },
+        color: {
+            color: '#000000',
+            inherit: false
+        },
+        value: Math.max(0.1, Number(reaction['template_score']))
     })
     for (n in reaction['smiles_split']) {
         var smi = reaction['smiles_split'][n];
@@ -89,7 +97,15 @@ function addReaction(reaction, sourceNode, nodes, edges) {
                 id: edges.max('id').id+1,
                 from: rId,
                 to: nId,
-                color: '#000000'
+                scaling: {
+                    min: 1,
+                    max: 5,
+                },
+                color: {
+                    color: '#000000',
+                    inherit: false
+                },
+                value: Math.max(0.1, Number(reaction['template_score']))
             })
         })
     }
@@ -256,9 +272,10 @@ var app = new Vue({
                             smiles: this.target,
                             image: window.location.origin+"/draw/smiles/"+encodeURIComponent(this.target),
                             shape: "image",
-                            borderWidth: 5,
+                            borderWidth: 3,
                             type: 'chemical',
                             value: 15,
+                            mass: 2,
                             color: {
                                 border: '#000088'
                             }

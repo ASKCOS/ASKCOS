@@ -99,10 +99,12 @@
                 <input type="checkbox" ref="allowResolve" v-model="allowResolve" {{ allowResolve }}/>
                 Allow queries to be sent to NIH name -> smiles resolver?
             </div>
+        </form>
+        <form class="form-inline mb-10">
             <div class="form-group">
                 Automatically add top 
                 <input style="width: 50px" type="number" v-model.number="reactionLimit" class="form-control text-center"> 
-                results to graph visualization
+                results to the graph visualization
             </div>
         </form>
         <form class="form-inline mb-10">
@@ -201,7 +203,10 @@
             <div class="card">
                 <div class="container-fluid">
                     <div class="row">
-                        <div class="col-xs-6">
+                        <div class="col-xs-1">
+                            #%% res.rank %%
+                        </div>
+                        <div class="col-xs-5">
                             <img width="100%" v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" />
                         </div>
                         <div class="col-xs-6">
@@ -216,7 +221,7 @@
                                         <td>%% res.num_examples %%</td>
                                     </tr>
                                     <tr>
-                                        <td>Max relevance</td>
+                                        <td>Template score</td>
                                         <td>%% res.template_score.toFixed(3) %%</td>
                                     </tr>
                                     <tr>
