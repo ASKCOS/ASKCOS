@@ -17,7 +17,7 @@ services:
     env_file:
       - .env
       - customization
-    command: bash -c "uwsgi --socket :8000 --master --processes=4 --wsgi-file /home/askcos/ASKCOS/askcos/wsgi.py"
+    command: bash -c "uwsgi --socket :8000 --master --processes=4 --wsgi-file /usr/local/ASKCOS/askcos/wsgi.py"
     expose:
       - '8000'
     depends_on:
