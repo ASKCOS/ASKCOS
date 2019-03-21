@@ -108,6 +108,7 @@ function addReaction(reaction, sourceNode, nodes, edges) {
                 value: Math.max(0.1, Number(reaction['template_score']))
             })
         })
+        reaction.inViz = true;
     }
 }
 
@@ -433,7 +434,13 @@ var app = new Vue({
             }
         },
         addFromResults: function(selected, reaction) {
-            addReaction(reaction, selected, this.data.nodes, this.data.edges)
+            if (reaction.inViz) {
+                return
+            }
+            addReaction(reaction, selected, this.data.nodes, this.data.edges);
+            reaction.inViz = true;
+            document.querySelectorAll('.addRes')[Number(reaction.rank)-1].style.display='none';
+            document.querySelectorAll('.remRes')[Number(reaction.rank)-1].style.display='';
         },
         remFromResults: function(selected, reaction) {
             var rsmi = reaction.smiles+'>>'+selected.smiles;
@@ -444,9 +451,12 @@ var app = new Vue({
                     removeChildrenFrom(child.id, this.data.nodes, this.data.edges);
                     this.data.nodes.remove(child.id);
                     cleanUpEdges(this.data.nodes, this.data.edges);
+                    document.querySelectorAll('.remRes')[Number(reaction.rank)-1].style.display='none';
+                    document.querySelectorAll('.addRes')[Number(reaction.rank)-1].style.display='';
                     break;
                 }
             }
+            reaction.inViz = false;
         },
         showInfo: function(obj) {
             var nodeId = obj.nodes[obj.nodes.length-1];
