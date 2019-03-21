@@ -10,12 +10,24 @@
 
 If you are upgrading the deployment from a previous version, you may want to retain user accounts and user-saved data. These are stored in an sqlite db at `askcos/db.sqlite3` and a user\_saves directory at `makeit/data/user_saves`, _in the running app container service_. The name of the running app service can be found using `docker-compose ps`; it should be called `deploy_app_1` Follow these steps to backup and restore user data:
 
+__if the old version was < 0.2.3:__
+
 ```bash
 $ docker cp deploy_app_1:/home/askcos/ASKCOS/askcos/db.sqlite3 .
 $ docker cp deploy_app_1:/home/askcos/ASKCOS/makeit/data/user_saves .
 # deploy new version
-$ docker cp db.sqlite3 deploy_app_1:/home/askcos/ASKCOS/askcos/db.sqlite3
-$ docker cp user_saves deploy_app_1:/home/askcos/ASKCOS/makeit/data/
+$ docker cp db.sqlite3 deploy_app_1:/usr/local/ASKCOS/askcos/db.sqlite3
+$ docker cp user_saves deploy_app_1:/usr/local/ASKCOS/makeit/data/
+```
+
+__if the old version was >= 0.2.3:__
+
+```bash
+$ docker cp deploy_app_1:/usr/local/ASKCOS/askcos/db.sqlite3 .
+$ docker cp deploy_app_1:/usr/local/ASKCOS/makeit/data/user_saves .
+# deploy new version
+$ docker cp db.sqlite3 deploy_app_1:/usr/local/ASKCOS/askcos/db.sqlite3
+$ docker cp user_saves deploy_app_1:/usr/local/ASKCOS/makeit/data/
 ```
  
 ### Pulling the image from DockerHub
@@ -67,7 +79,7 @@ To stop the containers use `docker-compose stop`. To restart the containers use 
 
 If you'd like to manage the Django app (i.e. - run python manage.py ...), for example, to create an admin superuser, you can run commands in the _running_ app service (do this _after_ `docker-compose up`) as follows:
 
-`docker-compose exec app bash -c "source activate askcos && python /home/askcos/ASKCOS/askcos/manage.py createsuperuser"`
+`docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py createsuperuser"`
 
 In this case you'll be presented an interactive prompt to create a superuser with your desired credentials.
 
