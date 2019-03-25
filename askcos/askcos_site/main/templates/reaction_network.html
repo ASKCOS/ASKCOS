@@ -191,7 +191,7 @@
                                             <h2>Precursors</h2>
                                             <div class="form-inline">
                                                 Reorder by: 
-                                                <select class="form-control" @change="reorderResults($event)" v-model="sortingCategory">
+                                                <select class="form-control" @change="reorderResults" v-model="sortingCategory">
                                                     <option value="score">Score</option>
                                                     <option value="num_examples"># Examples</option>
                                                     <option value="template_score">Template score</option>

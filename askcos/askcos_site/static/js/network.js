@@ -338,6 +338,7 @@ var app = new Vue({
                         }
                         addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit);
                         this.selected = node;
+                        this.reorderResults();
                         hideLoader();
                     })
                     .catch(error => {
@@ -459,13 +460,16 @@ var app = new Vue({
             }
             reaction.inViz = false;
         },
-        reorderResults: function(event) {
-            var sortingCategory = event.target.value;
+        reorderResults: function() {
+            var sortingCategory = this.sortingCategory;
             if (this.selected == 'reaction') {
                 return
             }
             var smiles = this.selected.smiles;
             var results = this.results[smiles];
+            if (typeof(results) == 'undefined') {
+                return
+            }
             results.sort((a, b) => b[sortingCategory] - a[sortingCategory])
             var prevSelected = this.selected;
             this.selected = undefined;
@@ -475,6 +479,7 @@ var app = new Vue({
             var nodeId = obj.nodes[obj.nodes.length-1];
             var node = this.data.nodes.get(nodeId);
             this.selected = node;
+            this.reorderResults();
             if (node.type == 'chemical') {
                 console.log('chemical', node);
                 if (typeof(this.results[node.smiles]) != 'undefined') {
