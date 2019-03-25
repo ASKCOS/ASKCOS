@@ -219,7 +219,8 @@ var app = new Vue({
         templatePrioritization: "Relevance",
         precursorScoring: "RelevanceHeuristic",
         numTemplates: 100,
-        minPlausibility: 0.75
+        minPlausibility: 0.75,
+        sortingCategory: "score"
     },
     beforeMount: function() {
         this.allowResolve = this.$el.querySelector('[ref="allowResolve"]').checked;
@@ -457,6 +458,18 @@ var app = new Vue({
                 }
             }
             reaction.inViz = false;
+        },
+        reorderResults: function(event) {
+            var sortingCategory = event.target.value;
+            if (this.selected == 'reaction') {
+                return
+            }
+            var smiles = this.selected.smiles;
+            var results = this.results[smiles];
+            results.sort((a, b) => b[sortingCategory] - a[sortingCategory])
+            var prevSelected = this.selected;
+            this.selected = undefined;
+            this.selected = prevSelected;
         },
         showInfo: function(obj) {
             var nodeId = obj.nodes[obj.nodes.length-1];
