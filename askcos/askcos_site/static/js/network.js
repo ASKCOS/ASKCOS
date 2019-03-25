@@ -462,7 +462,7 @@ var app = new Vue({
         },
         reorderResults: function() {
             var sortingCategory = this.sortingCategory;
-            if (this.selected != 'chemical') {
+            if (this.selected.type != 'chemical') {
                 return
             }
             var smiles = this.selected.smiles;
