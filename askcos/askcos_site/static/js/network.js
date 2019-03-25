@@ -462,7 +462,7 @@ var app = new Vue({
         },
         reorderResults: function() {
             var sortingCategory = this.sortingCategory;
-            if (this.selected == 'reaction') {
+            if (this.selected != 'chemical') {
                 return
             }
             var smiles = this.selected.smiles;
@@ -478,6 +478,9 @@ var app = new Vue({
         showInfo: function(obj) {
             var nodeId = obj.nodes[obj.nodes.length-1];
             var node = this.data.nodes.get(nodeId);
+            if (node == null) {
+                return
+            }
             this.selected = node;
             this.reorderResults();
             if (node.type == 'chemical') {
@@ -521,7 +524,7 @@ var tour = new Tour({
     steps: [
         {
             title: "A guided tour through retrosynthesis",
-            content: "Welcome to this guided tour through retrosynthesis planning using our reaction network explorer. This will demonstrate the purpose of the tool and explain the user interface using a real example. Thanks to <a href='http://bootstraptour.com/' target='_blank'>bootstrap-tour</a> for the great guided tour JavaScript package making it very easy to provide this tour to you!",
+            content: "Welcome to this guided tour through retrosynthesis planning using our interactive path planning tool. This will demonstrate the purpose of the tool and explain the user interface using a real example. Thanks to <a href='http://bootstraptour.com/' target='_blank'>bootstrap-tour</a> for the great guided tour JavaScript package making it very easy to provide this tour to you!",
             orphan: true,
             backdropContainer: '#body'
         },
@@ -555,7 +558,7 @@ var tour = new Tour({
         {
             element: "#network",
             title: "Predicted reactions",
-            content: "The children nodes of your target molecule (one is highlighted, for example) represent predicted <b>reactions</b> that may result in your target molecule. The number inside this node represents a fast filter score, or plausibility, related to reaction likelihood.",
+            content: "The children nodes of your target molecule (one is highlighted, for example) represent predicted <b>reactions</b> that may result in your target molecule. The number inside this node is the rank of the precursor, scored by the precursor prioritization method currently selected (more on this later).",
             onShown: function () {
                 network.selectNodes([1]);
                 app.selected = app.data.nodes.get(1);
@@ -601,19 +604,19 @@ var tour = new Tour({
         {
             element: '#details',
             title: "Result details",
-            content: "You may have noticed there's been a lot going on on the right side of the screen in addition to the changes in the graph visualization. On this side, details of the currently selected node are shown. In this case, a <b>chemical</b> node is selected. At the top you can see its SMILES string, its cost in $/g and a 2d rendering of its structure. Note: a price of N/A means it was not found in our buyables database.",
+            content: "You may have noticed there's been a lot going on on the right side of the screen in addition to the changes in the graph visualization. On this side, details of the currently selected node are shown. In this case, a <b>chemical</b> node is selected. At the top you can see its SMILES string, its cost in $/g and a 2d rendering of its structure.",
             placement: "left"
         },
         {
             element: '#details',
             title: "Precursors",
-            content: "Additionally, if you've already made a retrosynthetic prediction for the currently selected <b>chemical</b>, you'll see list of the precursor results. Each entry shows the reactants for the reaction to make the currently selected chemical with some additional information such as a relative score and the number of examples there were for the templates that support the suggested reaction. If you haven't performed a retrosynthetic prediction for the selected chemical, the same <b>Expand Node</b> button you used before will be shown.",
+            content: "Additionally, if you've already made a retrosynthetic prediction for the currently selected <b>chemical</b>, you'll see list of the precursor results. Each entry shows the reactants for the reaction to make the currently selected chemical with some additional information such as a relative score and the number of examples there were for the templates that support the suggested reaction. You can reorder these results by each metric using the drop-down menu above. If you haven't performed a retrosynthetic prediction for the selected chemical, the same <b>Expand Node</b> button you used before will be shown.",
             placement: "left"
         },
         {
             element: '#details',
             title: "Adding and removing reactions",
-            content: "You may also notice there are many more precursor results shown on the right side here than were added into the graph visualization (it's a scrolling list) - this is to keep things tidy in the visualization. By default, only the top 5 results are added to the visualization (this can be changed in the settings menu). The plus (+) and minus (-) buttons can be used to add and remove each reaction to the visualization. Go ahead and give it a try if you'd like.",
+            content: "You may also notice there are many more precursor results shown on the right side here than were added into the graph visualization (it's a scrolling list) - this is to keep things tidy in the visualization. By default, only the top 5 results (scored by retro'score') are added to the visualization (this can be changed in the settings menu). The plus (+) and minus (-) buttons can be used to add and remove each reaction to the visualization. Go ahead and give it a try if you'd like.",
             placement: "left",
             onNext: function() {
                 app.data.nodes.forEach(function(n) {
