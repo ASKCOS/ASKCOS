@@ -11,11 +11,13 @@ function hideLoader() {
     loader.style.display = "none";
 }
 
-function addReactions(reactions, sourceNode, nodes, edges, reactionLimit, reactionSorting) {
+function addReactions(reactions, sourceNode, nodes, edges, reactionLimit) {
+    var reactionSorting = "retroscore";
     reactions.sort(function(a, b) {
         return b[reactionSorting] - a[reactionSorting]
     })
     for (n in reactions) {
+        console.log(n)
         if (n >= reactionLimit) {
             break;
         }
@@ -27,15 +29,17 @@ function addReaction(reaction, sourceNode, nodes, edges) {
     var rId = nodes.max('id').id+1;
     nodes.add({
         id: rId,
-        label: reaction['plausibility'].toFixed(3),
+        label: '#'+reaction['rank'],
+        rank: reaction['rank'],
         ffScore: reaction['plausibility'].toFixed(3),
         retroscore: reaction['score'].toFixed(3),
+        templateScore: reaction['template_score'].toFixed(3),
         numExamples: reaction['num_examples'],
         templateIds: reaction['templates'],
         reactionSmiles: reaction.smiles+'>>'+sourceNode.smiles,
         type: 'reaction',
         value: 1,
-        mass: 0.5
+        mass: 1
     })
     if (edges.max('id')) {
         var eId = edges.max('id').id+1
@@ -47,7 +51,15 @@ function addReaction(reaction, sourceNode, nodes, edges) {
         id: eId,
         from: sourceNode.id,
         to: rId,
-        color: '#000000'
+        scaling: {
+            min: 1,
+            max: 5,
+        },
+        color: {
+            color: '#000000',
+            inherit: false
+        },
+        value: Math.max(0.1, Number(reaction['template_score']))
     })
     for (n in reaction['smiles_split']) {
         var smi = reaction['smiles_split'][n];
@@ -57,7 +69,7 @@ function addReaction(reaction, sourceNode, nodes, edges) {
             var mysmi = json['smiles'];
             var ppg = json['ppg'];
             if (ppg == 0) {
-                ppg = "N/A"
+                ppg = "not buyable"
             }
             var buyable = (json['ppg']!=0);
             if (buyable) {
@@ -72,8 +84,9 @@ function addReaction(reaction, sourceNode, nodes, edges) {
                 smiles: mysmi,
                 image: window.location.origin+"/draw/smiles/"+encodeURIComponent(mysmi),
                 shape: "image",
+                borderWidth: 2,
                 type: 'chemical',
-                mass: 0.5,
+                mass: 1,
                 value: 10,
                 ppg: ppg,
                 color: {
@@ -84,9 +97,18 @@ function addReaction(reaction, sourceNode, nodes, edges) {
                 id: edges.max('id').id+1,
                 from: rId,
                 to: nId,
-                color: '#000000'
+                scaling: {
+                    min: 1,
+                    max: 5,
+                },
+                color: {
+                    color: '#000000',
+                    inherit: false
+                },
+                value: Math.max(0.1, Number(reaction['template_score']))
             })
         })
+        reaction.inViz = true;
     }
 }
 
@@ -162,14 +184,10 @@ function initializeNetwork(data) {
     };
     network = new vis.Network(container, data, options);
     network.on("beforeDrawing",  function(ctx) {
-        // save current translate/zoom
         ctx.save();
-        // reset transform to identity
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        // fill background with solid white
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-        // restore old transform
         ctx.restore();
     })
     return network
@@ -190,21 +208,22 @@ var app = new Vue({
         },
         results: {},
         nodeStructure: {},
-        showReactionModal: false,
-        showChemicalModal: false,
+        allowResolve: false,
         showSettingsModal: false,
         showLoadModal: false,
         showDownloadModal: false,
-        showKeyboardOverlay: false,
         downloadName: "network.json",
         modalData: {},
         selected: null,
         reactionLimit: 5,
-        reactionSorting: "retroscore",
         templatePrioritization: "Relevance",
         precursorScoring: "RelevanceHeuristic",
         numTemplates: 100,
-        minPlausibility: 0.75
+        minPlausibility: 0.75,
+        sortingCategory: "score"
+    },
+    beforeMount: function() {
+        this.allowResolve = this.$el.querySelector('[ref="allowResolve"]').checked;
     },
     methods: {
         requestUrl: function(smiles) {
@@ -220,6 +239,22 @@ var app = new Vue({
                 return encodeURIComponent(key) + '=' + encodeURIComponent(params[key])
             }).join('&');
             return url+queryString;
+        },
+        resolveTarget: function() {
+            if (this.allowResolve) {
+                var url = 'https://cactus.nci.nih.gov/chemical/structure/'+encodeURIComponent(this.target)+'/smiles'
+                console.log(url)
+                fetch(url)
+                    .then(resp => resp.text())
+                    .then(text => {
+                        console.log(text);
+                        this.target = text;
+                        this.changeTarget();
+                })
+            }
+            else {
+                this.changeTarget();
+            }
         },
         changeTarget: function() {
             showLoader();
@@ -239,8 +274,10 @@ var app = new Vue({
                             smiles: this.target,
                             image: window.location.origin+"/draw/smiles/"+encodeURIComponent(this.target),
                             shape: "image",
+                            borderWidth: 3,
                             type: 'chemical',
                             value: 15,
+                            mass: 2,
                             color: {
                                 border: '#000088'
                             }
@@ -251,12 +288,15 @@ var app = new Vue({
                     network.on('selectNode', this.showInfo);
                     network.on('deselectNode', this.clearSelection);
                     this.results[this.target] = json['precursors'];
-                    addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit, this.reactionSorting);
+                    addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit);
                     hideLoader();
                     fetch('/api/price/?smiles='+encodeURIComponent(this.target))
                         .then(resp => resp.json())
                         .then(json => {
                             var ppg = json['price'];
+                            if (ppg == 0) {
+                                ppg = "not buyable"
+                            }
                             this.data.nodes.update({id: 0, ppg: ppg});
                             network.selectNodes([0]);
                             this.selected = this.data.nodes.get(0);
@@ -268,7 +308,7 @@ var app = new Vue({
                 })
         },
         expandNode: function() {
-            if (this.isModalOpen()) {
+            if (this.isModalOpen() || typeof(network) == "undefined") {
                 return
             }
             showLoader();
@@ -296,8 +336,9 @@ var app = new Vue({
                         if (reactions.length==0) {
                             alert('No precursors found!')
                         }
-                        addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit, this.reactionSorting);
+                        addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit);
                         this.selected = node;
+                        this.reorderResults();
                         hideLoader();
                     })
                     .catch(error => {
@@ -307,7 +348,7 @@ var app = new Vue({
             }
         },
         deleteNode: function() {
-            if (this.isModalOpen()) {
+            if (this.isModalOpen() || typeof(network) == "undefined") {
                 return
             }
             var selected = network.getSelectedNodes();
@@ -326,41 +367,13 @@ var app = new Vue({
             }
             cleanUpEdges(this.data.nodes, this.data.edges);
         },
-        nodeInfo: function() {
-            if (this.isModalOpen()) {
-                return
-            }
-            var selected = network.getSelectedNodes();
-            var node = this.data.nodes.get(selected[0]);
-            if (node.type == 'reaction') {
-                this.reactionInfo(node);
-            }
-            else if (node.type == 'chemical') {
-                this.chemicalInfo(node);
+        toggleResolver: function() {
+            if (this.allowResolve) {
+                this.allowResolve = false
             }
             else {
-                alert('Cannot show information for this node.')
+                this.allowResolve = true
             }
-        },
-        reactionInfo: function(node) {
-            var reactants = [];
-            var childrenId = childrenOf(node.id, this.data.nodes, this.data.edges);
-            var parentId = parentOf(node.id, this.data.nodes, this.data.edges);
-            var product = this.data.nodes.get(parentId).smiles
-            for (n in childrenId) {
-                var childId = childrenId[n];
-                reactants.push(this.data.nodes.get(childId).smiles)
-            }
-            var rxnSmiles = reactants.join('.')+'>>'+product
-            this.modalData['product'] = product;
-            this.modalData['reactionSmiles'] = rxnSmiles;
-            this.modalData['reactionSmilesImg'] = "/draw/reaction/"+encodeURIComponent(rxnSmiles);
-            this.modalData['node'] = node;
-            this.showReactionModal = true;
-        },
-        chemicalInfo: function(node) {
-            this.modalData['node'] = node;
-            this.showChemicalModal = true;
         },
         download: function() {
             if (this.data.nodes.length == null) {
@@ -423,7 +436,13 @@ var app = new Vue({
             }
         },
         addFromResults: function(selected, reaction) {
-            addReaction(reaction, selected, this.data.nodes, this.data.edges)
+            if (reaction.inViz) {
+                return
+            }
+            addReaction(reaction, selected, this.data.nodes, this.data.edges);
+            reaction.inViz = true;
+            document.querySelectorAll('.addRes')[Number(reaction.rank)-1].style.display='none';
+            document.querySelectorAll('.remRes')[Number(reaction.rank)-1].style.display='';
         },
         remFromResults: function(selected, reaction) {
             var rsmi = reaction.smiles+'>>'+selected.smiles;
@@ -434,14 +453,33 @@ var app = new Vue({
                     removeChildrenFrom(child.id, this.data.nodes, this.data.edges);
                     this.data.nodes.remove(child.id);
                     cleanUpEdges(this.data.nodes, this.data.edges);
+                    document.querySelectorAll('.remRes')[Number(reaction.rank)-1].style.display='none';
+                    document.querySelectorAll('.addRes')[Number(reaction.rank)-1].style.display='';
                     break;
                 }
             }
+            reaction.inViz = false;
+        },
+        reorderResults: function() {
+            var sortingCategory = this.sortingCategory;
+            if (this.selected == 'reaction') {
+                return
+            }
+            var smiles = this.selected.smiles;
+            var results = this.results[smiles];
+            if (typeof(results) == 'undefined') {
+                return
+            }
+            results.sort((a, b) => b[sortingCategory] - a[sortingCategory])
+            var prevSelected = this.selected;
+            this.selected = undefined;
+            this.selected = prevSelected;
         },
         showInfo: function(obj) {
             var nodeId = obj.nodes[obj.nodes.length-1];
             var node = this.data.nodes.get(nodeId);
             this.selected = node;
+            this.reorderResults();
             if (node.type == 'chemical') {
                 console.log('chemical', node);
                 if (typeof(this.results[node.smiles]) != 'undefined') {
@@ -466,12 +504,9 @@ var app = new Vue({
             else if (modalName == "load") {
                 this.showLoadModal = true
             }
-            else if (modalName == "keyboard") {
-                this.showKeyboardOverlay = true
-            }
         },
         isModalOpen: function() {
-            return app.showSettingsModal || app.showChemicalModal || app.showDownloadModal || app.showLoadModal || app.showReactionModal || app.showKeyboardOverlay
+            return app.showSettingsModal || app.showDownloadModal || app.showLoadModal
         },
         startTour: function() {
             tour.init();
@@ -631,11 +666,6 @@ var tour = new Tour({
             content: "You can restore a previously saved network here."
         },
         {
-            element: "#keyboard-overlay",
-            title: "Keyboard shortcuts",
-            content: "There are a few keyboard shortcuts to help expand or delete nodes that are explained here."
-        },
-        {
             title: "End of tour",
             content: "That's the end of the guided tour. Go ahead and change the target, and build your own reaction networks, or continue to expand this one further.",
             orphan: true
@@ -644,18 +674,12 @@ var tour = new Tour({
 });
 
 function closeAll() {
-    app.showReactionModal = false;
-    app.showChemicalModal = false;
     app.showSettingsModal = false;
     app.showLoadModal = false;
     app.showDownloadModal = false;
-    app.showKeyboardOverlay = false;
 }
 
 var keys = vis.keycharm();
 keys.bind("esc", closeAll, 'keyup');
 keys.bind("backspace", app.deleteNode, 'keyup');
 keys.bind("delete", app.deleteNode, 'keyup');
-keys.bind("d", app.deleteNode, 'keyup');
-keys.bind("e", app.expandNode, 'keyup');
-keys.bind("i", app.nodeInfo, 'keyup');
