@@ -117,6 +117,7 @@
                     </ul>
                 </li>
 
+                <li><a href="/status/"><span class="glyphicon glyphicon-tasks"></span> Server Status</a></li>
                 
                 <li><a href="mailto:{{ contact_email }}?subject=Feedback about askcos website"><span class="glyphicon glyphicon-comment"></span> Comment</a></li>
             </ul>
@@ -127,7 +128,6 @@
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span class="glyphicon glyphicon-cog"></span> Settings
                     <span class="caret"></span></a>
                     <ul class="dropdown-menu">
-                        <li><a href="/status/">Server Status</a></li>
                         <li><a href="/registration/password/change/">Change password</a></li>
                         <li><a href="{% url 'auth_logout' %}">Logout</a></li>
                     </ul>
@@ -147,10 +147,10 @@
         {% if err or warn %}
         <div style="padding-top:10px">
             {% if err %}
-            <div class="error">{{ err }}</div>
+            <div class="error">{{ err | safe}}</div>
             {% endif %}
             {% if warn %}
-            <div class="warning">{{ warn }}</div>
+            <div class="warning">{{ warn | safe}}</div>
             {% endif %}
         </div>
         {% endif %}
