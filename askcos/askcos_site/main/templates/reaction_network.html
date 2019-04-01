@@ -70,11 +70,11 @@
     <form class="form-inline" autocomplete="off" v-on:submit.prevent="resolveTarget">
         <div class="form-group">
             Target: <input id="target" type="text" class="form-control text-center" v-model="target">
-            <input id="submit" type="submit" value="Submit" class="btn btn-default" />
-            <i class="fas fa-server"></i> 
+            <input id="submit" type="submit" value="Submit" class="btn btn-default" /> 
             <span @click="toggleResolver">
-                <span v-if="allowResolve" title="Connection to NIH name resolver is ON, structures may be sent to an external service. This can be turned off in the settings menu.">&#10003;</span>
-                <span v-else title="Connection to NIH name resolver is OFF, structures will NOT be sent to an external service. Target query must be a SMILES string. This can be turned on in the settings menu.">&#10005;</span>
+                <i class="fas fa-server"></i>
+                <span v-if="allowResolve" title="Connection to NIH name resolver is ON, structures may be sent to an external service. This can be turned off in the settings menu, or by clicking this icon.">&#10003;</span>
+                <span v-else title="Connection to NIH name resolver is OFF, structures will NOT be sent to an external service. Target query must be a SMILES string. This can be turned on in the settings menu, or by clicking this icon.">&#10005;</span>
             </span>
             <div class="loader"></div>
         </div>
