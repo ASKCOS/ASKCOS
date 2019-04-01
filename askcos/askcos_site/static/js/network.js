@@ -207,6 +207,7 @@ var app = new Vue({
             edges: {}
         },
         results: {},
+        templateNumExamples: {},
         nodeStructure: {},
         allowResolve: false,
         showSettingsModal: false,
@@ -289,6 +290,7 @@ var app = new Vue({
                     network.on('deselectNode', this.clearSelection);
                     this.results[this.target] = json['precursors'];
                     addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit);
+                    this.getTemplateNumExamples(json['precursors']);
                     hideLoader();
                     fetch('/api/price/?smiles='+encodeURIComponent(this.target))
                         .then(resp => resp.json())
@@ -337,6 +339,7 @@ var app = new Vue({
                             alert('No precursors found!')
                         }
                         addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit);
+                        this.getTemplateNumExamples(reactions);
                         this.selected = node;
                         this.reorderResults();
                         hideLoader();
@@ -345,6 +348,22 @@ var app = new Vue({
                         hideLoader();
                         alert('There was an error fetching precursors for this target with the supplied settings')
                     })
+            }
+        },
+        getTemplateNumExamples: function(reactions) {
+            console.log(reactions)
+            for (reaction of reactions) {
+                for (templateId of reaction['templates']) {
+                    if (typeof(this.templateNumExamples[templateId]) == 'undefined') {
+                        fetch('/api/template/?id='+templateId)
+                        .then(resp => resp.json())
+                        .then(json => {
+                            var id = json["request"]["id"][0];
+                            var count = json["template"]["count"];
+                            this.templateNumExamples[id] = count;
+                        })
+                    }
+                }
             }
         },
         deleteNode: function() {
