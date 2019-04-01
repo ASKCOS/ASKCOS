@@ -25,6 +25,15 @@
 
 
  <div class="jumbotron">
+    <a href="{% url 'retro_network' %}"><h1 class="display-3">Interactive Path Planning</h1></a>
+    <p class="lead">Interactively explore reaction pathways by chaining together one-step retrosynthesis predictions</p>
+    <hr class="my-4">
+    <p>This module allows you to build your own reaction pathways by chaining together one-step retrosynthesis predictions. The growing reaction pathways are stored in a graph structure, that you can interact with by expanding terminal nodes with new one-step predictions or prune the tree by removing undesirable results. The predictions use the same model as the above one-step retrosynthesis module, supporting the same settings available there. This module is designed to be used by an expert chemist who would prefer to evaluate favorable reaction steps manually and guide synthesis in their own desired direction.</p>
+</div>
+
+
+
+ <div class="jumbotron">
     <a href="{% url 'retro_interactive_mcts' %}"><h1 class="display-3">Tree Builder</h1></a>
     <p class="lead">Generate and view possible synthesis plans, with manual step-wise evaluation</p>
     <hr class="my-4">
