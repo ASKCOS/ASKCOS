@@ -295,3 +295,11 @@
 
 <script src="{% static 'js/network.js' %}"></script>
 {% endblock %}
+
+{% block javascript %}
+<script>
+$('#savepage').off('click').on('click', function(e) {
+    alert('This page cannot be saved like the others! Instead, please download the grpah network using the download button above the target input field. This will download the graph structure in JSON format to your computer. It can later be re-uploaded to this user interface or post-processed externally.');
+})
+</script>
+{% endblock %}
