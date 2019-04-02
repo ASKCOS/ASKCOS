@@ -134,6 +134,12 @@
         </form>
         <form class="form-inline mb-10">
             <div class="form-group">
+                Max. cum. prob.:
+                <input style="width: 100px" type="number" v-model.number="maxCumProb" class="form-control text-center">
+            </div>
+        </form>
+        <form class="form-inline mb-10">
+            <div class="form-group">
                 Min. plausibility:
                 <input style="width: 100px" type="number" v-model.number="minPlausibility" class="form-control text-center">
             </div>
@@ -244,8 +250,8 @@
                     </div>
                     <div class="row">
                         <div class="col-xs-12 mx-auto">
-                            <button v-show="!res.inViz" class="addRes btn btn-success" v-on:click="addFromResults(selected, res)"><i class="fas fa-plus"></i></button>
-                            <button v-show="res.inViz" class="remRes btn btn-danger" @click="remFromResults(selected, res)"><i class="fas fa-minus"></i></button>
+                            <button v-show="!res.inViz" class="addRes btn btn-success" :data-rank="res.rank" @click="addFromResults(selected, res)"><i class="fas fa-plus"></i></button>
+                            <button v-show="res.inViz" class="remRes btn btn-danger" :data-rank="res.rank" @click="remFromResults(selected, res)"><i class="fas fa-minus"></i></button>
                         </div>
                     </div>
                 </div>

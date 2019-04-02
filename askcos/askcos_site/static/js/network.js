@@ -219,8 +219,9 @@ var app = new Vue({
         reactionLimit: 5,
         templatePrioritization: "Relevance",
         precursorScoring: "RelevanceHeuristic",
-        numTemplates: 100,
-        minPlausibility: 0.75,
+        numTemplates: 1000,
+        maxCumProb: 0.995,
+        minPlausibility: 0.01,
         sortingCategory: "score"
     },
     beforeMount: function() {
@@ -234,6 +235,7 @@ var app = new Vue({
                 template_prioritization: this.templatePrioritization,
                 precursor_prioritization: this.precursorScoring,
                 num_templates: this.numTemplates,
+                max_cum_prob: this.maxCumProb,
                 filter_threshold: this.minPlausibility,
             }
             var queryString = Object.keys(params).map((key) => {
@@ -470,24 +472,23 @@ var app = new Vue({
             }
             addReaction(reaction, selected, this.data.nodes, this.data.edges);
             reaction.inViz = true;
-            document.querySelectorAll('.addRes')[Number(reaction.rank)-1].style.display='none';
-            document.querySelectorAll('.remRes')[Number(reaction.rank)-1].style.display='';
+            document.querySelector('.addRes[data-rank="'+Number(reaction.rank)+'"]').style.display='none';
+            document.querySelector('.remRes[data-rank="'+Number(reaction.rank)+'"]').style.display='';
         },
         remFromResults: function(selected, reaction) {
             var rsmi = reaction.smiles+'>>'+selected.smiles;
             var selectedChildren = this.data.nodes.get(childrenOf(selected.id, this.data.nodes, this.data.edges));
             for (var child of selectedChildren) {
-                console.log(child, rsmi);
                 if (child.reactionSmiles == rsmi) {
                     removeChildrenFrom(child.id, this.data.nodes, this.data.edges);
                     this.data.nodes.remove(child.id);
                     cleanUpEdges(this.data.nodes, this.data.edges);
-                    document.querySelectorAll('.remRes')[Number(reaction.rank)-1].style.display='none';
-                    document.querySelectorAll('.addRes')[Number(reaction.rank)-1].style.display='';
+                    document.querySelector('.addRes[data-rank="'+Number(reaction.rank)+'"]').style.display='';
+                    document.querySelector('.remRes[data-rank="'+Number(reaction.rank)+'"]').style.display='none';
+                    reaction.inViz = false;
                     break;
                 }
             }
-            reaction.inViz = false;
         },
         reorderResults: function() {
             var sortingCategory = this.sortingCategory;
@@ -560,8 +561,8 @@ var tour = new Tour({
         {
             element: "#target",
             title: "Start with a target compound",
-            content: "You can start the retrosynthetic planning with a target compound and typing it's SMILES formatted string here. For this tutorial we're going to explore an example reaction for <a href='https://en.wikipedia.org/wiki/Fluconazole' target='_blank'>Fluconazole</a>. Press 'Next' to continue!",
-            placement: "top",
+            content: "You can start the retrosynthetic planning with a target compound and typing it's SMILES formatted string here. If the name resolver is enabled (see server icon to the right; click icon to toggle), you can also enter a chemical name. The name will be resolved using a third-party server (NIH CACTUS). For this tutorial we're going to explore an example reaction for <a href='https://en.wikipedia.org/wiki/Fluconazole' target='_blank'>Fluconazole</a>. Press 'Next' to continue!",
+            placement: "bottom",
             onNext: function() {
                 app.target = 'OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F'
             }
@@ -680,7 +681,7 @@ var tour = new Tour({
             element: "#expand-btn",
             title: "Other buttons",
             content: "In addition to expanding nodes, you can easily delete selected nodes, or children of a selected node using the corresponding red buttons above the graph visualization. The 'Toggle cluster' button will group the currently selected node and its children into one node cluster (this may be useful to keep things organized). Clicking this button with a cluster selected will expand it to show all of the nodes again.",
-            placement: "top"
+            placement: "bottom"
         },
         {
             element: "#settings-btn",
