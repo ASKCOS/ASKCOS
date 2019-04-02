@@ -51,15 +51,23 @@ function addReaction(reaction, sourceNode, nodes, edges) {
         id: eId,
         from: sourceNode.id,
         to: rId,
-        scaling: {
-            min: 1,
-            max: 5,
-        },
+                scaling: {
+                    min: 1,
+                    max: 5,
+                    customScalingFunction: function(min, max, total, value) {
+                        if (value > 0.25) {
+                            return 1.0
+                        }
+                        else{
+                            return 16*value*value
+                        }
+                    }
+                },
         color: {
             color: '#000000',
             inherit: false
         },
-        value: Math.max(0.1, Number(reaction['template_score']))
+        value: Number(reaction['template_score'])
     })
     for (n in reaction['smiles_split']) {
         var smi = reaction['smiles_split'][n];
@@ -100,12 +108,20 @@ function addReaction(reaction, sourceNode, nodes, edges) {
                 scaling: {
                     min: 1,
                     max: 5,
+                    customScalingFunction: function(min, max, total, value) {
+                        if (value > 0.25) {
+                            return 1.0
+                        }
+                        else{
+                            return 16*value*value
+                        }
+                    }
                 },
                 color: {
                     color: '#000000',
                     inherit: false
                 },
-                value: Math.max(0.1, Number(reaction['template_score']))
+                value: Number(reaction['template_score'])
             })
         })
         reaction.inViz = true;
