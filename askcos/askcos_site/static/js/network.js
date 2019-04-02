@@ -385,6 +385,19 @@ var app = new Vue({
             var selected = network.getSelectedNodes();
             for (n in selected) {
                 var nodeId = selected[n];
+                if (this.data.nodes.get(nodeId).type=='chemical') {
+                    alert('We do not reccomend deleting chemical nodes! It will leaving its parent reaction node missing information! Only delete reaction nodes with this button.')
+                    continue
+                }
+                var node = this.data.nodes.get(nodeId);
+                var parentNodeId = parentOf(nodeId, this.data.nodes, this.data.edges);
+                var parentNode = this.data.nodes.get(parentNodeId);
+                for (result of this.results[parentNode.smiles]) {
+                    if (result.rank == node.rank) {
+                        result.inViz = false;
+                        break;
+                    }
+                }
                 removeChildrenFrom(nodeId, this.data.nodes, this.data.edges);
                 this.data.nodes.remove(nodeId);
             }
@@ -394,9 +407,21 @@ var app = new Vue({
             var selected = network.getSelectedNodes();
             for (n in selected) {
                 var nodeId = selected[n];
+                if (this.data.nodes.get(nodeId).type=='reaction') {
+                    alert('We do not reccomend deleting children of reaction nodes! It will leaving the reaction node missing information! Only delete children of chemical nodes with this button.')
+                    continue
+                }
+                var node = this.data.nodes.get(nodeId);
+                for (result of this.results[node.smiles]) {
+                    result.inViz = false;
+                }
                 removeChildrenFrom(nodeId, this.data.nodes, this.data.edges);
             }
             cleanUpEdges(this.data.nodes, this.data.edges);
+            this.selected = undefined;
+            network.unselectAll();
+            this.selected = node;
+            network.selectNodes([node.id]);
         },
         toggleResolver: function() {
             if (this.allowResolve) {
