@@ -246,11 +246,21 @@ var app = new Vue({
                 var url = 'https://cactus.nci.nih.gov/chemical/structure/'+encodeURIComponent(this.target)+'/smiles'
                 console.log(url)
                 fetch(url)
-                    .then(resp => resp.text())
+                    .then(resp => {
+                        if (resp.status == 404) {
+                            throw Error(resp.statusText);
+                        }
+                        else {
+                            return resp.text()
+                        }
+                    })
                     .then(text => {
                         console.log(text);
                         this.target = text;
                         this.changeTarget();
+                    })
+                    .catch(err => {
+                        alert('Cannot resolve "'+this.target+'" to smiles');
                 })
             }
             else {
