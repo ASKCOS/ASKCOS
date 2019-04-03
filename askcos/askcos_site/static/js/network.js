@@ -434,10 +434,10 @@ var app = new Vue({
                 removeChildrenFrom(nodeId, this.data.nodes, this.data.edges);
             }
             cleanUpEdges(this.data.nodes, this.data.edges);
-            this.selected = undefined;
+            var oldSelected = this.selected;
+            this.selected = null;
             network.unselectAll();
-            this.selected = node;
-            network.selectNodes([node.id]);
+//             this.selected = oldSelected;
         },
         toggleResolver: function() {
             if (this.allowResolve) {
@@ -452,7 +452,7 @@ var app = new Vue({
                 alert("There's no network to download!")
                 return
             }
-            var downloadData = {nodes: [], edges: []}
+            var downloadData = {nodes: [], edges: [], results: this.results}
             this.data.nodes.forEach(function(e) {
                 downloadData.nodes.push(e)
             })
@@ -474,6 +474,7 @@ var app = new Vue({
                 app.target = data.nodes[0].smiles;
                 app.data.nodes = new vis.DataSet(data.nodes);
                 app.data.edges = new vis.DataSet(data.edges);
+                app.results = data.results;
                 network = initializeNetwork(app.data)
                 network.on('selectNode', app.showInfo);
                 network.on('deselectNode', app.clearSelection);
@@ -755,5 +756,3 @@ function closeAll() {
 
 var keys = vis.keycharm();
 keys.bind("esc", closeAll, 'keyup');
-keys.bind("backspace", app.deleteNode, 'keyup');
-keys.bind("delete", app.deleteNode, 'keyup');
