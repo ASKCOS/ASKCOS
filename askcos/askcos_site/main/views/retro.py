@@ -212,7 +212,7 @@ def retro_interactive(request, target=None):
     '''Builds an interactive retrosynthesis page'''
 
     context = {}
-    context['warn'] = 'The worker pool is not set up for autoscaling; there is a chance that all of the tree building coordinators and workers will be occupied when you try to run a target.'
+    context['warn'] = 'If requests seem to take a long time, check the <a href="/status/">Server Status</a> page to see which resources are currently being used!'
 
     context['max_depth_default'] = 4
     context['max_branching_default'] = 20
@@ -238,7 +238,7 @@ def retro_interactive_mcts(request, target=None):
     '''Builds an interactive retrosynthesis page'''
 
     context = {}
-    context['warn'] = 'The worker pool is not set up for autoscaling; there is a chance that all of the tree building coordinators and workers will be occupied when you try to run a target.'
+    context['warn'] = '<div style="text-align: center">If requests seem to take a long time, check the <a href="/status/">Server Status</a> page to see which resources are currently being used!</div>'
 
     context['max_depth_default'] = 4
     context['max_branching_default'] = 20
