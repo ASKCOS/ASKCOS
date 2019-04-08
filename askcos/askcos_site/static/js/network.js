@@ -208,7 +208,7 @@ function initializeNetwork(data) {
     })
     return network
 }
-    
+
 Vue.component('modal', {
     template: '#modal-template'
 })
@@ -236,7 +236,7 @@ var app = new Vue({
         templatePrioritization: "Relevance",
         precursorScoring: "RelevanceHeuristic",
         numTemplates: 1000,
-        maxCumProb: 0.995,
+        maxCumProb: 0.999,
         minPlausibility: 0.01,
         sortingCategory: "score"
     },
@@ -343,6 +343,10 @@ var app = new Vue({
             }
             showLoader();
             var selected = network.getSelectedNodes();
+            console.log(selected.length);
+            if (selected.length == 0) {
+              hideLoader();
+            }
             for (n in selected) {
                 var nodeId = selected[n];
                 var node = this.data.nodes.get(nodeId)
@@ -584,6 +588,7 @@ var app = new Vue({
             return app.showSettingsModal || app.showDownloadModal || app.showLoadModal
         },
         startTour: function() {
+            this.clear();
             tour.init();
             tour.restart();
         }
