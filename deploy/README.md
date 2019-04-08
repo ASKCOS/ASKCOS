@@ -5,8 +5,10 @@
  - If you're buidling the image from scratch, make sure git (and git lfs) is installed on your machine
  - Install Docker [OS specific instructions](https://docs.docker.com/install/)
  - Install docker-compose [installation instructions](https://docs.docker.com/compose/install/#install-compose)
- 
-### Upgrading from a previous version (backing up user data)
+
+### Upgrading from a previous version
+
+#### Backing up user data
 
 If you are upgrading the deployment from a previous version, you may want to retain user accounts and user-saved data. These are stored in an sqlite db at `askcos/db.sqlite3` and a user\_saves directory at `makeit/data/user_saves`, _in the running app container service_. The name of the running app service can be found using `docker-compose ps`; it should be called `deploy_app_1` Follow these steps to backup and restore user data:
 
@@ -29,7 +31,27 @@ $ docker cp deploy_app_1:/usr/local/ASKCOS/makeit/data/user_saves .
 $ docker cp db.sqlite3 deploy_app_1:/usr/local/ASKCOS/askcos/db.sqlite3
 $ docker cp user_saves deploy_app_1:/usr/local/ASKCOS/makeit/data/
 ```
- 
+
+#### Updating static files
+
+The static files (css/js) are stored in a volume, independent from the container services. When upgrading to a new version, it is important to ensure this volume gets recreated as well. The best way to do this is use `docker-compose down -v` (note the `-v` flag for volumes), followed by `docker-compose up -d`. docker-compose is intelligent enough to recreate container services with `up -d` when they have changed, but it is important to bring down the whole stack to make sure the volume gets recreated.
+
+```bash
+# only do this if you've already backed up user data!
+$ docker-compose down -v
+$ docker-compose up -d
+```
+
+However, if you are certain the celery worker images have not changed and would prefer to not bring these services down and then back up (to minimize application downtime), you can stop and remove the `app` and `nginx` services, delete the `deploy_staticdata` volume, then recreate the `app` and `nginx` services (which will recreate the volume with the correct static files) using the following:
+
+```bash
+# only do this if you've already backed up user data!
+$ docker-compose stop app nginx
+$ docker-compose rm app nginx
+$ docker volume prune
+$ docker-compose up -d app nginx
+```
+
 ### Pulling the image from DockerHub
 
 Prebuilt images for versioned releases are available from [DockerHub](https://hub.docker.com/). You will need an DockerHub account, and you will need to be added to the private repository. Contact [mef231@mit.edu](mef231@mit.edu) with your username to be given access. If you pull the image from DockerHub, you can skip the (slow) build process below.
