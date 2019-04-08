@@ -54,7 +54,7 @@ $ docker-compose up -d app nginx
 
 ### Pulling the image from DockerHub
 
-Prebuilt images for versioned releases are available from [DockerHub](https://hub.docker.com/). You will need an DockerHub account, and you will need to be added to the private repository. Contact [mef231@mit.edu](mef231@mit.edu) with your username to be given access. If you pull the image from DockerHub, you can skip the (slow) build process below.
+Pre-built images for versioned releases are available from [DockerHub](https://hub.docker.com/). You will need an DockerHub account, and you will need to be added to the private repository. Contact [mef231@mit.edu](mef231@mit.edu) with your username to be given access. If you pull the image from DockerHub, you can skip the (slow) build process below.
 
 ```bash
 $ docker login # enter credentials
@@ -95,7 +95,7 @@ $ docker-compose up -d
 
 The services will start in a detached state. You can view logs with `docker-compose logs [-f]`.
 
-To stop the containers use `docker-compose stop`. To restart the containers use `docker-compose start`. To completely delete the containers and volumes use `docker-compose down -v` (this deletes user database and saves; read section about backuping up data first).
+To stop the containers use `docker-compose stop`. To restart the containers use `docker-compose start`. To completely delete the containers and volumes use `docker-compose down -v` (this deletes user database and saves; read section about backing up data first).
 
 ### Managing Django
 
@@ -109,11 +109,11 @@ In this case you'll be presented an interactive prompt to create a superuser wit
 
 #### First startup
 
-The celery worker will take a few minutes to start up (possibly up to 5 minutes; it reads a lot of data into memory from disk). The web app itself will be ready before this, however upon the first get request (only the first for each process) a few files will be read from disk, so expect a 10-15 second delay. You will know the celery workers are ready when the logs show messages such as `tb_c_worker_1  | ### TREE BUILDER WORKER STARTED UP ###`.
+The celery worker will take a few minutes to start up (possibly up to 5 minutes; it reads a lot of data into memory from disk). The web app itself will be ready before this, however upon the first get request (only the first for each process) a few files will be read from disk, so expect a 10-15 second delay.
 
 #### Scaling workers
 
-Only 1 worker per queue is deployed by default with limited concurrency. This is not ideal for many-user demand. You can easily scale the number of celery workers you'd like to use with `docker-compose up -d --scale tb_c_worker=N` where N is te number of workers you want, for example. The above note applies to each worker you start, however, and each worker will comsume RAM.
+Only 1 worker per queue is deployed by default with limited concurrency. This is not ideal for many-user demand. You can easily scale the number of celery workers you'd like to use with `docker-compose up -d --scale tb_c_worker=N` where N is the number of workers you want, for example. The above note applies to each worker you start, however, and each worker will consume RAM.
 
 ## Future Improvements
 
