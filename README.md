@@ -5,8 +5,6 @@ Software package for the prediction of feasible synthetic routes towards a desir
 
 # Installation with Docker
 
-# ASKCOS Deployment - Containerized with Docker, deployed with docker-compose
-
 ### Prerequisites
 
  - If you're buidling the image from scratch, make sure git (and git lfs) is installed on your machine
@@ -332,28 +330,28 @@ As a final note, a price per gram of 0 is used throughout the codebase to be con
 # How to run individual modules
 Many of the individual modules -- at least the ones that are the most interesting -- can be run "standalone". Examples of how to use them are often found in the ```if __name__ == '__main__'``` statement at the bottom of the script definitions. For example...
 
-### Using the learned synthetic complexity metric (SCScore)
+#### Using the learned synthetic complexity metric (SCScore)
 ```makeit/prioritization/precursors/scscore.py```
 
-### Obtaining a single-step retrosynthetic suggestion with consideration of chirality
+#### Obtaining a single-step retrosynthetic suggestion with consideration of chirality
 ```makeit/retrosynthetic/transformer.py```
 
-### Finding recommended reaction conditions based on a trained neural network model
+#### Finding recommended reaction conditions based on a trained neural network model
 ```makeit/synthetic/context/neuralnetwork.py```
 
-### Using the template-free forward predictor
+#### Using the template-free forward predictor
 ```makeit/synthetic/evaluation/template_free.py```
 
-### Using the coarse "fast filter" (binary classifier) for evaluating reaction plausibility
+#### Using the coarse "fast filter" (binary classifier) for evaluating reaction plausibility
 ```makeit/synthetic/evaluation/fast_filter.py```
 
-### Integrated CASP tool
+#### Integrated CASP tool
 For the integrated synthesis planning tool at ```makeit/application/run.py```, there are several options available. The currently enabled options for the command-line tool can be found at ```makeit/utilities/io/arg_parser.py```. There are some options that are only available for the website and some that are only available for the command-line version. As an example of the former, the consideration of popular but non-buyable chemicals as suitable "leaf nodes" in the search. An example of how to use this module is:
 
 ```python ASKCOS/Make-It/makeit/application/run.py --TARGET atropine```
 
-#### Model choices: the following options influence which models are used to carry out the different
-tasks within the algorithm.
+##### Model choices.
+The following options influence which models are used to carry out the different tasks within the algorithm.
 
 - Context recommendation: via '--context_recommender', currently has the following options:
 
