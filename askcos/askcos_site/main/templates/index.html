@@ -2,6 +2,8 @@
 
 {% block title %}ASKCOS homepage{% endblock %}
 
+{% block page_title %}ASKCOS: software tools for organic synthesis{% endblock %}
+
 {% block extrahead %}{% endblock %}
 
 {% block navbar_items %}{% endblock %}
@@ -12,9 +14,12 @@
 
 <!-- <h1>Temporarily under construction - some modules may not work</h1>
  -->
- <p>Welcome to the ASKCOS website! Here, we have hosted a number of computational tools to assist in synthetic planning and other aspects of organic chemistry. These are listed and described in the Modules tab in the top navitation bar. Please keep in mind that this service is hosted locally and - as such - is not built to handle an abundance of users. Your requests may take significantly longer than expected if there are several other users on the site also performing computationally-expensive requests.</p>
+ <p>Welcome to the ASKCOS website! Here, we have hosted a number of computational tools to assist in synthetic planning and other aspects of organic chemistry. These are listed and described in the Modules tab in the top navitation bar. Please keep in mind that this service is hosted at {{ organization }} and is not built to handle an abundance of users. Your requests may take significantly longer than expected if there are several other users on the site also performing computationally-expensive requests.</p>
 
 <div style="padding:25px"><a href="{% url 'modules' %}"><button type="button" class="btn btn-primary" style="margin:0 auto; display:block; font-size:16pt">Get Started</button></a></div>
+
+ <p>This work began under the DARPA Make-It program (ARO W911NF-16-2-0023) and continues to be supported by the <a href="http://mlpds.mit.edu" target="_blank">Machine Learning for Pharmaceutical Discovery and Synthesis Consortium</a>. Several of the deployed models are described in publications listed <a href="http://mlpds.mit.edu/papers/" target="_blank">here</a>.</p>
+
 
 
 <p>If you have any questions or if any of the links/images appear broken, please email <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>
