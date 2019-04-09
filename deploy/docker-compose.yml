@@ -7,7 +7,7 @@ services:
     volumes:
       - './nginx.conf:/etc/nginx/nginx.conf'
       - './uwsgi_params:/etc/nginx/uwsgi_params'
-      - '../askcos/askcos_site/static:/static'
+      - 'staticdata:/static'
     ports:
       - '80:80'
 
@@ -20,6 +20,8 @@ services:
     command: bash -c "uwsgi --socket :8000 --master --processes=4 --wsgi-file /usr/local/ASKCOS/askcos/wsgi.py"
     expose:
       - '8000'
+    volumes:
+      - 'staticdata:/usr/local/ASKCOS/askcos/askcos_site/static'
     depends_on:
       - redis
       - rabbit
@@ -103,3 +105,4 @@ services:
 
 volumes:
   redisdata:
+  staticdata:
