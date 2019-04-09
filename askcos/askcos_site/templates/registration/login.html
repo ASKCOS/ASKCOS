@@ -13,6 +13,8 @@
 </form>
 
 <br>
+{% if email_enabled %}
 <p><a href="{% url 'auth_password_reset' %}">{% trans "Forgot my password" %}</a></p>
+{% endif %}
 <p><a href="{% url 'registration_register' %}">{% trans "Register" %}</a></p>
 {% endblock %}
