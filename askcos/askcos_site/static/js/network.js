@@ -588,7 +588,9 @@ var app = new Vue({
             return app.showSettingsModal || app.showDownloadModal || app.showLoadModal
         },
         startTour: function() {
-            this.clear();
+            if (this.target) {
+                this.clear();
+            }
             tour.init();
             tour.restart();
         }
