@@ -173,10 +173,10 @@ function liberalSettings() {
                 </div>
                 
             </td>
-            <td>{{ precursor.score }}</td>
+            <td>{{ precursor.score|floatformat:3 }}</td>
             <td>{{ precursor.num_examples }}</td>
-            {% if form.template_prioritization == 'Relevance' %}<td>{{ precursor.template_score|floatformat:5 }}</td>{% endif %}
-            {% if form.filter_threshold %}<td>{{ precursor.plausibility|floatformat:5 }}</td>{% endif %}
+            {% if form.template_prioritization == 'Relevance' %}<td>{{ precursor.template_score|floatformat:4 }}</td>{% endif %}
+            {% if form.filter_threshold %}<td>{{ precursor.plausibility|floatformat:3 }}</td>{% endif %}
         </tr>
         {% endfor %}
         </tbody>
