@@ -83,8 +83,8 @@
 </div>
                             
 <button id="expand-btn" class="btn btn-success" v-on:click="expandNode">Expand node</button>
-<button class="btn btn-danger" v-on:click="deleteNode">Delete node</button>
-<button class="btn btn-danger" v-on:click="deleteChildren">Delete children</button>
+<button class="btn btn-danger" v-on:click="deleteNode">Remove reaction node</button>
+<button class="btn btn-danger" v-on:click="deleteChildren">Remove children nodes</button>
 <button class="btn btn-info" v-on:click="collapseNode">Toggle cluster</button>
 
 <div id="network" class="mx-auto mt-2"></div>
@@ -94,20 +94,20 @@
         <h3>Settings</h3>
     </div>
     <div slot="body" class="text-left">
-        <form class="form-inline mb-10">
+        <div class="form-inline mb-10">
             <div>
                 <input type="checkbox" ref="allowResolve" v-model="allowResolve" {{ allowResolve }}/>
                 Allow queries to be sent to NIH name -> smiles resolver?
             </div>
-        </form>
-        <form class="form-inline mb-10">
+        </div>
+        <div class="form-inline mb-10">
             <div class="form-group">
                 Automatically add top 
                 <input style="width: 50px" type="number" v-model.number="reactionLimit" class="form-control text-center"> 
                 results to the graph visualization
             </div>
-        </form>
-        <form class="form-inline mb-10">
+        </div>
+        <div class="form-inline mb-10">
             <div class="form-group">
                 Template prioritization: 
                 <select v-model="templatePrioritization" class="form-control">
@@ -115,8 +115,8 @@
                     <option value="Relevance">Relevance</option>
                 </select>
             </div>
-        </form>
-        <form class="form-inline mb-10">
+        </div>
+        <div class="form-inline mb-10">
             <div class="form-group">
                 Precursor scoring: 
                 <select v-model="precursorScoring" class="form-control">
@@ -125,19 +125,25 @@
                     <option value="SCScore">SCScore</option>
                 </select>
             </div>
-        </form>
-        <form class="form-inline mb-10">
+        </div>
+        <div class="form-inline mb-10">
             <div class="form-group">
                 Num. templates:
                 <input style="width: 100px" type="number" v-model.number="numTemplates" class="form-control text-center">
             </div>
-        </form>
-        <form class="form-inline mb-10">
+        </div>
+        <div class="form-inline mb-10">
+            <div class="form-group">
+                Max. cum. prob.:
+                <input style="width: 100px" type="number" v-model.number="maxCumProb" class="form-control text-center">
+            </div>
+        </div>
+        <div class="form-inline mb-10">
             <div class="form-group">
                 Min. plausibility:
                 <input style="width: 100px" type="number" v-model.number="minPlausibility" class="form-control text-center">
             </div>
-        </form>
+        </div>
     </div>
 </modal>
                             
@@ -203,9 +209,16 @@
 <div class="scroll-list">
     <div class="text-center">
         <template v-if="typeof(results[selected.smiles]) == 'undefined'">
-            <div class="text-center">
+            <div class="text-center" style="margin-top: 10px">
                 <h3>Click button below to expand this node and predict precursors for this target.</h3>
                 <button id="expand-btn-side" class="btn btn-success" v-on:click="expandNode">Expand node</button>
+            </div>
+            <div class="form-inline mb-10">
+                <div class="form-group">
+                Add top 
+                <input type="number" class="form-control text-center" style="width: 50px;" v-model.number="reactionLimit"> 
+                results to the graph visualization
+                </div>
             </div>
         </template>
         <template v-for="res in results[selected.smiles]">
@@ -244,8 +257,8 @@
                     </div>
                     <div class="row">
                         <div class="col-xs-12 mx-auto">
-                            <button v-show="!res.inViz" class="addRes btn btn-success" v-on:click="addFromResults(selected, res)"><i class="fas fa-plus"></i></button>
-                            <button v-show="res.inViz" class="remRes btn btn-danger" @click="remFromResults(selected, res)"><i class="fas fa-minus"></i></button>
+                            <button v-show="!res.inViz" class="addRes btn btn-success" :data-rank="res.rank" @click="addFromResults(selected, res)"><i class="fas fa-plus"></i></button>
+                            <button v-show="res.inViz" class="remRes btn btn-danger" :data-rank="res.rank" @click="remFromResults(selected, res)"><i class="fas fa-minus"></i></button>
                         </div>
                     </div>
                 </div>
@@ -273,7 +286,7 @@
                                             <div><b>Supporting templates:</b>
                                                 <ul>
                                                     <li v-for="id in selected.templateIds">
-                                                        <a v-bind:href="'/template/target='+id" target="_blank">%% id %%</a>
+                                                        <a v-bind:href="'/template/target='+id" target="_blank">%% id %% (%% templateNumExamples[id] %% examples)</a>
                                                     </li>
                                                 </ul>
                                             </div>
@@ -294,4 +307,12 @@
 <a id="downloadAnchorElem" style="display:none"></a>
 
 <script src="{% static 'js/network.js' %}"></script>
+{% endblock %}
+
+{% block javascript %}
+<script>
+$('#savepage').off('click').on('click', function(e) {
+    alert('This page cannot be saved like the others! Instead, please download the grpah network using the download button above the target input field. This will download the graph structure in JSON format to your computer. It can later be re-uploaded to this user interface or post-processed externally.');
+})
+</script>
 {% endblock %}

@@ -51,15 +51,23 @@ function addReaction(reaction, sourceNode, nodes, edges) {
         id: eId,
         from: sourceNode.id,
         to: rId,
-        scaling: {
-            min: 1,
-            max: 5,
-        },
+                scaling: {
+                    min: 1,
+                    max: 5,
+                    customScalingFunction: function(min, max, total, value) {
+                        if (value > 0.25) {
+                            return 1.0
+                        }
+                        else{
+                            return 16*value*value
+                        }
+                    }
+                },
         color: {
             color: '#000000',
             inherit: false
         },
-        value: Math.max(0.1, Number(reaction['template_score']))
+        value: Number(reaction['template_score'])
     })
     for (n in reaction['smiles_split']) {
         var smi = reaction['smiles_split'][n];
@@ -100,12 +108,20 @@ function addReaction(reaction, sourceNode, nodes, edges) {
                 scaling: {
                     min: 1,
                     max: 5,
+                    customScalingFunction: function(min, max, total, value) {
+                        if (value > 0.25) {
+                            return 1.0
+                        }
+                        else{
+                            return 16*value*value
+                        }
+                    }
                 },
                 color: {
                     color: '#000000',
                     inherit: false
                 },
-                value: Math.max(0.1, Number(reaction['template_score']))
+                value: Number(reaction['template_score'])
             })
         })
         reaction.inViz = true;
@@ -192,7 +208,7 @@ function initializeNetwork(data) {
     })
     return network
 }
-    
+
 Vue.component('modal', {
     template: '#modal-template'
 })
@@ -207,6 +223,7 @@ var app = new Vue({
             edges: {}
         },
         results: {},
+        templateNumExamples: {},
         nodeStructure: {},
         allowResolve: false,
         showSettingsModal: false,
@@ -218,8 +235,9 @@ var app = new Vue({
         reactionLimit: 5,
         templatePrioritization: "Relevance",
         precursorScoring: "RelevanceHeuristic",
-        numTemplates: 100,
-        minPlausibility: 0.75,
+        numTemplates: 1000,
+        maxCumProb: 0.999,
+        minPlausibility: 0.01,
         sortingCategory: "score"
     },
     beforeMount: function() {
@@ -233,6 +251,7 @@ var app = new Vue({
                 template_prioritization: this.templatePrioritization,
                 precursor_prioritization: this.precursorScoring,
                 num_templates: this.numTemplates,
+                max_cum_prob: this.maxCumProb,
                 filter_threshold: this.minPlausibility,
             }
             var queryString = Object.keys(params).map((key) => {
@@ -245,11 +264,21 @@ var app = new Vue({
                 var url = 'https://cactus.nci.nih.gov/chemical/structure/'+encodeURIComponent(this.target)+'/smiles'
                 console.log(url)
                 fetch(url)
-                    .then(resp => resp.text())
+                    .then(resp => {
+                        if (resp.status == 404) {
+                            throw Error(resp.statusText);
+                        }
+                        else {
+                            return resp.text()
+                        }
+                    })
                     .then(text => {
                         console.log(text);
                         this.target = text;
                         this.changeTarget();
+                    })
+                    .catch(err => {
+                        alert('Cannot resolve "'+this.target+'" to smiles');
                 })
             }
             else {
@@ -289,6 +318,7 @@ var app = new Vue({
                     network.on('deselectNode', this.clearSelection);
                     this.results[this.target] = json['precursors'];
                     addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit);
+                    this.getTemplateNumExamples(json['precursors']);
                     hideLoader();
                     fetch('/api/price/?smiles='+encodeURIComponent(this.target))
                         .then(resp => resp.json())
@@ -313,6 +343,10 @@ var app = new Vue({
             }
             showLoader();
             var selected = network.getSelectedNodes();
+            console.log(selected.length);
+            if (selected.length == 0) {
+              hideLoader();
+            }
             for (n in selected) {
                 var nodeId = selected[n];
                 var node = this.data.nodes.get(nodeId)
@@ -337,6 +371,7 @@ var app = new Vue({
                             alert('No precursors found!')
                         }
                         addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit);
+                        this.getTemplateNumExamples(reactions);
                         this.selected = node;
                         this.reorderResults();
                         hideLoader();
@@ -347,6 +382,22 @@ var app = new Vue({
                     })
             }
         },
+        getTemplateNumExamples: function(reactions) {
+            console.log(reactions)
+            for (reaction of reactions) {
+                for (templateId of reaction['templates']) {
+                    if (typeof(this.templateNumExamples[templateId]) == 'undefined') {
+                        fetch('/api/template/?id='+templateId)
+                        .then(resp => resp.json())
+                        .then(json => {
+                            var id = json["request"]["id"][0];
+                            var count = json["template"]["count"];
+                            this.templateNumExamples[id] = count;
+                        })
+                    }
+                }
+            }
+        },
         deleteNode: function() {
             if (this.isModalOpen() || typeof(network) == "undefined") {
                 return
@@ -354,6 +405,19 @@ var app = new Vue({
             var selected = network.getSelectedNodes();
             for (n in selected) {
                 var nodeId = selected[n];
+                if (this.data.nodes.get(nodeId).type=='chemical') {
+                    alert('We do not reccomend deleting chemical nodes! It will leaving its parent reaction node missing information! Only delete reaction nodes with this button.')
+                    continue
+                }
+                var node = this.data.nodes.get(nodeId);
+                var parentNodeId = parentOf(nodeId, this.data.nodes, this.data.edges);
+                var parentNode = this.data.nodes.get(parentNodeId);
+                for (result of this.results[parentNode.smiles]) {
+                    if (result.rank == node.rank) {
+                        result.inViz = false;
+                        break;
+                    }
+                }
                 removeChildrenFrom(nodeId, this.data.nodes, this.data.edges);
                 this.data.nodes.remove(nodeId);
             }
@@ -363,9 +427,21 @@ var app = new Vue({
             var selected = network.getSelectedNodes();
             for (n in selected) {
                 var nodeId = selected[n];
+                if (this.data.nodes.get(nodeId).type=='reaction') {
+                    alert('We do not reccomend deleting children of reaction nodes! It will leaving the reaction node missing information! Only delete children of chemical nodes with this button.')
+                    continue
+                }
+                var node = this.data.nodes.get(nodeId);
+                for (result of this.results[node.smiles]) {
+                    result.inViz = false;
+                }
                 removeChildrenFrom(nodeId, this.data.nodes, this.data.edges);
             }
             cleanUpEdges(this.data.nodes, this.data.edges);
+            var oldSelected = this.selected;
+            this.selected = null;
+            network.unselectAll();
+//             this.selected = oldSelected;
         },
         toggleResolver: function() {
             if (this.allowResolve) {
@@ -380,7 +456,7 @@ var app = new Vue({
                 alert("There's no network to download!")
                 return
             }
-            var downloadData = {nodes: [], edges: []}
+            var downloadData = {nodes: [], edges: [], results: this.results}
             this.data.nodes.forEach(function(e) {
                 downloadData.nodes.push(e)
             })
@@ -402,6 +478,7 @@ var app = new Vue({
                 app.target = data.nodes[0].smiles;
                 app.data.nodes = new vis.DataSet(data.nodes);
                 app.data.edges = new vis.DataSet(data.edges);
+                app.results = data.results;
                 network = initializeNetwork(app.data)
                 network.on('selectNode', app.showInfo);
                 network.on('deselectNode', app.clearSelection);
@@ -441,24 +518,23 @@ var app = new Vue({
             }
             addReaction(reaction, selected, this.data.nodes, this.data.edges);
             reaction.inViz = true;
-            document.querySelectorAll('.addRes')[Number(reaction.rank)-1].style.display='none';
-            document.querySelectorAll('.remRes')[Number(reaction.rank)-1].style.display='';
+            document.querySelector('.addRes[data-rank="'+Number(reaction.rank)+'"]').style.display='none';
+            document.querySelector('.remRes[data-rank="'+Number(reaction.rank)+'"]').style.display='';
         },
         remFromResults: function(selected, reaction) {
             var rsmi = reaction.smiles+'>>'+selected.smiles;
             var selectedChildren = this.data.nodes.get(childrenOf(selected.id, this.data.nodes, this.data.edges));
             for (var child of selectedChildren) {
-                console.log(child, rsmi);
                 if (child.reactionSmiles == rsmi) {
                     removeChildrenFrom(child.id, this.data.nodes, this.data.edges);
                     this.data.nodes.remove(child.id);
                     cleanUpEdges(this.data.nodes, this.data.edges);
-                    document.querySelectorAll('.remRes')[Number(reaction.rank)-1].style.display='none';
-                    document.querySelectorAll('.addRes')[Number(reaction.rank)-1].style.display='';
+                    document.querySelector('.addRes[data-rank="'+Number(reaction.rank)+'"]').style.display='';
+                    document.querySelector('.remRes[data-rank="'+Number(reaction.rank)+'"]').style.display='none';
+                    reaction.inViz = false;
                     break;
                 }
             }
-            reaction.inViz = false;
         },
         reorderResults: function() {
             var sortingCategory = this.sortingCategory;
@@ -512,6 +588,7 @@ var app = new Vue({
             return app.showSettingsModal || app.showDownloadModal || app.showLoadModal
         },
         startTour: function() {
+            this.clear();
             tour.init();
             tour.restart();
         }
@@ -531,8 +608,8 @@ var tour = new Tour({
         {
             element: "#target",
             title: "Start with a target compound",
-            content: "You can start the retrosynthetic planning with a target compound and typing it's SMILES formatted string here. For this tutorial we're going to explore an example reaction for <a href='https://en.wikipedia.org/wiki/Fluconazole' target='_blank'>Fluconazole</a>. Press 'Next' to continue!",
-            placement: "top",
+            content: "You can start the retrosynthetic planning with a target compound and typing it's SMILES formatted string here. If the name resolver is enabled (see server icon to the right; click icon to toggle), you can also enter a chemical name. The name will be resolved using a third-party server (NIH CACTUS). For this tutorial we're going to explore an example reaction for <a href='https://en.wikipedia.org/wiki/Fluconazole' target='_blank'>Fluconazole</a>. Press 'Next' to continue!",
+            placement: "bottom",
             onNext: function() {
                 app.target = 'OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F'
             }
@@ -651,7 +728,7 @@ var tour = new Tour({
             element: "#expand-btn",
             title: "Other buttons",
             content: "In addition to expanding nodes, you can easily delete selected nodes, or children of a selected node using the corresponding red buttons above the graph visualization. The 'Toggle cluster' button will group the currently selected node and its children into one node cluster (this may be useful to keep things organized). Clicking this button with a cluster selected will expand it to show all of the nodes again.",
-            placement: "top"
+            placement: "bottom"
         },
         {
             element: "#settings-btn",
@@ -684,5 +761,3 @@ function closeAll() {
 
 var keys = vis.keycharm();
 keys.bind("esc", closeAll, 'keyup');
-keys.bind("backspace", app.deleteNode, 'keyup');
-keys.bind("delete", app.deleteNode, 'keyup');
