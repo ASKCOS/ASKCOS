@@ -238,7 +238,7 @@ def retro_interactive_mcts(request, target=None):
     '''Builds an interactive retrosynthesis page'''
 
     context = {}
-    context['warn'] = '<div style="text-align: center">If requests seem to take a long time, check the <a href="/status/">Server Status</a> page to see which resources are currently being used!</div>'
+    context['warn'] = '<div style="text-align: center">If requests seem to take a long time, check the <a href="/status/" target="_blank">Server Status</a> page to see which resources are currently being used!</div>'
 
     context['max_depth_default'] = 4
     context['max_branching_default'] = 20
