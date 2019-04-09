@@ -406,7 +406,7 @@ var app = new Vue({
             for (n in selected) {
                 var nodeId = selected[n];
                 if (this.data.nodes.get(nodeId).type=='chemical') {
-                    alert('We do not reccomend deleting chemical nodes! It will leaving its parent reaction node missing information! Only delete reaction nodes with this button.')
+                    alert('We do not allow deleting chemical nodes! It will leave its parent reaction node missing information! Only delete reaction nodes with this button.')
                     continue
                 }
                 var node = this.data.nodes.get(nodeId);
@@ -428,7 +428,7 @@ var app = new Vue({
             for (n in selected) {
                 var nodeId = selected[n];
                 if (this.data.nodes.get(nodeId).type=='reaction') {
-                    alert('We do not reccomend deleting children of reaction nodes! It will leaving the reaction node missing information! Only delete children of chemical nodes with this button.')
+                    alert('We do not allow deleting children of reaction nodes! It will leave the reaction node missing information! Only delete children of chemical nodes with this button.')
                     continue
                 }
                 var node = this.data.nodes.get(nodeId);
