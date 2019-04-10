@@ -343,44 +343,55 @@ var app = new Vue({
             }
             showLoader();
             var selected = network.getSelectedNodes();
-            console.log(selected.length);
-            if (selected.length == 0) {
+            if (selected.length != 1) {
               hideLoader();
+              if (selected.length == 0) {
+                  alert('Please select a terminal chemical node to expand')
+              }
+              else {
+                  alert('Please only select 1 node at a time to expand')
+              }
+              return
             }
-            for (n in selected) {
-                var nodeId = selected[n];
-                var node = this.data.nodes.get(nodeId)
-                if (node.type != 'chemical') {
-                    alert('Cannot expand reaction; try expanding with a chemical node selected');
-                    continue
-                }
-                var smi = node.smiles;
-                var url = this.requestUrl(smi);
-                fetch(url)
-                    .then(resp => {
-                        if (!resp.ok) {
-                            throw Error(resp.statusText);
-                        }
-                        return resp;
-                    })
-                    .then(resp => resp.json())
-                    .then(json => {
-                        var reactions = json['precursors'];
-                        this.results[smi] = reactions;
-                        if (reactions.length==0) {
-                            alert('No precursors found!')
-                        }
-                        addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit);
-                        this.getTemplateNumExamples(reactions);
-                        this.selected = node;
-                        this.reorderResults();
-                        hideLoader();
-                    })
-                    .catch(error => {
-                        hideLoader();
-                        alert('There was an error fetching precursors for this target with the supplied settings')
-                    })
+            var nodeId = selected[0];
+            var node = this.data.nodes.get(nodeId)
+            if (node.type != 'chemical') {
+                alert('Cannot expand reaction; try expanding with a chemical node selected');
+                hideLoader();
+                return
             }
+            var childrenOfSelected = childrenOf(nodeId, this.data.nodes, this.data.edges);
+            if (childrenOfSelected.length != 0) {
+                alert("You've already expanded this node. If you would like to re-expand, please use the 'Remove children nodes' button to clear results in the visualization for this chemical. Please note that this will replace the previously predicted results for this chemical (for example, if you've changed any settings)")
+                hideLoader();
+                return
+            }
+            var smi = node.smiles;
+            var url = this.requestUrl(smi);
+            fetch(url)
+                .then(resp => {
+                    if (!resp.ok) {
+                        throw Error(resp.statusText);
+                    }
+                    return resp;
+                })
+                .then(resp => resp.json())
+                .then(json => {
+                    var reactions = json['precursors'];
+                    this.results[smi] = reactions;
+                    if (reactions.length==0) {
+                        alert('No precursors found!')
+                    }
+                    addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit);
+                    this.getTemplateNumExamples(reactions);
+                    this.selected = node;
+                    this.reorderResults();
+                    hideLoader();
+                })
+                .catch(error => {
+                    hideLoader();
+                    alert('There was an error fetching precursors for this target with the supplied settings')
+                })
         },
         getTemplateNumExamples: function(reactions) {
             console.log(reactions)
