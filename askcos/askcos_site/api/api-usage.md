@@ -32,6 +32,8 @@ API endpoints exist for the following services (described in more depth below):
 
 GET requests can be made passing in required and optional parameters (service-specific parameters are described below for each endpoint). In many cases, you will be providing SMILES strings, which often may not play well with HTTP. You should always escape your parameters. In the examples below, the `requests` python package allows you to provide the parameters as a dictionary of key-value pairs and takes care of the url escaping for you. If you create your own url queries, please remember to escape your SMILES strings.
 
+Internally, the code behind the API will be converting any SMILES string you provide to a canonicalized SMILES string. Therefore, the results returned by the API may include a slightly modified string than the result parameters you provided. Keep note of this if using SMILES string searching to parse through results.
+
 In the examples below, a dictionary named `params` will be built to contain the parameters for each service. `requests.get` will be used, giving the API endpoint and the params dictionary. This returns a `Response` object, and the final results can be obtained using `Response.json()`. The `pprint` module is used to nicely format the JSON results.
 
 For each `params` dictionary, required key-value pairs will be identified with `# required`, and the rest of the values can be considered optional, as the values used here are the default values used (unless otherwise stated). In these examples, the number of results being returned is being significantly decreased to make this document more readable.
