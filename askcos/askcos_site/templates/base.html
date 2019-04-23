@@ -16,10 +16,10 @@
     <title>{% block title %}ASKCOS{% endblock %}</title>
     <!-- Bootstrap -->
     <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet" type="text/css"/>
-    
+
     <script src="{% static 'js/jquery-3.3.1.min.js' %}"></script>
     <script src="{% static 'js/bootstrap.min.js' %}"></script>
-    
+
     <!-- Our CSS (overrides) -->
     <link href="{% static 'default.css' %}?v3" rel="stylesheet" type="text/css"/>
     <script src="{% static 'default.js' %}"></script>
@@ -118,8 +118,8 @@
                 </li>
 
                 <li><a href="/status/"><span class="glyphicon glyphicon-tasks"></span> Server Status</a></li>
-                
-                <li><a href="mailto:{{ contact_email }}?subject=Feedback about askcos website"><span class="glyphicon glyphicon-comment"></span> Comment</a></li>
+
+                <li><a id="support-anchor"><span class="glyphicon glyphicon-comment"></span> Support</a></li>
             </ul>
 
             {% if user.is_authenticated %}
@@ -159,7 +159,7 @@
             <div class="page-header"><h1>{% block page_title %}ASKCOS{% endblock %}</h1></div>
             {% block page_body %}Looks like there is nothing here!{% endblock %}
         </div>
-        
+
     </div>
 
 
@@ -168,11 +168,11 @@
                 {% block footer %}
                 ASKCOS v0.2.3 Copyright &copy; 2019,
                 Created using <a href="http://www.djangoproject.com/">Django</a>.
-                <!-- 
-                Secret changelog! 
-                - v0.1.1 was released after major rewrite 
+                <!--
+                Secret changelog!
+                - v0.1.1 was released after major rewrite
                 - v0.1.2 was released when relevance prioritizer finished
-                - v0.1.3 was released when buyable database changed to ignore LabNetwork 
+                - v0.1.3 was released when buyable database changed to ignore LabNetwork
                 - v0.1.4 was released with massive UI overhaul and integration of fast filter
                 - v0.1.5 was released with new context rec. weights and SCScore module
                 - v0.1.6 was released with a larger retrosynthetic template set
@@ -186,10 +186,54 @@
             </div>
         </footer>
     </div>
-        
+
 </div>
+
+<div class="support-popup">
+  <div id="support-form" class="support-form">
+    <div class="form-group">
+      <label for="support-module">Select Module: </label>
+      <select id="support-module" class="form-control">
+        <option value="onestep">One-step Retrosynthesis</option>
+        <option value="context">Interactive Path Planning</option>
+        <option value="treebuilder">Tree Builder</option>
+        <option value="context">Context Recommendation</option>
+        <option value="forward">Forward Prediction</option>
+        <option value="general">General</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="support-category">Select issue/problem category: </label>
+      <select id="support-category" class="form-control">
+        <option value="bug">Report a bug</option>
+        <option value="enhancement">Request an enhancement</option>
+        <option value="documentation">Documentation</option>
+        <option value="general">General Query</option>
+      </select>
+    </div>
+    <div class="checkbox">
+      <label>
+        <input id="support-shared" type="checkbox"> I wish to share this information with other Consortium members.
+      </label>
+    </div>
+    <div class="form-group">
+      <label for="support-subject">Email subject line: </label>
+      <input id="support-subject" type="text" class="form-control" placeholder="Subject line (max length: 150 characters)" maxlength="150" autocomplete="off">
+    </div>
+    <div class="text-center">
+      <button id="support-submit" class="btn btn-success">Submit</button>
+      <button id="support-cancel" class="btn btn-danger">Cancel</button>
+    </div>
+    <div>
+      NOTE: Clicking "Submit" should launch your email client to send us an email. If this is blocked for some reason, please include the above information in an email you compose separately to mlpds_support@mit.edu.
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'support.js' %}"></script>
+
 <script type="text/javascript">
-$.ajaxSetup({ 
+$.ajaxSetup({
      beforeSend: function(xhr, settings) {
          function getCookie(name) {
              var cookieValue = null;
@@ -210,7 +254,7 @@ $.ajaxSetup({
              // Only send the token to relative URLs i.e. locally.
              xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
          }
-     } 
+     }
 });
 $(document).ajaxStart(function() {
     $(document.body).css({'cursor' : 'wait'});
@@ -224,7 +268,7 @@ $(".nav li").on("click", function() {
     $(".nav li").removeClass("active");
     $(this).addClass("active");
 });
-$(document).ready(function() {    
+$(document).ready(function() {
   $('.nav li').hover(function() {
     $('.linkdesc', this).stop(true, true).slideDown('fast');
     $(this).addClass('open');
@@ -242,7 +286,7 @@ $(document).ready(function() {
 // check for images in view when page loads.
 load_images_in_view();
 // check for images in view when page scrolls.
-$(window).scroll(load_images_in_view); 
+$(window).scroll(load_images_in_view);
 function load_images_in_view() {
     // a scroll was detected - check all images in DOM
     $("img").each(function() {
@@ -252,21 +296,21 @@ function load_images_in_view() {
         var window_bottom = $(window).scrollTop() + $(window).height();
 
         if(window_bottom > object_bottom)
-        {      
+        {
                 // check to see if a flag was set,
                 // so we don't constantly reload this image
                 if($(this).data("image-loaded") != true)
                 {
                     // obtain the image to replace
                     var image_source = $(this).data("async-load");
-      
+
                    // set image loaded complete flag, and change image src.
                     $(this).data("image-loaded",true);
                     $(this).attr("src",image_source);
-                }      
+                }
         }
-    
-    }); // end $("img").each()  
+
+    }); // end $("img").each()
 }}); // end $(document).ready();
 $("#savepage").click(function () {
     console.log('saving this page...');

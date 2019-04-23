@@ -89,7 +89,7 @@ a:hover {
 
 .tooltip-inner {
     min-width: 50px;
-    max-width: 400px; 
+    max-width: 400px;
 }
 
 .table-borderless > tbody > tr > td,
@@ -104,7 +104,7 @@ a:hover {
    width: auto !important;
 }
 .table_templates {
-    font-size:small; 
+    font-size:small;
     table-layout:fixed;
     width:100%;
 }
@@ -381,7 +381,7 @@ font.smiles {
 
 .tree ul {
     padding-top: 20px; position: relative;
-    
+
     transition: all 0.5s;
     -webkit-transition: all 0.5s;
     -moz-transition: all 0.5s;
@@ -392,7 +392,7 @@ font.smiles {
     list-style-type: none;
     position: relative;
     padding: 20px 5px 0 5px;
-    
+
     transition: all 0.5s;
     -webkit-transition: all 0.5s;
     -moz-transition: all 0.5s;
@@ -411,7 +411,7 @@ font.smiles {
     border-left: 1px solid #888;
 }
 
-/*We need to remove left-right connectors from elements without 
+/*We need to remove left-right connectors from elements without
 any siblings*/
 .tree li:only-child::after, .tree li:only-child::before {
     display: none;
@@ -420,7 +420,7 @@ any siblings*/
 /*Remove space from the top of single children*/
 .tree li:only-child{ padding-top: 0;}
 
-/*Remove left connector from first child and 
+/*Remove left connector from first child and
 right connector from last child*/
 .tree li:first-child::before, .tree li:last-child::after{
     border: 0 none;
@@ -454,11 +454,11 @@ right connector from last child*/
     font-family: arial, verdana, tahoma;
     font-size: 11px;
     display: inline-block;
-    
+
     border-radius: 5px;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
-    
+
     transition: all 0.5s;
     -webkit-transition: all 0.5s;
     -moz-transition: all 0.5s;
@@ -475,9 +475,9 @@ right connector from last child*/
 }
 
 /*Connector styles on hover*/
-/*.tree li a:hover+ul li::after, 
-.tree li a:hover+ul li::before, 
-.tree li a:hover+ul::before, 
+/*.tree li a:hover+ul li::after,
+.tree li a:hover+ul li::before,
+.tree li a:hover+ul::before,
 .tree li a:hover+ul ul::before{
     border-color:  #94a0b4;
 }*/
@@ -489,18 +489,18 @@ Thanks :)*/
 /* BEGIN TOOLTIP (http://www.menucool.com/tooltip/css-tooltip) */
 a.treetooltip {outline:none; }
 a.treetooltip strong {line-height:30px;}
-a.treetooltip:hover {text-decoration:none;} 
+a.treetooltip:hover {text-decoration:none;}
 a.treetooltip div {
     z-index:10;display:none; padding:14px 20px;
     margin-top:-30px; margin-left:0px;
-    #width:200px; 
+    #width:200px;
     line-height:16px;
 }
 a.treetooltip:hover div{
     display:inline; position:absolute; color:#111;
     border:1px solid #DCA; background:#fffAF0;}
 .callout {z-index:20;position:absolute;top:30px;border:0;left:-12px;}
-    
+
 /*CSS3 extras*/
 a.treetooltip div
 {
@@ -548,4 +548,25 @@ input::-webkit-inner-spin-button {
 }
 .jumbotron p {
     font-size: 10pt;
+}
+
+.support-popup {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  right: 0;
+  top: 0;
+  display: none;
+  background-color: #ffffffd9;
+  padding: 10% 25%;
+}
+
+.support-form {
+  border: 5px solid black;
+  padding: 20px;
+  background-color: #fff
+}
+
+#support-anchor {
+  cursor: pointer;
 }
