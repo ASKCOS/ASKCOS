@@ -375,10 +375,14 @@ def ajax_start_retro_mcts_celery(request):
     apply_fast_filter = filter_threshold > 0
     return_first = json.loads(request.GET.get('return_first', 'false'))
 
-    blacklisted_reactions = list(set(
-        [x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))
-    forbidden_molecules = list(set(
-        [x.smiles for x in BlacklistedChemicals.objects.filter(user=request.user, active=True)]))
+    if request.user.is_authenticated():
+        blacklisted_reactions = list(set(
+            [x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))
+        forbidden_molecules = list(set(
+            [x.smiles for x in BlacklistedChemicals.objects.filter(user=request.user, active=True)]))
+    else:
+        blacklisted_reactions = []
+        forbidden_molecules = []
 
     default_val = 1e9 if chemical_property_logic == 'and' else 0
     max_natom_dict = defaultdict(lambda: default_val, {
@@ -394,7 +398,7 @@ def ajax_start_retro_mcts_celery(request):
         'as_product': min_chempop_products,
     }
     print('Tree building {} for user {} ({} forbidden reactions)'.format(
-        smiles, request.user, len(blacklisted_reactions)))
+        smiles, request.user.id, len(blacklisted_reactions)))
     print('Using chemical property logic: {}'.format(max_natom_dict))
     print('Using chemical popularity logic: {}'.format(min_chemical_history_dict))
     print('Returning as soon as any pathway found? {}'.format(return_first))
@@ -424,7 +428,7 @@ def ajax_start_retro_mcts_celery(request):
 
     # Save to session in case user wants to export
     request.session['last_retro_interactive'] = trees
-    print('Saved {} trees to {} session'.format(
-        len(trees), request.user.get_username()))
+    # print('Saved {} trees to {} session'.format(
+    #     len(trees), request.user.get_username()))
 
     return JsonResponse(data)
