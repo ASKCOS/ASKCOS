@@ -129,7 +129,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
 
         startTime = time.time()
         if chiral:
-            
+
             res = get_top_precursors_c.delay(
                 smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=max_n,
                 template_count=template_count, max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
@@ -138,7 +138,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             context['precursors'] = precursors
             context['footnote'] = RETRO_CHIRAL_FOOTNOTE
         else:
-            
+
             # Use apply_async so we can force high priority
             res = get_top_precursors.delay(smiles, template_prioritization, precursor_prioritization,
                 mincount=0, max_branching=max_n, template_count=template_count, max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
@@ -207,7 +207,6 @@ def retro_network(request):
     context['allowResolve'] = 'checked' if allow_resolve else ''
     return render(request, 'reaction_network.html', context)
 
-@login_required
 def retro_interactive(request, target=None):
     '''Builds an interactive retrosynthesis page'''
 
@@ -233,7 +232,6 @@ def retro_interactive(request, target=None):
     return render(request, 'retro_interactive.html', context)
 
 
-@login_required
 def retro_interactive_mcts(request, target=None):
     '''Builds an interactive retrosynthesis page'''
 
@@ -317,14 +315,14 @@ def ajax_start_retro_celery(request):
 
     res = get_buyable_paths.delay(smiles, template_prioritization, precursor_prioritization,
                                   mincount=retro_mincount, max_branching=max_branching, max_depth=max_depth,
-                                  max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5, 
+                                  max_ppg=max_ppg, max_time=expansion_time, max_trees=500, reporting_freq=5,
                                   chiral=chiral, known_bad_reactions=blacklisted_reactions,
                                   forbidden_molecules=forbidden_molecules,
                                   max_cum_template_prob=max_cum_prob, template_count=template_count,
                                   max_natom_dict=max_natom_dict, min_chemical_history_dict=min_chemical_history_dict,
                                   apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
     (tree_status, trees) = res.get(expansion_time * 3)
-    
+
     # print(trees)
 
     (num_chemicals, num_reactions, at_depth) = tree_status
@@ -400,7 +398,7 @@ def ajax_start_retro_mcts_celery(request):
     print('Using chemical property logic: {}'.format(max_natom_dict))
     print('Using chemical popularity logic: {}'.format(min_chemical_history_dict))
     print('Returning as soon as any pathway found? {}'.format(return_first))
-    
+
     res = get_buyable_paths_mcts.delay(smiles, max_branching=max_branching, max_depth=max_depth,
                                   max_ppg=max_ppg, expansion_time=expansion_time, max_trees=500,
                                   known_bad_reactions=blacklisted_reactions,
@@ -430,6 +428,3 @@ def ajax_start_retro_mcts_celery(request):
         len(trees), request.user.get_username()))
 
     return JsonResponse(data)
-
-
-
