@@ -95,14 +95,14 @@ def ajax_evaluate_rxnsmiles(request):
         if not verbose:
             data['html'] = 'Could not get outcomes - recommended context(s) unparseable'
             for i, (T, slvt, rgt, cat, t, y) in enumerate(contexts):
-                data['html'] += '<br>{}) T={}, rgt={}, slvt={}'.format(i+1, T, rgt, slvt)
+                data['html'] += '<br>{}) T={:.1f}, rgt={}, slvt={}'.format(i+1, T, rgt, slvt)
             data['html_color'] = str('#%02x%02x%02x' % (int(255), int(0), int(0)))
             return JsonResponse(data)
         else:
             # TODO: expand
             data['html'] = '<h3>Could not get outcomes - recommended context(s) unparseable</h3>\n<ol>\n'
             for i, (T, slvt, rgt, cat, t, y) in enumerate(contexts):
-                data['html'] += '<li>Temp: {} C<br>Reagents: {}<br>Solvent: {}</li>\n'.format(T, rgt, slvt)
+                data['html'] += '<li>Temp: {:.1f} C<br>Reagents: {}<br>Solvent: {}</li>\n'.format(T, rgt, slvt)
             data['html'] += '</ol>'
             data['html_color'] = str('#%02x%02x%02x' % (int(255), int(0), int(0)))
             return JsonResponse(data)
@@ -133,12 +133,12 @@ def ajax_evaluate_rxnsmiles(request):
         if num_contexts:
             if not rgt1: rgt1 = 'no '
             data['html'] += '<br><br><u>Top conditions</u>'
-            data['html'] += '<br>{} C'.format(T1)
+            data['html'] += '<br>{:.1f} C'.format(T1)
             data['html'] += '<br>{} solvent'.format(slvt1)
             data['html'] += '<br>{} reagents'.format(rgt1)
             data['html'] += '<br>nearest-neighbor got {}% yield'.format(y1)
         if rank != 1:
-            data['html'] += '<br>Predicted major product with p = {}'.format(major_prob)
+            data['html'] += '<br>Predicted major product with p = {:.4f}'.format(major_prob)
             data['html'] += '<br>{}'.format(major_prod)
             if major_prod != 'none found':
                 url = reverse('draw_smiles', kwargs={'smiles':major_prod})
@@ -150,16 +150,14 @@ def ajax_evaluate_rxnsmiles(request):
         if num_contexts:
             if not rgt1: rgt1 = 'none'
             data['html'] += '\n<br><u>Proposed conditions ({} tried)</u>\n'.format(len(contexts))
-            data['html'] += '<br>Temp: {} C<br>Reagents: {}<br>Solvent: {}\n'.format(T1, rgt1, slvt1)
+            data['html'] += '<br>Temp: {:.1f} C<br>Reagents: {}<br>Solvent: {}\n'.format(T1, rgt1, slvt1)
         if rank != 1:
-            data['html'] += '<br><br><u>Predicted major product (<i>p = {}</i>)</u>'.format(major_prob)
+            data['html'] += '<br><br><u>Predicted major product (<i>p = {:.4f}</i>)</u>'.format(major_prob)
             data['html'] += '\n<br>{}'.format(major_prod)
             if major_prod != 'none found':
                 url = reverse('draw_smiles', kwargs={'smiles':major_prod})
                 data['html'] += '<br><img src="' + url + '">'
-        elif rank == 1 and num_contexts:
-            data['html'] += '\n<br><i>Nearest neighbor got {}% yield</i>'.format(y1)
-
+        
     # plausible = plausible / 100.
     B = 150.
     R = 255. - (plausible > 0.5) * (plausible - 0.5) * (255. - B) * 2.

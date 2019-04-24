@@ -68,7 +68,7 @@ class TemplateFreeNeuralNetScorer(Scorer):
                     continue
                 if smiles in outcomes_to_ret:
                     outcomes_to_ret[smiles]['rank'] = min(outcomes_to_ret[smiles]['rank'], outcome['rank'])
-                    outcomes_to_ret[smiles]['score'] = max(outcomes_to_ret[smiles]['score'], outcome['score'])
+                    outcomes_to_ret[smiles]['score'] = np.log(np.exp(outcomes_to_ret[smiles]['score']) + np.exp(outcome['score']))
                     outcomes_to_ret[smiles]['prob'] += outcome['prob']
                 else:
                     # Append outcome information

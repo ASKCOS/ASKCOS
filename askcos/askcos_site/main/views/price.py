@@ -12,7 +12,6 @@ from ..utils import ajax_error_wrapper
 def price_smiles_func(smiles):
     return Pricer.lookup_smiles(smiles, alreadyCanonical=True)
 
-@login_required
 def price_smiles(request, smiles):
     response = HttpResponse(content_type = 'text/plain')
     ppg = Pricer.lookup_smiles(smiles, alreadyCanonical=True)
@@ -25,8 +24,8 @@ def price_smiles(request, smiles):
 @ajax_error_wrapper
 def ajax_price_smiles(request):
     print('Got price request')
-    data = {'err': False}
     smiles = request.GET.get('smiles', None)
+    data = {'err': False, 'smiles': smiles}
     isomericSmiles = json.loads(request.GET.get('isomericSmiles', 'false'))
     print('isomericSmiles: {}'.format(isomericSmiles))
     data['ppg'] = Pricer.lookup_smiles(smiles, alreadyCanonical=False, isomericSmiles=isomericSmiles)
@@ -38,11 +37,11 @@ def ajax_price_smiles(request):
         data['html'] = 'This chemical is purchaseable for an estimated <b>$%i/g</b>' % data['ppg']
     return JsonResponse(data)
 
-@login_required 
+
 def pricing(request):
     return render(request, 'pricing.html', {})
 
-@login_required
+
 def price_xrn(request, xrn):
     response = HttpResponse(content_type = 'text/plain')
     ppg = Pricer.lookup_xrn(xrn)

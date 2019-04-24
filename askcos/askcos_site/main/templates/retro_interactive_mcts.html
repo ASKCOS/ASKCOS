@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}Retrosynthesis Planner (improved speed){% endblock %}
-{% block page_title %}Retrosynthesis Planner (improved speed)<span id="status"></span>{% endblock %}
+{% block page_title %}Retrosynthesis Planner<span id="status"></span>{% endblock %}
 
 {% block extrahead %}{% endblock %}
 
@@ -236,6 +236,10 @@ $('#results').on('click', '.hidechem', function () {
     $(".chembox" + targetid).closest('.tree').collapse('hide');
 });
 $('#results').on('click', '.blacklistrxn', function () {
+    {% if not logged_in %}
+      alert('You must be logged in to blacklist a reaction!')
+      return
+    {% endif %}
     console.log('trying to blacklist a reaction');
     var smiles = $(this).attr("smiles");
     console.log(smiles);
@@ -264,6 +268,10 @@ $('#results').on('click', '.blacklistrxn', function () {
     };
 });
 $('#results').on('click', '.blacklistchem', function () {
+    {% if not logged_in %}
+      alert('You must be logged in to blacklist a chemical!')
+      return
+    {% endif %}
     console.log('trying to blacklist a chemical');
     var smiles = $(this).attr("smiles");
     console.log(smiles);
@@ -291,6 +299,12 @@ $('#results').on('click', '.blacklistchem', function () {
         });
     };
 });
+
+$('#expand-width').click(function() {
+    var orig_width = $('#results').width();
+    $('#results').width(orig_width+500);
+})
+
 // On load, if entries defined, switch it out
 $(document).ready(function() {
     if ("{{target_mol}}" != "") {
@@ -308,7 +322,8 @@ $(document).ready(function() {
 
 
 {% block page_body %}
-<a href="{% url 'retro_interactive' %}">Click here to be redirected to the old depth-first search planner</a><br><br>
+<a href="/retro/network/" target="_blank">New: build reaction pathway tree interactively (beta)</a>
+<br><br>
 
 <table class="table table-borderless table-nonfluid">
 
@@ -384,10 +399,10 @@ $(document).ready(function() {
     <td>
         Num. templates: <a href="#" data-toggle="tooltip" title="Maximum number of tempaltes to apply using the relevance prioritizer. The fewer that are chosen, the faster the expansion can be."><span class="glyphicon glyphicon-info-sign"></span></a>
     </td>
-   
+
     <td class='retro_relevance_settings'><input id="template_count" maxlength="6" size="6" type="text" value="{{ template_count_default }}"></td>
 </tr>
-<tr class='retro_relevance_settings'><th></th>  
+<tr class='retro_relevance_settings'><th></th>
     <td>
         Max cum. prob: <a href="#" data-toggle="tooltip" title="The relevance prioritizer assigns a proability to each template based on the current target (product) molecule. Templates are applied in decreasing relevance. What is the maximum cumulative probability you would like to reach before templates are no longer applied?"><span class="glyphicon glyphicon-info-sign"></span></a>
     </td>
@@ -491,6 +506,11 @@ Min freq. as product: <input type="number" id="min_chempop_products" style="widt
 
 </table>
 
+<div style="position: fixed; bottom: 25px; right: 15px;">
+    <button id="expand-width" class="btn-info" >Expand page width</button> <a href="#" data-toggle="tooltip" title="If the tree results look broken, or wrap from one line to the next instead of displaying horizontally correctly, click this to expand the width of the page."><span class="glyphicon glyphicon-info-sign"></span></a>
+</div>
+
+
 <!-- Results -->
 <div id="statistics"></div>
 <br/>
@@ -500,4 +520,3 @@ Min freq. as product: <input type="number" id="min_chempop_products" style="widt
 {% include "drawing_modal.html" %}
 
 {% endblock %}
-

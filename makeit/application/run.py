@@ -5,7 +5,7 @@ import makeit.global_config as gc
 from makeit.utilities.io import arg_parser, name_parser, files
 import rdkit.Chem as Chem
 from makeit.utilities.io.logger import MyLogger
-from makeit.retrosynthetic.tree_builder import TreeBuilder
+from makeit.retrosynthetic.mcts.tree_builder import MCTS as TreeBuilder
 from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
 from askcos_site.askcos_celery.treeevaluator.tree_evaluation_coordinator import evaluate_trees
 from makeit.synthetic.evaluation.tree_evaluator import TreeEvaluator
@@ -15,7 +15,7 @@ makeit_loc = 'makeit'
 
 class MAKEIT:
     '''
-    Main application for running the make-it program. 
+    Main application for running the make-it program.
     Proposes potential synthetic routes to a desired target compound in two steps:
      - Building a retro synthetic tree and extracting buyable routes
      - Evaluation the likelihood of succes of each of the reactions in the found buyable routes
@@ -25,7 +25,7 @@ class MAKEIT:
     def __init__(self, target_product, expansion_time, max_depth, max_branching, max_trees, retro_mincount, retro_mincount_chiral,
                  synth_mincount, rank_threshold_inclusion, prob_threshold_inclusion, max_total_contexts, template_count,
                  max_ppg, output_dir, chiral, nproc, celery, context_recommender, forward_scoring_method,
-                 tree_scoring_method, context_prioritization, template_prioritization, precursor_prioritization, 
+                 tree_scoring_method, context_prioritization, template_prioritization, precursor_prioritization,
                  parallel_tree, precursor_score_mode, max_cum_template_prob, apply_fast_filter, filter_threshold):
 
         self.target_product = target_product

@@ -2,6 +2,8 @@
 
 {% block title %}ASKCOS homepage{% endblock %}
 
+{% block page_title %}ASKCOS: software tools for organic synthesis{% endblock %}
+
 {% block extrahead %}{% endblock %}
 
 {% block navbar_items %}{% endblock %}
@@ -12,12 +14,15 @@
 
 <!-- <h1>Temporarily under construction - some modules may not work</h1>
  -->
- <p>Welcome to the ASKCOS website! Here, we have hosted a number of computational tools to assist in synthetic planning and other aspects of organic chemistry. These are listed and described in the Modules tab in the top navitation bar. Please keep in mind that this service is currently hosted locally at MIT and - as such - is not built to handle an abundance of users. Your requests may take significantly longer than expected if there are several other users on the site also performing computationally-expensive requests.</p>
+ <p>Welcome to the ASKCOS website! Here, we have hosted a number of computational tools to assist in synthetic planning and other aspects of organic chemistry. These are listed and described in the Modules tab in the top navitation bar. Please keep in mind that this service is supported by a fixed amount of computational resources. Your requests may take significantly longer than expected if there are several other users on the site also performing computationally-expensive requests.</p>
 
-<div class="container" style="padding:25px"><a href="{% url 'modules' %}"><button type="button" class="btn btn-primary" style="margin:0 auto; display:block; font-size:16pt">Get Started</button></a></div>
+<div style="padding:25px"><a href="{% url 'modules' %}"><button type="button" class="btn btn-primary" style="margin:0 auto; display:block; font-size:16pt">Get Started</button></a></div>
+
+ <p>This work began under the DARPA Make-It program (ARO W911NF-16-2-0023) and continues to be supported by the <a href="http://mlpds.mit.edu" target="_blank">Machine Learning for Pharmaceutical Discovery and Synthesis Consortium</a>. Several of the deployed models are described in publications listed <a href="http://mlpds.mit.edu/papers/" target="_blank">here</a>.</p>
 
 
-<p>If you have any questions or if any of the links/images appear broken, please email <a href="mailto:ccoleymit.edu">ccoley@mit.edu</a>.</p>
+
+<p>If you have any questions or if any of the links/images appear broken, please email <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>
 
 <p style='font-size: 6pt'>THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
 HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>

@@ -1,5 +1,6 @@
 from django.shortcuts import render, HttpResponse, redirect
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.conf import settings
 import django.contrib.auth.views
 from pymongo.message import bson
@@ -119,12 +120,12 @@ def template_target(request, id, return_refs_only=False):
             return [x['rx_id'] for x in context['references']]
 
         if not can_view_reaxys(request):
-            context['ref_ids'] = ', '.join([str(y) for y in sorted(set(x['rx_id'] for x in context['references']))])
+            context['ref_ids'] = '; '.join([str(y) for y in sorted(set(x['rx_id'] for x in context['references']))])
             context['references'] = context['references'][:1]
             context['cannot_view_all'] = True 
 
     except ServerSelectionTimeoutError:
-        context['ref_ids'] = ', '.join([str(y) for y in sorted(set(int(_id.split('-')[0]) for _id in reference_ids))])
+        context['ref_ids'] = '; '.join([str(y) for y in sorted(set(int(_id.split('-')[0]) for _id in reference_ids))])
         context['references'] = []
         context['cannot_view_any'] = True 
 

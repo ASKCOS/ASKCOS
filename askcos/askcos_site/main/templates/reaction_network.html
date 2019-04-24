@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+{% block title %}Interactive Path Planning{% endblock %}
+{% block extrahead %}
+
+<script src="{% static 'js/browser-compat.js' %}"></script>
+
+<script src="{% static 'js/vue.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/fontawesome.min.css' %}" type="text/css">
+<link rel="stylesheet" href="{% static 'css/vis.min.css' %}" type="text/css">
+<link rel="stylesheet" href="{% static 'css/network.css' %}" type="text/css">
+<link rel="stylesheet" href="{% static 'css/bootstrap-tour.css' %}" type="text/css">
+<script src="{% static 'js/vis.min.js' %}"></script>
+<script src="{% static 'js/bootstrap-tour.min.js' %}"></script>
+{% endblock %}
+
+{% block page_title %}Interactive Path Planning{% endblock %}
+
+{% block page_body %}
+        <div id="app">
+            <main>
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-7 text-center">
+                        
+<!-- template for the modal component -->
+<script type="text/x-template" id="modal-template">
+  <transition name="modal">
+    <div class="modal-mask">
+      <div class="modal-wrapper">
+        <div class="modal-container">
+
+          <div class="modal-header">
+            <slot name="header">
+              default header
+            </slot>
+          </div>
+
+          <div class="modal-body">
+            <slot name="body">
+              default body
+            </slot>
+          </div>
+
+          <div class="modal-footer">
+            <slot name="footer">
+              <button class="btn btn-dark modal-default-button" @click="$emit('close')">
+                <slot name="button-text">
+                  Close
+                </slot>
+              </button>
+            </slot>
+          </div>
+        </div>
+      </div>
+    </div>
+  </transition>
+</script>
+                            
+<div class="mx-auto">
+    <button class="btn btn-default" @click="clear" title="Clear reactions"><i class="fas fa-times"></i></button>
+    <button id="settings-btn" class="btn btn-default" @click="openModal('settings')" title="Settings"><i class="fas fa-cog"></i></button>
+    <button id="download-btn" class="btn btn-default" @click="openModal('download')" title="Download reaction network"><i class="fas fa-download"></i></button>
+    <button id="load-btn" class="btn btn-default" @click="openModal('load')" title="Upload reaction network"><i class="fas fa-upload"></i></button>
+    <button class="btn btn-default" @click="startTour" title="Start tutorial"><i class="fas fa-question"></i></button>
+</div>
+                            
+<div class="mx-auto">
+    <form class="form-inline" autocomplete="off" v-on:submit.prevent="resolveTarget">
+        <div class="form-group">
+            Target: <input id="target" type="text" class="form-control text-center" v-model="target">
+            <input id="submit" type="submit" value="Submit" class="btn btn-default" /> 
+            <span @click="toggleResolver">
+                <i class="fas fa-server"></i>
+                <span v-if="allowResolve" title="Connection to NIH name resolver is ON, structures may be sent to an external service. This can be turned off in the settings menu, or by clicking this icon.">&#10003;</span>
+                <span v-else title="Connection to NIH name resolver is OFF, structures will NOT be sent to an external service. Target query must be a SMILES string. This can be turned on in the settings menu, or by clicking this icon.">&#10005;</span>
+            </span>
+            <div class="loader"></div>
+        </div>
+    
+    </form>    
+</div>
+                            
+<button id="expand-btn" class="btn btn-success" v-on:click="expandNode">Expand node</button>
+<button class="btn btn-danger" v-on:click="deleteNode">Remove reaction node</button>
+<button class="btn btn-danger" v-on:click="deleteChildren">Remove children nodes</button>
+<button class="btn btn-info" v-on:click="collapseNode">Toggle cluster</button>
+
+<div id="network" class="mx-auto mt-2"></div>
+                            
+<modal v-if="showSettingsModal" @close="showSettingsModal = false">
+    <div class="mx-auto" slot="header">
+        <h3>Settings</h3>
+    </div>
+    <div slot="body" class="text-left">
+        <div class="form-inline mb-10">
+            <div>
+                <input type="checkbox" ref="allowResolve" v-model="allowResolve" {{ allowResolve }}/>
+                Allow queries to be sent to NIH name -> smiles resolver?
+            </div>
+        </div>
+        <div class="form-inline mb-10">
+            <div class="form-group">
+                Automatically add top 
+                <input style="width: 50px" type="number" v-model.number="reactionLimit" class="form-control text-center"> 
+                results to the graph visualization
+            </div>
+        </div>
+        <div class="form-inline mb-10">
+            <div class="form-group">
+                Template prioritization: 
+                <select v-model="templatePrioritization" class="form-control">
+                    <option value="Popularity">Popularity</option>
+                    <option value="Relevance">Relevance</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-inline mb-10">
+            <div class="form-group">
+                Precursor scoring: 
+                <select v-model="precursorScoring" class="form-control">
+                    <option value="Heuristic">Heuristic</option>
+                    <option value="RelevanceHeuristic">Relevance+Heuristic</option>
+                    <option value="SCScore">SCScore</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-inline mb-10">
+            <div class="form-group">
+                Num. templates:
+                <input style="width: 100px" type="number" v-model.number="numTemplates" class="form-control text-center">
+            </div>
+        </div>
+        <div class="form-inline mb-10">
+            <div class="form-group">
+                Max. cum. prob.:
+                <input style="width: 100px" type="number" v-model.number="maxCumProb" class="form-control text-center">
+            </div>
+        </div>
+        <div class="form-inline mb-10">
+            <div class="form-group">
+                Min. plausibility:
+                <input style="width: 100px" type="number" v-model.number="minPlausibility" class="form-control text-center">
+            </div>
+        </div>
+    </div>
+</modal>
+                            
+<modal v-if="showLoadModal">
+    <div class="mx-auto" slot="header">
+        <h3>Load Network JSON</h3>
+    </div>
+    <div slot="body">
+        <input id="loadNetwork" type="file"/>
+    </div>
+    <div slot="footer">
+        <button style="margin: 0 5px;" class="btn btn-success modal-default-button" @click="showLoadModal = false; load()">
+          Load
+        </button>
+        <button style="margin: 0 5px;" class="btn btn-danger modal-default-button" @click="showLoadModal = false">
+          Cancel
+        </button>
+    </div>
+</modal>
+                            
+<modal v-if="showDownloadModal">
+    <div class="mx-auto" slot="header">
+        <h3>Download name</h3>
+    </div>
+    <div slot="body">
+        File name: <input type="text" v-model="downloadName"/>
+    </div>
+    <div slot="footer">
+        <button style="margin: 0 5px;" class="btn btn-success modal-default-button" @click="showDownloadModal = false; download()">
+          Download
+        </button>
+        <button style="margin: 0 5px;" class="btn btn-danger modal-default-button" @click="showDownloadModal = false">
+          Cancel
+        </button>
+    </div>
+</modal>
+
+                        </div>
+                        <div id="details" class="col-md-5 text-center details">
+                            <h2>Currently selected:</h2>
+
+                            <template v-if="selected">
+                                <template v-if="selected.type=='chemical'">
+                                    <div class="details-top">
+                                        <div class="text-center">
+                                            <div><b>Smiles: </b>%% selected.smiles %%</div>
+                                            <div><b>Price ($/g): </b>%% selected.ppg %%</div>
+                                            <div style="margin-bottom: 10px">
+                                                <img v-bind:src="selected.image" />
+                                            </div>
+                                            <h2>Precursors</h2>
+                                            <div class="form-inline">
+                                                Reorder by: 
+                                                <select class="form-control" @change="reorderResults" v-model="sortingCategory">
+                                                    <option value="score">Score</option>
+                                                    <option value="num_examples"># Examples</option>
+                                                    <option value="template_score">Template score</option>
+                                                    <option value="plausibility">Plausibility</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+<div class="scroll-list">
+    <div class="text-center">
+        <template v-if="typeof(results[selected.smiles]) == 'undefined'">
+            <div class="text-center" style="margin-top: 10px">
+                <h3>Click button below to expand this node and predict precursors for this target.</h3>
+                <button id="expand-btn-side" class="btn btn-success" v-on:click="expandNode">Expand node</button>
+            </div>
+            <div class="form-inline mb-10">
+                <div class="form-group">
+                Add top 
+                <input type="number" class="form-control text-center" style="width: 50px;" v-model.number="reactionLimit"> 
+                results to the graph visualization
+                </div>
+            </div>
+        </template>
+        <template v-for="res in results[selected.smiles]">
+            <div class="card">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-xs-6">
+                            <img width="100%" v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" />
+                        </div>
+                        <div class="col-xs-6">
+                            <table class="table table-condensed table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <td>Rank</td>
+                                        <td>#%% res.rank %%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Score</td>
+                                        <td>%% res.score.toFixed(3) %%</td>
+                                    </tr>
+                                    <tr>
+                                        <td># Examples</td>
+                                        <td>%% res.num_examples %%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Template score</td>
+                                        <td>%% res.template_score.toFixed(3) %%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Plausibility</td>
+                                        <td>%% res.plausibility.toFixed(3) %%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 mx-auto">
+                            <button v-show="!res.inViz" class="addRes btn btn-success" :data-rank="res.rank" @click="addFromResults(selected, res)"><i class="fas fa-plus"></i></button>
+                            <button v-show="res.inViz" class="remRes btn btn-danger" :data-rank="res.rank" @click="remFromResults(selected, res)"><i class="fas fa-minus"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+</div>
+                                </template>
+                                <template v-else-if="selected.type=='reaction'">
+                                    <div class="details-top">
+                                        <div class="text-left">
+                                            <div class="text-center">
+                                                <b>Reaction Smiles: </b>%% selected.reactionSmiles %%
+                                                <img width="100%" v-bind:src="'/draw/reaction/'+encodeURIComponent(selected.reactionSmiles)" />
+                                            </div>
+                                            <div class="text-center" style="margin: 10px 0">
+                                                <a :href="'/context/smiles='+encodeURIComponent(selected.reactionSmiles)" target="_blank">
+                                                    Evaluate reaction in new tab
+                                                </a>
+                                            </div>
+                                            <div><b>Retroscore: </b>%% selected.retroscore %%</div>
+                                            <div><b>Template score: </b>%% selected.templateScore %%</div>
+                                            <div><b>Plausibility: </b>%% selected.ffScore %%</div>
+                                            <div><b>Num. Examples: </b>%% selected.numExamples %%</div>
+                                            <div><b>Supporting templates:</b>
+                                                <ul>
+                                                    <li v-for="id in selected.templateIds">
+                                                        <a v-bind:href="'/template/target='+id" target="_blank">%% id %% (%% templateNumExamples[id] %% examples)</a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </template>
+                            <template v-else>
+                                Select a node from the graph to the left to see more detailed information.
+                            </template>
+                            
+                            
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+<a id="downloadAnchorElem" style="display:none"></a>
+
+<script src="{% static 'js/network.js' %}"></script>
+{% endblock %}
+
+{% block javascript %}
+<script>
+$('#savepage').off('click').on('click', function(e) {
+    alert('This page cannot be saved like the others! Instead, please download the grpah network using the download button above the target input field. This will download the graph structure in JSON format to your computer. It can later be re-uploaded to this user interface or post-processed externally.');
+})
+</script>
+{% endblock %}
