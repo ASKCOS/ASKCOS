@@ -254,6 +254,11 @@ def retro_interactive_mcts(request, target=None):
     if target is not None:
         context['target_mol'] = target
 
+    if request.user:
+        context['logged_in'] = True
+    else:
+        context['logged_in'] = False
+
     return render(request, 'retro_interactive_mcts.html', context)
 
 
