@@ -17,7 +17,7 @@ def celery_status(request):
     stats = app.control.inspect().stats()
     active = app.control.inspect().active()
     if not stats or not active:
-        return status
+        return JsonResponse(resp)
     worker_names = stats.keys()
     for worker in worker_names:
         name, server = worker.split('@')

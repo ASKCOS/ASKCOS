@@ -2,10 +2,10 @@
 Django settings for askcos_site project.
 
 For more information on this file, see
-https://docs.djangoproject.com/en/1.6/topics/settings/
+https://docs.djangoproject.com/en/2.2/topics/settings/
 
 For the full list of settings and their values, see
-https://docs.djangoproject.com/en/1.6/ref/settings/
+https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
@@ -20,7 +20,7 @@ import makeit.global_config as gc
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'notsosecret'
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.environ.get('DEBUG', False)
 
 ALLOWED_HOSTS = ['0.0.0.0', 'askcos.mit.edu', 'askcos4.mit.edu']
 if os.environ.get('CURRENT_HOST'):
@@ -55,17 +55,17 @@ TEMPLATES = [
 ]
 
 INSTALLED_APPS = (
-    'django.contrib.admin',
+    'askcos_site.main',
     'django.contrib.auth',
+    'django.contrib.admin',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'askcos_site.main',
     'django_extensions',
 )
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -115,8 +115,8 @@ STATIC_ROOT = os.path.join(PROJECT_PATH, 'static/')
 STATIC_URL = '/static/'
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder',    
-) 
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+)
 STATICFILES_DIRS = (
     os.path.join(STATIC_ROOT, 'css'),
     os.path.join(STATIC_ROOT, 'js')
@@ -165,5 +165,3 @@ TEMPLATE_BACKUPS = [
 ### Very important - where to look for local versions of files instead of relying on DB connections
 LOCAL_STORAGE = {}
 LOCAL_STORAGE['user_saves'] = os.path.join(gc.data_path, 'user_saves')
-
-

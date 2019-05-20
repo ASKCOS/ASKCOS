@@ -1,6 +1,6 @@
 from django.shortcuts import render, HttpResponse, redirect
 from django.template.loader import render_to_string
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.conf import settings
@@ -8,7 +8,7 @@ import django.contrib.auth.views
 import json
 import os
 
-import rdkit.Chem as Chem 
+import rdkit.Chem as Chem
 
 from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
 from ..globals import SYNTH_FOOTNOTE
@@ -20,7 +20,7 @@ from .users import can_control_robot
 def export_synth_results(request):
     if 'last_synth_interactive' not in request.session:
         return index(request, err='Could not find synth results to save?')
-    
+
     synth_data = request.session['last_synth_interactive']
     #uncomment to export full data
     # txt = 'Forward prediction approach: %s\r\n' % synth_data['forward_scorer']
@@ -35,14 +35,14 @@ def export_synth_results(request):
     response = HttpResponse(txt, content_type='text/csv')
     response['Content-Disposition'] = 'attachment;filename=export.csv'
     return response
-    
+
 #@login_required
 def export_retro_results(request, _id=1):
     if 'last_retro_interactive' not in request.session:
         return index(request, err='Could not find retro results to save?')
     if not can_control_robot(request):
         return index(request, err='You do not have permission to be here!')
-    
+
     try:
         _id = int(_id)
     except Exception:
@@ -54,9 +54,9 @@ def export_retro_results(request, _id=1):
     tree = request.session['last_retro_interactive'][_id - 1]
 
     class mutable:
-        bays = []; 
+        bays = [];
         reagents = []
-        bay_id = 1; 
+        bay_id = 1;
         reagent_id = 1 # start at 1 and work up, then change at the end
 
     def recursive_get_bays(chem):
@@ -64,7 +64,7 @@ def export_retro_results(request, _id=1):
         if chem['children']:
             this_bay = {'type': 'reactor', 'id': mutable.bay_id}
             mutable.bay_id += 1
-            
+
             # Outlet is this chemical (smiles)
             this_bay['outlet_smiles'] = chem['smiles']
             this_bay['outlet'] = get_name_from_smiles(chem['smiles'])
@@ -77,7 +77,7 @@ def export_retro_results(request, _id=1):
             # Save reaction SMILES for the reactor
             this_bay['reaction_smiles'] = rxn['smiles']
             this_bay['necessary_reagent'] = rxn['necessary_reagent']
-            
+
             # Get context recommendations (just one for now, no forward evaluator)
             res = get_context_recommendations.delay(rxn['smiles'], n=10)
             contexts = res.get(60)
@@ -138,7 +138,7 @@ def export_retro_results(request, _id=1):
 
     # Actually perform this on the current head node
     recursive_get_bays(tree)
-    bays = mutable.bays 
+    bays = mutable.bays
     reagents = mutable.reagents
 
     # Renumber bays
@@ -166,7 +166,7 @@ def export_retro_results(request, _id=1):
     for reagent in sorted(reagents, key=lambda x:int(x['id'])):
         print('ID {:2d}: {}'.format(reagent['id'], reagent['name']))
 
-    
+
 
     # Reformat for Suzanne
     bay_dict = {}
@@ -178,7 +178,7 @@ def export_retro_results(request, _id=1):
         }
         for i in range(len(bay['inlets'])):
             bay_dict[key]['reagent{}'.format(i+1)] = bay['inlets'][i]['name']
-    
+
     bays = json.dumps(bays)
     print('Post-json dump: {}'.format(bays))
 
@@ -186,7 +186,7 @@ def export_retro_results(request, _id=1):
     print('Bay-dict for Suzanne: {}'.format(bay_dict))
 
 
-    return post_data_to_external_page(request, 'http://Apex-env.qr9fgjkxpf.us-east-2.elasticbeanstalk.com/move_robot/', 
+    return post_data_to_external_page(request, 'http://Apex-env.qr9fgjkxpf.us-east-2.elasticbeanstalk.com/move_robot/',
         {'bay_dict': bay_dict, 'bays': bays})
 
 @login_required

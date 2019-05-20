@@ -12,6 +12,6 @@ def template(request):
     transform.pop('product_smiles', None)
     transform.pop('name', None)
     refs = transform.pop('references', [''])
-    transform['references'] = map(lambda x: x.split('-')[0], refs)
+    transform['references'] = list(map(lambda x: x.split('-')[0], refs))
     resp['template'] = transform
     return JsonResponse(resp)

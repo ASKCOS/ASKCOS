@@ -128,15 +128,15 @@
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span class="glyphicon glyphicon-cog"></span> Settings
                     <span class="caret"></span></a>
                     <ul class="dropdown-menu">
-                        <li><a href="/registration/password/change/">Change password</a></li>
-                        <li><a href="{% url 'auth_logout' %}">Logout</a></li>
+                        <li><a href="{% url 'password_change' %}">Change password</a></li>
+                        <li><a href="{% url 'logout' %}">Logout</a></li>
                     </ul>
                 </li>
             </ul>
             {% else %}
             <ul class="nav navbar-nav navbar-right">
-                <li><a href="/registration/register/"><span class="glyphicon glyphicon-user"></span> Register</a></li>
-                <li><a href="{% url 'auth_login' %}?next={{ request.path }}"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
+                <li><a href="{% url 'django_registration_register' %}"><span class="glyphicon glyphicon-user"></span> Register</a></li>
+                <li><a href="{% url 'login' %}?next={{ request.path }}"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
             </ul>
             {% endif %}
         </div>

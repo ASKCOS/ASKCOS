@@ -1,6 +1,6 @@
 from django.shortcuts import render, HttpResponse, redirect
 from django.template.loader import render_to_string
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.conf import settings
@@ -254,7 +254,7 @@ def retro_interactive_mcts(request, target=None):
     if target is not None:
         context['target_mol'] = target
 
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         context['logged_in'] = True
     else:
         context['logged_in'] = False
@@ -380,7 +380,7 @@ def ajax_start_retro_mcts_celery(request):
     apply_fast_filter = filter_threshold > 0
     return_first = json.loads(request.GET.get('return_first', 'false'))
 
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         blacklisted_reactions = list(set(
             [x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))
         forbidden_molecules = list(set(

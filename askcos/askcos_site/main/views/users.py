@@ -1,6 +1,6 @@
 from django.shortcuts import render, HttpResponse, redirect
 from django.template.loader import render_to_string
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.conf import settings
@@ -56,7 +56,7 @@ def user_saved_results_id(request, _id=-1):
             html = fid.read().decode('utf8')
         else:
             html = fid.read()
-    return render(request, 'saved_results_id.html', 
+    return render(request, 'saved_results_id.html',
         {'saved_result':saved_result[0], 'html':html, 'dt': saved_result[0].dt})
 
 @login_required
@@ -87,7 +87,7 @@ def ajax_user_save_page(request):
             else:
                 fid.write(html)
         print('Wrote to {}'.format(fpath))
-        obj = SavedResults.objects.create(user=request.user, 
+        obj = SavedResults.objects.create(user=request.user,
             description=desc,
             dt=dt,
             created=now,
@@ -122,7 +122,7 @@ def ajax_user_blacklist_reaction(request):
         data = {'err': 'Could not get reaction SMILES to save'}
         return JsonResponse(data)
     print('Got request to block a reaction')
-    obj = BlacklistedReactions.objects.create(user=request.user, 
+    obj = BlacklistedReactions.objects.create(user=request.user,
         description=desc,
         dt=dt,
         created=datetime.now(),
@@ -131,22 +131,22 @@ def ajax_user_blacklist_reaction(request):
     print('Created blacklisted reaction object {}'.format(obj.id))
     return JsonResponse({'err': False})
 
-@login_required 
+@login_required
 def ajax_user_activate_reaction(request):
     _id = request.GET.get('id', -1)
     obj = BlacklistedReactions.objects.filter(user=request.user, id=_id)
     if len(obj) == 1:
-        obj[0].active = True 
+        obj[0].active = True
         obj[0].save()
         return JsonResponse({'err': False})
     return JsonResponse({'err': 'Could not activate?'})
 
-@login_required 
+@login_required
 def ajax_user_deactivate_reaction(request):
     _id = request.GET.get('id', -1)
     obj = BlacklistedReactions.objects.filter(user=request.user, id=_id)
     if len(obj) == 1:
-        obj[0].active = False 
+        obj[0].active = False
         obj[0].save()
         return JsonResponse({'err': False})
     return JsonResponse({'err': 'Could not deactivate?'})
@@ -176,7 +176,7 @@ def ajax_user_blacklist_chemical(request):
         data = {'err': 'Could not get chemical SMILES to save'}
         return JsonResponse(data)
     print('Got request to block a chemical')
-    obj = BlacklistedChemicals.objects.create(user=request.user, 
+    obj = BlacklistedChemicals.objects.create(user=request.user,
         description=desc,
         dt=dt,
         created=datetime.now(),
@@ -185,22 +185,22 @@ def ajax_user_blacklist_chemical(request):
     print('Created blacklisted chemical object {}'.format(obj.id))
     return JsonResponse({'err': False})
 
-@login_required 
+@login_required
 def ajax_user_activate_chemical(request):
     _id = request.GET.get('id', -1)
     obj = BlacklistedChemicals.objects.filter(user=request.user, id=_id)
     if len(obj) == 1:
-        obj[0].active = True 
+        obj[0].active = True
         obj[0].save()
         return JsonResponse({'err': False})
     return JsonResponse({'err': 'Could not activate?'})
 
-@login_required 
+@login_required
 def ajax_user_deactivate_chemical(request):
     _id = request.GET.get('id', -1)
     obj = BlacklistedChemicals.objects.filter(user=request.user, id=_id)
     if len(obj) == 1:
-        obj[0].active = False 
+        obj[0].active = False
         obj[0].save()
         return JsonResponse({'err': False})
     return JsonResponse({'err': 'Could not deactivate?'})

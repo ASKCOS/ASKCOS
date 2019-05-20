@@ -2,14 +2,14 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class SavedResults(models.Model):
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     description = models.CharField(max_length=1000)
     created = models.DateTimeField('created on')
     dt = models.CharField(max_length=200)
     fpath = models.CharField(max_length=500)
 
 class BlacklistedReactions(models.Model):
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     description = models.CharField(max_length=1000)
     created = models.DateTimeField('created on')
     dt = models.CharField(max_length=200)
@@ -17,7 +17,7 @@ class BlacklistedReactions(models.Model):
     active = models.BooleanField()
 
 class BlacklistedChemicals(models.Model):
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     description = models.CharField(max_length=1000)
     created = models.DateTimeField('created on')
     dt = models.CharField(max_length=200)
