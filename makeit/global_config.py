@@ -92,14 +92,13 @@ database = 'reaxys_v2'
 # Define databases (should be nonessential if all local files present)
 ################################################################################
 
-MONGO_URL = os.environ.get('MONGO_URL', 'MONGO_URL')
+MONGO_HOST = os.environ.get('MONGO_HOST', 'MONGO_HOST')
 MONGO_USER = os.environ.get('MONGO_USER', 'USERNAME')
 MONGO_PW = os.environ.get('MONGO_PW', 'PASSWORD')
-MONGO_AUTH_DB = os.environ.get('MONGO_AUTH_DB', 'AUTH_DB')
 
 # TODO: change this to your local Mongo DB!
 MONGO = {
-    'path': 'mongodb://{}:{}@{}/{}'.format(MONGO_USER, MONGO_PW, MONGO_URL, MONGO_AUTH_DB),
+    'path': 'mongodb://{}:{}@{}'.format(MONGO_USER, MONGO_PW, MONGO_HOST),
     'id': 27017,
     'connect': False
 }
@@ -112,8 +111,8 @@ RETRO_TRANSFORMS = {
 }
 
 RETRO_TRANSFORMS_CHIRAL = {
-    'database': database,
-    'collection': 'transforms_retro_v9',
+    'database': 'askcos',
+    'collection': 'retro_templates',
     'mincount': 10,
     'mincount_chiral': 5
 }
@@ -121,7 +120,7 @@ RETRO_TRANSFORMS_CHIRAL = {
 SYNTH_TRANSFORMS = {
     'database': 'reaxys',
     'collection': 'transforms_forward_v1' ,
-    'mincount': 25, 
+    'mincount': 25,
 }
 
 INSTANCES = {
@@ -145,13 +144,13 @@ CHEMICAL_HISTORY = {
 }
 
 BUYABLES = {
-    'database': database,
+    'database': 'askcos',
     'collection': 'buyables',
 }
 
 SOLVENTS = {
     'database': 'reaxys',
-    'collection': 'solvents',    
+    'collection': 'solvents',
 }
 
 # Template-based forward predictor

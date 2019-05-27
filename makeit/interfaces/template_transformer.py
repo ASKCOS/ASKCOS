@@ -11,6 +11,7 @@ from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritiz
 from makeit.prioritization.default import DefaultPrioritizer
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 from makeit.utilities.io.logger import MyLogger
 transformer_loc = 'template_transformer'
 import makeit.utilities.io.pickle as pickle
@@ -66,7 +67,7 @@ class TemplateTransformer(object):
             else:
                 template = PopularityTemplatePrioritizer()
                 MyLogger.print_and_log('Prioritization method not recognized. Using literature popularity prioritization.', transformer_loc, level = 1)
-                
+
             template.load_model()
             self.template_prioritizers[template_prioritizer] = template
 
@@ -114,11 +115,11 @@ class TemplateTransformer(object):
         configuration
 
         retro: whether in the retrosynthetic direction
-        file_path: .pickle file to read dumped templates from 
+        file_path: .pickle file to read dumped templates from
         chiral: whether to handle chirality properly (only for retro for now)
         rxns : whether or not to actually load the reaction objects (or just the info)
         '''
-        
+
         MyLogger.print_and_log('Loading templates from {}'.format(file_path), transformer_loc)
 
         if os.path.isfile(file_path):
@@ -185,6 +186,9 @@ class TemplateTransformer(object):
         Find the reaction smarts for this template_id
         '''
 
+        if self.lookup_only:
+            return self.TEMPLATE_DB.find_one({'_id': ObjectId(template_id)})
+
         if not self.id_to_index:  # need to build
             self.id_to_index = {template['_id']: i for (
                 i, template) in enumerate(self.templates)}
@@ -194,6 +198,8 @@ class TemplateTransformer(object):
         # Save collection TEMPLATE_DB
         self.load_databases(retro, chiral=chiral)
         self.chiral = chiral
+        if self.lookup_only:
+            return
         if self.mincount and 'count' in self.TEMPLATE_DB.find_one():
             if retro:
                 filter_dict = {'count': {'$gte': min(
@@ -255,8 +261,6 @@ class TemplateTransformer(object):
             # Frequency/popularity score
             if 'count' in document:
                 template['count'] = document['count']
-            elif 'popularity' in document:
-                template['count'] = document['popularity']
             else:
                 template['count'] = 1
 
@@ -309,25 +313,28 @@ class TemplateTransformer(object):
         db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
                                 'id'], connect=gc.MONGO['connect'])
 
-        if retro:
-            if self.chiral:
-                self.TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL[
-                    'database']][gc.RETRO_TRANSFORMS_CHIRAL['collection']]
-                MyLogger.print_and_log("Using {} as template database.".format(
-                    gc.RETRO_TRANSFORMS_CHIRAL['collection']), transformer_loc)
-            else:
-                self.TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS[
-                    'database']][gc.RETRO_TRANSFORMS['collection']]
-                MyLogger.print_and_log("Using {} as template database.".format(
-                    gc.RETRO_TRANSFORMS['collection']), transformer_loc)
-        else:
-            self.TEMPLATE_DB = db_client[gc.SYNTH_TRANSFORMS[
-                'database']][gc.SYNTH_TRANSFORMS['collection']]
+        db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
+        collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
+        self.TEMPLATE_DB = db_client[db_name][collection]
+        # if retro:
+        #     if self.chiral:
+        #         self.TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL[
+        #             'database']][gc.RETRO_TRANSFORMS_CHIRAL['collection']]
+        #         MyLogger.print_and_log("Using {} as template database.".format(
+        #             gc.RETRO_TRANSFORMS_CHIRAL['collection']), transformer_loc)
+        #     else:
+        #         self.TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS[
+        #             'database']][gc.RETRO_TRANSFORMS['collection']]
+        #         MyLogger.print_and_log("Using {} as template database.".format(
+        #             gc.RETRO_TRANSFORMS['collection']), transformer_loc)
+        # else:
+        #     self.TEMPLATE_DB = db_client[gc.SYNTH_TRANSFORMS[
+        #         'database']][gc.SYNTH_TRANSFORMS['collection']]
 
     def apply_one_template(self, *args, **kwargs):
         '''
         Takes a mol object and applies a single template, returning
-        a list of precursors or outcomes, depending on whether retro or 
+        a list of precursors or outcomes, depending on whether retro or
         synthetic templates are used
         '''
         raise NotImplementedError

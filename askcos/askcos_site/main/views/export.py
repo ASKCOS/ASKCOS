@@ -11,7 +11,6 @@ import os
 import rdkit.Chem as Chem
 
 from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
-from ..globals import SYNTH_FOOTNOTE
 
 from ..utils import get_name_from_smiles
 from .users import can_control_robot

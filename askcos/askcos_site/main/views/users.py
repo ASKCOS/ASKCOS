@@ -10,6 +10,17 @@ from bson.objectid import ObjectId
 from datetime import datetime
 import os, sys
 
+from pymongo import MongoClient
+from makeit import global_config as gc
+
+client = MongoClient(
+    gc.MONGO['path'],
+    gc.MONGO['id'],
+    connect=gc.MONGO['connect']
+)
+results_db = client['results']
+results_collection = results_db['results']
+
 from ..models import SavedResults, BlacklistedReactions, BlacklistedChemicals
 
 can_control_robot = lambda request: request.user.get_username() in ['ccoley']
@@ -47,17 +58,11 @@ def user_saved_results(request, err=None):
 
 @login_required
 def user_saved_results_id(request, _id=-1):
-    saved_result = SavedResults.objects.filter(user=request.user, id=_id)
-    if saved_result.count() == 0:
+    result = results_collection.find_one({'_id': _id})
+    if not result:
         return user_saved_results(request, err='Could not find that ID')
-    base = os.path.basename(saved_result[0].fpath)
-    with open(os.path.join(settings.LOCAL_STORAGE['user_saves'], base), 'r') as fid:
-        if sys.version_info[0] < 3:
-            html = fid.read().decode('utf8')
-        else:
-            html = fid.read()
     return render(request, 'saved_results_id.html',
-        {'saved_result':saved_result[0], 'html':html, 'dt': saved_result[0].dt})
+        {'html': result['result']})
 
 @login_required
 def user_saved_results_del(request, _id=-1):
@@ -78,26 +83,20 @@ def ajax_user_save_page(request):
         return JsonResponse(data)
     print('Got request to save a page')
     now = datetime.now()
-    unique_str = '%i.txt' % hash((now, request.user))
-    fpath = os.path.join(settings.LOCAL_STORAGE['user_saves'], unique_str)
-    try:
-        with open(fpath, 'w') as fid:
-            if sys.version_info[0] < 3:
-                fid.write(html.encode('utf8'))
-            else:
-                fid.write(html)
-        print('Wrote to {}'.format(fpath))
-        obj = SavedResults.objects.create(user=request.user,
-            description=desc,
-            dt=dt,
-            created=now,
-            fpath=fpath)
-        print('Created saved object {}'.format(obj.id))
-    except Exception as e:
-        print(e)
-        print('Could not write to file {}?'.format(fpath))
-        return JsonResponse({'err': 'Could not write to file {}?'.format(fpath)})
-
+    result_id = str(hash((now, request.user)))
+    obj = SavedResults.objects.create(user=request.user,
+        description=desc,
+        dt=dt,
+        created=now,
+        result_id=result_id,
+        result_state='N/A',
+        result_type='html'
+    )
+    results_collection.insert_one({
+        '_id': result_id,
+        'result': html,
+    })
+    print('Created saved object {}'.format(obj.id))
     return JsonResponse({'err': False})
 
 @login_required

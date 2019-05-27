@@ -7,6 +7,7 @@ from askcos_site.askcos_celery.treebuilder.tb_coordinator_mcts import get_buyabl
 def tree_builder(request):
     resp = {}
     resp['request'] = dict(**request.GET)
+    run_async = request.GET.get('async', True)
     orig_smiles = request.GET.get('smiles', None)
     mol = Chem.MolFromSmiles(orig_smiles)
     smiles = Chem.MolToSmiles(mol)
@@ -53,6 +54,12 @@ def tree_builder(request):
                                   max_natom_dict=max_natom_dict, min_chemical_history_dict=min_chemical_history_dict,
                                   apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold,
                                   return_first=return_first)
+    
+    if run_async:
+        resp['id'] = res.id
+        resp['state'] = res.state
+        return JsonResponse(resp)
+    
     try:
         (tree_status, trees) = res.get(expansion_time * 3)
     except:

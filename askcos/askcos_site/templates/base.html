@@ -99,12 +99,13 @@
                     </ul>
                 </li>
 
+                {% if user.is_authenticated %}
                 <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span class="glyphicon glyphicon-cloud"></span> My Results
                     <span class="caret"></span></a>
                     <ul class="dropdown-menu">
                         <li><a href="#" id="savepage">Save this page</a></li>
-                        <li><a href="{% url 'user_saved_results' %}">View saved pages</a></li>
+                        <li><a href="/my-results/">View results</a></li>
                     </ul>
                 </li>
 
@@ -116,6 +117,7 @@
                         <li><a href="{% url 'user_blacklisted_chemicals' %}">View banned chemicals</a></li>
                     </ul>
                 </li>
+                {% endif %}
 
                 <li><a href="/status/"><span class="glyphicon glyphicon-tasks"></span> Server Status</a></li>
 

@@ -13,6 +13,33 @@
 
 {% block javascript %}
 <script>
+  function showResults(id) {
+    fetch('/api/get-result/?id='+id)
+      .then(resp => resp.json())
+      .then(json => {
+        $("#status").html(': done!');
+        $("#start_retro").html('Start');
+        $("#start_retro").prop('disabled', false);
+        var resLink = '/view-tree-graph/?id='+id
+        $('#results').html('Your results are available! Click <a href="'+resLink+'" target="_blank">here</a> to view them.')
+        console.log(json['result'])
+    })
+  }
+
+  function poll(id) {
+    console.log('polling');
+    fetch('/api/poll-result/?id='+id)
+      .then(resp => resp.json())
+      .then(json => {
+        if (json['state'] == 'completed') {
+          showResults(id)
+        }
+        else {
+          setTimeout(poll, 1000, id)
+        }
+      })
+  }
+
 function showFields(name) {
     if (name=='Relevance') {
         $(".retro_relevance_settings").show();
@@ -150,6 +177,7 @@ $("#start_retro").click(function () {
         $("#start_retro").prop('disabled', true);
         $("#status").html(': running...');
         $("#start_retro").html('Running...');
+        $('#results').html('Your job has been submitted asynchronously. A link to view the results will be shown here when the job completes. Feel free to leave this page; your results can be viewed at a later time <a href="/my-results/" target="_blank">here</a>.')
         $.ajax({
             url: '/ajax/start_retro_mcts_celery/',
             data: {
@@ -173,16 +201,7 @@ $("#start_retro").click(function () {
             },
             dataType: 'json',
             success: function (data) {
-                if (data.err) {
-                    alert(data.message);
-                    $("#status").html(': failed?');
-                } else {
-                    $("#statistics").html(data.html_stats);
-                    $("#results").html(data.html_trees);
-                    $("#status").html(': done!');
-                }
-                $("#start_retro").html('Start');
-                $("#start_retro").prop('disabled', false);
+                poll(data.id)
             },
             error: function (jqXhr, textStatus, errorMessage) {
                 alert(errorMessage);

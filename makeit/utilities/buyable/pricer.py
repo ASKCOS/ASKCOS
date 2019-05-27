@@ -53,9 +53,9 @@ class Pricer:
         '''
         from makeit.utilities.io.files import get_pricer_path
         file_path = get_pricer_path(
-            gc.CHEMICALS['database'], 
-            gc.CHEMICALS['collection'], 
-            gc.BUYABLES['database'], 
+            gc.CHEMICALS['database'],
+            gc.CHEMICALS['collection'],
+            gc.BUYABLES['database'],
             gc.BUYABLES['collection'],
         )
         if os.path.isfile(file_path):
@@ -65,8 +65,8 @@ class Pricer:
                 self.prices_by_xrn = defaultdict(float, pickle.load(file))
         else:
             self.load_databases()
-            self.load_from_database()
-            self.dump_to_file(file_path)
+            # self.load_from_database()
+            # self.dump_to_file(file_path)
 
     def load_from_database(self, max_ppg=1e10):
         '''
@@ -74,7 +74,7 @@ class Pricer:
         template records.
         '''
         MyLogger.print_and_log('Loading pricer with buyable limit of ${} per gram.'.format(max_ppg), pricer_loc)
-        
+
         # Save collection source use online option to load either from local
         # file or from online database.
         self.prices = defaultdict(float)  # default 0 ppg means not buyable
@@ -85,7 +85,7 @@ class Pricer:
         buyable_dict = {}
 
         # First pull buyables source (smaller)
-        for buyable_doc in self.BUYABLE_DB.find({'source': {'$ne': 'LN'}}, 
+        for buyable_doc in self.BUYABLE_DB.find({'source': {'$ne': 'LN'}},
                         ['ppg', 'smiles', 'smiles_flat'],
                         no_cursor_timeout=True):
 
@@ -110,7 +110,7 @@ class Pricer:
 
         if self.by_xrn:
             # Then pull chemicals source for XRNs (larger)
-            for chemical_doc in tqdm(self.CHEMICAL_DB.find({'buyable_id': {'$gt': -1}}, 
+            for chemical_doc in tqdm(self.CHEMICAL_DB.find({'buyable_id': {'$gt': -1}},
                     ['buyable_id'], no_cursor_timeout=True)):
                 if 'buyable_id' not in chemical_doc:
                     continue
@@ -126,8 +126,22 @@ class Pricer:
             self.done.value = 1
 
     def lookup_smiles(self, smiles, alreadyCanonical=False, isomericSmiles=True):
+        if not alreadyCanonical:
+            mol = Chem.MolFromSmiles(smiles)
+            if not mol:
+                return 0.
+            smiles = Chem.MolToSmiles(mol, isomericSmiles=isomericSmiles)
+
+        entry = self.BUYABLE_DB.find_one({'smiles': smiles})
+
+        if entry:
+            return entry['ppg']
+        else:
+            return 0.
+
+    def lookup_smiles_old(self, smiles, alreadyCanonical=False, isomericSmiles=True):
         '''
-        Looks up a price by SMILES. Tries it as-entered and then 
+        Looks up a price by SMILES. Tries it as-entered and then
         re-canonicalizes it in RDKit unl ess the user specifies that
         the string is definitely already canonical.
         '''

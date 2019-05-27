@@ -5,6 +5,7 @@ django-extensions
 django-registration
 h5py
 keras
+mysqlclient
 matplotlib
 numpy
 pillow

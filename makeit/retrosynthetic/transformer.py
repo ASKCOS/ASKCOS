@@ -33,11 +33,11 @@ class RetroTransformer(TemplateTransformer):
     one-step retrosyntheses for a given molecule.
     """
 
-    def __init__(self, celery=False, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'], 
-        mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'], 
-        TEMPLATE_DB=None):
+    def __init__(self, celery=False, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
+        mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
+        TEMPLATE_DB=None, lookup_only=False):
         """Initialize
-        
+
         Keyword Arguments:
             celery {bool} -- Whether or not Celery is being used (default: {False})
             mincount {number} -- Minimum number of precedents for an achiral template
@@ -49,7 +49,7 @@ class RetroTransformer(TemplateTransformer):
                 so we generally use a lower threshold than achiral templates (default: {10})
             TEMPLATE_DB {None or MongoDB} -- Database to load templates from (default: {None})
         """
-        
+
         self.mincount = mincount
         if mincount_chiral == -1:
             self.mincount_chiral = mincount
@@ -58,6 +58,7 @@ class RetroTransformer(TemplateTransformer):
         self.templates = []
         self.celery = celery
         self.TEMPLATE_DB = TEMPLATE_DB
+        self.lookup_only = lookup_only
         self.precursor_prioritizers = {}
         self.template_prioritizers = {}
         self.precursor_prioritizer = None
@@ -71,7 +72,7 @@ class RetroTransformer(TemplateTransformer):
 
     def load(self, chiral=True, refs=False, rxns=True, efgs=False, rxn_ex=False):
         """Load templates to finish initializing the transformer
-        
+
         Keyword Arguments:
             TEMPLATE_DB {None or MongoDB} -- MongoDB to load from (default: {None})
             chiral {bool} -- Whether to pay close attention to chirality (default: {False})
@@ -85,7 +86,7 @@ class RetroTransformer(TemplateTransformer):
                 each template as it is loaded (default: {False})
         """
 
-        self.chiral = chiral 
+        self.chiral = chiral
 
         MyLogger.print_and_log('Loading retro-synthetic transformer, including all templates with more than {} hits ({} for chiral reactions)'.format(
             self.mincount, self.mincount_chiral), retro_transformer_loc)
@@ -109,9 +110,11 @@ class RetroTransformer(TemplateTransformer):
         try:
             self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
         except IOError:
+            MyLogger.print_and_log('reading from db', retro_transformer_loc)
+            MyLogger.print_and_log(self.lookup_only, retro_transformer_loc)
             self.load_from_database(True, chiral=chiral, rxns=True, refs=True, efgs=True, rxn_ex=True)
-            self.dump_to_file(True, file_path, chiral=chiral)
-            self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+            # self.dump_to_file(True, file_path, chiral=chiral)
+            # self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
         finally:
             self.reorder()
 
@@ -128,16 +131,16 @@ class RetroTransformer(TemplateTransformer):
         """Performs a one-step retrosynthesis given a SMILES string of a
         target molecule by applying each transformation template
         sequentially.
-        
+
         Arguments:
             smiles {string} -- product SMILES string to find precursors for
             mincount {int} -- Minimum template popularity
             prioritizers {2-tuple of (string, string)} -- tuple defining the
-                precursor_prioritizer and template_prioritizer to use for 
+                precursor_prioritizer and template_prioritizer to use for
                 expansion, each as a string
             **kwargs -- Additional kwargs to pass through to prioritizers or to
-                handle deprecated options            
-        
+                handle deprecated options
+
         Returns:
              RetroResult -- special object for a retrosynthetic expansion result,
                 defined by ./results.py
@@ -233,9 +236,9 @@ class RetroTransformer(TemplateTransformer):
                         # Save to dict
                         seen_reactants[reactant_smi] = (reactant_smi, probs[:truncate_to], indeces[:truncate_to], value)
                     reactants.append(seen_reactants[reactant_smi])
-                
+
                 all_outcomes.append((_id, smiles, template_idx, reactants, filter_score))
-            
+
             else:
                 all_outcomes.append((_id, smiles, template_idx, smiles_list, filter_score))
 
@@ -246,10 +249,10 @@ class RetroTransformer(TemplateTransformer):
 
     def apply_one_template_smilesonly(self, react_mol, smiles, template, **kwargs):
         """Takes a mol object and applies a single template
-                
+
         Arguments:
             react_mol {rdchiralReactants} -- Initialized reactant object using
-                RDChiral helper package; is the target compound to find 
+                RDChiral helper package; is the target compound to find
                 precursors for
             smiles {string} -- Product SMILES (no atom mapping)
             template {dict} -- Template to be applied, containing an initialized
@@ -257,7 +260,7 @@ class RetroTransformer(TemplateTransformer):
             smiles_list_only -- boolean for whether we only care about the
                 list of reactant smiles strings
             **kwargs -- Additional kwargs to accept deprecated options
-        
+
         Returns:
             yields results in the form of smiles_lists
         """
@@ -288,10 +291,10 @@ class RetroTransformer(TemplateTransformer):
 
     def apply_one_template(self, react_mol, smiles, template, **kwargs):
         """Takes a mol object and applies a single template
-                
+
         Arguments:
             react_mol {rdchiralReactants} -- Initialized reactant object using
-                RDChiral helper package; is the target compound to find 
+                RDChiral helper package; is the target compound to find
                 precursors for
             smiles {string} -- Product SMILES (no atom mapping)
             template {dict} -- Template to be applied, containing an initialized
@@ -299,7 +302,7 @@ class RetroTransformer(TemplateTransformer):
             smiles_list_only -- boolean for whether we only care about the
                 list of reactant smiles strings
             **kwargs -- Additional kwargs to accept deprecated options
-        
+
         Returns:
             list -- list of RetroPrecursor objects resulting from applying
                 this one template
@@ -358,12 +361,12 @@ class RetroTransformer(TemplateTransformer):
         return results
 
     def top_templates(self, target, **kwargs):
-        """Generator to return only top templates. 
-                
+        """Generator to return only top templates.
+
         Arguments:
             target {string} -- SMILES string of target product
             **kwargs -- additional options to pass template_prioritizer
-        
+
         Yields:
             dict -- single templates in order of decreasing priority
         """
@@ -389,5 +392,3 @@ if __name__ == '__main__':
 
     outcomes = t.apply_one_template_by_idx(1, 'CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1', 109659)
     print(outcomes)
-
-

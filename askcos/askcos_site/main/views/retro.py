@@ -8,24 +8,27 @@ import django.contrib.auth.views
 from pymongo.message import bson
 from bson.objectid import ObjectId
 from collections import defaultdict
+from datetime import datetime
 import time
 import numpy as np
 import json
 import os
 
-from ..globals import RetroTransformer, RETRO_FOOTNOTE, \
-    RETRO_CHIRAL_FOOTNOTE
+from ..globals import RetroTransformer, RETRO_CHIRAL_FOOTNOTE
 
 from ..utils import ajax_error_wrapper, resolve_smiles
 from .price import price_smiles_func
 from .users import can_control_robot
 from ..forms import SmilesInputForm
-from ..models import BlacklistedReactions, BlacklistedChemicals
+from ..models import BlacklistedReactions, BlacklistedChemicals, SavedResults
 
 from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors as get_top_precursors_c
 from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors
 from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
 from askcos_site.askcos_celery.treebuilder.tb_coordinator_mcts import get_buyable_paths as get_buyable_paths_mcts
+
+from celery.result import AsyncResult
+from askcos_site.celery import app
 
 #@login_required
 def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
@@ -143,15 +146,14 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             res = get_top_precursors.delay(smiles, template_prioritization, precursor_prioritization,
                 mincount=0, max_branching=max_n, template_count=template_count, max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
             context['precursors'] = res.get(120)
-            context['footnote'] = RETRO_FOOTNOTE
+            context['footnote'] = ''
         context['time'] = '%0.3f' % (time.time() - startTime)
 
         # Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
         # Also add up total number of examples
         for (i, precursor) in enumerate(context['precursors']):
             context['precursors'][i]['tforms'] = \
-                [dict(RetroTransformer.lookup_id(ObjectId(_id)), **
-                      {'id': str(_id)}) for _id in precursor['tforms']]
+                [dict(RetroTransformer.lookup_id(_id), **{'id': str(_id)}) for _id in precursor['tforms']]
             context['precursors'][i]['mols'] = []
             # Overwrite num examples
             context['precursors'][i]['num_examples'] = sum(
@@ -416,24 +418,16 @@ def ajax_start_retro_mcts_celery(request):
                                   max_natom_dict=max_natom_dict, min_chemical_history_dict=min_chemical_history_dict,
                                   apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold,
                                   return_first=return_first)
-    (tree_status, trees) = res.get(expansion_time * 3)
 
+    now = datetime.now()
 
-    # print(trees)
+    saved_result = SavedResults.objects.create(
+        user=request.user,
+        created=now,
+        dt=now.strftime('%B %d, %Y %H:%M:%S %p'),
+        result_id=res.id,
+        result_state='pending',
+        result_type='tree_builder'
+    )
 
-    (num_chemicals, num_reactions, _) = tree_status
-    data['html_stats'] = 'After expanding (with {} banned reactions, {} banned chemicals), {} total chemicals and {} total reactions'.format(
-        len(blacklisted_reactions), len(forbidden_molecules), num_chemicals, num_reactions)
-
-    if trees:
-        data['html_trees'] = render_to_string('trees_only.html',
-                                              {'trees': trees, 'can_control_robot': can_control_robot(request)})
-    else:
-        data['html_trees'] = render_to_string('trees_none.html', {})
-
-    # Save to session in case user wants to export
-    request.session['last_retro_interactive'] = trees
-    # print('Saved {} trees to {} session'.format(
-    #     len(trees), request.user.get_username()))
-
-    return JsonResponse(data)
+    return JsonResponse({'id': res.id})

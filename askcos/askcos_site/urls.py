@@ -73,7 +73,7 @@ urlpatterns += [
     re_path(r'^template/download/target=(?P<id>.+)$', views.template_target_export, name='template_target_export'),
 
     # Reaction examination
-    re_path(r'^reaxys/rxid=(?P<rxid>.+)$', views.rxid_target, name='rxid_target'),
+    # re_path(r'^reaxys/rxid=(?P<rxid>.+)$', views.rxid_target, name='rxid_target'),
 
     # Historians
     # re_path(ur'^history/chemicals/(?P<smiles>.+)$', views.chemical_history_check, name='chemical_history'),
@@ -131,7 +131,16 @@ urlpatterns += [
     re_path(r'^api/treebuilder/$', api.tree_builder.tree_builder, name='tree_builder_api'),
     re_path(r'^api/scscore/$', api.scscore.scscore, name='scscore_api'),
     re_path(r'^api/price/$', api.price.price, name='price_api'),
-    re_path(r'^api/celery/$', api.celery.celery_status, name='celery_api'),
+    re_path(r'^api/celery/$', api.status.celery_status, name='celery_api'),
+
+    # async results
+    re_path(r'^api/get-result/$', api.results.get_result, name='get_async_result'),
+    re_path(r'^api/my-results/$', api.results.my_results, name='api_my_results'),
+    re_path(r'^api/remove-result/$', api.results.remove_result, name='api_remove_results'),
+    re_path(r'^api/poll-result/$', api.results.poll_result, name='api_poll_result'),
+    re_path(r'^view-result/$', views.view_result, name='view_result'),
+    re_path(r'^view-tree-graph/$', views.view_tree_graph, name='view_tree_graph'),
+    re_path(r'^my-results/$', views.my_results, name='my_results'),
 
     # Reaction network
     re_path(r'^retro/network/$', views.retro_network, name='retro_network'),

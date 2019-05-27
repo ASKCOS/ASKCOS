@@ -20,7 +20,7 @@ import makeit.global_config as gc
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'notsosecret'
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', False)
+DEBUG = os.getenv('DEBUG', False)
 
 ALLOWED_HOSTS = ['0.0.0.0', 'askcos.mit.edu', 'askcos4.mit.edu']
 if os.environ.get('CURRENT_HOST'):
@@ -99,8 +99,12 @@ DEFAULT_FROM_EMAIL = 'no-reply@askcos4.mit.edu'
 # Where are user settings / banlists / etc. saved?
 # NOTE: we recommend relocating the db to an ssd for speed
 DATABASES = {'default': {
-    'ENGINE': 'django.db.backends.sqlite3',
-    'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    'ENGINE': 'django.db.backends.mysql',
+    'NAME': 'askcos_db',
+    'USER': os.getenv('MYSQL_USER', 'root'),
+    'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', 'root'),
+    'HOST': 'mysql',
+    'PORT': '3306',
 }}
 
 
@@ -112,7 +116,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_ROOT = os.path.join(PROJECT_PATH, 'static/')
-STATIC_URL = '/static/'
+STATIC_URL = os.getenv('STATIC_URL', '/static/')
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
