@@ -8,7 +8,7 @@ docker-compose up -d mysql mongo redis rabbit
 echo "###############################"
 echo "migrating and seeding databases"
 echo "###############################"
-docker-compose up -d mongoseed
+docker-compose up mongoseed
 
 echo "#################################"
 echo "starting web application services"
