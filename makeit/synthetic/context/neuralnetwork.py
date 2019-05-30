@@ -150,9 +150,11 @@ class NeuralNetContextRecommender(ContextRecommender):
             s2_input = []
             inputs = [pfp, rxnfp, c1_input, r1_input,
                       r2_input, s1_input, s2_input]
-            
+
             (top_combos,top_combo_scores)=self.predict_top_combos(inputs=inputs)
-            
+
+            top_combo_scores = list(map(float, top_combo_scores))
+
             if return_scores:
                 return (top_combos[:n],top_combo_scores[:n])
             else:
@@ -326,12 +328,12 @@ class NeuralNetContextRecommender(ContextRecommender):
                             context_combo_scores.append(
                                 c1_sc*s1_sc*s2_sc*r1_sc*r2_sc)
         context_ranks = list(num_combos+1 - stats.rankdata(context_combo_scores))
-        
+
         context_combos = [context_combos[
             context_ranks.index(i+1)] for i in range(num_combos)]
         context_combo_scores = [context_combo_scores[
             context_ranks.index(i+1)] for i in range(num_combos)]
-    
+
         return (context_combos, context_combo_scores)
 
     def category_to_name(self,chem_type,category):
@@ -345,7 +347,7 @@ class NeuralNetContextRecommender(ContextRecommender):
             return self.r1_dict[category]
         elif chem_type == 'r2':
             return self.r2_dict[category]
-        
+
 
 if __name__ == '__main__':
     cont = NeuralNetContextRecommender()
@@ -353,4 +355,3 @@ if __name__ == '__main__':
     cont.load_nn_model(model_path=gc.NEURALNET_CONTEXT_REC['model_path'], info_path=gc.NEURALNET_CONTEXT_REC[
                        'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path'])
     print(cont.get_n_conditions('CC1(C)OBOC1(C)C.Cc1ccc(Br)cc1>>Cc1cccc(B2OC(C)(C)C(C)(C)O2)c1', 10, with_smiles=False, return_scores=True))
-
