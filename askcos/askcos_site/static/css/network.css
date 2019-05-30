@@ -4,6 +4,10 @@
     border: 1px solid lightgray;
 }
 
+#hierarchical-button {
+  font-weight: bold;
+}
+
 .blue-text {
     font-weight: bold;
     color: #000088;
