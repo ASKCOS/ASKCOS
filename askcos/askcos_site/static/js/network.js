@@ -238,7 +238,8 @@ var app = new Vue({
         numTemplates: 1000,
         maxCumProb: 0.999,
         minPlausibility: 0.01,
-        sortingCategory: "score"
+        sortingCategory: "score",
+        networkHierarchical: false
     },
     beforeMount: function() {
         this.allowResolve = this.$el.querySelector('[ref="allowResolve"]').checked;
@@ -336,6 +337,21 @@ var app = new Vue({
                     hideLoader();
                     alert('There was an error fetching precursors for this target with the supplied settings')
                 })
+        },
+        toggleHierarchical: function() {
+          if (typeof(network) == 'undefined') {
+            return
+          }
+          if (this.networkHierarchical) {
+            network.setOptions({'layout': {'hierarchical': false}})
+            document.querySelector('#hierarchical-button').innerHTML = 'G'
+            this.networkHierarchical = false;
+          }
+          else {
+            network.setOptions({'layout': {'hierarchical': {sortMethod: 'directed'}}})
+            document.querySelector('#hierarchical-button').innerHTML = 'H'
+            this.networkHierarchical = true;
+          }
         },
         expandNode: function() {
             if (this.isModalOpen() || typeof(network) == "undefined") {
@@ -501,6 +517,7 @@ var app = new Vue({
             this.data.nodes.remove(this.data.nodes.getIds());
             this.data.edges.remove(this.data.edges.getIds());
             this.selected = null;
+            document.querySelector('#hierarchical-button').innerHTML = 'G';
         },
         clearSelection: function() {
             this.selected = null;
