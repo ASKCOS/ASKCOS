@@ -5,10 +5,12 @@ echo "starting database services"
 echo "##########################"
 docker-compose up -d mysql mongo redis rabbit
 
-echo "###############################"
-echo "migrating and seeding databases"
-echo "###############################"
-docker-compose up mongoseed
+if [ $1 != "skip_seed" ]; then
+  echo "###############################"
+  echo "migrating and seeding databases"
+  echo "###############################"
+  docker-compose up mongoseed
+fi
 
 echo "#################################"
 echo "starting web application services"

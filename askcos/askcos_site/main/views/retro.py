@@ -209,6 +209,7 @@ def retro_network(request):
     context['allowResolve'] = 'checked' if allow_resolve else ''
     return render(request, 'reaction_network.html', context)
 
+@login_required
 def retro_interactive(request, target=None):
     '''Builds an interactive retrosynthesis page'''
 
@@ -233,7 +234,7 @@ def retro_interactive(request, target=None):
 
     return render(request, 'retro_interactive.html', context)
 
-
+@login_required
 def retro_interactive_mcts(request, target=None):
     '''Builds an interactive retrosynthesis page'''
 

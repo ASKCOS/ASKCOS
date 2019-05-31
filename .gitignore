@@ -12,3 +12,6 @@ makeit/predict/output/*
 output/*
 askcos_site/static/admin/*
 *celery_logs*
+
+# artfacts from using JupyterLab
+*ipynb_checkpoints*
