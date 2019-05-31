@@ -7,7 +7,7 @@ function hidePopup() {
 }
 
 function submitSupport() {
-  var mailtoString = "mailto:mlpds_support@mit.edu"
+  var mailtoString = "mailto:incoming+mlpds-mit-askcos-askcos-12564933-issue-@incoming.gitlab.com"
   mailtoString += "?subject="+document.querySelector('#support-module').value
   mailtoString += "|"+document.querySelector('#support-category').value
   if (document.querySelector('#support-shared').checked) {
