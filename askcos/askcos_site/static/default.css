@@ -1,0 +1,552 @@
+html {
+    position: relative;
+    min-height: 100%;
+}
+body {
+    font-family: sans-serif;
+    font-size: 10pt;
+    margin: 0;
+    margin-bottom:16pt;
+}
+.footer {
+    position:absolute;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    background-color: #222222;
+    color: #9D9D9D;
+    font-size: 8pt;
+    height: 16pt;
+    line-height:16pt;
+}
+
+.center {
+    display:block;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+.tutorialimage {
+    border: 1px solid black;
+    width: 60%;
+    margin-bottom: 15px;
+    margin-top: 10px;
+}
+
+/* Customization styles*/
+.org-text {
+    font-size: xx-small;
+}
+
+/* Colors */
+
+body, #document {
+/*    background-color: #F0F0F0;
+*/}
+
+#main {
+/*    background-color: #FFFFFF;
+    border: 1px solid #0000A0;
+    border-right: 0px;*/
+}
+
+h1, h2, h3 {
+      color: #333333;
+}
+
+/*a, #logo {
+    color: #993333;
+}*/
+
+#navbar {
+    border-bottom: 1px solid #0000A0;
+}
+
+/* Hyperlinks */
+
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.biglink {
+    font-size: 100%;
+    text-align: center;
+}
+
+.nav-tabs > li > a {
+    margin-right: 0px;
+    border-radius: 0px 0px 0 0;
+    border-color: transparent;
+}
+
+.nav-tabs {
+    border-bottom: 0px;
+}
+
+.tooltip-inner {
+    min-width: 50px;
+    max-width: 400px;
+}
+
+.table-borderless > tbody > tr > td,
+.table-borderless > tbody > tr > th,
+.table-borderless > tfoot > tr > td,
+.table-borderless > tfoot > tr > th,
+.table-borderless > thead > tr > td,
+.table-borderless > thead > tr > th {
+    border: none !important;
+}
+.table-nonfluid {
+   width: auto !important;
+}
+.table_templates {
+    font-size:small;
+    table-layout:fixed;
+    width:100%;
+}
+.table_templates td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+.table_templates > tbody > tr:nth-child(2n+1) > td {
+    border-top: 3px solid #bbb;
+}
+
+/* Headings */
+
+h2, h3 {
+    margin: 0pt 0pt 12pt 0pt;
+    font-weight: normal;
+}
+
+/*h1 {
+    font-size: 200%;
+    margin-top: 6pt;
+}*/
+
+h2 {
+    font-size: 150%;
+}
+
+h3 {
+    font-size: 125%;
+}
+
+/* Document structure */
+
+#document {
+    width: 100%;
+}
+
+#sidebar {
+    float: left;
+    width: 200px;
+    padding: 0px;
+}
+
+#logo {
+    text-align: center;
+    font-size: 150%;
+    font-weight: bold;
+}
+
+#mainbar {
+    margin: 0px 0px 0px 200px;
+    padding: 0px;
+}
+
+#navbar {
+    font-size: 80%;
+}
+
+
+/*html, body, #document, #mainbar {
+    height: 100%;
+}
+#main {
+    min-height: 90%;
+}*/
+
+/* Header and footer */
+
+#header, #footer {
+    padding: 4px 8px 4px 8px;
+    font-size: 80%;
+}
+
+
+
+#footer {
+    text-align: center;
+}
+
+/* Sidebar list */
+
+#sidebar .icon {
+    float: left;
+}
+
+#sidebar .biglink {
+    font-size: 120%;
+    font-weight: bold;
+    text-align: left;
+    vertical-align: bottom;
+}
+
+#sidebar .linkdesc {
+    font-size: 90%;
+    text-align: left;
+    vertical-align: top;
+    font-style: italic;
+    padding:5px;
+}
+
+.nav-side-custom > li {
+    padding: 15px;
+}
+
+#sidebar img {
+    padding:10px;
+}
+
+/* Database styles */
+
+div.error {
+    color: #993333;
+    border: 2px solid #993333;
+    padding: 0.5em;
+    margin: 0.5em;
+}
+
+div.warning {
+    color: #9F6000;
+    border: 2px solid #9F6000;
+    padding: 0.5em;
+    margin: 0.5em;
+}
+
+.comment, .history {
+    width: 100%;
+    background-color: #EEEEEE;
+    padding: 2px;
+    margin: 2px 0px 2px 0px;
+}
+
+td.commentText p, td.historyText p {
+    margin: 0px;
+}
+
+.commentIcon, .historyIcon {
+    padding: 0 4px 0 0;
+    vertical-align: middle;
+}
+
+.commentText, .historyText {
+    width: 100%;
+}
+
+.commentMeta, .historyMeta {
+    font-size: 80%;
+    color: #808080;
+}
+
+table.data {
+    width: 100%;
+}
+
+table.data td.heading {
+    text-align: center;
+    font-weight: normal;
+    text-decoration: underline;
+    width: 100%;
+}
+
+table.data td.key {
+    text-align: right;
+    font-weight: bold;
+    vertical-align: top;
+    width: 50%;
+}
+
+table.data td.value {
+    text-align: left;
+    width: 50%;
+}
+
+.avatar img {
+    vertical-align: middle;
+}
+
+table.thermoData, table.kineticsData {
+    width: 100%;
+}
+
+table.thermoData tr td , table.kineticsData tr td {
+    border-bottom: 1px solid #808080;
+}
+
+table.thermoData th, table.kineticsData th {
+    text-align: left;
+}
+
+.reactants img, .products img {
+    vertical-align: middle;
+}
+
+td.reactants {
+    text-align: right;
+}
+
+td.products {
+    text-align: left;
+}
+
+td.reactionArrow {
+    font-size: 125%;
+    text-align: center;
+    vertical-align: middle;
+}
+
+table.reference {
+    margin-bottom: 1em;
+}
+
+table.reference td.label {
+    font-weight: bold;
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+table.reference td.section {
+    text-decoration: underline;
+    font-weight: bold;
+    text-align: left;
+    padding-top: 1em;
+}
+
+table.reference td p {
+    margin: 0px;
+}
+
+table.KineticsData {
+    margin: auto;
+}
+
+#entry_form label {
+    display: block;
+    font-weight: bold;
+}
+#entry_form li {
+    list-style: none;
+}
+#entry_form .data_entry {
+    font-family: 'Menlo', 'Andalae Mono', 'Lucida Console', 'Monaco', monospace;
+}
+#entry_form .change_summary{
+    width: 100%;
+}
+
+
+/* Smiles */
+
+font.smiles {
+    font-family: 'Courier New';
+}
+
+/* Retrosynthesis */
+
+.table_precursors tr {
+    text-align: center;
+}
+
+.table_outcomes {
+    border-spacing: 20px;
+}
+.table_outcomes tr {
+    border-bottom: 1px;
+    border-color: solid #ccc;
+}
+.table_templates tr:nth-child(even) {
+    border-top: 3px;
+}
+
+
+/* BEGIN TREE CSS */
+.tree {margin: 0; padding: 0;}
+
+.tree ul {
+    padding-top: 20px; position: relative;
+
+    transition: all 0.5s;
+    -webkit-transition: all 0.5s;
+    -moz-transition: all 0.5s;
+}
+
+.tree li {
+    float: left; text-align: center;
+    list-style-type: none;
+    position: relative;
+    padding: 20px 5px 0 5px;
+
+    transition: all 0.5s;
+    -webkit-transition: all 0.5s;
+    -moz-transition: all 0.5s;
+}
+
+/*We will use ::before and ::after to draw the connectors*/
+
+.tree li::before, .tree li::after{
+    content: '';
+    position: absolute; top: 0; right: 50%;
+    border-top: 1px solid #888;
+    width: 50%; height: 20px;
+}
+.tree li::after{
+    right: auto; left: 50%;
+    border-left: 1px solid #888;
+}
+
+/*We need to remove left-right connectors from elements without
+any siblings*/
+.tree li:only-child::after, .tree li:only-child::before {
+    display: none;
+}
+
+/*Remove space from the top of single children*/
+.tree li:only-child{ padding-top: 0;}
+
+/*Remove left connector from first child and
+right connector from last child*/
+.tree li:first-child::before, .tree li:last-child::after{
+    border: 0 none;
+}
+/*Adding back the vertical connector to the last nodes*/
+.tree li:last-child::before{
+    border-right: 1px solid #888;
+    border-radius: 0 5px 0 0;
+    -webkit-border-radius: 0 5px 0 0;
+    -moz-border-radius: 0 5px 0 0;
+}
+.tree li:first-child::after{
+    border-radius: 5px 0 0 0;
+    -webkit-border-radius: 5px 0 0 0;
+    -moz-border-radius: 5px 0 0 0;
+}
+
+/*Time to add downward connectors from parents*/
+.tree ul ul::before{
+    content: '';
+    position: absolute; top: 0; left: 50%;
+    border-left: 1px solid #888;
+    width: 0; height: 20px;
+}
+
+.tree li a.treebox{
+    border: 1px solid #888;
+    padding: 5px 10px;
+    text-decoration: none;
+    color: #666;
+    font-family: arial, verdana, tahoma;
+    font-size: 11px;
+    display: inline-block;
+
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+
+    transition: all 0.5s;
+    -webkit-transition: all 0.5s;
+    -moz-transition: all 0.5s;
+}
+
+/*Time for some hover effects*/
+/*We will apply the hover effect the the lineage of the element also*/
+/*.tree li a:hover, .tree li a:hover+ul li a {
+    background: #c8e4f8; color: #000; border: 1px solid #94a0b4;
+}
+*/
+.tree li a.treebox:hover {
+    #border-width: 2px;
+}
+
+/*Connector styles on hover*/
+/*.tree li a:hover+ul li::after,
+.tree li a:hover+ul li::before,
+.tree li a:hover+ul::before,
+.tree li a:hover+ul ul::before{
+    border-color:  #94a0b4;
+}*/
+
+/*Thats all. I hope you enjoyed it.
+Thanks :)*/
+
+
+/* BEGIN TOOLTIP (http://www.menucool.com/tooltip/css-tooltip) */
+a.treetooltip {outline:none; }
+a.treetooltip strong {line-height:30px;}
+a.treetooltip:hover {text-decoration:none;}
+a.treetooltip div {
+    z-index:10;display:none; padding:14px 20px;
+    margin-top:-30px; margin-left:0px;
+    #width:200px;
+    line-height:16px;
+}
+a.treetooltip:hover div{
+    display:inline; position:absolute; color:#111;
+    border:1px solid #DCA; background:#fffAF0;}
+.callout {z-index:20;position:absolute;top:30px;border:0;left:-12px;}
+
+/*CSS3 extras*/
+a.treetooltip div
+{
+    border-radius:4px;
+    box-shadow: 5px 5px 8px #CCC;
+}
+
+/* Clear to make div blocks take up the right amount of space */
+.clear { clear: both; }
+
+/* Hide number arrows */
+input[type='number'] {
+    -moz-appearance:textfield;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+}
+
+.pseudolink {
+    color:blue;
+    text-decoration:underline;
+    cursor:pointer;
+}
+[data-toggle="collapse"].collapsed .if-not-collapsed {
+    display:none;
+}
+[data-toggle="collapse"]:not(.collapsed) .if-collapsed {
+    display:none;
+}
+
+
+
+
+
+
+
+/* Override jumbotron font sizes */
+.jumbotron h1 {
+    font-size: 32pt;
+}
+.jumbotron p.lead {
+    font-size: 16pt;
+}
+.jumbotron p {
+    font-size: 10pt;
+}
+

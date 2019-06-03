@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Saved results{% endblock %}
+{% block page_title %}Restored from {{ saved_result.created }}{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'user_saved_results' %}">Saved</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block page_body %}
+{% autoescape off %}{{ html }}{% endautoescape %}
+{% endblock %}
+
+{% block javascript %}
+<script>
+function showFields(name) {
+    if (name=='Relevance') {
+        $(".retro_relevance_settings").show();
+    } else {
+        $(".retro_relevance_settings").hide();
+    }
+}
+function showFieldsEvaluation(name) {
+    if (name=='Template_Based') {
+        $("#synth_mincount_control").show();
+        $("#synth_mincount_control2").show();
+    } else {
+        $("#synth_mincount_control").hide();
+        $("#synth_mincount_control2").hide();
+    }
+}
+function showFieldsChemProp(name) {
+    if (name=='none') {
+        $(".chemical_property_settings").hide();
+    } else {
+        $(".chemical_property_settings").show();
+        if (name=='and') {
+            $("#max_chemprop_c").val(1000);
+            $("#max_chemprop_n").val(1000);
+            $("#max_chemprop_o").val(1000);
+            $("#max_chemprop_h").val(1000);
+        } else {
+            $("#max_chemprop_c").val(0);
+            $("#max_chemprop_n").val(0);
+            $("#max_chemprop_o").val(0);
+            $("#max_chemprop_h").val(0);
+        }
+    }
+}
+function showFieldsChemPop(name) {
+    if (name=='none') {
+        $(".chemical_popularity_settings").hide();
+    } else {
+        $(".chemical_popularity_settings").show();
+    }
+}
+window.onload = function() {
+    console.log("{{ form.template_prioritization }}");
+    showFields("{{ template_prioritization }}");
+    console.log("{{ form.forward_scorer }}");
+    showFieldsEvaluation("{{ forward_scorer }}");
+}
+function resetSettings() {
+    $("#max_depth").val(4);
+    $("#max_branching").val(20);
+    $("#retro_mincount").val(0);
+    $("#expansion_time").val(60);
+    $("#id_template_prioritzation").val('Relevance');
+    $("#id_precursor_prioritization").val('RelevanceHeuristic');
+    $("#template_count").val(100);
+    $("#max_cum_prob").val(0.995);
+    $("#max_ppg").val(100);
+    $("#chiral").prop("checked", true);
+    $("#id_chemical_property_logic").val('none');
+    showFieldsChemProp('none');
+    $("#id_chemical_popularity_logic").val('none');
+    showFieldsChemPop('none');
+    $("#min_chempop_reactants").val(5);
+    $("#min_chempop_products").val(5);
+    $("#filter_threshold").val(0.75);
+    showFieldsEvaluation("Template_Free");
+    showFields("Relevance");
+}
+function liberalSettings() {
+    resetSettings();
+    $("#max_depth").val(4);
+    $("#max_branching").val(20);
+    $("#retro_mincount").val(0);
+    $("#expansion_time").val(60);
+    $("#template_count").val(1000);
+    $("#max_cum_prob").val(0.999);
+    $("#filter_threshold").val(0.1);
+}
+function longliberalSettings() {
+    resetSettings();
+    $("#max_depth").val(5);
+    $("#max_branching").val(25);
+    $("#expansion_time").val(120);
+    $("#template_count").val(1000);
+    $("#max_cum_prob").val(0.9999);
+    $("#filter_threshold").val(0.01);
+}
+function strugglingSettings() {
+    resetSettings();
+    $("#max_depth").val(6);
+    $("#max_branching").val(25);
+    $("#retro_mincount").val(0);
+    $("#expansion_time").val(120);
+    $("#template_count").val(1000);
+    $("#max_cum_prob").val(0.9999);
+    $("#id_chemical_popularity_logic").val('or');
+    showFieldsChemPop('or');
+    $("#min_chempop_reactants").val(5);
+    $("#min_chempop_products").val(5);
+    $("#filter_threshold").val(0.0001);
+}
+$("#id_smiles").change(function () {
+    console.log( $(this).val() );
+    $.ajax({
+        url: '/ajax/smiles_to_image/',
+        data: {
+            smiles: $(this).val(),
+        },
+        dataType: 'json',
+        success: function (data) {
+            $("#status").html('');
+            $("#statistics").html('');
+            $("#results").html('');
+            $("#start_retro").html('Start');
+            if (data.err) {
+                $("#target_mol").html('error! could not parse');
+                $("#target_mol_wrapper").show();
+                $("#controls_wrapper").hide();
+                $("#settings_wrapper").hide();
+            } else {
+                $("#target_mol").html(data.html);
+                $("#target_mol_wrapper").show();
+                $("#controls_wrapper").show();
+                $("#settings_wrapper").show();
+                $("#id_smiles").val(data.smiles);
+            }
+        },
+    });
+
+});
+$("#start_retro").click(function () {
+    if ($("#start_retro").prop('disabled')) {
+        alert('Be patient! It is running');
+    } else {
+        console.log('starting retro');
+        $("#start_retro").prop('disabled', true);
+        $("#status").html(': running...');
+        $("#start_retro").html('Running...');
+        $.ajax({
+            url: '/ajax/start_retro_celery/',
+            data: {
+                smiles: $("#id_smiles").val(),
+                max_depth: $("#max_depth").val(),
+                max_branching: $("#max_branching").val(),
+                retro_mincount: $("#retro_mincount").val(),
+                expansion_time: $("#expansion_time").val(),
+                template_prioritization: $("#id_template_prioritzation").val(),
+                precursor_prioritization: $("#id_precursor_prioritization").val(),
+                template_count: $("#template_count").val(),
+                max_cum_prob: $("#max_cum_prob").val(),
+                max_ppg: $("#max_ppg").val(),
+                chiral: $("#chiral").is(":checked"),
+                chemical_property_logic: $("#id_chemical_property_logic").val(),
+                max_chemprop_c: $("#max_chemprop_c").val(),
+                max_chemprop_n: $("#max_chemprop_n").val(),
+                max_chemprop_o: $("#max_chemprop_o").val(),
+                max_chemprop_h: $("#max_chemprop_h").val(),
+                chemical_popularity_logic: $("#id_chemical_popularity_logic").val(),
+                min_chempop_reactants: $("#min_chempop_reactants").val(),
+                min_chempop_products: $("#min_chempop_products").val(),
+                filter_threshold: $("#filter_threshold").val(),
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.err) {
+                    alert(data.message);
+                    $("#status").html(': failed?');
+                } else {
+                    $("#statistics").html(data.html_stats);
+                    $("#results").html(data.html_trees);
+                    $("#status").html(': done!');
+                }
+                $("#start_retro").html('Start');
+                $("#start_retro").prop('disabled', false);
+            }
+        });
+    }
+});
+$('#results').on('click', '.rxn', function(){
+    console.log('clicked on a rxn box');
+    smiles = $(this).attr("smiles");
+    targetid = $(this).attr("targetid");
+    necessaryreagent = $(this).attr("necessaryreagent");
+    console.log(smiles);
+    console.log(targetid);
+    $.ajax({
+        url: '/ajax/evaluate_rxnsmiles/',
+        data: {
+            smiles: smiles,
+            synth_mincount: $("#synth_mincount").val(),
+            necessary_reagent: necessaryreagent,
+            forward_scorer: $("#id_forward_scorer").val(),
+
+        },
+        dataType: 'json',
+        success: function (data) {
+            console.log(data)
+            if (data.err) {
+                alert(data.message);
+            } else {
+                $(".rxnbox" + targetid).css('background-color', data.html_color);
+                $(".eval" + targetid).html(data.html);
+            }
+        }
+    });
+});
+$('#results').on('click', '.hiderxn', function () {
+    console.log('trying to hide a rxn');
+    targetid = $(this).attr("targetid");
+    console.log(targetid);
+    $(".rxnbox" + targetid).closest('.tree').hide();
+    $(".rxnbox" + targetid).closest('.tree').collapse('hide');
+});
+$('#results').on('click', '.hidechem', function () {
+    console.log('trying to hide a rxn');
+    targetid = $(this).attr("targetid");
+    console.log(targetid);
+    $(".chembox" + targetid).closest('.tree').hide();
+    $(".chembox" + targetid).closest('.tree').collapse('hide');
+});
+$('#results').on('click', '.blacklistrxn', function () {
+    console.log('trying to blacklist a reaction');
+    var smiles = $(this).attr("smiles");
+    console.log(smiles);
+    var desc = prompt("Please enter a reason (for your records only)", "no reason");
+    if (desc) {
+        var now = Date.now();
+        var datetime = now.toString('MMMM dd, yyyy, hh:mm:ss tt');
+        $.ajax({
+            type: 'POST',
+            url: '/ajax/user_blacklist_reaction/',
+            data: {
+                smiles: smiles,
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+                desc: desc,
+                datetime: datetime,
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.err) {
+                    alert(data.err);
+                } else {
+                    alert('Blacklisted reaction "' + smiles + '" at ' + datetime);
+                }
+            }
+        });
+    };
+});
+$('#results').on('click', '.blacklistchem', function () {
+    console.log('trying to blacklist a chemical');
+    var smiles = $(this).attr("smiles");
+    console.log(smiles);
+    var desc = prompt("Please enter a reason (for your records only)", "no reason");
+    if (desc) {
+        var now = Date.now();
+        var datetime = now.toString('MMMM dd, yyyy, hh:mm:ss tt');
+        $.ajax({
+            type: 'POST',
+            url: '/ajax/user_blacklist_chemical/',
+            data: {
+                smiles: smiles,
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+                desc: desc,
+                datetime: datetime,
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.err) {
+                    alert(data.err);
+                } else {
+                    alert('Blacklisted chemical "' + smiles + '" at ' + datetime);
+                }
+            }
+        });
+    };
+});
+// On load, if entries defined, switch it out
+$(document).ready(function() {
+    if ("{{target_mol}}" != "") {
+        $("#id_smiles").val("{{target_mol}}");
+        console.log('Found target from passed context');
+    }
+    // Don't change on load
+    // if ($("#id_smiles").val() != "") {
+    //     $("#id_smiles").trigger("change");
+    //     console.log('triggered change in target definition');
+    // }
+});
+</script>
+
+{% endblock %}

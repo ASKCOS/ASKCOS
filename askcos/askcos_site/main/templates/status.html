@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+{% block title %}Server Status{% endblock %}
+
+{% block extrahead %}
+<script src="{% static 'js/browser-compat.js' %}"></script>
+<script src="{% static 'js/vue.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/loader.css' %}" type="text/css">
+<link rel="stylesheet" href="{% static 'css/fontawesome.min.css' %}" type="text/css">
+{% endblock %}
+
+{% block page_title %}Server Status{% endblock %}
+
+{% block page_body %}
+
+<div id="app" class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center">
+                <button class="btn btn-info" v-on:click="update">Refresh</button>
+            </div>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Worker Queue</th>
+                        <th class="text-center">Busy</th>
+                        <th class="text-center">Available</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template v-for="q in queues">
+                        <tr>
+                            <td>%% q['name'] %%</td>
+                            <td class="text-center">%% q['busy'] %%</td>
+                            <td class="text-center">%% q['available'] %% </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="loader"></div>
+</div>
+
+<script src="{% static 'js/status.js' %}"></script>
+
+{% endblock %}

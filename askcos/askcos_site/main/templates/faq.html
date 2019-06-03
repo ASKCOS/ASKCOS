@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}FAQ{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block page_title %}FAQ{% endblock %}
+
+
+{% block page_body %}
+
+<!-- <h1>Temporarily under construction - some modules may not work</h1>
+ -->
+ <h3>Why can't I find any pathways to my target?</h3>
+ <p>Retrosynthetic suggestions are proposed, fundamentally, by templates we have generalized from reaction precedents. For some products, e.g., natural products, there may be one very specific reaction step that is highly substrate- or scaffold-specific. Such a reaction template would have very few (if any) similar precedents, and so the program was not able to successfully generalize to this target.</p>
+ <p>When using the relevance template prioritizer, it's important to note that we do not apply all of the templates in our library (to save on computational time). That means that even if an obscure template would perform well, we may not apply it to the target because it does not appear relevant. You can return to the one-step retrosynthesis module and instead chose to apply <i>all</i> templates to see if this is the case.
+
+ <h3>Why doesn't the program find the known literature route to my target?</h3>
+ <p>Our primary data source is currently Reaxys, so we are somewhat at the mercy of the quality/inclusivity of their database. There are many known reactions that are <i>not</i> in their database, despite their best efforts to maximize its coverage. Moreover, when you search for a pathway, we do not try to find exact literature precedents, even if there is a record for that exact target compound and a full pathway is known.</p>
+ <p>That may sound counterintuitive, but what we are trying to do is generalize known chemistry to new substrates (and eventually, to new chemistry). Reaxys provides the standard search/lookup tool for known targets, so we are purposefully avoiding replicating their functionality. We do report the number of times a chemical appears as a reactant or product in the database, which can serve as an indication that it is worth searching Reaxys or SciFinder for an exact match.</p>
+
+ <h3>Why do I get an error message when trying to run an expansion?</h3>
+ <p>There are a limited number of workers available to perform computationally-intensive tasks. There is a chance that other users were running expansions at the same time, so no available pool of workers was found. Often, restarting the page and submitting the request again is sufficient to correct the problem. In rare cases, these workers may run into an error state and refuse to accept incoming requests, at which time they will be restarted. If you keep running into issues, please <a href="mailto:{{ contact_email }}?subject=Problem with the askcos website">send us a note</a>.</p>
+
+<h3>The routes I'm seeing are all very similar</h3>
+<p>We are thinking about ways to quantify diversity so we can show a broader range of suggestions. In the meantime, there is still the ability to <i>hide all</i> chemicals or reactions in the tree builder tool. When looking at a result, holding the mouse over a chemical or reaction node will raise a popup box that lets you (a) blacklist that reaction or chemical, in which case it will not be used in future pathways, or (b) hide all occurrences of that chemical or reaction, which minimizes all pathways it appears in.</p>
+{% endblock %}

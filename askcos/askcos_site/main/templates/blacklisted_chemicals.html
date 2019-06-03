@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Blacklisted Chemicals{% endblock %}
+{% block page_title %}Your blacklisted chemicals{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'user_blacklisted_chemicals' %}">Blacklisted</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block javascript %}
+<script>
+$('#blacklisted_chemicals').on('click', '.toggle_activation', function () {
+    var block = $(this);
+    if (block.html() === "True") {
+    	console.log('trying to deactivate');
+    	$.ajax({
+	        url: '/ajax/user_deactivate_chemical/',
+	        data: {
+	            id: block.attr("id"),
+	        },
+	        dataType: 'json',
+	        success: function (data) {
+	            if (data.err) {
+	                alert(data.err);
+	            } else {
+	                block.html('False');
+	            }
+	        }
+	    });
+    } else {
+    	console.log('trying to reactivate');
+    	$.ajax({
+	        url: '/ajax/user_activate_chemical/',
+	        data: {
+	            id: block.attr("id"),
+	        },
+	        dataType: 'json',
+	        success: function (data) {
+	            if (data.err) {
+	                alert(data.err);
+	            } else {
+	                block.html('True');
+	            }
+	        }
+	    });
+    };
+    
+});
+</script>
+{% endblock %}
+
+{% block page_body %}
+
+<p>The following table lists chemicals that you have identified as problematic in some way; any compounds listed as <u>active</u> will be excluded from future expansions by the Tree Builder. You can delete or deactivate any of these banned chemicals at any time.</p>
+
+<p>To add a chemical to the ban list, hold your mouse over a chemical node in the results of a Tree Builder expansion. Click on the <i>blacklist</i> link in the upper-right corner.</p>
+
+{% if blacklisted_chemicals %}
+<table class="table" id="blacklisted_chemicals">
+<tr>
+	<th width="10%">Active</th>
+	<th width="15%">Created</th>
+	<th width="40%">Chemical</th>
+	<th width="30%">Description</th>
+    <th width="5%">Delete</th>
+</th>
+{% for blacklisted_chemical in blacklisted_chemicals %}
+<tr>
+	<td class="pseudolink toggle_activation" id="{{ blacklisted_chemical.id }}">{{ blacklisted_chemical.active }}</td>
+	<td>{{ blacklisted_chemical.created }}</td>
+	<td><div style="overflow-x:auto"><img src="" data-async-load="{% url 'draw_smiles' blacklisted_chemical.smiles %}" alt="{{ blacklisted_chemical.smiles }}" max-width="100%"></div></td>
+	<td>{{ blacklisted_chemical.description }}</td>
+    <td><a href="{% url 'user_blacklisted_chemicals_del' blacklisted_chemical.id %}" onclick="return confirm('Are you sure you want to delete this blacklisted chemical? You can always deactivate it temporarily.');">X</a></td>
+</th>
+{% endfor %}
+</table>
+{% else %}
+<br>
+<p>Looks like there's nothing here!</p>
+{% endif %}
+
+{% endblock %}
+
