@@ -4,6 +4,10 @@ Software package for the prediction of feasible synthetic routes towards a desir
 
 Please note that the MPL 2.0 license for this repository does not apply to the data and trained models. The data and trained models are released under CC BY-NC-SA (i.e., are for noncommercial use only).
 
+Contributors include Connor Coley, Mike Fortunato, Hanyu Gao, and Pieter Plehiers.
+
+
+
 # Quick start using Google Cloud
 
 ```
