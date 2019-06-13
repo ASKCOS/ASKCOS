@@ -10,12 +10,24 @@ import random
 import time
 import os
 import makeit.utilities.io.pickle as pickle
-import tensorflow as tf 
+import tensorflow as tf
 import math
 
 relevance_template_prioritizer_loc = 'relevance_template_prioritizer'
 
 def linearND(input_, output_size, scope, reuse=False, init_bias=0.0):
+    """??
+
+    Args:
+        input_ ():
+        output_size ():
+        scope ():
+        reuse (bool, optional) (default: {False})
+        init_bias (float, optional) (default: {0.0})
+
+    Returns:
+        ??
+    """
     shape = input_.get_shape().as_list()
     ndim = len(shape)
     stddev = min(1.0 / math.sqrt(shape[-1]), 0.1)
@@ -35,9 +47,25 @@ def linearND(input_, output_size, scope, reuse=False, init_bias=0.0):
     return res
 
 class RelevanceTemplatePrioritizer(Prioritizer):
-    '''
-    Allows to prioritize the templates based on their relevance
-    '''
+    """A template Prioritizer based on template relevance.
+
+    Attributes:
+        retro (bool):
+        FP_rad (int): Fingerprint radius.
+        FP_len (int): Fingerprint length.
+        vars (list of np.ndarry of np.ndarray of np.float32): Weights and bias
+            of model.
+        template_count (int):
+        max_cum_prob (float):
+        batch_size ():
+        NK (int):
+        session (tensorflow.python.client.session.Session):
+        input_mol (tensorflow.python.framework.ops.Tensor):
+        mol_hiddens (tensorflow.python.framework.ops.Tensor):
+        score (tensorflow.python.framework.ops.Tensor):
+        topk (tensorflow.python.framework.ops.Tensor):
+        coord (tensorflow.python.training.coordinator.Coordinator):
+    """
 
     def __init__(self, retro=True, use_tf=True):
         self.retro = retro
@@ -110,17 +138,39 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         self.get_topk_from_mol = get_topk_from_mol
 
     def mol_to_fp(self, mol):
+        """Returns fingerprint of molecule.
+
+        Args:
+            mol (Chem.rdchem.Mol or None): Molecule to get fingerprint
+                of.
+
+        Returns:
+            np.ndarray of np.float32: Fingerprint of given molecule.
+        """
         if mol is None:
             return np.zeros((self.FP_len,), dtype=np.float32)
         return np.array(AllChem.GetMorganFingerprintAsBitVect(mol, self.FP_rad, nBits=self.FP_len,
                                                               useChirality=True), dtype=np.float32)
 
     def smi_to_fp(self, smi):
+        """Returns fingerprint of molecule from given SMILES string.
+
+        Args:
+            smi (str): SMILES string of given molecule.
+        """
         if not smi:
             return np.zeros((self.FP_len,), dtype=np.float32)
         return self.mol_to_fp(Chem.MolFromSmiles(smi))
 
     def get_priority(self, input_tuple, **kwargs):
+        """Returns list of templates ordered by relevance.
+
+        Args:
+            input_tuple (2-tuple of (list of ??, ??)): Templates to get the
+                priority of.
+            **kwargs: Additional optional parameters. Used for template_count
+                and max_cum_prob.
+        """
         (templates, target) = input_tuple
         template_count = kwargs.get('template_count', 100)
         max_cum_prob = kwargs.get('max_cum_prob', 0.995)
@@ -158,6 +208,11 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         return self.get_topk_from_mol(mol, k=k)
 
     def sigmoid(x):
+        """Returns sigmoid of x.
+
+        Args:
+            x (float): Input value.
+        """
         return 1 / (1 + math.exp(-x))
 
 def softmax(x):
@@ -177,6 +232,6 @@ if __name__ == '__main__':
     # for smi in smis:
     #     lst = model2.get_topk_from_smi(smi)
     #     print('{} -> {}'.format(smi, lst))
-        
+
     # import time
     # time.sleep(10)

@@ -15,13 +15,45 @@ from makeit.interfaces.context_recommender import ContextRecommender
 contextRecommender_loc = 'contextRecommender'
 
 class NNContextRecommender(ContextRecommender):
-    """Reaction condition predictor based on Nearest Neighbor method"""
+    """Reaction condition predictor based on Nearest Neighbor method.
+
+    Attributes:
+        nnModel (None or ??):
+        rxn_ids (list of str): ??
+        num_cond (int):
+        dist_limit (float):
+        singleSlvt (bool): Whether to use a single solvent for the reactions.
+        with_smiles (bool):
+        max_total_context (int):
+        max_int (int):
+        max_context (int):
+        done (None or ??):
+        REACTION_DB (None or MongoDB):
+        CHEMICAL_DB (None or MongoDB):
+        INSTANCE_DB (None or MongoDB):
+        cache (dict):
+        cache_q (deque):
+        """
 
     def __init__(self, max_contexts = 10, singleSlvt=True, with_smiles=True, done = None, REACTION_DB = None,
                  CHEMICAL_DB=None, INSTANCE_DB= None, cachelength=100):
-        """
-        :param singleSlvt:
-        :param with_smiles:
+        """Initializes nearest neighbor condition predictor.
+
+        Args:
+            max_contexts (int, optional): Maximum number of contexts to
+                consdier. (default: {10})
+            singleSlvt (bool, optional): Whether to use a single solvent for
+                the reactions. (default: {True})
+            with_smiles (bool, optional): ?? (default: {True})
+            done (None or ??, optional): ?? (default: {None})
+            REACTION_DB (None or MongoDB, optional): Database containing
+                reaction information. (default: {None})
+            CHEMICAL_DB (None or MongoDB, optional): Database containing
+                chemical information. (default: {None})
+            INSTANCE_DB (None or MongoDB, optional): Database containing
+                ?? information. (default: {None})
+            cachelength (int, optional): Maximum length of cache.
+                (default: {100})
         """
         self.nnModel = None
         self.rxn_ids = []
@@ -38,13 +70,21 @@ class NNContextRecommender(ContextRecommender):
         self.INSTANCE_DB = INSTANCE_DB
         self.cache = {}
         self.cache_q = deque([], maxlen=cachelength)
-    
+
     def load(self, model_path = "", info_path = ""):
+        """Loads databases and nearest neighbor model.
+
+        Args:
+            model_path (str, optional): Specifies path to file containing
+                nearest neighbor model. (default: {''})
+            info_path (str, optional): Specifies path to file containing
+                information for the nearest neighbor model. (default: {''})
+        """
         self.load_databases()
         self.load_nn_model(model_path, info_path)
-        
+
         MyLogger.print_and_log('Context recommender has been loaded.', contextRecommender_loc)
-        
+
         #multiprocessing notify done
         if self.done == None:
             pass
@@ -52,18 +92,25 @@ class NNContextRecommender(ContextRecommender):
             self.done.value = 1
     #Model path should be relative!
     def load_nn_model(self, model_path = "", info_path = ""):
-        """Loads the nearest neighbor model"""
-        
-        
-        if not model_path:      
+        """Loads the nearest neighbor model.
+
+        Args:
+            model_path (str, optional): Specifies path to file containing
+                nearest neighbor model. (default: {''})
+            info_path (str, optional): Specifies path to file containing
+                information for the nearest neighbor model. (default: {''})
+        """
+
+
+        if not model_path:
             MyLogger.print_and_log('Cannot load nearest neighbor context recommender without a specific path to the model. Exiting...', contextRecommender_loc, level = 3)
         if not info_path:
             MyLogger.print_and_log('Cannot load nearest neighbor context recommender without a specific path to the model info. Exiting...', contextRecommender_loc, level = 3)
         # Load the nearest neighbor model
-        
+
         with open(model_path, 'rb') as infile:
             self.nnModel = joblib.load(infile)
-            
+
         # Load the rxn ids associated with the nearest neighbor model
         rxd_ids = []
         rxn_ids = []
@@ -74,7 +121,11 @@ class NNContextRecommender(ContextRecommender):
         self.rxn_ids = rxd_ids
 
     def load_predictor(self, userInput):
-        """Loads the predictor based on user input"""
+        """Loads the predictor based on user input.
+
+        Args:
+            userInput (dict): Specifies values to use for the main attributes.
+        """
         self.num_cond = userInput['num_cond']
         self.dist_limit = userInput['dist_limit']
         self.singleSlvt = userInput['first_solvent_only']
@@ -84,22 +135,35 @@ class NNContextRecommender(ContextRecommender):
         self.max_context = userInput['max_context']
 
     def load_databases(self):
+        """Loads the databases.
+
+        The databases are MongoDBs. Their locations are specified in the global
+        config.
+        """
         db_client = MongoClient(gc.MONGO['path'], gc.MONGO['id'], connect = gc.MONGO['connect'])
-        
+
         db = db_client[gc.REACTIONS['database']]
         self.REACTION_DB = db[gc.REACTIONS['collection']]
-        
+
         db = db_client[gc.INSTANCES['database']]
         self.INSTANCE_DB = db[gc.INSTANCES['collection']]
-        
+
         db = db_client[gc.CHEMICALS['database']]
         self.CHEMICAL_DB = db[gc.CHEMICALS['collection']]
-        
-    
+
+
     def get_n_conditions(self, rxn, n=10, singleSlvt=True, with_smiles=True):
-        """
-        Reaction condition recommendations for a rxn (SMILES) from top n NN
+        """Gets top n recommendations for reaction conditions.
+
+        Reaction condition recommendations for a rxn (SMILES) from top n NN.
         Returns the top n parseable conditions.
+
+        Args:
+            rxn (str): SMILES string of reaction to run.
+            n (int, optional): Number of conditions to return. (default: {10})
+            singleSlvt (bool, optional): Whether to use a single solvent for the
+                reaction. (default: {True})
+            with_smiles (bool, optional): ?? (default: {True})
         """
         self.singleSlvt = singleSlvt
         self.with_smiles = with_smiles
@@ -107,7 +171,7 @@ class NNContextRecommender(ContextRecommender):
         #If the databases haven't been loaded into the object yet, do so.
         if not (self.REACTION_DB and self.INSTANCE_DB and self.CHEMICAL_DB):
             self.load_databases()
-    
+
         try:
             if rxn in self.cache:
                 return self.cache[rxn][:n]
@@ -118,7 +182,7 @@ class NNContextRecommender(ContextRecommender):
             # print('No.\tRxn ID\tDist')
             # for i, dist in enumerate(dists[0]):
             #     print('{}\t{}\t{}'.format(i, self.rxn_ids[ids[0][i]], dist))
-            
+
             # Grab as many contexts as allowed for caching
             conditions = self.n_rxn_condition(self.max_total_context, dists=dists[0], idx=ids[0])
 
@@ -134,14 +198,18 @@ class NNContextRecommender(ContextRecommender):
         except Exception as e:
 
             MyLogger.print_and_log('Failed for reaction {} because {}. Returning None.'.format(rxn,e), contextRecommender_loc, level=2)
-            
+
             return [[]]
 
     def path_condition(self, n, path):
-        """Reaction condition recommendation for a reaction path with multiple reactions
+        """Reaction condition recommendation for a multiple-reaction path.
 
-            path: a list of reaction SMILES for each step
-            return: a list of reaction context with n options for each step
+        Args:
+            n (int): Number of conditions to recommend for each step.
+            path (list of str): Reaction SMILES for each step.
+
+        Returns:
+            list: Reaction context with n options for each step.
         """
         rxn_fps = []
         for rxn in path:
@@ -156,22 +224,29 @@ class NNContextRecommender(ContextRecommender):
                 contexts.append(context)
             except Exception as e:
                 print('Step {} with an exception: {}'.format(i, e))
-            
+
         return contexts
-    
+
     def n_rxn_condition(self, n, dists, idx):
-        """
-        Reaction condition list from the top 10 NN
-        Only returns parseable solvents
-        :param n: int, the number of nearest neighbors to extract rxn conditions from, n <= 10 here
-        :param dists, idx: np.array output from NearestNeighbor model for one rxn (10L, )
-        :return: A list of reaction conditions [(T, solvent, reagent, catalyst, rxn_time, rxn_yield), ()]
+        """Top 10 reaction conditions from the top n nearest neighbors.
+
+        Only returns parseable solvents.
+
+        Args:
+        n (int): The number of nearest neighbors to extract rxn conditions from,
+            n <= 10 here.
+        dists:
+        idx: np.array output from NearestNeighbor model for one rxn (10L, )
+
+        Returns:
+            list: Reaction conditions:
+                [(T, solvent, reagent, catalyst, rxn_time, rxn_yield), ()]
         """
         if n > int(idx.shape[0]):
             print('More rxn condition options requested than the number of NN, n is set to {}'.format(idx.shape[1]))
             if dists[0] > self.dist_limit:
                 print('No neighbor is found within a cosine distance of {}'.format(self.dist_limit))
-                
+
         contexts = []
         # int_ids = []
         for i, rid in enumerate(idx):
@@ -185,20 +260,22 @@ class NNContextRecommender(ContextRecommender):
                 contexts = contexts[:self.max_total_context]
                 break
             # int_ids.append(self.rxn_ids[rid])
-        
+
         return contexts
-    
+
+    #    :param max_int: the maximum number of instances to check for a reaction
+    #    :param max_context: the maximum number of unqiue contexts per reaction
     def reaction_condition(self, r_id):
         """Return a set of conditions from instances associated with the reaction
-    
-        :param db: database info
-        :param r_id: _id for a reaction
-        :param max_int: the maximum number of instances to check for a reaction
-        :param max_context: the maximum number of unqiue contexts per reaction
-        :param singleSlvt: whether only use the first solvent
-        :return: a list of contexts as tuples (T, solvent, reagent, catalyst, rxn_time, rxn_yield)
+
+        Args:
+        r_id (str): _id for a reaction.
+
+        Returns:
+            list: Contexts as tuples:
+                (T, solvent, reagent, catalyst, rxn_time, rxn_yield)
         """
-        
+
         rxn_doc = self.REACTION_DB.find_one({'_id': int(r_id)})
         if not rxn_doc:
             return [[]]
@@ -210,17 +287,17 @@ class NNContextRecommender(ContextRecommender):
             num_context = len(context_set)
             if i >= self.max_int and len(contexts) > 0:
                 break
-            
+
             inst_doc = self.INSTANCE_DB.find_one({'_id': rxd_id})
             if not inst_doc:
                 continue
-            
+
             context_info = ''
             # Temp
             T = strings.string_or_range_to_float(inst_doc['RXD_T'])
             if T is None or T == -1:  # skip if T was unparseable or not recorded
                 continue
-            
+
             # Solvent(s)
             solvent = ''
             context_info += 'solv:'
@@ -279,11 +356,11 @@ class NNContextRecommender(ContextRecommender):
                 reagent = reagent[:-1]
             if catalyst and catalyst[-1] == '.':
                 catalyst = catalyst[:-1]
-                
+
             # Time, yield
             rxn_time = inst_doc['RXD_TIM']
             rxn_yield = inst_doc['RXD_NYD']
-           
+
             #Test that all proposed conditions are actually parseable!
             try:
                 solvent_mols = [Chem.MolFromSmiles(sol) for sol in solvent.split('.')]
@@ -313,10 +390,10 @@ class NNContextRecommender(ContextRecommender):
             if len(context_set) > num_context:
                 contexts.append((T, solvent, reagent, catalyst, rxn_time, rxn_yield))
                 # context_info += 'T:{}C'.format(T) + ',t:{}min'.format(rxn_time) + ',y:{}%'.format(rxn_yield)
-                
+
             if len(context_set) >= self.max_context:
                 break
-        
+
         return contexts
 
 if __name__ == '__main__':
