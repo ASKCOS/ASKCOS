@@ -1,4 +1,5 @@
 import makeit.prioritization.precursors.scscore as sc
+import makeit.prioritization.precursors.mincost as mc
 import unittest
 
 class TestSCScore(unittest.TestCase):
@@ -41,6 +42,20 @@ class TestSCScore(unittest.TestCase):
         expected = -0.45
         self.assertAlmostEqual(expected, result)
 
+class TestMincost(unittest.TestCase):
+    def setUp(self):
+        self.model = mc.MinCostPrecursorPrioritizer()
+        self.model.load_model()
+
+    def test_01_get_priority(self):
+        result = self.model.get_priority('CC(=O)N1C=C(C=C2N=C(N(N=CC3C=CC=CC=3)C(C)=O)N(C(C)=O)C2=O)C2=CC=CC=C21')
+        expected = 4.01056028509
+        self.assertAlmostEqual(expected, result)
+
+    def test_02_get_priority(self):
+        result = self.model.get_priority('CCCNc1ccccc1')
+        expected = 0.0
+        self.assertAlmostEqual(expected, result)
 
 if __name__ == '__main__':
     res = unittest.main(verbosity=3, exit=False)
