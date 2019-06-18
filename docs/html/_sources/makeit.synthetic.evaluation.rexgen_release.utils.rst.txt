@@ -1,0 +1,22 @@
+makeit.synthetic.evaluation.rexgen\_release.utils package
+=========================================================
+
+Submodules
+----------
+
+makeit.synthetic.evaluation.rexgen\_release.utils.nn module
+-----------------------------------------------------------
+
+.. automodule:: makeit.synthetic.evaluation.rexgen_release.utils.nn
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: makeit.synthetic.evaluation.rexgen_release.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -1,0 +1,251 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.retrosynthetic.mcts.nodes &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for makeit.retrosynthetic.mcts.nodes</h1><div class="highlight"><pre>
+<div class="viewcode-block" id="Chemical"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical">[docs]</a><span></span><span class="k">class</span> <span class="nc">Chemical</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represents a chemical compound.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chem_smi</span><span class="p">):</span>
+        <span class="c1"># Initialize lists for incoming and outgoing reactions.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span> <span class="o">=</span> <span class="n">chem_smi</span>
+        <span class="c1"># self.reactions = {} # TODO: deprecate, since it doesn&#39;t allow for branching</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template_idx_results</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1"># key is template_idx, value is a CTA</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">purchase_price</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">as_reactant</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">as_product</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">visit_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">terminal</span> <span class="o">=</span> <span class="kc">False</span> 
+
+        <span class="c1"># Counter param used for the DFS search. </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>         <span class="c1"># estimated min cost</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_sum</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_cnt</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">best_template</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">prob</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="kc">None</span>         <span class="c1"># output of vaue network, not currently used</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sorted_id</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">price</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>           <span class="c1"># valid min cost - means not buyable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pathway_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(</span><span class="si">%r</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span>
+
+<div class="viewcode-block" id="Chemical.set_price"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.set_price">[docs]</a>    <span class="k">def</span> <span class="nf">set_price</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ppg</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="c1"># if ppg &gt; 0 and all_cost_1:</span>
+            <span class="c1">#     ppg = 1.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">price</span> <span class="o">=</span> <span class="n">ppg</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price</span> <span class="o">=</span> <span class="n">ppg</span>
+            <span class="c1"># self.done = True # done isn&#39;t determined by price</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Chemical.set_template_relevance_probs"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.set_template_relevance_probs">[docs]</a>    <span class="k">def</span> <span class="nf">set_template_relevance_probs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">top_probs</span><span class="p">,</span> <span class="n">top_indeces</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Information about how we might expand this chemical later&#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">top_probs</span> <span class="o">=</span> <span class="n">top_probs</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">top_indeces</span> <span class="o">=</span> <span class="n">top_indeces</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prob</span> <span class="o">=</span> <span class="p">{</span><span class="n">top_indeces</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span> <span class="n">top_probs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">top_probs</span><span class="p">))}</span> <span class="c1"># dict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sorted_id</span> <span class="o">=</span> <span class="n">top_indeces</span> <span class="c1"># copy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_estimate_price</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Chemical.update_estimate_price"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.update_estimate_price">[docs]</a>    <span class="k">def</span> <span class="nf">update_estimate_price</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_sum</span> <span class="o">+=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_cnt</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_sum</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_cnt</span></div>
+
+<div class="viewcode-block" id="Chemical.reset"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span></div></div>
+
+    <span class="c1"># def uniquify_templates(self):</span>
+    <span class="c1">#     &#39;&#39;&#39;Looks through all single-step precursors and merges the CTAs that</span>
+    <span class="c1">#     give identical results&#39;&#39;&#39;</span>
+    <span class="c1">#     seen_reactants = {}</span>
+    <span class="c1">#     template_idx_static = list(self.template_idx_results.keys())</span>
+    <span class="c1">#     for template_idx in template_idx_static:</span>
+    <span class="c1">#         CTA = self.template_idx_results[template_idx]</span>
+    <span class="c1">#         for reactant_smiles in CTA.reactions:</span>
+    <span class="c1">#             if reactant_smiles not in seen_reactants:</span>
+    <span class="c1">#                 seen_reactants[reactant_smiles] = template_idx </span>
+    <span class="c1">#             else:</span>
+    <span class="c1">#                 # do the merge</span>
+    <span class="c1">#                 prev_CTA = self.template_idx_results[seen_reactants[reactant_smiles]]</span>
+    <span class="c1">#                 prev_CTA.tforms.append(CTA.template_idx)</span>
+    <span class="c1">#                 prev_CTA.template_score = max(CTA.template_score, prev_CTA.template_score)</span>
+    <span class="c1">#                 assert prev_CTA.plausibility == CTA.plausibility</span>
+    <span class="c1">#                 del self.template_idx_results[template_idx]</span>
+
+<div class="viewcode-block" id="ChemicalTemplateApplication"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication">[docs]</a><span class="k">class</span> <span class="nc">ChemicalTemplateApplication</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represents the application of a template to a chemical. This is essentially</span>
+<span class="sd">    a list-wrapper for the Reaction class because applying one template to one</span>
+<span class="sd">    product can lead to many distinct product sets.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smiles</span><span class="p">,</span> <span class="n">template_idx</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span> <span class="o">=</span> <span class="n">smiles</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template_idx</span> <span class="o">=</span> <span class="n">template_idx</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">waiting</span> <span class="o">=</span> <span class="kc">True</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactions</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1"># key is reactant SMILES string, value is a Reaction</span></div>
+
+
+<div class="viewcode-block" id="Reaction"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction">[docs]</a><span class="k">class</span> <span class="nc">Reaction</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represents a reaction.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smiles</span><span class="p">,</span> <span class="n">template_idx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize entry.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span> <span class="o">=</span> <span class="n">smiles</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template_idx</span> <span class="o">=</span> <span class="n">template_idx</span>
+        <span class="c1"># self.depth  = depth </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactant_smiles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">visit_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># self.waiting = True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_sum</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_cnt</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">price</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pathway_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_score</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+
+        <span class="c1"># Attributes that will need to be merged if there are two templates that can lead</span>
+        <span class="c1"># to the same reactant SMILES - will need to check if exists</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tforms</span> <span class="o">=</span> <span class="p">[</span><span class="n">template_idx</span><span class="p">]</span> <span class="c1"># will be list if multiple template_idx possible</span>
+        <span class="c1"># when merging, the redundant template_idx will be considered INVALID</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template_score</span> <span class="o">=</span> <span class="mf">0.0</span> <span class="c1"># template relevance score</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plausibility</span> <span class="o">=</span> <span class="mf">0.0</span> <span class="c1"># fast filter score</span>
+        <span class="c1"># note: no necessary_reagent or num_examples considered yet</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(</span><span class="si">%r</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span>
+
+<div class="viewcode-block" id="Reaction.update_estimate_price"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.update_estimate_price">[docs]</a>    <span class="k">def</span> <span class="nf">update_estimate_price</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_sum</span> <span class="o">+=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_cnt</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_sum</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_cnt</span></div>
+
+<div class="viewcode-block" id="Reaction.reset"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">price</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> </div></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../askcos.html">askcos package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../makeit.html">makeit package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

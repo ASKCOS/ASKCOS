@@ -1,0 +1,185 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.utilities.fastfilter_utilities &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for makeit.utilities.fastfilter_utilities</h1><div class="highlight"><pre>
+<span></span>
+<span class="c1">#import files</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+
+<span class="kn">import</span> <span class="nn">theano</span>
+<span class="kn">from</span> <span class="nn">theano.tensor</span> <span class="k">import</span> <span class="n">lt</span><span class="p">,</span><span class="n">le</span><span class="p">,</span><span class="n">eq</span><span class="p">,</span><span class="n">gt</span><span class="p">,</span><span class="n">ge</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="c1">#something</span>
+
+<span class="kn">from</span> <span class="nn">keras</span> <span class="k">import</span> <span class="n">backend</span> <span class="k">as</span> <span class="n">K</span> 
+<span class="kn">from</span> <span class="nn">keras.layers</span> <span class="k">import</span> <span class="n">Dense</span><span class="p">,</span> <span class="n">Activation</span><span class="p">,</span> <span class="n">Input</span>
+<span class="kn">from</span> <span class="nn">keras.layers</span> <span class="k">import</span> <span class="n">merge</span><span class="p">,</span> <span class="n">activations</span>
+<span class="kn">from</span> <span class="nn">keras.optimizers</span> <span class="k">import</span> <span class="n">SGD</span><span class="p">,</span> <span class="n">Adam</span><span class="p">,</span> <span class="n">Adadelta</span>
+<span class="c1">#import keras.engine.topology </span>
+<span class="kn">from</span> <span class="nn">keras.engine.topology</span> <span class="k">import</span> <span class="n">Layer</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+
+<span class="c1"># lg = RDLogger.logger()</span>
+<span class="c1"># lg.setLevel(RDLogger.CRITICAL)</span>
+<span class="c1">####utilities</span>
+<div class="viewcode-block" id="set_keras_backend"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.fastfilter_utilities.set_keras_backend">[docs]</a><span class="k">def</span> <span class="nf">set_keras_backend</span><span class="p">(</span><span class="n">backend</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="n">K</span><span class="o">.</span><span class="n">backend</span><span class="p">()</span> <span class="o">!=</span> <span class="n">backend</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;KERAS_BACKEND&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">backend</span>
+        <span class="n">reload</span><span class="p">(</span><span class="n">K</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">K</span><span class="o">.</span><span class="n">backend</span><span class="p">()</span> <span class="o">==</span> <span class="n">backend</span></div>
+
+<div class="viewcode-block" id="Highway_self"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.fastfilter_utilities.Highway_self">[docs]</a><span class="k">class</span> <span class="nc">Highway_self</span><span class="p">(</span><span class="n">Layer</span><span class="p">):</span>
+
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">activation</span> <span class="o">=</span> <span class="s1">&#39;elu&#39;</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+		<span class="nb">super</span><span class="p">(</span><span class="n">Highway_self</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">activation</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">transform_actv</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sigmoid&#39;</span><span class="p">)</span>
+		
+
+<div class="viewcode-block" id="Highway_self.build"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.fastfilter_utilities.Highway_self.build">[docs]</a>	<span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+		<span class="c1">#weights of the dense layer</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;kernel&#39;</span><span class="p">,</span>
+								 <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+								 <span class="n">initializer</span> <span class="o">=</span><span class="s1">&#39;glorot_uniform&#39;</span><span class="p">,</span>
+								 <span class="n">trainable</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;bias&#39;</span><span class="p">,</span>
+								 <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span>
+								 <span class="n">initializer</span> <span class="o">=</span><span class="s1">&#39;zeros&#39;</span><span class="p">,</span>
+								 <span class="n">trainable</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">kernel_T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;kernel_T&#39;</span><span class="p">,</span>
+								 <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+								 <span class="n">initializer</span> <span class="o">=</span><span class="s1">&#39;glorot_uniform&#39;</span><span class="p">,</span>
+								 <span class="n">trainable</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bias_T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;bias_T&#39;</span><span class="p">,</span>
+								 <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],),</span>
+								 <span class="n">initializer</span> <span class="o">=</span><span class="s1">&#39;zeros&#39;</span><span class="p">,</span>
+								 <span class="n">trainable</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+		<span class="c1"># print(self.input_dim)</span>
+		<span class="nb">super</span><span class="p">(</span><span class="n">Highway_self</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span></div>
+	
+<div class="viewcode-block" id="Highway_self.call"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.fastfilter_utilities.Highway_self.call">[docs]</a>	<span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+		<span class="n">transform_fun</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation</span><span class="p">(</span><span class="n">K</span><span class="o">.</span><span class="n">bias_add</span><span class="p">(</span><span class="n">K</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">))</span>
+		<span class="n">transform_gate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_actv</span><span class="p">(</span><span class="n">K</span><span class="o">.</span><span class="n">bias_add</span><span class="p">(</span><span class="n">K</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_T</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias_T</span><span class="p">))</span>
+		<span class="n">carry_gate</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,)</span> <span class="o">-</span> <span class="n">transform_gate</span>
+		<span class="n">output</span> <span class="o">=</span> <span class="n">transform_fun</span><span class="o">*</span><span class="n">transform_gate</span> <span class="o">+</span> <span class="n">x</span><span class="o">*</span><span class="n">carry_gate</span>
+		<span class="k">return</span> <span class="n">output</span></div>
+
+<div class="viewcode-block" id="Highway_self.compute_output_shape"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.fastfilter_utilities.Highway_self.compute_output_shape">[docs]</a>	<span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+		<span class="k">return</span> <span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="pos_ct"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.fastfilter_utilities.pos_ct">[docs]</a><span class="k">def</span> <span class="nf">pos_ct</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+	<span class="n">pos_pred</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">gt</span><span class="p">((</span><span class="n">K</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span><span class="mf">0.5</span><span class="p">))</span>
+	<span class="k">return</span> <span class="n">pos_pred</span></div>
+<div class="viewcode-block" id="true_pos"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.fastfilter_utilities.true_pos">[docs]</a><span class="k">def</span> <span class="nf">true_pos</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+	<span class="n">true_pos_ct</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">gt</span><span class="p">((</span><span class="n">K</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">y_pred</span><span class="o">*</span><span class="n">y_true</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span><span class="mf">0.5</span><span class="p">))</span>
+	<span class="k">return</span> <span class="n">true_pos_ct</span></div>
+<div class="viewcode-block" id="real_pos"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.fastfilter_utilities.real_pos">[docs]</a><span class="k">def</span> <span class="nf">real_pos</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+	<span class="n">real_pos_ct</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">gt</span><span class="p">((</span><span class="n">K</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span><span class="mf">0.5</span><span class="p">))</span>
+	<span class="k">return</span> <span class="n">real_pos_ct</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../askcos.html">askcos package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makeit.html">makeit package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

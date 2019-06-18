@@ -1,0 +1,325 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.application.run &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for makeit.application.run</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">makeit.global_config</span> <span class="k">as</span> <span class="nn">gc</span>
+<span class="kn">from</span> <span class="nn">makeit.utilities.io</span> <span class="k">import</span> <span class="n">arg_parser</span><span class="p">,</span> <span class="n">name_parser</span><span class="p">,</span> <span class="n">files</span>
+<span class="kn">import</span> <span class="nn">rdkit.Chem</span> <span class="k">as</span> <span class="nn">Chem</span>
+<span class="kn">from</span> <span class="nn">makeit.utilities.io.logger</span> <span class="k">import</span> <span class="n">MyLogger</span>
+<span class="kn">from</span> <span class="nn">makeit.retrosynthetic.mcts.tree_builder</span> <span class="k">import</span> <span class="n">MCTS</span> <span class="k">as</span> <span class="n">TreeBuilder</span>
+<span class="kn">from</span> <span class="nn">askcos_site.askcos_celery.treebuilder.tb_coordinator</span> <span class="k">import</span> <span class="n">get_buyable_paths</span>
+<span class="kn">from</span> <span class="nn">askcos_site.askcos_celery.treeevaluator.tree_evaluation_coordinator</span> <span class="k">import</span> <span class="n">evaluate_trees</span>
+<span class="kn">from</span> <span class="nn">makeit.synthetic.evaluation.tree_evaluator</span> <span class="k">import</span> <span class="n">TreeEvaluator</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="n">makeit_loc</span> <span class="o">=</span> <span class="s1">&#39;makeit&#39;</span>
+
+
+<div class="viewcode-block" id="MAKEIT"><a class="viewcode-back" href="../../../makeit.application.html#makeit.application.run.MAKEIT">[docs]</a><span class="k">class</span> <span class="nc">MAKEIT</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Main application for running the make-it program.</span>
+<span class="sd">    Proposes potential synthetic routes to a desired target compound in two steps:</span>
+<span class="sd">     - Building a retro synthetic tree and extracting buyable routes</span>
+<span class="sd">     - Evaluation the likelihood of succes of each of the reactions in the found buyable routes</span>
+<span class="sd">     - Returns all (or some) of the likely synthetic routes</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_product</span><span class="p">,</span> <span class="n">expansion_time</span><span class="p">,</span> <span class="n">max_depth</span><span class="p">,</span> <span class="n">max_branching</span><span class="p">,</span> <span class="n">max_trees</span><span class="p">,</span> <span class="n">retro_mincount</span><span class="p">,</span> <span class="n">retro_mincount_chiral</span><span class="p">,</span>
+                 <span class="n">synth_mincount</span><span class="p">,</span> <span class="n">rank_threshold_inclusion</span><span class="p">,</span> <span class="n">prob_threshold_inclusion</span><span class="p">,</span> <span class="n">max_total_contexts</span><span class="p">,</span> <span class="n">template_count</span><span class="p">,</span>
+                 <span class="n">max_ppg</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="n">chiral</span><span class="p">,</span> <span class="n">nproc</span><span class="p">,</span> <span class="n">celery</span><span class="p">,</span> <span class="n">context_recommender</span><span class="p">,</span> <span class="n">forward_scoring_method</span><span class="p">,</span>
+                 <span class="n">tree_scoring_method</span><span class="p">,</span> <span class="n">context_prioritization</span><span class="p">,</span> <span class="n">template_prioritization</span><span class="p">,</span> <span class="n">precursor_prioritization</span><span class="p">,</span>
+                 <span class="n">parallel_tree</span><span class="p">,</span> <span class="n">precursor_score_mode</span><span class="p">,</span> <span class="n">max_cum_template_prob</span><span class="p">,</span> <span class="n">apply_fast_filter</span><span class="p">,</span> <span class="n">filter_threshold</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_product</span> <span class="o">=</span> <span class="n">target_product</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expansion_time</span> <span class="o">=</span> <span class="n">expansion_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span> <span class="o">=</span> <span class="n">max_depth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_branching</span> <span class="o">=</span> <span class="n">max_branching</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_trees</span> <span class="o">=</span> <span class="n">max_trees</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context_recommender</span> <span class="o">=</span> <span class="n">context_recommender</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">forward_scoring_method</span> <span class="o">=</span> <span class="n">forward_scoring_method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tree_scoring_method</span> <span class="o">=</span> <span class="n">tree_scoring_method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context_prioritization</span> <span class="o">=</span> <span class="n">context_prioritization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template_prioritization</span> <span class="o">=</span> <span class="n">template_prioritization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">precursor_prioritization</span> <span class="o">=</span> <span class="n">precursor_prioritization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">retro_mincount</span> <span class="o">=</span> <span class="n">retro_mincount</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">retro_mincount_chiral</span> <span class="o">=</span> <span class="n">retro_mincount_chiral</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synth_mincount</span> <span class="o">=</span> <span class="n">synth_mincount</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rank_threshold_inclusion</span> <span class="o">=</span> <span class="n">rank_threshold_inclusion</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prob_threshold_inclusion</span> <span class="o">=</span> <span class="n">prob_threshold_inclusion</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_total_contexts</span> <span class="o">=</span> <span class="n">max_total_contexts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">precursor_score_mode</span> <span class="o">=</span> <span class="n">precursor_score_mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_ppg</span> <span class="o">=</span> <span class="n">max_ppg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mol</span> <span class="o">=</span> <span class="n">name_parser</span><span class="o">.</span><span class="n">name_to_molecule</span><span class="p">(</span><span class="n">target_product</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_cum_template_prob</span> <span class="o">=</span> <span class="n">max_cum_template_prob</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mol</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dir_root</span> <span class="o">=</span> <span class="n">files</span><span class="o">.</span><span class="n">make_directory</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">case_dir</span> <span class="o">=</span> <span class="n">files</span><span class="o">.</span><span class="n">make_directory</span><span class="p">(</span>
+            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir_root</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_product</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nproc</span> <span class="o">=</span> <span class="n">nproc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">celery</span> <span class="o">=</span> <span class="n">celery</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chiral</span> <span class="o">=</span> <span class="n">chiral</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">known_bad_reactions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template_count</span> <span class="o">=</span> <span class="n">template_count</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parallel_tree</span> <span class="o">=</span> <span class="n">parallel_tree</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply_fast_filter</span> <span class="o">=</span> <span class="n">apply_fast_filter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_threshold</span> <span class="o">=</span> <span class="n">filter_threshold</span>
+
+
+<div class="viewcode-block" id="MAKEIT.construct_buyable_trees"><a class="viewcode-back" href="../../../makeit.application.html#makeit.application.run.MAKEIT.construct_buyable_trees">[docs]</a>    <span class="k">def</span> <span class="nf">construct_buyable_trees</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">celery</span><span class="p">:</span>  <span class="c1"># Call celery worker</span>
+            <span class="n">working</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">get_buyable_paths</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">smiles</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_prioritization</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">precursor_prioritization</span><span class="p">),</span>
+                                                <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;mincount&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">retro_mincount</span><span class="p">,</span> <span class="s1">&#39;max_branching&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_branching</span><span class="p">,</span>
+                                                        <span class="s1">&#39;max_depth&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span><span class="p">,</span> <span class="s1">&#39;max_ppg&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_ppg</span><span class="p">,</span> <span class="s1">&#39;max_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">expansion_time</span><span class="p">,</span>
+                                                        <span class="s1">&#39;max_trees&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_trees</span><span class="p">,</span> <span class="s1">&#39;known_bad_reactions&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">known_bad_reactions</span><span class="p">,</span>
+                                                        <span class="s1">&#39;chiral&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">chiral</span><span class="p">,</span> <span class="s1">&#39;template_count&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_count</span><span class="p">,</span>
+                                                        <span class="s1">&#39;precursor_score_mode&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">precursor_score_mode</span><span class="p">,</span>
+                                                        <span class="s1">&#39;max_cum_template_prob&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_cum_template_prob</span><span class="p">,</span>
+                                                        <span class="s1">&#39;apply_fast_filter&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_fast_filter</span><span class="p">,</span>
+                                                        <span class="s1">&#39;filter_threshold&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_threshold</span><span class="p">})</span>
+
+            <span class="k">while</span> <span class="ow">not</span> <span class="n">res</span><span class="o">.</span><span class="n">ready</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">working</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Building trees...&#39;</span><span class="p">,</span> <span class="n">makeit_loc</span><span class="p">)</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">buyable_trees</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># Create tree builder object and run it</span>
+            <span class="n">treeBuilder</span> <span class="o">=</span> <span class="n">TreeBuilder</span><span class="p">(</span><span class="n">celery</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">celery</span><span class="p">,</span> <span class="n">mincount</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">retro_mincount</span><span class="p">,</span>
+                                       <span class="n">mincount_chiral</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">retro_mincount_chiral</span><span class="p">,</span> <span class="n">chiral</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chiral</span><span class="p">)</span>
+
+            <span class="n">buyable_trees</span> <span class="o">=</span> <span class="n">treeBuilder</span><span class="o">.</span><span class="n">get_buyable_paths</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">smiles</span><span class="p">,</span> <span class="n">template_prioritization</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">template_prioritization</span><span class="p">,</span>
+                                                          <span class="n">precursor_prioritization</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">precursor_prioritization</span><span class="p">,</span> <span class="n">nproc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nproc</span><span class="p">,</span>
+                                                          <span class="n">max_depth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span><span class="p">,</span> <span class="n">max_branching</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_branching</span><span class="p">,</span> <span class="n">max_ppg</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_ppg</span><span class="p">,</span>
+                                                          <span class="n">mincount</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">retro_mincount</span><span class="p">,</span> <span class="n">chiral</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chiral</span><span class="p">,</span> <span class="n">max_trees</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_trees</span><span class="p">,</span>
+                                                          <span class="n">known_bad_reactions</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">known_bad_reactions</span><span class="p">,</span> <span class="n">expansion_time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">expansion_time</span><span class="p">,</span>
+                                                          <span class="n">template_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_count</span><span class="p">,</span> <span class="n">precursor_score_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">precursor_score_mode</span><span class="p">,</span>
+                                                          <span class="n">max_cum_template_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_cum_template_prob</span><span class="p">,</span><span class="n">apply_fast_filter</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_fast_filter</span><span class="p">,</span>
+                                                          <span class="n">filter_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">filter_threshold</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">buyable_trees</span></div>
+
+<div class="viewcode-block" id="MAKEIT.evaluate_synthesis_trees"><a class="viewcode-back" href="../../../makeit.application.html#makeit.application.run.MAKEIT.evaluate_synthesis_trees">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_synthesis_trees</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trees</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">celery</span><span class="p">:</span>  <span class="c1"># Call celery worker</span>
+            <span class="n">working</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">evaluate_trees</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">trees</span><span class="p">,),</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;context_scoring_method&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_prioritization</span><span class="p">,</span>
+                                                                    <span class="s1">&#39;context_recommender&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_recommender</span><span class="p">,</span>
+                                                                    <span class="s1">&#39;forward_scoring_method&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_scoring_method</span><span class="p">,</span>
+                                                                    <span class="s1">&#39;tree_scoring_method&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_scoring_method</span><span class="p">,</span>
+                                                                    <span class="s1">&#39;rank_threshold&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank_threshold_inclusion</span><span class="p">,</span>
+                                                                    <span class="s1">&#39;prob_threshold&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">prob_threshold_inclusion</span><span class="p">,</span>
+                                                                    <span class="s1">&#39;mincount&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">synth_mincount</span><span class="p">,</span>
+                                                                    <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="mi">500</span><span class="p">,</span> <span class="s1">&#39;n&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_total_contexts</span><span class="p">,</span>
+                                                                    <span class="s1">&#39;template_count&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_count</span><span class="p">,</span>
+                                                                    <span class="p">})</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="n">res</span><span class="o">.</span><span class="n">ready</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">working</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Evaluating trees...&#39;</span><span class="p">,</span> <span class="n">makeit_loc</span><span class="p">)</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">evaluated_trees</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># Create a tree evaluation object and run it</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_scoring_method</span> <span class="o">==</span> <span class="n">gc</span><span class="o">.</span><span class="n">templatebased</span><span class="p">:</span>
+                <span class="c1"># nproc = number of parallel forward enumeration workers</span>
+                <span class="c1"># nproc_t = number of trees to be evaluated in parallel.</span>
+                <span class="c1"># Only use an nproc different from 1 if using the template base forward evaluation method. Otherwise</span>
+                <span class="c1"># evaluation is fast enough to do without additional</span>
+                <span class="c1"># parallelization</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">trees</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_tree</span><span class="p">:</span>
+                    <span class="n">nproc_t</span> <span class="o">=</span> <span class="mi">2</span>
+                    <span class="n">nproc</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nproc</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">nproc_t</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="n">nproc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nproc</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">nproc_t</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nproc</span><span class="p">)</span>
+                <span class="n">nproc</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">tree_evaluator</span> <span class="o">=</span> <span class="n">TreeEvaluator</span><span class="p">(</span>
+                <span class="n">celery</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">context_recommender</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context_recommender</span><span class="p">)</span>
+            <span class="n">evaluated_trees</span> <span class="o">=</span> <span class="n">tree_evaluator</span><span class="o">.</span><span class="n">evaluate_trees</span><span class="p">(</span><span class="n">trees</span><span class="p">,</span> <span class="n">context_recommender</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context_recommender</span><span class="p">,</span> <span class="n">context_scoring_method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context_prioritization</span><span class="p">,</span>
+                                                            <span class="n">forward_scoring_method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">forward_scoring_method</span><span class="p">,</span> <span class="n">tree_scoring_method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tree_scoring_method</span><span class="p">,</span>
+                                                            <span class="n">rank_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rank_threshold_inclusion</span><span class="p">,</span> <span class="n">prob_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prob_threshold_inclusion</span><span class="p">,</span>
+                                                            <span class="n">mincount</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">synth_mincount</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_total_contexts</span><span class="p">,</span> <span class="n">nproc_t</span><span class="o">=</span><span class="n">nproc_t</span><span class="p">,</span>
+                                                            <span class="n">nproc</span><span class="o">=</span><span class="n">nproc</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parallel_tree</span><span class="p">,</span> <span class="n">template_count</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">template_count</span><span class="p">,</span>
+                                                            <span class="p">)</span>
+        <span class="n">plausible_trees</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">evaluated_trees</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">tree</span> <span class="ow">in</span> <span class="n">evaluated_trees</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">tree</span><span class="p">[</span><span class="s1">&#39;plausible&#39;</span><span class="p">]:</span>
+                <span class="n">plausible_trees</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">plausible_trees</span><span class="p">:</span>
+            <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span>
+                <span class="s1">&#39;Feasible synthesis route discovered!&#39;</span><span class="p">,</span> <span class="n">makeit_loc</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span>
+                <span class="s1">&#39;No feasible routes from buyables have been discovered. Consider changing inclusion thesholds.&#39;</span><span class="p">,</span> <span class="n">makeit_loc</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">plausible_trees</span></div></div>
+
+
+<div class="viewcode-block" id="print_at_depth"><a class="viewcode-back" href="../../../makeit.application.html#makeit.application.run.print_at_depth">[docs]</a><span class="k">def</span> <span class="nf">print_at_depth</span><span class="p">(</span><span class="n">chemical_node</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">writefunc</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">delim</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">img</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">writefunc</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">($</span><span class="si">{}</span><span class="s1">/g) </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">depth</span><span class="o">*</span><span class="mi">4</span><span class="o">*</span><span class="n">delim</span><span class="p">,</span>
+                                    <span class="n">chemical_node</span><span class="p">[</span><span class="s1">&#39;ppg&#39;</span><span class="p">],</span> <span class="n">chemical_node</span><span class="p">[</span><span class="s1">&#39;smiles&#39;</span><span class="p">]))</span>
+    <span class="k">if</span> <span class="n">chemical_node</span><span class="p">[</span><span class="s1">&#39;children&#39;</span><span class="p">]:</span>
+        <span class="n">rxn</span> <span class="o">=</span> <span class="n">chemical_node</span><span class="p">[</span><span class="s1">&#39;children&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">img</span><span class="p">:</span>
+            <span class="n">writefunc</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&lt;img src=&quot;http://askcos.mit.edu/draw/reaction/</span><span class="si">{}</span><span class="s1">&quot;&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">depth</span><span class="o">*</span><span class="mi">4</span><span class="o">+</span><span class="mi">4</span><span class="p">)</span><span class="o">*</span><span class="n">delim</span><span class="p">,</span> <span class="n">rxn</span><span class="p">[</span><span class="s1">&#39;smiles&#39;</span><span class="p">]))</span>
+        <span class="n">writefunc</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">smiles : </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">((</span><span class="n">depth</span><span class="o">*</span><span class="mi">4</span><span class="o">+</span><span class="mi">4</span><span class="p">)</span><span class="o">*</span><span class="n">delim</span><span class="p">,</span> <span class="n">rxn</span><span class="p">[</span><span class="s1">&#39;smiles&#39;</span><span class="p">]))</span>
+        <span class="n">writefunc</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">num ex : </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">depth</span><span class="o">*</span><span class="mi">4</span><span class="o">+</span><span class="mi">4</span><span class="p">)</span><span class="o">*</span><span class="n">delim</span><span class="p">,</span> <span class="n">rxn</span><span class="p">[</span><span class="s1">&#39;num_examples&#39;</span><span class="p">]))</span>
+        <span class="n">writefunc</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">context: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">((</span><span class="n">depth</span><span class="o">*</span><span class="mi">4</span><span class="o">+</span><span class="mi">4</span><span class="p">)</span><span class="o">*</span><span class="n">delim</span><span class="p">,</span> <span class="n">rxn</span><span class="p">[</span><span class="s1">&#39;context&#39;</span><span class="p">]))</span>
+        <span class="n">writefunc</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">score  : </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">depth</span><span class="o">*</span><span class="mi">4</span><span class="o">+</span><span class="mi">4</span><span class="p">)</span><span class="o">*</span><span class="n">delim</span><span class="p">,</span> <span class="n">rxn</span><span class="p">[</span><span class="s1">&#39;forward_score&#39;</span><span class="p">]))</span>
+        <span class="k">for</span> <span class="n">child_node</span> <span class="ow">in</span> <span class="n">rxn</span><span class="p">[</span><span class="s1">&#39;children&#39;</span><span class="p">]:</span>
+            <span class="n">print_at_depth</span><span class="p">(</span><span class="n">child_node</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="n">depth</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
+                           <span class="n">writefunc</span><span class="o">=</span><span class="n">writefunc</span><span class="p">,</span> <span class="n">delim</span><span class="o">=</span><span class="n">delim</span><span class="p">,</span> <span class="n">img</span><span class="o">=</span><span class="n">img</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="find_synthesis"><a class="viewcode-back" href="../../../makeit.application.html#makeit.application.run.find_synthesis">[docs]</a><span class="k">def</span> <span class="nf">find_synthesis</span><span class="p">():</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">arg_parser</span><span class="o">.</span><span class="n">get_args</span><span class="p">()</span>
+    <span class="n">makeit</span> <span class="o">=</span> <span class="n">MAKEIT</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">TARGET</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">expansion_time</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">max_depth</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">max_branching</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">max_trees</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">retro_mincount</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">retro_mincount_chiral</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">synth_mincount</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">rank_threshold</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">prob_threshold</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">max_contexts</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">template_count</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">max_ppg</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">chiral</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">nproc</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">celery</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">context_recommender</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">forward_scoring</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">tree_scoring</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">context_prioritization</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">template_prioritization</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">precursor_prioritization</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">parallel_tree</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">precursor_score_mode</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">max_cum_template_prob</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">apply_fast_filter</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">filter_threshold</span><span class="p">)</span>
+    <span class="n">MyLogger</span><span class="o">.</span><span class="n">initialize_logFile</span><span class="p">(</span><span class="n">makeit</span><span class="o">.</span><span class="n">output_dir_root</span><span class="p">,</span> <span class="n">makeit</span><span class="o">.</span><span class="n">case_dir</span><span class="p">)</span>
+
+    <span class="n">tree_status</span><span class="p">,</span> <span class="n">trees</span> <span class="o">=</span> <span class="n">makeit</span><span class="o">.</span><span class="n">construct_buyable_trees</span><span class="p">()</span>
+    <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span>
+        <span class="s1">&#39;MAKEIT generated </span><span class="si">{}</span><span class="s1"> buyable tree(s) that meet(s) all constraints.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">trees</span><span class="p">)),</span> <span class="n">makeit_loc</span><span class="p">)</span>
+    <span class="n">feasible_trees</span> <span class="o">=</span> <span class="n">makeit</span><span class="o">.</span><span class="n">evaluate_synthesis_trees</span><span class="p">(</span><span class="n">trees</span><span class="p">)</span>
+    <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;MAKEIT found </span><span class="si">{}</span><span class="s1"> tree(s) that are(is) likely to result in a successful synthesis.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">feasible_trees</span><span class="p">)),</span> <span class="n">makeit_loc</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">writefunc</span><span class="p">(</span><span class="n">string</span><span class="p">):</span> <span class="k">return</span> <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">makeit_loc</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">feasible_tree</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">feasible_trees</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)):</span>
+        <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">makeit_loc</span><span class="p">)</span>
+        <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Feasible tree </span><span class="si">{}</span><span class="s1">, plausible = </span><span class="si">{}</span><span class="s1">, overall score = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
+                                                                                             <span class="n">feasible_tree</span><span class="p">[</span><span class="s1">&#39;plausible&#39;</span><span class="p">],</span> <span class="n">feasible_tree</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">]),</span> <span class="n">makeit_loc</span><span class="p">)</span>
+        <span class="n">print_at_depth</span><span class="p">(</span><span class="n">feasible_tree</span><span class="p">[</span><span class="s1">&#39;tree&#39;</span><span class="p">],</span> <span class="n">writefunc</span><span class="o">=</span><span class="n">writefunc</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">makeit</span><span class="o">.</span><span class="n">output_dir_root</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_trees.html&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">makeit</span><span class="o">.</span><span class="n">case_dir</span><span class="p">)),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">writefunc</span><span class="p">(</span><span class="n">string</span><span class="p">):</span> <span class="k">return</span> <span class="n">fid</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&lt;br&gt;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">string</span><span class="p">))</span>
+        <span class="n">fid</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s1">&#39;&lt;html&gt;&lt;title&gt;Results for </span><span class="si">{}</span><span class="s1">&lt;/title&gt;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">TARGET</span><span class="p">))</span>
+        <span class="n">fid</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;&lt;body&gt;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">fid</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;&lt;h1&gt;</span><span class="si">{}</span><span class="s1">&lt;/h1&gt;&lt;br&gt;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">TARGET</span><span class="p">))</span>
+        <span class="n">fid</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;&lt;i&gt;&lt;b&gt;Settings: &lt;/b&gt;</span><span class="si">{}</span><span class="s1">&lt;/i&gt;&lt;br&gt;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">feasible_tree</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">feasible_trees</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)):</span>
+            <span class="n">writefunc</span><span class="p">(</span><span class="s1">&#39;&lt;h3&gt;Feasible tree </span><span class="si">{}</span><span class="s1">, plausible = </span><span class="si">{}</span><span class="s1">, overall score = </span><span class="si">{}</span><span class="s1">&lt;/h3&gt;&lt;br&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
+                                                                                                 <span class="n">feasible_tree</span><span class="p">[</span><span class="s1">&#39;plausible&#39;</span><span class="p">],</span> <span class="n">feasible_tree</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">]))</span>
+            <span class="n">print_at_depth</span><span class="p">(</span>
+                <span class="n">feasible_tree</span><span class="p">[</span><span class="s1">&#39;tree&#39;</span><span class="p">],</span> <span class="n">writefunc</span><span class="o">=</span><span class="n">writefunc</span><span class="p">,</span> <span class="n">delim</span><span class="o">=</span><span class="s1">&#39;&amp;nbsp;&#39;</span><span class="p">,</span> <span class="n">img</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">fid</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;&lt;/body&gt;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">find_synthesis</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../askcos.html">askcos package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../makeit.html">makeit package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

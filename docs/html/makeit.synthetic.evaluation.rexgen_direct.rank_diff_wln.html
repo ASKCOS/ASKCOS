@@ -1,0 +1,278 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln package &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="makeit.synthetic.evaluation.rexgen_release package" href="makeit.synthetic.evaluation.rexgen_release.html" />
+    <link rel="prev" title="makeit.synthetic.evaluation.rexgen_direct.core_wln_global package" href="makeit.synthetic.evaluation.rexgen_direct.core_wln_global.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="makeit-synthetic-evaluation-rexgen-direct-rank-diff-wln-package">
+<h1>makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln package<a class="headerlink" href="#makeit-synthetic-evaluation-rexgen-direct-rank-diff-wln-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.directcandranker">
+<span id="makeit-synthetic-evaluation-rexgen-direct-rank-diff-wln-directcandranker-module"></span><h2>makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.directcandranker module<a class="headerlink" href="#module-makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.directcandranker" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.directcandranker.DirectCandRanker">
+<em class="property">class </em><code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.directcandranker.</code><code class="descname">DirectCandRanker</code><span class="sig-paren">(</span><em>hidden_size=500</em>, <em>depth=3</em>, <em>core_size=16</em>, <em>MAX_NCAND=1500</em>, <em>TOPK=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/directcandranker.html#DirectCandRanker"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.directcandranker.DirectCandRanker" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.directcandranker.DirectCandRanker.load_model">
+<code class="descname">load_model</code><span class="sig-paren">(</span><em>model_path='/usr/local/ASKCOS/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/model-core16-500-3-max150-direct-useScores/model.ckpt-2400000'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/directcandranker.html#DirectCandRanker.load_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.directcandranker.DirectCandRanker.load_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.directcandranker.DirectCandRanker.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>react</em>, <em>top_cand_bonds</em>, <em>top_cand_scores=[]</em>, <em>scores=True</em>, <em>top_n=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/directcandranker.html#DirectCandRanker.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.directcandranker.DirectCandRanker.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>react: atom mapped reactant smiles
+top_cand_bonds: list of strings “ai-aj-bo”</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.directcandranker.softmax">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.directcandranker.</code><code class="descname">softmax</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/directcandranker.html#softmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.directcandranker.softmax" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.edit_mol_direct_useScores">
+<span id="makeit-synthetic-evaluation-rexgen-direct-rank-diff-wln-edit-mol-direct-usescores-module"></span><h2>makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.edit_mol_direct_useScores module<a class="headerlink" href="#module-makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.edit_mol_direct_useScores" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.edit_mol_direct_useScores.copy_edit_mol">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.edit_mol_direct_useScores.</code><code class="descname">copy_edit_mol</code><span class="sig-paren">(</span><em>mol</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/edit_mol_direct_useScores.html#copy_edit_mol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.edit_mol_direct_useScores.copy_edit_mol" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.edit_mol_direct_useScores.edit_mol">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.edit_mol_direct_useScores.</code><code class="descname">edit_mol</code><span class="sig-paren">(</span><em>rmol</em>, <em>edits</em>, <em>tatoms</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/edit_mol_direct_useScores.html#edit_mol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.edit_mol_direct_useScores.edit_mol" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.edit_mol_direct_useScores.get_product_smiles">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.edit_mol_direct_useScores.</code><code class="descname">get_product_smiles</code><span class="sig-paren">(</span><em>rmol</em>, <em>edits</em>, <em>tatoms</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/edit_mol_direct_useScores.html#get_product_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.edit_mol_direct_useScores.get_product_smiles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models">
+<span id="makeit-synthetic-evaluation-rexgen-direct-rank-diff-wln-models-module"></span><h2>makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models module<a class="headerlink" href="#module-makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models.rcnn_wl_last">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models.</code><code class="descname">rcnn_wl_last</code><span class="sig-paren">(</span><em>graph_inputs</em>, <em>hidden_size</em>, <em>depth</em>, <em>training=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/models.html#rcnn_wl_last"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models.rcnn_wl_last" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models.rcnn_wl_only">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models.</code><code class="descname">rcnn_wl_only</code><span class="sig-paren">(</span><em>graph_inputs</em>, <em>hidden_size</em>, <em>depth</em>, <em>training=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/models.html#rcnn_wl_only"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models.rcnn_wl_only" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models.wl_diff_net">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models.</code><code class="descname">wl_diff_net</code><span class="sig-paren">(</span><em>graph_inputs</em>, <em>atom_features</em>, <em>hidden_size</em>, <em>depth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/models.html#wl_diff_net"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models.wl_diff_net" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores">
+<span id="makeit-synthetic-evaluation-rexgen-direct-rank-diff-wln-mol-graph-direct-usescores-module"></span><h2>makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores module<a class="headerlink" href="#module-makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.atom_features">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.</code><code class="descname">atom_features</code><span class="sig-paren">(</span><em>atom</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/mol_graph_direct_useScores.html#atom_features"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.atom_features" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.bond_features">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.</code><code class="descname">bond_features</code><span class="sig-paren">(</span><em>bond</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/mol_graph_direct_useScores.html#bond_features"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.bond_features" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.onek_encoding_unk">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.</code><code class="descname">onek_encoding_unk</code><span class="sig-paren">(</span><em>x</em>, <em>allowable_set</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/mol_graph_direct_useScores.html#onek_encoding_unk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.onek_encoding_unk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.packnb">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.</code><code class="descname">packnb</code><span class="sig-paren">(</span><em>arr_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/mol_graph_direct_useScores.html#packnb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.packnb" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.smiles2graph">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.</code><code class="descname">smiles2graph</code><span class="sig-paren">(</span><em>rsmiles</em>, <em>psmiles</em>, <em>core_bonds</em>, <em>gold_bonds</em>, <em>cutoff=500</em>, <em>idxfunc=&lt;function &lt;lambda&gt;&gt;</em>, <em>core_size=20</em>, <em>kmax=5</em>, <em>return_found=False</em>, <em>testing=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/mol_graph_direct_useScores.html#smiles2graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores.smiles2graph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn">
+<span id="makeit-synthetic-evaluation-rexgen-direct-rank-diff-wln-nn-module"></span><h2>makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn module<a class="headerlink" href="#module-makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.CSR2TF">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.</code><code class="descname">CSR2TF</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/nn.html#CSR2TF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.CSR2TF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.batch_normalization">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.</code><code class="descname">batch_normalization</code><span class="sig-paren">(</span><em>x</em>, <em>scope</em>, <em>decay=0.999</em>, <em>eps=1e-06</em>, <em>training=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/nn.html#batch_normalization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.batch_normalization" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.batch_normalization_with_mask">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.</code><code class="descname">batch_normalization_with_mask</code><span class="sig-paren">(</span><em>x</em>, <em>mask</em>, <em>scope</em>, <em>decay=0.999</em>, <em>eps=1e-06</em>, <em>training=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/nn.html#batch_normalization_with_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.batch_normalization_with_mask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.linear">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.</code><code class="descname">linear</code><span class="sig-paren">(</span><em>input_</em>, <em>output_size</em>, <em>scope</em>, <em>reuse=False</em>, <em>init_bias=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/nn.html#linear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.linear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.linearND">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.</code><code class="descname">linearND</code><span class="sig-paren">(</span><em>input_</em>, <em>output_size</em>, <em>scope</em>, <em>reuse=False</em>, <em>init_bias=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/nn.html#linearND"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.linearND" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.lookup_table">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.</code><code class="descname">lookup_table</code><span class="sig-paren">(</span><em>input_</em>, <em>vocab_size</em>, <em>output_size</em>, <em>scope</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/nn.html#lookup_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.lookup_table" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.smart_gatherND">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.</code><code class="descname">smart_gatherND</code><span class="sig-paren">(</span><em>params</em>, <em>indices</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/nn.html#smart_gatherND"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.smart_gatherND" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.sparse_linear">
+<code class="descclassname">makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.</code><code class="descname">sparse_linear</code><span class="sig-paren">(</span><em>input_</em>, <em>input_size</em>, <em>output_size</em>, <em>scope</em>, <em>init_bias=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/evaluation/rexgen_direct/rank_diff_wln/nn.html#sparse_linear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn.sparse_linear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="askcos.html">askcos package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="makeit.html">makeit package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="makeit.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="makeit.application.html">makeit.application package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.interfaces.html">makeit.interfaces package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.prioritization.html">makeit.prioritization package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.retrosynthetic.html">makeit.retrosynthetic package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.scripts.html">makeit.scripts package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="makeit.synthetic.html">makeit.synthetic package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="makeit.synthetic.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.synthetic.html#module-makeit.synthetic">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.utilities.html">makeit.utilities package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit.global_config">makeit.global_config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="makeit.html">makeit package</a><ul>
+  <li><a href="makeit.synthetic.html">makeit.synthetic package</a><ul>
+  <li><a href="makeit.synthetic.evaluation.html">makeit.synthetic.evaluation package</a><ul>
+  <li><a href="makeit.synthetic.evaluation.rexgen_direct.html">makeit.synthetic.evaluation.rexgen_direct package</a><ul>
+      <li>Previous: <a href="makeit.synthetic.evaluation.rexgen_direct.core_wln_global.html" title="previous chapter">makeit.synthetic.evaluation.rexgen_direct.core_wln_global package</a></li>
+      <li>Next: <a href="makeit.synthetic.evaluation.rexgen_release.html" title="next chapter">makeit.synthetic.evaluation.rexgen_release package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

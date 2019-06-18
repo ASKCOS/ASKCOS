@@ -1,0 +1,647 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.prioritization.precursors package &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="makeit.prioritization.templates package" href="makeit.prioritization.templates.html" />
+    <link rel="prev" title="makeit.prioritization.contexts package" href="makeit.prioritization.contexts.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="makeit-prioritization-precursors-package">
+<h1>makeit.prioritization.precursors package<a class="headerlink" href="#makeit-prioritization-precursors-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-makeit.prioritization.precursors.heuristic">
+<span id="makeit-prioritization-precursors-heuristic-module"></span><h2>makeit.prioritization.precursors.heuristic module<a class="headerlink" href="#module-makeit.prioritization.precursors.heuristic" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.prioritization.precursors.heuristic.HeuristicPrecursorPrioritizer">
+<em class="property">class </em><code class="descclassname">makeit.prioritization.precursors.heuristic.</code><code class="descname">HeuristicPrecursorPrioritizer</code><a class="reference internal" href="_modules/makeit/prioritization/precursors/heuristic.html#HeuristicPrecursorPrioritizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.heuristic.HeuristicPrecursorPrioritizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="makeit.prioritization.html#makeit.prioritization.prioritizer.Prioritizer" title="makeit.prioritization.prioritizer.Prioritizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">makeit.prioritization.prioritizer.Prioritizer</span></code></a></p>
+<p>A precursor Prioritizer that uses a heuristic scoring function.</p>
+<dl class="attribute">
+<dt id="makeit.prioritization.precursors.heuristic.HeuristicPrecursorPrioritizer.pricer">
+<code class="descname">pricer</code><a class="headerlink" href="#makeit.prioritization.precursors.heuristic.HeuristicPrecursorPrioritizer.pricer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Used to look up chemical prices.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference internal" href="makeit.utilities.buyable.html#makeit.utilities.buyable.pricer.Pricer" title="makeit.utilities.buyable.pricer.Pricer">Pricer</a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.heuristic.HeuristicPrecursorPrioritizer.get_priority">
+<code class="descname">get_priority</code><span class="sig-paren">(</span><em>retroPrecursor</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/heuristic.html#HeuristicPrecursorPrioritizer.get_priority"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.heuristic.HeuristicPrecursorPrioritizer.get_priority" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets priority of given precursor based on heuristic function.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>retroPrecursor</strong> (<a class="reference internal" href="makeit.retrosynthetic.html#makeit.retrosynthetic.results.RetroPrecursor" title="makeit.retrosynthetic.results.RetroPrecursor"><em>RetroPrecursor</em></a>) – Precursor to calculate priority of.</li>
+<li><strong>**kwargs</strong> – Unused.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Priority score of precursor.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.heuristic.HeuristicPrecursorPrioritizer.load_model">
+<code class="descname">load_model</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/heuristic.html#HeuristicPrecursorPrioritizer.load_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.heuristic.HeuristicPrecursorPrioritizer.load_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the Pricer used in the heuristic priority scoring.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-makeit.prioritization.precursors.mincost">
+<span id="makeit-prioritization-precursors-mincost-module"></span><h2>makeit.prioritization.precursors.mincost module<a class="headerlink" href="#module-makeit.prioritization.precursors.mincost" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer">
+<em class="property">class </em><code class="descclassname">makeit.prioritization.precursors.mincost.</code><code class="descname">MinCostPrecursorPrioritizer</code><span class="sig-paren">(</span><em>score_scale=10.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/mincost.html#MinCostPrecursorPrioritizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="makeit.prioritization.html#makeit.prioritization.prioritizer.Prioritizer" title="makeit.prioritization.prioritizer.Prioritizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">makeit.prioritization.prioritizer.Prioritizer</span></code></a></p>
+<p>A precursor prioritizer using a MinCost model.</p>
+<p>This is a standalone, importable MinCost model. Uses loaded keras model.</p>
+<dl class="attribute">
+<dt id="makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.vars">
+<code class="descname">vars</code><a class="headerlink" href="#makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.vars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unused.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.FP_rad">
+<code class="descname">FP_rad</code><a class="headerlink" href="#makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.FP_rad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fingerprint radius.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.FP_len">
+<code class="descname">FP_len</code><a class="headerlink" href="#makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.FP_len" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fingerprint length.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.score_scale">
+<code class="descname">score_scale</code><a class="headerlink" href="#makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.score_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Upper-bound of scale for scoring.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.pricer">
+<code class="descname">pricer</code><a class="headerlink" href="#makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.pricer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pricer instance to lookup chemical costs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference internal" href="makeit.utilities.buyable.html#makeit.utilities.buyable.pricer.Pricer" title="makeit.utilities.buyable.pricer.Pricer">Pricer</a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.get_price">
+<code class="descname">get_price</code><span class="sig-paren">(</span><em>smi</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/mincost.html#MinCostPrecursorPrioritizer.get_price"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.get_price" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets price of given chemical.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>smi</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string for given chemical.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">0.0 if price is available, None if not.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.get_priority">
+<code class="descname">get_priority</code><span class="sig-paren">(</span><em>retroProduct</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/mincost.html#MinCostPrecursorPrioritizer.get_priority"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.get_priority" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns priority of given product based on MinCost model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>retroProduct</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em> or </em><a class="reference internal" href="makeit.retrosynthetic.html#makeit.retrosynthetic.results.RetroPrecursor" title="makeit.retrosynthetic.results.RetroPrecursor"><em>RetroPrecursor</em></a>) – Product to calculate score
+for.</li>
+<li><strong>**kwargs</strong> – Additional optional arguments. Used for mode.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Priority of given product.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.get_score_from_smiles">
+<code class="descname">get_score_from_smiles</code><span class="sig-paren">(</span><em>smiles</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/mincost.html#MinCostPrecursorPrioritizer.get_score_from_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.get_score_from_smiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets precursor score from a given SMILES string.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>smiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of precursor.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Priority score of precursor.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.load_model">
+<code class="descname">load_model</code><span class="sig-paren">(</span><em>FP_len=1024</em>, <em>input_layer=6144</em>, <em>hidden_layer=512</em>, <em>modelpath=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/mincost.html#MinCostPrecursorPrioritizer.load_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.load_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads MinCost model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>FP_len</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Fingerprint length. (default: {1024})</li>
+<li><strong>input_layer</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – ?? (default: {6144})</li>
+<li><strong>hidden_layer</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – ?? (default: {512})</li>
+<li><strong>model_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Specifies file containing model.
+(default: {‘’})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.smi_to_fp">
+<code class="descname">smi_to_fp</code><span class="sig-paren">(</span><em>smi</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/mincost.html#MinCostPrecursorPrioritizer.smi_to_fp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.smi_to_fp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns fingerprint of molecule from given SMILES string.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>smi</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of given molecule.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-makeit.prioritization.precursors.relevanceheuristic">
+<span id="makeit-prioritization-precursors-relevanceheuristic-module"></span><h2>makeit.prioritization.precursors.relevanceheuristic module<a class="headerlink" href="#module-makeit.prioritization.precursors.relevanceheuristic" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.prioritization.precursors.relevanceheuristic.RelevanceHeuristicPrecursorPrioritizer">
+<em class="property">class </em><code class="descclassname">makeit.prioritization.precursors.relevanceheuristic.</code><code class="descname">RelevanceHeuristicPrecursorPrioritizer</code><a class="reference internal" href="_modules/makeit/prioritization/precursors/relevanceheuristic.html#RelevanceHeuristicPrecursorPrioritizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.relevanceheuristic.RelevanceHeuristicPrecursorPrioritizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="makeit.prioritization.html#makeit.prioritization.prioritizer.Prioritizer" title="makeit.prioritization.prioritizer.Prioritizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">makeit.prioritization.prioritizer.Prioritizer</span></code></a></p>
+<p>A precursor Prioritizer that uses a heuristic and template relevance.</p>
+<dl class="attribute">
+<dt id="makeit.prioritization.precursors.relevanceheuristic.RelevanceHeuristicPrecursorPrioritizer.pricer">
+<code class="descname">pricer</code><a class="headerlink" href="#makeit.prioritization.precursors.relevanceheuristic.RelevanceHeuristicPrecursorPrioritizer.pricer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Used to look up chemical prices.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference internal" href="makeit.utilities.buyable.html#makeit.utilities.buyable.pricer.Pricer" title="makeit.utilities.buyable.pricer.Pricer">Pricer</a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.relevanceheuristic.RelevanceHeuristicPrecursorPrioritizer.get_priority">
+<code class="descname">get_priority</code><span class="sig-paren">(</span><em>retroPrecursor</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/relevanceheuristic.html#RelevanceHeuristicPrecursorPrioritizer.get_priority"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.relevanceheuristic.RelevanceHeuristicPrecursorPrioritizer.get_priority" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets priority of given precursor based on heuristic and relevance.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>retroPrecursor</strong> (<a class="reference internal" href="makeit.retrosynthetic.html#makeit.retrosynthetic.results.RetroPrecursor" title="makeit.retrosynthetic.results.RetroPrecursor"><em>RetroPrecursor</em></a>) – Precursor to calculate priority of.</li>
+<li><strong>**kwargs</strong> – Unused.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Priority score of precursor.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.relevanceheuristic.RelevanceHeuristicPrecursorPrioritizer.load_model">
+<code class="descname">load_model</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/relevanceheuristic.html#RelevanceHeuristicPrecursorPrioritizer.load_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.relevanceheuristic.RelevanceHeuristicPrecursorPrioritizer.load_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the Pricer used in the heuristic priority scoring.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-makeit.prioritization.precursors.scscore">
+<span id="makeit-prioritization-precursors-scscore-module"></span><h2>makeit.prioritization.precursors.scscore module<a class="headerlink" href="#module-makeit.prioritization.precursors.scscore" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer">
+<em class="property">class </em><code class="descclassname">makeit.prioritization.precursors.scscore.</code><code class="descname">SCScorePrecursorPrioritizer</code><span class="sig-paren">(</span><em>score_scale=5.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/scscore.html#SCScorePrecursorPrioritizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="makeit.prioritization.html#makeit.prioritization.prioritizer.Prioritizer" title="makeit.prioritization.prioritizer.Prioritizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">makeit.prioritization.prioritizer.Prioritizer</span></code></a></p>
+<p>Standalone, importable SCScorecorer model.</p>
+<p>It does not have tensorflow as a dependency and is a more attractive option
+for deployment. The calculations are fast enough that there is no real
+reason to use GPUs (via tf) instead of CPUs (via np).</p>
+<dl class="attribute">
+<dt id="makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.vars">
+<code class="descname">vars</code><a class="headerlink" href="#makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.vars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Weights and bias
+of given model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of np.ndarry of np.ndarray of np.float32</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.FP_rad">
+<code class="descname">FP_rad</code><a class="headerlink" href="#makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.FP_rad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fingerprint radius.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.FP_len">
+<code class="descname">FP_len</code><a class="headerlink" href="#makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.FP_len" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fingerprint length.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.score_scale">
+<code class="descname">score_scale</code><a class="headerlink" href="#makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.score_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Upper-bound of scale for scoring.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.pricer">
+<code class="descname">pricer</code><a class="headerlink" href="#makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.pricer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pricer instance to lookup chemical costs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference internal" href="makeit.utilities.buyable.html#makeit.utilities.buyable.pricer.Pricer" title="makeit.utilities.buyable.pricer.Pricer">Pricer</a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.apply">
+<code class="descname">apply</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/scscore.html#SCScorePrecursorPrioritizer.apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.apply" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies model to a fingerprint to calculate score.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>x</strong> (<em>np.ndarray</em>) – Fingerprint of molecule to apply model to.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Score of molecule.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.get_priority">
+<code class="descname">get_priority</code><span class="sig-paren">(</span><em>retroProduct</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/scscore.html#SCScorePrecursorPrioritizer.get_priority"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.get_priority" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns priority of given product.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>retroProduct</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em> or </em><a class="reference internal" href="makeit.retrosynthetic.html#makeit.retrosynthetic.results.RetroPrecursor" title="makeit.retrosynthetic.results.RetroPrecursor"><em>RetroPrecursor</em></a>) – Product to calculate score
+for.</li>
+<li><strong>**kwargs</strong> – Additional optional arguments. Used for mode.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Priority of given product.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.get_score_from_smiles">
+<code class="descname">get_score_from_smiles</code><span class="sig-paren">(</span><em>smiles</em>, <em>noprice=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/scscore.html#SCScorePrecursorPrioritizer.get_score_from_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.get_score_from_smiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns score of molecule from given SMILES string.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>smiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of molecule.</li>
+<li><strong>noprice</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to not use the molecules price as
+its score, if available. (default: {False})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.load_model">
+<code class="descname">load_model</code><span class="sig-paren">(</span><em>FP_len=1024</em>, <em>model_tag='1024bool'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/scscore.html#SCScorePrecursorPrioritizer.load_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.load_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads model from given tag.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>FP_len</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Fingerprint length. (default: {1024})</li>
+<li><strong>model_tag</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Tag of model to load.
+(default: {‘1024bool’})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.merge_scores">
+<code class="descname">merge_scores</code><span class="sig-paren">(</span><em>list_of_scores</em>, <em>mode='Maximum'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/scscore.html#SCScorePrecursorPrioritizer.merge_scores"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.merge_scores" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merges list of scores into a single score based on a given mode.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>list_of_scores</strong> (<em>list of floats</em>) – Scores to be merged.</li>
+<li><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Function to merge by. (default: {gc.max})</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Merged scores.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.smi_to_fp">
+<code class="descname">smi_to_fp</code><span class="sig-paren">(</span><em>smi</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/scscore.html#SCScorePrecursorPrioritizer.smi_to_fp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.smi_to_fp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns fingerprint of molecule from given SMILES string.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>smi</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of given molecule.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="makeit.prioritization.precursors.scscore.sigmoid">
+<code class="descclassname">makeit.prioritization.precursors.scscore.</code><code class="descname">sigmoid</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/precursors/scscore.html#sigmoid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.precursors.scscore.sigmoid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns sigmoid of x.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – Input value.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-makeit.prioritization.precursors">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-makeit.prioritization.precursors" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="askcos.html">askcos package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="makeit.html">makeit package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="makeit.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="makeit.application.html">makeit.application package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.interfaces.html">makeit.interfaces package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="makeit.prioritization.html">makeit.prioritization package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="makeit.prioritization.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.prioritization.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.prioritization.html#module-makeit.prioritization.default">makeit.prioritization.default module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.prioritization.html#module-makeit.prioritization.prioritizer">makeit.prioritization.prioritizer module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.prioritization.html#module-makeit.prioritization">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.retrosynthetic.html">makeit.retrosynthetic package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.scripts.html">makeit.scripts package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.synthetic.html">makeit.synthetic package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.utilities.html">makeit.utilities package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit.global_config">makeit.global_config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="makeit.html">makeit package</a><ul>
+  <li><a href="makeit.prioritization.html">makeit.prioritization package</a><ul>
+      <li>Previous: <a href="makeit.prioritization.contexts.html" title="previous chapter">makeit.prioritization.contexts package</a></li>
+      <li>Next: <a href="makeit.prioritization.templates.html" title="next chapter">makeit.prioritization.templates package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/makeit.prioritization.precursors.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

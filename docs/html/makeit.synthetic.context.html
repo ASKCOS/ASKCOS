@@ -1,0 +1,736 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.synthetic.context package &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="makeit.synthetic.enumeration package" href="makeit.synthetic.enumeration.html" />
+    <link rel="prev" title="makeit.synthetic package" href="makeit.synthetic.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="makeit-synthetic-context-package">
+<h1>makeit.synthetic.context package<a class="headerlink" href="#makeit-synthetic-context-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-makeit.synthetic.context.nearestneighbor">
+<span id="makeit-synthetic-context-nearestneighbor-module"></span><h2>makeit.synthetic.context.nearestneighbor module<a class="headerlink" href="#module-makeit.synthetic.context.nearestneighbor" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender">
+<em class="property">class </em><code class="descclassname">makeit.synthetic.context.nearestneighbor.</code><code class="descname">NNContextRecommender</code><span class="sig-paren">(</span><em>max_contexts=10</em>, <em>singleSlvt=True</em>, <em>with_smiles=True</em>, <em>done=None</em>, <em>REACTION_DB=None</em>, <em>CHEMICAL_DB=None</em>, <em>INSTANCE_DB=None</em>, <em>cachelength=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/nearestneighbor.html#NNContextRecommender"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="makeit.interfaces.html#makeit.interfaces.context_recommender.ContextRecommender" title="makeit.interfaces.context_recommender.ContextRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">makeit.interfaces.context_recommender.ContextRecommender</span></code></a></p>
+<p>Reaction condition predictor based on Nearest Neighbor method.</p>
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.nnModel">
+<code class="descname">nnModel</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.nnModel" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a> or ??</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.rxn_ids">
+<code class="descname">rxn_ids</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.rxn_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>??</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.num_cond">
+<code class="descname">num_cond</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.num_cond" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.dist_limit">
+<code class="descname">dist_limit</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.dist_limit" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.singleSlvt">
+<code class="descname">singleSlvt</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.singleSlvt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether to use a single solvent for the reactions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.with_smiles">
+<code class="descname">with_smiles</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.with_smiles" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.max_total_context">
+<code class="descname">max_total_context</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.max_total_context" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.max_int">
+<code class="descname">max_int</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.max_int" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.max_context">
+<code class="descname">max_context</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.max_context" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.done">
+<code class="descname">done</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.done" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a> or ??</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.REACTION_DB">
+<code class="descname">REACTION_DB</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.REACTION_DB" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a> or MongoDB</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.CHEMICAL_DB">
+<code class="descname">CHEMICAL_DB</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.CHEMICAL_DB" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a> or MongoDB</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.INSTANCE_DB">
+<code class="descname">INSTANCE_DB</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.INSTANCE_DB" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a> or MongoDB</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.cache">
+<code class="descname">cache</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.cache" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.cache_q">
+<code class="descname">cache_q</code><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.cache_q" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">deque</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.get_n_conditions">
+<code class="descname">get_n_conditions</code><span class="sig-paren">(</span><em>rxn</em>, <em>n=10</em>, <em>singleSlvt=True</em>, <em>with_smiles=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/nearestneighbor.html#NNContextRecommender.get_n_conditions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.get_n_conditions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets top n recommendations for reaction conditions.</p>
+<p>Reaction condition recommendations for a rxn (SMILES) from top n NN.
+Returns the top n parseable conditions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>rxn</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of reaction to run.</li>
+<li><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Number of conditions to return. (default: {10})</li>
+<li><strong>singleSlvt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to use a single solvent for the
+reaction. (default: {True})</li>
+<li><strong>with_smiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – ?? (default: {True})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>model_path=''</em>, <em>info_path=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/nearestneighbor.html#NNContextRecommender.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads databases and nearest neighbor model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>model_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Specifies path to file containing
+nearest neighbor model. (default: {‘’})</li>
+<li><strong>info_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Specifies path to file containing
+information for the nearest neighbor model. (default: {‘’})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.load_databases">
+<code class="descname">load_databases</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/nearestneighbor.html#NNContextRecommender.load_databases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.load_databases" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the databases.</p>
+<p>The databases are MongoDBs. Their locations are specified in the global
+config.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.load_nn_model">
+<code class="descname">load_nn_model</code><span class="sig-paren">(</span><em>model_path=''</em>, <em>info_path=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/nearestneighbor.html#NNContextRecommender.load_nn_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.load_nn_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the nearest neighbor model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>model_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Specifies path to file containing
+nearest neighbor model. (default: {‘’})</li>
+<li><strong>info_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Specifies path to file containing
+information for the nearest neighbor model. (default: {‘’})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.load_predictor">
+<code class="descname">load_predictor</code><span class="sig-paren">(</span><em>userInput</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/nearestneighbor.html#NNContextRecommender.load_predictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.load_predictor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the predictor based on user input.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>userInput</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Specifies values to use for the main attributes.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.n_rxn_condition">
+<code class="descname">n_rxn_condition</code><span class="sig-paren">(</span><em>n</em>, <em>dists</em>, <em>idx</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/nearestneighbor.html#NNContextRecommender.n_rxn_condition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.n_rxn_condition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Top 10 reaction conditions from the top n nearest neighbors.</p>
+<p>Only returns parseable solvents.</p>
+<p>Args:
+n (int): The number of nearest neighbors to extract rxn conditions from,</p>
+<blockquote>
+<div>n &lt;= 10 here.</div></blockquote>
+<p>dists:
+idx: np.array output from NearestNeighbor model for one rxn (10L, )</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>Reaction conditions:</dt>
+<dd>[(T, solvent, reagent, catalyst, rxn_time, rxn_yield), ()]</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.path_condition">
+<code class="descname">path_condition</code><span class="sig-paren">(</span><em>n</em>, <em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/nearestneighbor.html#NNContextRecommender.path_condition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.path_condition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reaction condition recommendation for a multiple-reaction path.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Number of conditions to recommend for each step.</li>
+<li><strong>path</strong> (<em>list of str</em>) – Reaction SMILES for each step.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Reaction context with n options for each step.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)">list</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.nearestneighbor.NNContextRecommender.reaction_condition">
+<code class="descname">reaction_condition</code><span class="sig-paren">(</span><em>r_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/nearestneighbor.html#NNContextRecommender.reaction_condition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.nearestneighbor.NNContextRecommender.reaction_condition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a set of conditions from instances associated with the reaction</p>
+<p>Args:
+r_id (str): _id for a reaction.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>Contexts as tuples:</dt>
+<dd>(T, solvent, reagent, catalyst, rxn_time, rxn_yield)</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-makeit.synthetic.context.neuralnetwork">
+<span id="makeit-synthetic-context-neuralnetwork-module"></span><h2>makeit.synthetic.context.neuralnetwork module<a class="headerlink" href="#module-makeit.synthetic.context.neuralnetwork" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender">
+<em class="property">class </em><code class="descclassname">makeit.synthetic.context.neuralnetwork.</code><code class="descname">NeuralNetContextRecommender</code><span class="sig-paren">(</span><em>max_contexts=10</em>, <em>singleSlvt=True</em>, <em>with_smiles=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/neuralnetwork.html#NeuralNetContextRecommender"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="makeit.interfaces.html#makeit.interfaces.context_recommender.ContextRecommender" title="makeit.interfaces.context_recommender.ContextRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">makeit.interfaces.context_recommender.ContextRecommender</span></code></a></p>
+<p>Reaction condition predictor based on Neural Network method</p>
+<dl class="attribute">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.nnModel">
+<code class="descname">nnModel</code><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.nnModel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.c1_dict">
+<code class="descname">c1_dict</code><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.c1_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.s1_dict">
+<code class="descname">s1_dict</code><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.s1_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.s2_dict">
+<code class="descname">s2_dict</code><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.s2_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.r1_dict">
+<code class="descname">r1_dict</code><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.r1_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.r2_dict">
+<code class="descname">r2_dict</code><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.r2_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.num_cond">
+<code class="descname">num_cond</code><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.num_cond" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.singleSlvt">
+<code class="descname">singleSlvt</code><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.singleSlvt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.with_smiles">
+<code class="descname">with_smiles</code><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.with_smiles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.max_total_context">
+<code class="descname">max_total_context</code><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.max_total_context" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.max_context">
+<code class="descname">max_context</code><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.max_context" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.fp_size">
+<code class="descname">fp_size</code><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.fp_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.category_to_name">
+<code class="descname">category_to_name</code><span class="sig-paren">(</span><em>chem_type</em>, <em>category</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/neuralnetwork.html#NeuralNetContextRecommender.category_to_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.category_to_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns name ??</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>chem_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – <p>??</p>
+</li>
+<li><strong>category</strong> – <p>??</p>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.get_n_conditions">
+<code class="descname">get_n_conditions</code><span class="sig-paren">(</span><em>rxn</em>, <em>n=10</em>, <em>singleSlvt=True</em>, <em>with_smiles=True</em>, <em>return_scores=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/neuralnetwork.html#NeuralNetContextRecommender.get_n_conditions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.get_n_conditions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the top n parseable reaction condition recommendations.</p>
+<p>Reaction condition recommendations for a rxn (SMILES) from top n NN</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>rxn</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string for reaction.</li>
+<li><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Number of condition recomendations to return.
+(default: {10})</li>
+<li><strong>singleSlvt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to use a single solvent.
+(default: {true})</li>
+<li><strong>with_smiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – ?? (default: {True})</li>
+<li><strong>return_scores</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to also return the scores of the
+recomendations. (default: {True})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>model_path='/usr/local/ASKCOS/makeit/data/context/NeuralNet_Cont_Model/model.json'</em>, <em>info_path='/usr/local/ASKCOS/makeit/data/context/NeuralNet_Cont_Model/'</em>, <em>weights_path='/usr/local/ASKCOS/makeit/data/context/NeuralNet_Cont_Model/weights.h5'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/neuralnetwork.html#NeuralNetContextRecommender.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the specified model and weights.</p>
+<p>Wrapper function for load_nn_model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>model_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Path to file specifying model.
+(default: {gc.NEURALNET_CONTEXT_REC[‘model_path’]})</li>
+<li><strong>info_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Path to file specifying encoders.
+(default: {gc.NEURALNET_CONTEXT_REC[‘info_path’]})</li>
+<li><strong>weights_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Path to file specifying weights.
+(default: {gc.NEURALNET_CONTEXT_REC[‘weights_path’]})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.load_nn_model">
+<code class="descname">load_nn_model</code><span class="sig-paren">(</span><em>model_path=''</em>, <em>info_path=''</em>, <em>weights_path=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/neuralnetwork.html#NeuralNetContextRecommender.load_nn_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.load_nn_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads specified Neural Network model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>model_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Path to file specifying model.
+(default: {‘’})</li>
+<li><strong>info_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Path to file specifying encoders.
+(default: {‘’})</li>
+<li><strong>weights_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Path to file specifying weights.
+(default: {‘’})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.load_predictor">
+<code class="descname">load_predictor</code><span class="sig-paren">(</span><em>userInput</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/neuralnetwork.html#NeuralNetContextRecommender.load_predictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.load_predictor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the predictor based on user input.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>userInput</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Specifies values to use for the main attributes of
+the predictor.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.path_condition">
+<code class="descname">path_condition</code><span class="sig-paren">(</span><em>n</em>, <em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/neuralnetwork.html#NeuralNetContextRecommender.path_condition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.path_condition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recommends reaction conditions reaction path with multiple reactions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Number of options to use at each step.</li>
+<li><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Reaction SMILES for each step.</li>
+<li><strong>Returns</strong> – A list of reaction contexts with n options for each step.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.predict_top_combos">
+<code class="descname">predict_top_combos</code><span class="sig-paren">(</span><em>inputs</em>, <em>return_categories_only=False</em>, <em>c1_rank_thres=2</em>, <em>s1_rank_thres=3</em>, <em>s2_rank_thres=1</em>, <em>r1_rank_thres=3</em>, <em>r2_rank_thres=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/context/neuralnetwork.html#NeuralNetContextRecommender.predict_top_combos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.predict_top_combos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predicts top combos based on rank thresholds for individual elements.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inputs</strong> (<em>list??</em>) – Input values for model.</li>
+<li><strong>return_categories_only</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to only return the
+categories. Used for testing. (default: {False})</li>
+<li><strong>c1_rank_thres</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Rank threshold for c1??
+(default: {2})</li>
+<li><strong>s1_rank_thres</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Rank threshold for s1??
+(default: {3})</li>
+<li><strong>s2_rank_thres</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Rank threshold for s2??
+(default: {1})</li>
+<li><strong>r1_rank_thres</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Rank threshold for r1??
+(default: {3})</li>
+<li><strong>r2_rank_thres</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Rank threshold for r2??
+(default: {1})</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Context combinations and scores predicted.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">2-tuple of lists</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-makeit.synthetic.context">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-makeit.synthetic.context" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="askcos.html">askcos package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="makeit.html">makeit package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="makeit.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="makeit.application.html">makeit.application package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.interfaces.html">makeit.interfaces package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.prioritization.html">makeit.prioritization package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.retrosynthetic.html">makeit.retrosynthetic package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.scripts.html">makeit.scripts package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="makeit.synthetic.html">makeit.synthetic package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="makeit.synthetic.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.synthetic.html#module-makeit.synthetic">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.utilities.html">makeit.utilities package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit.global_config">makeit.global_config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="makeit.html">makeit package</a><ul>
+  <li><a href="makeit.synthetic.html">makeit.synthetic package</a><ul>
+      <li>Previous: <a href="makeit.synthetic.html" title="previous chapter">makeit.synthetic package</a></li>
+      <li>Next: <a href="makeit.synthetic.enumeration.html" title="next chapter">makeit.synthetic.enumeration package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/makeit.synthetic.context.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

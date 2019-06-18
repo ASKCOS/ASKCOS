@@ -1,0 +1,70 @@
+makeit.synthetic.evaluation package
+===================================
+
+Subpackages
+-----------
+
+.. toctree::
+
+    makeit.synthetic.evaluation.rexgen_direct
+    makeit.synthetic.evaluation.rexgen_release
+
+Submodules
+----------
+
+makeit.synthetic.evaluation.evaluator module
+--------------------------------------------
+
+.. automodule:: makeit.synthetic.evaluation.evaluator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+makeit.synthetic.evaluation.fast\_filter module
+-----------------------------------------------
+
+.. automodule:: makeit.synthetic.evaluation.fast_filter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+makeit.synthetic.evaluation.template\_based module
+--------------------------------------------------
+
+.. automodule:: makeit.synthetic.evaluation.template_based
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+makeit.synthetic.evaluation.template\_based\_aux module
+-------------------------------------------------------
+
+.. automodule:: makeit.synthetic.evaluation.template_based_aux
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+makeit.synthetic.evaluation.template\_free module
+-------------------------------------------------
+
+.. automodule:: makeit.synthetic.evaluation.template_free
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+makeit.synthetic.evaluation.tree\_evaluator module
+--------------------------------------------------
+
+.. automodule:: makeit.synthetic.evaluation.tree_evaluator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: makeit.synthetic.evaluation
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -1,0 +1,190 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.synthetic.evaluation.rexgen_release.CoreFinder.models &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../../../" src="../../../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for makeit.synthetic.evaluation.rexgen_release.CoreFinder.models</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">.mol_graph</span> <span class="k">import</span> <span class="n">max_nb</span>
+<span class="kn">from</span> <span class="nn">..utils.nn</span> <span class="k">import</span> <span class="o">*</span>
+
+<div class="viewcode-block" id="gated_convnet"><a class="viewcode-back" href="../../../../../../makeit.synthetic.evaluation.rexgen_release.CoreFinder.html#makeit.synthetic.evaluation.rexgen_release.CoreFinder.models.gated_convnet">[docs]</a><span class="k">def</span> <span class="nf">gated_convnet</span><span class="p">(</span><span class="n">graph_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">hidden_size</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">res_block</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+    <span class="n">input_atom</span><span class="p">,</span> <span class="n">input_bond</span><span class="p">,</span> <span class="n">atom_graph</span><span class="p">,</span> <span class="n">bond_graph</span><span class="p">,</span> <span class="n">num_nbs</span><span class="p">,</span> <span class="n">node_mask</span> <span class="o">=</span> <span class="n">graph_inputs</span>
+    <span class="n">layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">input_atom</span><span class="p">]</span>
+    <span class="n">atom_features</span> <span class="o">=</span> <span class="n">input_atom</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">depth</span><span class="p">):</span>
+        <span class="n">fatom_nei</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">atom_features</span><span class="p">,</span> <span class="n">atom_graph</span><span class="p">)</span>
+        <span class="n">fbond_nei</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">input_bond</span><span class="p">,</span> <span class="n">bond_graph</span><span class="p">)</span>
+        <span class="n">f_nei</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">fatom_nei</span><span class="p">,</span> <span class="n">fbond_nei</span><span class="p">],</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">h_nei</span> <span class="o">=</span> <span class="n">linearND</span><span class="p">(</span><span class="n">f_nei</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="s2">&quot;nei_hidden_</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">i</span><span class="p">)</span>
+        <span class="n">g_nei</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">linearND</span><span class="p">(</span><span class="n">f_nei</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="s2">&quot;nei_gate_</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">i</span><span class="p">))</span>
+        <span class="n">f_nei</span> <span class="o">=</span> <span class="n">h_nei</span> <span class="o">*</span> <span class="n">g_nei</span>
+        <span class="n">mask_nei</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">sequence_mask</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">num_nbs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">max_nb</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">max_nb</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">f_nei</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">f_nei</span> <span class="o">*</span> <span class="n">mask_nei</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">h_self</span> <span class="o">=</span> <span class="n">linearND</span><span class="p">(</span><span class="n">atom_features</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="s2">&quot;self_hidden_</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">i</span><span class="p">)</span>
+        <span class="n">g_self</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">linearND</span><span class="p">(</span><span class="n">atom_features</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="s2">&quot;self_gate_</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">i</span><span class="p">))</span>
+        <span class="n">f_self</span> <span class="o">=</span> <span class="n">h_self</span> <span class="o">*</span> <span class="n">g_self</span>
+        <span class="n">atom_features</span> <span class="o">=</span> <span class="p">(</span><span class="n">f_nei</span> <span class="o">+</span> <span class="n">f_self</span><span class="p">)</span> <span class="o">*</span> <span class="n">node_mask</span>
+        <span class="k">if</span> <span class="n">res_block</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">%</span> <span class="n">res_block</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">atom_features</span> <span class="o">=</span> <span class="n">atom_features</span> <span class="o">+</span> <span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atom_features</span><span class="p">)</span>
+    <span class="n">output_gate</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">linearND</span><span class="p">(</span><span class="n">atom_features</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="s2">&quot;out_gate&quot;</span><span class="p">))</span> 
+    <span class="n">output</span> <span class="o">=</span> <span class="n">node_mask</span> <span class="o">*</span> <span class="p">(</span><span class="n">output_gate</span> <span class="o">*</span> <span class="n">atom_features</span><span class="p">)</span>
+    <span class="n">fp</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">atom_features</span> <span class="o">*</span> <span class="n">node_mask</span><span class="p">,</span> <span class="n">fp</span></div>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">def rcnn_wl_last(graph_inputs, batch_size, hidden_size, depth, training=True):</span>
+<span class="sd">    input_atom, input_bond, atom_graph, bond_graph, num_nbs, node_mask = graph_inputs</span>
+<span class="sd">    atom_features = tf.nn.relu(linearND(input_atom, hidden_size, &quot;atom_embedding&quot;, init_bias=None))</span>
+<span class="sd">    mask_nei = tf.reshape(tf.sequence_mask(tf.reshape(num_nbs, [-1]), max_nb, dtype=tf.float32), [batch_size,-1,max_nb,1])</span>
+<span class="sd">    fbond_nei = tf.gather_nd(input_bond, bond_graph)</span>
+
+<span class="sd">    for i in range(depth):</span>
+<span class="sd">        with tf.variable_scope(&quot;WL&quot;, reuse=(i&gt;0)) as scope:</span>
+<span class="sd">            fatom_nei = tf.gather_nd(atom_features, atom_graph)</span>
+<span class="sd">            l_nei = tf.concat(3, [fatom_nei, fbond_nei])</span>
+<span class="sd">            nei_label = tf.nn.relu(linearND(l_nei, hidden_size, &quot;label_U2&quot;))</span>
+<span class="sd">            nei_label = tf.reduce_sum(nei_label * mask_nei, -2) </span>
+<span class="sd">            new_label = tf.concat(2, [atom_features, nei_label])</span>
+<span class="sd">            new_label = linearND(new_label, hidden_size, &quot;label_U1&quot;)</span>
+<span class="sd">            atom_features = tf.nn.relu(new_label)</span>
+<span class="sd">    </span>
+<span class="sd">    fatom_nei = tf.gather_nd(atom_features, atom_graph)</span>
+<span class="sd">    h_nei_atom = linearND(fatom_nei, hidden_size, &quot;nei_atom&quot;, init_bias=None)</span>
+<span class="sd">    h_nei_bond = linearND(fbond_nei, hidden_size, &quot;nei_bond&quot;, init_bias=None)</span>
+<span class="sd">    h_nei = h_nei_atom * h_nei_bond</span>
+<span class="sd">    f_nei = tf.reduce_sum(h_nei * mask_nei, -2)</span>
+<span class="sd">    f_self = linearND(atom_features, hidden_size, &quot;self_atom&quot;, init_bias=None)</span>
+<span class="sd">    kernels = f_nei * f_self * node_mask</span>
+<span class="sd">    fp = tf.reduce_sum(kernels, 1)</span>
+
+<span class="sd">    return kernels, fp</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="rcnn_wl_last"><a class="viewcode-back" href="../../../../../../makeit.synthetic.evaluation.rexgen_release.CoreFinder.html#makeit.synthetic.evaluation.rexgen_release.CoreFinder.models.rcnn_wl_last">[docs]</a><span class="k">def</span> <span class="nf">rcnn_wl_last</span><span class="p">(</span><span class="n">graph_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">depth</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">input_atom</span><span class="p">,</span> <span class="n">input_bond</span><span class="p">,</span> <span class="n">atom_graph</span><span class="p">,</span> <span class="n">bond_graph</span><span class="p">,</span> <span class="n">num_nbs</span><span class="p">,</span> <span class="n">node_mask</span> <span class="o">=</span> <span class="n">graph_inputs</span>
+    <span class="n">atom_features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">linearND</span><span class="p">(</span><span class="n">input_atom</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="s2">&quot;atom_embedding&quot;</span><span class="p">,</span> <span class="n">init_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+    <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">depth</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s2">&quot;WL&quot;</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="p">(</span><span class="n">i</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">))</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
+            <span class="n">fatom_nei</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">atom_features</span><span class="p">,</span> <span class="n">atom_graph</span><span class="p">)</span>
+            <span class="n">fbond_nei</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">input_bond</span><span class="p">,</span> <span class="n">bond_graph</span><span class="p">)</span>
+            <span class="n">h_nei_atom</span> <span class="o">=</span> <span class="n">linearND</span><span class="p">(</span><span class="n">fatom_nei</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="s2">&quot;nei_atom&quot;</span><span class="p">,</span> <span class="n">init_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="n">h_nei_bond</span> <span class="o">=</span> <span class="n">linearND</span><span class="p">(</span><span class="n">fbond_nei</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="s2">&quot;nei_bond&quot;</span><span class="p">,</span> <span class="n">init_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="n">h_nei</span> <span class="o">=</span> <span class="n">h_nei_atom</span> <span class="o">*</span> <span class="n">h_nei_bond</span>
+            <span class="n">mask_nei</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">sequence_mask</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">num_nbs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">max_nb</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">max_nb</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">f_nei</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">h_nei</span> <span class="o">*</span> <span class="n">mask_nei</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">f_self</span> <span class="o">=</span> <span class="n">linearND</span><span class="p">(</span><span class="n">atom_features</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="s2">&quot;self_atom&quot;</span><span class="p">,</span> <span class="n">init_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f_nei</span> <span class="o">*</span> <span class="n">f_self</span> <span class="o">*</span> <span class="n">node_mask</span><span class="p">)</span>
+            <span class="n">l_nei</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">fatom_nei</span><span class="p">,</span> <span class="n">fbond_nei</span><span class="p">],</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="n">nei_label</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">linearND</span><span class="p">(</span><span class="n">l_nei</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="s2">&quot;label_U2&quot;</span><span class="p">))</span>
+            <span class="n">nei_label</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">nei_label</span> <span class="o">*</span> <span class="n">mask_nei</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span> 
+            <span class="n">new_label</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">atom_features</span><span class="p">,</span> <span class="n">nei_label</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">new_label</span> <span class="o">=</span> <span class="n">linearND</span><span class="p">(</span><span class="n">new_label</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="s2">&quot;label_U1&quot;</span><span class="p">)</span>
+            <span class="n">atom_features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">new_label</span><span class="p">)</span>
+    <span class="c1">#kernels = tf.concat(1, layers)</span>
+    <span class="n">kernels</span> <span class="o">=</span> <span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">fp</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">kernels</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">kernels</span><span class="p">,</span> <span class="n">fp</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../../../index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../askcos.html">askcos package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../makeit.html">makeit package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

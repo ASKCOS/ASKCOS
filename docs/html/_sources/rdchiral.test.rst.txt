@@ -1,0 +1,10 @@
+rdchiral.test package
+=====================
+
+Module contents
+---------------
+
+.. automodule:: rdchiral.test
+    :members:
+    :undoc-members:
+    :show-inheritance:

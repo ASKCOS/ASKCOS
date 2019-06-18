@@ -1,0 +1,557 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.prioritization.templates package &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="makeit.retrosynthetic package" href="makeit.retrosynthetic.html" />
+    <link rel="prev" title="makeit.prioritization.precursors package" href="makeit.prioritization.precursors.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="makeit-prioritization-templates-package">
+<h1>makeit.prioritization.templates package<a class="headerlink" href="#makeit-prioritization-templates-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-makeit.prioritization.templates.popularity">
+<span id="makeit-prioritization-templates-popularity-module"></span><h2>makeit.prioritization.templates.popularity module<a class="headerlink" href="#module-makeit.prioritization.templates.popularity" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer">
+<em class="property">class </em><code class="descclassname">makeit.prioritization.templates.popularity.</code><code class="descname">PopularityTemplatePrioritizer</code><span class="sig-paren">(</span><em>no_log=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/templates/popularity.html#PopularityTemplatePrioritizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="makeit.prioritization.html#makeit.prioritization.prioritizer.Prioritizer" title="makeit.prioritization.prioritizer.Prioritizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">makeit.prioritization.prioritizer.Prioritizer</span></code></a></p>
+<p>A template Prioritizer ordering by popularity.</p>
+<p>Allows to prioritize a template based on the number of times it appears,
+or its reported popularity.</p>
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.sorted">
+<code class="descname">sorted</code><a class="headerlink" href="#makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.sorted" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the templates have been sorted yet.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.reordered_templates">
+<code class="descname">reordered_templates</code><a class="headerlink" href="#makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.reordered_templates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Templates ordered by popularity.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of ??</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.template_count">
+<code class="descname">template_count</code><a class="headerlink" href="#makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.template_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of templates to return the priority of.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.max_cum_prob">
+<code class="descname">max_cum_prob</code><a class="headerlink" href="#makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.max_cum_prob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maximum cumulative probability of returned
+tempates. Unused.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.get_priority">
+<code class="descname">get_priority</code><span class="sig-paren">(</span><em>input_tuple</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/templates/popularity.html#PopularityTemplatePrioritizer.get_priority"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.get_priority" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns list of templates ordered by popularity.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>input_tuple</strong> (<em>2-tuple of</em><em> (</em><em>list of ??</em><em>, </em><em>??</em><em>)</em>) – Templates to get the
+priority of.</li>
+<li><strong>**kwargs</strong> – Additional optional parameters. Used for template_count.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.load_model">
+<code class="descname">load_model</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/templates/popularity.html#PopularityTemplatePrioritizer.load_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.load_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads popularity model.</p>
+<p>PopularityTemplatePrioritizer does not use a neural network, so this
+does nothing.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.reorder">
+<code class="descname">reorder</code><span class="sig-paren">(</span><em>templates</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/templates/popularity.html#PopularityTemplatePrioritizer.reorder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.reorder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reorders templates by popularity.</p>
+<p>Re-orders the list of templates according to field ‘count’ in descending
+order. This means we will apply the most popular templates first.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>templates</strong> (<em>list of ??</em>) – Unordered templates to be reordered by
+popularity.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Templates sorted by popularity.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list of ??</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-makeit.prioritization.templates.relevance">
+<span id="makeit-prioritization-templates-relevance-module"></span><h2>makeit.prioritization.templates.relevance module<a class="headerlink" href="#module-makeit.prioritization.templates.relevance" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer">
+<em class="property">class </em><code class="descclassname">makeit.prioritization.templates.relevance.</code><code class="descname">RelevanceTemplatePrioritizer</code><span class="sig-paren">(</span><em>retro=True</em>, <em>use_tf=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/templates/relevance.html#RelevanceTemplatePrioritizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="makeit.prioritization.html#makeit.prioritization.prioritizer.Prioritizer" title="makeit.prioritization.prioritizer.Prioritizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">makeit.prioritization.prioritizer.Prioritizer</span></code></a></p>
+<p>A template Prioritizer based on template relevance.</p>
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.retro">
+<code class="descname">retro</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.retro" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.FP_rad">
+<code class="descname">FP_rad</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.FP_rad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fingerprint radius.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.FP_len">
+<code class="descname">FP_len</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.FP_len" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fingerprint length.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.vars">
+<code class="descname">vars</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.vars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Weights and bias
+of model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of np.ndarry of np.ndarray of np.float32</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.template_count">
+<code class="descname">template_count</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.template_count" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.max_cum_prob">
+<code class="descname">max_cum_prob</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.max_cum_prob" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.batch_size">
+<code class="descname">batch_size</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.batch_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.NK">
+<code class="descname">NK</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.NK" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.session">
+<code class="descname">session</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.session" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">tensorflow.python.client.session.Session</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.input_mol">
+<code class="descname">input_mol</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.input_mol" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">tensorflow.python.framework.ops.Tensor</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.mol_hiddens">
+<code class="descname">mol_hiddens</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.mol_hiddens" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">tensorflow.python.framework.ops.Tensor</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.score">
+<code class="descname">score</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.score" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">tensorflow.python.framework.ops.Tensor</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.topk">
+<code class="descname">topk</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.topk" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">tensorflow.python.framework.ops.Tensor</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.coord">
+<code class="descname">coord</code><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.coord" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">tensorflow.python.training.coordinator.Coordinator</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.apply">
+<code class="descname">apply</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/templates/relevance.html#RelevanceTemplatePrioritizer.apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.apply" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.get_priority">
+<code class="descname">get_priority</code><span class="sig-paren">(</span><em>input_tuple</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/templates/relevance.html#RelevanceTemplatePrioritizer.get_priority"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.get_priority" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns list of templates ordered by relevance.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>input_tuple</strong> (<em>2-tuple of</em><em> (</em><em>list of ??</em><em>, </em><em>??</em><em>)</em>) – Templates to get the
+priority of.</li>
+<li><strong>**kwargs</strong> – Additional optional parameters. Used for template_count
+and max_cum_prob.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.get_topk_from_smi">
+<code class="descname">get_topk_from_smi</code><span class="sig-paren">(</span><em>smi=''</em>, <em>k=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/templates/relevance.html#RelevanceTemplatePrioritizer.get_topk_from_smi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.get_topk_from_smi" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.mol_to_fp">
+<code class="descname">mol_to_fp</code><span class="sig-paren">(</span><em>mol</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/templates/relevance.html#RelevanceTemplatePrioritizer.mol_to_fp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.mol_to_fp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns fingerprint of molecule.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>mol</strong> (<em>Chem.rdchem.Mol</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a>) – Molecule to get fingerprint
+of.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Fingerprint of given molecule.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">np.ndarray of np.float32</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.sigmoid">
+<code class="descname">sigmoid</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/templates/relevance.html#RelevanceTemplatePrioritizer.sigmoid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.sigmoid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns sigmoid of x.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – Input value.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.smi_to_fp">
+<code class="descname">smi_to_fp</code><span class="sig-paren">(</span><em>smi</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/templates/relevance.html#RelevanceTemplatePrioritizer.smi_to_fp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.smi_to_fp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns fingerprint of molecule from given SMILES string.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>smi</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of given molecule.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="makeit.prioritization.templates.relevance.linearND">
+<code class="descclassname">makeit.prioritization.templates.relevance.</code><code class="descname">linearND</code><span class="sig-paren">(</span><em>input_</em>, <em>output_size</em>, <em>scope</em>, <em>reuse=False</em>, <em>init_bias=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/templates/relevance.html#linearND"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.templates.relevance.linearND" title="Permalink to this definition">¶</a></dt>
+<dd><p>??</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>(</strong><strong>)</strong> (<em>scope</em>) – </li>
+<li><strong>(</strong><strong>)</strong> – </li>
+<li><strong>(</strong><strong>)</strong> – </li>
+<li><strong>reuse</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – {False})</li>
+<li><strong>init_bias</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – {0.0})</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>??</p>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="makeit.prioritization.templates.relevance.softmax">
+<code class="descclassname">makeit.prioritization.templates.relevance.</code><code class="descname">softmax</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/prioritization/templates/relevance.html#softmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.prioritization.templates.relevance.softmax" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-makeit.prioritization.templates">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-makeit.prioritization.templates" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="askcos.html">askcos package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="makeit.html">makeit package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="makeit.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="makeit.application.html">makeit.application package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.interfaces.html">makeit.interfaces package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="makeit.prioritization.html">makeit.prioritization package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="makeit.prioritization.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.prioritization.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.prioritization.html#module-makeit.prioritization.default">makeit.prioritization.default module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.prioritization.html#module-makeit.prioritization.prioritizer">makeit.prioritization.prioritizer module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.prioritization.html#module-makeit.prioritization">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.retrosynthetic.html">makeit.retrosynthetic package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.scripts.html">makeit.scripts package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.synthetic.html">makeit.synthetic package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.utilities.html">makeit.utilities package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit.global_config">makeit.global_config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="makeit.html">makeit package</a><ul>
+  <li><a href="makeit.prioritization.html">makeit.prioritization package</a><ul>
+      <li>Previous: <a href="makeit.prioritization.precursors.html" title="previous chapter">makeit.prioritization.precursors package</a></li>
+      <li>Next: <a href="makeit.retrosynthetic.html" title="next chapter">makeit.retrosynthetic package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/makeit.prioritization.templates.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

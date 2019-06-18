@@ -1,0 +1,400 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.synthetic.enumeration package &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="makeit.synthetic.evaluation package" href="makeit.synthetic.evaluation.html" />
+    <link rel="prev" title="makeit.synthetic.context package" href="makeit.synthetic.context.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="makeit-synthetic-enumeration-package">
+<h1>makeit.synthetic.enumeration package<a class="headerlink" href="#makeit-synthetic-enumeration-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-makeit.synthetic.enumeration.results">
+<span id="makeit-synthetic-enumeration-results-module"></span><h2>makeit.synthetic.enumeration.results module<a class="headerlink" href="#module-makeit.synthetic.enumeration.results" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.synthetic.enumeration.results.ForwardProduct">
+<em class="property">class </em><code class="descclassname">makeit.synthetic.enumeration.results.</code><code class="descname">ForwardProduct</code><span class="sig-paren">(</span><em>smiles_list=[]</em>, <em>smiles=''</em>, <em>template_id=-1</em>, <em>num_examples=0</em>, <em>edits=None</em>, <em>template_ids=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/enumeration/results.html#ForwardProduct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.enumeration.results.ForwardProduct" title="Permalink to this definition">¶</a></dt>
+<dd><p>A class to store a single forward product for reaction enumeration</p>
+<dl class="method">
+<dt id="makeit.synthetic.enumeration.results.ForwardProduct.as_dict">
+<code class="descname">as_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/enumeration/results.html#ForwardProduct.as_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.enumeration.results.ForwardProduct.as_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.enumeration.results.ForwardProduct.get_edits">
+<code class="descname">get_edits</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/enumeration/results.html#ForwardProduct.get_edits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.enumeration.results.ForwardProduct.get_edits" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.enumeration.results.ForwardProduct.get_smiles">
+<code class="descname">get_smiles</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/enumeration/results.html#ForwardProduct.get_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.enumeration.results.ForwardProduct.get_smiles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="makeit.synthetic.enumeration.results.ForwardResult">
+<em class="property">class </em><code class="descclassname">makeit.synthetic.enumeration.results.</code><code class="descname">ForwardResult</code><span class="sig-paren">(</span><em>smiles</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/enumeration/results.html#ForwardResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.enumeration.results.ForwardResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Results of a one-step forward synthesis.</p>
+<p>Should be used by any type of forward transformer/enumerator to store
+results and maintain uniformity!</p>
+<dl class="attribute">
+<dt id="makeit.synthetic.enumeration.results.ForwardResult.smiles">
+<code class="descname">smiles</code><a class="headerlink" href="#makeit.synthetic.enumeration.results.ForwardResult.smiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>SMILES string of ??</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.enumeration.results.ForwardResult.products">
+<code class="descname">products</code><a class="headerlink" href="#makeit.synthetic.enumeration.results.ForwardResult.products" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of ForwardProduct</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">smiles_to_product (dict {str</code></dt>
+<dd><p>int}):</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">smiles_list_to_product (dict {str</code></dt>
+<dd><p>int}):</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.enumeration.results.ForwardResult.add_product">
+<code class="descname">add_product</code><span class="sig-paren">(</span><em>product</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/enumeration/results.html#ForwardResult.add_product"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.enumeration.results.ForwardResult.add_product" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a product to the product set if it is a new product.
+Product type is ForwardProduct</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.enumeration.results.ForwardResult.add_products">
+<code class="descname">add_products</code><span class="sig-paren">(</span><em>products</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/enumeration/results.html#ForwardResult.add_products"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.enumeration.results.ForwardResult.add_products" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.enumeration.results.ForwardResult.get_products">
+<code class="descname">get_products</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/enumeration/results.html#ForwardResult.get_products"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.enumeration.results.ForwardResult.get_products" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-makeit.synthetic.enumeration.transformer">
+<span id="makeit-synthetic-enumeration-transformer-module"></span><h2>makeit.synthetic.enumeration.transformer module<a class="headerlink" href="#module-makeit.synthetic.enumeration.transformer" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.synthetic.enumeration.transformer.ForwardTransformer">
+<em class="property">class </em><code class="descclassname">makeit.synthetic.enumeration.transformer.</code><code class="descname">ForwardTransformer</code><span class="sig-paren">(</span><em>mincount=25</em>, <em>celery=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/enumeration/transformer.html#ForwardTransformer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.enumeration.transformer.ForwardTransformer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer" title="makeit.interfaces.template_transformer.TemplateTransformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">makeit.interfaces.template_transformer.TemplateTransformer</span></code></a>, <a class="reference internal" href="makeit.interfaces.html#makeit.interfaces.forward_enumerator.ForwardEnumerator" title="makeit.interfaces.forward_enumerator.ForwardEnumerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">makeit.interfaces.forward_enumerator.ForwardEnumerator</span></code></a></p>
+<p>Defines an object to perform one-step syntheses for a molecule.</p>
+<dl class="attribute">
+<dt id="makeit.synthetic.enumeration.transformer.ForwardTransformer.mincount">
+<code class="descname">mincount</code><a class="headerlink" href="#makeit.synthetic.enumeration.transformer.ForwardTransformer.mincount" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimum popularity of used templates.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.enumeration.transformer.ForwardTransformer.templates">
+<code class="descname">templates</code><a class="headerlink" href="#makeit.synthetic.enumeration.transformer.ForwardTransformer.templates" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of ??</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.enumeration.transformer.ForwardTransformer.id_to_index">
+<code class="descname">id_to_index</code><a class="headerlink" href="#makeit.synthetic.enumeration.transformer.ForwardTransformer.id_to_index" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">dict ??</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.enumeration.transformer.ForwardTransformer.celery">
+<code class="descname">celery</code><a class="headerlink" href="#makeit.synthetic.enumeration.transformer.ForwardTransformer.celery" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether to use Celery workers.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.enumeration.transformer.ForwardTransformer.template_prioritizers">
+<code class="descname">template_prioritizers</code><a class="headerlink" href="#makeit.synthetic.enumeration.transformer.ForwardTransformer.template_prioritizers" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">dict ??</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.enumeration.transformer.ForwardTransformer.start_at">
+<code class="descname">start_at</code><a class="headerlink" href="#makeit.synthetic.enumeration.transformer.ForwardTransformer.start_at" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.enumeration.transformer.ForwardTransformer.stop_if">
+<code class="descname">stop_if</code><a class="headerlink" href="#makeit.synthetic.enumeration.transformer.ForwardTransformer.stop_if" title="Permalink to this definition">¶</a></dt>
+<dd><p>SMILES string of molecule to stop at if found, or
+False for no target.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a> or <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.synthetic.enumeration.transformer.ForwardTransformer.singleonly">
+<code class="descname">singleonly</code><a class="headerlink" href="#makeit.synthetic.enumeration.transformer.ForwardTransformer.singleonly" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.enumeration.transformer.ForwardTransformer.apply_one_template">
+<code class="descname">apply_one_template</code><span class="sig-paren">(</span><em>mol</em>, <em>smiles</em>, <em>template</em>, <em>singleonly=True</em>, <em>stop_if=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/enumeration/transformer.html#ForwardTransformer.apply_one_template"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.enumeration.transformer.ForwardTransformer.apply_one_template" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a mol object and applies a single template.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.enumeration.transformer.ForwardTransformer.get_outcomes">
+<code class="descname">get_outcomes</code><span class="sig-paren">(</span><em>smiles</em>, <em>mincount</em>, <em>template_prioritization</em>, <em>start_at=-1</em>, <em>end_at=-1</em>, <em>singleonly=True</em>, <em>stop_if=False</em>, <em>template_count=10000</em>, <em>max_cum_prob=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/enumeration/transformer.html#ForwardTransformer.get_outcomes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.enumeration.transformer.ForwardTransformer.get_outcomes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a one-step synthesis reaction for a given SMILES string.</p>
+<p>Each candidate in self.result.products is of type ForwardProduct</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>smiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of ??</li>
+<li><strong>mincount</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Minimum popularity of used templates.</li>
+<li><strong>template_prioritization</strong> – Specifies method to use for ordering
+templates.</li>
+<li><strong>start_at</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Index of first prioritized template to
+use. (default: {-1})</li>
+<li><strong>end_at</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Index of prioritized template to stop
+before. (default: {-1})</li>
+<li><strong>singleonly</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to reduce each product to the
+largest (longest) one. (default: {True})</li>
+<li><strong>stop_if</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em> or </em><em>string</em><em>, </em><em>optional</em>) – SMILES string of molecule to
+stop at if found, or False for no target. (default: {False})</li>
+<li><strong>template_count</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Maximum number of templates to use.
+(default: {10000})</li>
+<li><strong>max_cum_prob</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Maximum cumulative probability of
+all templates used. (default: {1.0})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.enumeration.transformer.ForwardTransformer.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>chiral=False</em>, <em>refs=False</em>, <em>efgs=False</em>, <em>rxn_ex=False</em>, <em>worker_no=0</em>, <em>rxns=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/enumeration/transformer.html#ForwardTransformer.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.enumeration.transformer.ForwardTransformer.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads and parses the template database to a useable one
+Chrial and rxn_ex are not used, but for compatibility with retro_transformer</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.synthetic.enumeration.transformer.ForwardTransformer.template_count">
+<code class="descname">template_count</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/synthetic/enumeration/transformer.html#ForwardTransformer.template_count"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.synthetic.enumeration.transformer.ForwardTransformer.template_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns number of templates loaded?? by transformer.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-makeit.synthetic.enumeration">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-makeit.synthetic.enumeration" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="askcos.html">askcos package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="makeit.html">makeit package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="makeit.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="makeit.application.html">makeit.application package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.interfaces.html">makeit.interfaces package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.prioritization.html">makeit.prioritization package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.retrosynthetic.html">makeit.retrosynthetic package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.scripts.html">makeit.scripts package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="makeit.synthetic.html">makeit.synthetic package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="makeit.synthetic.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.synthetic.html#module-makeit.synthetic">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.utilities.html">makeit.utilities package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit.global_config">makeit.global_config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="makeit.html">makeit package</a><ul>
+  <li><a href="makeit.synthetic.html">makeit.synthetic package</a><ul>
+      <li>Previous: <a href="makeit.synthetic.context.html" title="previous chapter">makeit.synthetic.context package</a></li>
+      <li>Next: <a href="makeit.synthetic.evaluation.html" title="next chapter">makeit.synthetic.evaluation package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/makeit.synthetic.enumeration.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

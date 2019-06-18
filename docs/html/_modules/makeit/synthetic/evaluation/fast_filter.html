@@ -1,0 +1,231 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.synthetic.evaluation.fast_filter &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for makeit.synthetic.evaluation.fast_filter</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">makeit.utilities.fastfilter_utilities</span> <span class="k">import</span> <span class="n">Highway_self</span><span class="p">,</span> <span class="n">pos_ct</span><span class="p">,</span> <span class="n">true_pos</span><span class="p">,</span> <span class="n">real_pos</span><span class="p">,</span> <span class="n">set_keras_backend</span>
+<span class="kn">from</span> <span class="nn">makeit.utilities.fingerprinting</span> <span class="k">import</span> <span class="n">create_rxn_Morgan2FP_separately</span>
+<span class="kn">from</span> <span class="nn">rdkit</span> <span class="k">import</span> <span class="n">Chem</span>
+<span class="kn">from</span> <span class="nn">rdkit.Chem</span> <span class="k">import</span> <span class="n">AllChem</span><span class="p">,</span> <span class="n">DataStructs</span>
+<span class="kn">from</span> <span class="nn">makeit.interfaces.scorer</span> <span class="k">import</span> <span class="n">Scorer</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">from</span> <span class="nn">pymongo</span> <span class="k">import</span> <span class="n">MongoClient</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="k">import</span> <span class="n">tqdm</span>
+<span class="kn">from</span> <span class="nn">keras.models</span> <span class="k">import</span> <span class="n">load_model</span>
+<span class="kn">from</span> <span class="nn">keras</span> <span class="k">import</span> <span class="n">backend</span> <span class="k">as</span> <span class="n">K</span>
+<span class="kn">import</span> <span class="nn">makeit.global_config</span> <span class="k">as</span> <span class="nn">gc</span>
+<span class="kn">from</span> <span class="nn">makeit.utilities.io.logger</span> <span class="k">import</span> <span class="n">MyLogger</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="n">fast_filter_loc</span> <span class="o">=</span> <span class="s1">&#39;fast_filter&#39;</span>
+
+
+<div class="viewcode-block" id="FastFilterScorer"><a class="viewcode-back" href="../../../../makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.fast_filter.FastFilterScorer">[docs]</a><span class="k">class</span> <span class="nc">FastFilterScorer</span><span class="p">(</span><span class="n">Scorer</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Fast filter to evaluate likelihood of reactions.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        model (keras.engine.training.Model): Model used to evaluate reactions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initializes FastFilterScorer.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="FastFilterScorer.set_keras_backend"><a class="viewcode-back" href="../../../../makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.fast_filter.FastFilterScorer.set_keras_backend">[docs]</a>    <span class="k">def</span> <span class="nf">set_keras_backend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backend</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sets the Keras backend to a given backend.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            backend (str): Backend to have Keras use.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">K</span><span class="o">.</span><span class="n">backend</span><span class="p">()</span> <span class="o">!=</span> <span class="n">backend</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;KERAS_BACKEND&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">backend</span>
+            <span class="n">reload</span><span class="p">(</span><span class="n">K</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">K</span><span class="o">.</span><span class="n">backend</span><span class="p">()</span> <span class="o">==</span> <span class="n">backend</span></div>
+
+<div class="viewcode-block" id="FastFilterScorer.load"><a class="viewcode-back" href="../../../../makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.fast_filter.FastFilterScorer.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Loads model from a file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            model_path (str): Path to file specifying model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Starting to load fast filter&#39;</span><span class="p">,</span> <span class="n">fast_filter_loc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">custom_objects</span><span class="o">=</span><span class="p">{</span>
+                                <span class="s1">&#39;Highway_self&#39;</span><span class="p">:</span> <span class="n">Highway_self</span><span class="p">,</span> <span class="s1">&#39;pos_ct&#39;</span><span class="p">:</span> <span class="n">pos_ct</span><span class="p">,</span> <span class="s1">&#39;true_pos&#39;</span><span class="p">:</span> <span class="n">true_pos</span><span class="p">,</span> <span class="s1">&#39;real_pos&#39;</span><span class="p">:</span> <span class="n">real_pos</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_make_predict_function</span><span class="p">()</span>
+        <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Done loading fast filter&#39;</span><span class="p">,</span> <span class="n">fast_filter_loc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FastFilterScorer.evaluate"><a class="viewcode-back" href="../../../../makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.fast_filter.FastFilterScorer.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reactant_smiles</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Evaluates likelihood of given reaction.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            reactant_smiles (str): SMILES string of reactants.</span>
+<span class="sd">            target (str): SMILES string of target product.</span>
+<span class="sd">            **kwargs: Unused.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of reaction outcomes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Strip chirality</span>
+        <span class="c1"># rmol = Chem.MolFromSmiles(reactant_smiles)</span>
+        <span class="c1"># pmol = Chem.MolFromSmiles(target)</span>
+        <span class="c1"># reactant_smiles = Chem.MolToSmiles(rmol, False)</span>
+        <span class="c1"># target = Chem.MolToSmiles(pmol, False)</span>
+
+        <span class="p">[</span><span class="n">pfp</span><span class="p">,</span> <span class="n">rfp</span><span class="p">]</span> <span class="o">=</span> <span class="n">create_rxn_Morgan2FP_separately</span><span class="p">(</span>
+            <span class="n">reactant_smiles</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">rxnfpsize</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">pfpsize</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">useFeatures</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">pfp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">pfp</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+        <span class="n">rfp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rfp</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+        <span class="n">rxnfp</span> <span class="o">=</span> <span class="n">pfp</span> <span class="o">-</span> <span class="n">rfp</span>
+
+        <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">pfp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2048</span><span class="p">),</span> <span class="n">rxnfp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2048</span><span class="p">)])</span>
+        <span class="n">outcome</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;smiles&#39;</span><span class="p">:</span> <span class="n">target</span><span class="p">,</span>
+                   <span class="s1">&#39;template_ids&#39;</span><span class="p">:</span> <span class="p">[],</span>
+                   <span class="s1">&#39;num_examples&#39;</span><span class="p">:</span> <span class="mi">0</span>
+                   <span class="p">}</span>
+        <span class="n">all_outcomes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_outcomes</span><span class="o">.</span><span class="n">append</span><span class="p">([{</span><span class="s1">&#39;rank&#39;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+                              <span class="s1">&#39;outcome&#39;</span><span class="p">:</span> <span class="n">outcome</span><span class="p">,</span>
+                              <span class="s1">&#39;score&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">score</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+                              <span class="s1">&#39;prob&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">score</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+                              <span class="p">}])</span>
+        <span class="k">return</span> <span class="n">all_outcomes</span></div>
+
+<div class="viewcode-block" id="FastFilterScorer.filter_with_threshold"><a class="viewcode-back" href="../../../../makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.fast_filter.FastFilterScorer.filter_with_threshold">[docs]</a>    <span class="k">def</span> <span class="nf">filter_with_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reactant_smiles</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Filters reactions based on a score threshold.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            reactant_smiles (str): SMILES string of reactants.</span>
+<span class="sd">            target (str): SMILES string of target product.</span>
+<span class="sd">            threshold (float): Value scores must be above to pass filter.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            2-tuple of (np.ndarray of np.ndarray of np.bool, float): Whether the</span>
+<span class="sd">                reaction passed the filer and the score of the reaction.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">[</span><span class="n">pfp</span><span class="p">,</span> <span class="n">rfp</span><span class="p">]</span> <span class="o">=</span> <span class="n">create_rxn_Morgan2FP_separately</span><span class="p">(</span>
+            <span class="n">reactant_smiles</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">rxnfpsize</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">pfpsize</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">useFeatures</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">pfp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">pfp</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+        <span class="n">rfp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rfp</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+        <span class="n">rxnfp</span> <span class="o">=</span> <span class="n">pfp</span> <span class="o">-</span> <span class="n">rfp</span>
+
+        <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">([</span><span class="n">pfp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2048</span><span class="p">),</span> <span class="n">rxnfp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2048</span><span class="p">)])</span>
+        <span class="n">filter_flag</span> <span class="o">=</span> <span class="p">(</span><span class="n">score</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">filter_flag</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">score</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+
+    <span class="n">ff</span> <span class="o">=</span> <span class="n">FastFilterScorer</span><span class="p">()</span>
+    <span class="n">ff</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_path</span><span class="o">=</span><span class="n">gc</span><span class="o">.</span><span class="n">FAST_FILTER_MODEL</span><span class="p">[</span><span class="s1">&#39;trained_model_path&#39;</span><span class="p">])</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="s1">&#39;CCO.CC(=O)O&#39;</span><span class="p">,</span> <span class="s1">&#39;CCOC(=O)C&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="s1">&#39;[CH3:1][C:2](=[O:3])[O:4][CH:5]1[CH:6]([O:7][C:8]([CH3:9])=[O:10])[CH:11]([CH2:12][O:13][C:14]([CH3:15])=[O:16])[O:17][CH:18]([O:19][CH2:20][CH2:21][CH2:22][CH2:23][CH2:24][CH2:25][CH2:26][CH2:27][CH2:28][CH3:29])[CH:30]1[O:31][C:32]([CH3:33])=[O:34].[CH3:35][O-:36].[CH3:38][OH:39].[Na+:37]&#39;</span><span class="p">,</span> <span class="s1">&#39;CCCCCCCCCCOC1OC(CO)C(O)C(O)C1O&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+        <span class="s1">&#39;CNC.Cc1ccc(S(=O)(=O)OCCOC(c2ccccc2)c2ccccc2)cc1&#39;</span><span class="p">,</span> <span class="s1">&#39;CN(C)CCOC(c1ccccc1)c2ccccc2&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+
+    <span class="n">flag</span><span class="p">,</span> <span class="n">sco</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">filter_with_threshold</span><span class="p">(</span><span class="s1">&#39;CCO.CC(=O)O&#39;</span><span class="p">,</span> <span class="s1">&#39;CCOC(=O)C&#39;</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">sco</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../askcos.html">askcos package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../makeit.html">makeit package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

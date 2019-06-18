@@ -1,0 +1,515 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rdchiral.bonds &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for rdchiral.bonds</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">rdkit.Chem</span> <span class="k">as</span> <span class="nn">Chem</span>
+<span class="kn">import</span> <span class="nn">rdkit.Chem.AllChem</span> <span class="k">as</span> <span class="nn">AllChem</span>
+<span class="kn">from</span> <span class="nn">rdkit.Chem.rdchem</span> <span class="k">import</span> <span class="n">ChiralType</span><span class="p">,</span> <span class="n">BondType</span><span class="p">,</span> <span class="n">BondDir</span><span class="p">,</span> <span class="n">BondStereo</span>
+<span class="kn">from</span> <span class="nn">rdchiral.utils</span> <span class="k">import</span> <span class="n">vprint</span><span class="p">,</span> <span class="n">PLEVEL</span>
+
+<span class="n">BondDirOpposite</span> <span class="o">=</span> <span class="p">{</span><span class="n">AllChem</span><span class="o">.</span><span class="n">BondDir</span><span class="o">.</span><span class="n">ENDUPRIGHT</span><span class="p">:</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">BondDir</span><span class="o">.</span><span class="n">ENDDOWNRIGHT</span><span class="p">,</span>
+                   <span class="n">AllChem</span><span class="o">.</span><span class="n">BondDir</span><span class="o">.</span><span class="n">ENDDOWNRIGHT</span><span class="p">:</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">BondDir</span><span class="o">.</span><span class="n">ENDUPRIGHT</span><span class="p">,</span>
+                   <span class="n">AllChem</span><span class="o">.</span><span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">:</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">}</span>
+<span class="n">BondDirLabel</span>    <span class="o">=</span> <span class="p">{</span><span class="n">AllChem</span><span class="o">.</span><span class="n">BondDir</span><span class="o">.</span><span class="n">ENDUPRIGHT</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span>
+                   <span class="n">AllChem</span><span class="o">.</span><span class="n">BondDir</span><span class="o">.</span><span class="n">ENDDOWNRIGHT</span><span class="p">:</span> <span class="s1">&#39;/&#39;</span><span class="p">}</span>
+
+<div class="viewcode-block" id="bond_dirs_by_mapnum"><a class="viewcode-back" href="../../rdchiral.html#rdchiral.bonds.bond_dirs_by_mapnum">[docs]</a><span class="k">def</span> <span class="nf">bond_dirs_by_mapnum</span><span class="p">(</span><span class="n">mol</span><span class="p">):</span>
+    <span class="n">bond_dirs_by_mapnum</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">():</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="n">j</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">()</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">):</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">()</span><span class="o">.</span><span class="n">GetIntProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">()</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">):</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">()</span><span class="o">.</span><span class="n">GetIntProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">b</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span> <span class="o">==</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">bond_dirs_by_mapnum</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)]</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span>
+        <span class="n">bond_dirs_by_mapnum</span><span class="p">[(</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">b</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()]</span>
+    <span class="k">return</span> <span class="n">bond_dirs_by_mapnum</span></div>
+
+<div class="viewcode-block" id="enumerate_possible_cistrans_defs"><a class="viewcode-back" href="../../rdchiral.html#rdchiral.bonds.enumerate_possible_cistrans_defs">[docs]</a><span class="k">def</span> <span class="nf">enumerate_possible_cistrans_defs</span><span class="p">(</span><span class="n">template_r</span><span class="p">,</span> \
+        <span class="n">labeling_func</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">GetIntProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">)):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function is meant to take a reactant template and fully enumerate</span>
+<span class="sd">    all the ways in which different double-bonds can have their cis/trans</span>
+<span class="sd">    chirality specified (based on labeling_func). This is necessary because</span>
+<span class="sd">    double-bond chirality cannot be specified using cis/trans (global properties)</span>
+<span class="sd">    but must be done using ENDUPRIGHT and ENDDOWNRIGHT for the attached single</span>
+<span class="sd">    bonds (local properties). Now, the next issue is that on each side of the</span>
+<span class="sd">    double bond, only one of the single bond directions must be specified, and</span>
+<span class="sd">    that direction can be using either atom order. e.g.,</span>
+
+<span class="sd">    A1         B1</span>
+<span class="sd">       \      /</span>
+<span class="sd">         C = C</span>
+<span class="sd">       /      \</span>
+<span class="sd">    A2         B2</span>
+
+<span class="sd">    Can be specified by:</span>
+<span class="sd">    A1-C is an ENDDOWNRIGHT, C-B1 is an ENDUPRIGHT</span>
+<span class="sd">    A1-C is an ENDDOWNRIGHT, C-B2 is an ENDDOWNRIGHT</span>
+<span class="sd">    A1-C is an ENDDOWNRIGHT, B1-C is an ENDDOWNRIGHT</span>
+<span class="sd">    A1-C is an ENDDOWNRIGHT, B2-C is an ENDUPRIGHT</span>
+<span class="sd">    ...and twelve more definitions using different A1/A2 specs.</span>
+
+<span class="sd">    ALSO - we can think about horizontally reflecting this bond entirely,</span>
+<span class="sd">    which gets us even more definitions.</span>
+
+<span class="sd">    So, the point of this function is to fully enumerate *all* of the ways</span>
+<span class="sd">    in which chirality could have been specified. That way, we can take a</span>
+<span class="sd">    reactant atom and check if its chirality is within the list of acceptable</span>
+<span class="sd">    definitions to determine if a match was made.</span>
+
+<span class="sd">    Gross.</span>
+
+<span class="sd">    The way we do this is by first defining the *local* chirality of a double</span>
+<span class="sd">    bond, which weights side chains based purely on the unique isotope numbering.</span>
+<span class="sd">    Once we have a local cis/trans definition for a double bond, we can enumerate</span>
+<span class="sd">    the sixteen possible ways that a reactant could match it.</span>
+
+<span class="sd">    #TODO: figure out implicit cis from ring membership</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">required_bond_defs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">required_bond_defs_coreatoms</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Looking at initializing template frag&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">template_r</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span> <span class="o">!=</span> <span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Define begin and end atoms of the double bond</span>
+        <span class="n">ba</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">()</span>
+        <span class="n">bb</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">()</span>
+
+        <span class="c1"># Now check if it is even possible to specify</span>
+        <span class="k">if</span> <span class="n">ba</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">bb</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">ba_label</span> <span class="o">=</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">ba</span><span class="p">)</span>
+        <span class="n">bb_label</span> <span class="o">=</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span>
+            
+        <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Found a double bond with potential cis/trans (based on degree)&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ba_label</span><span class="p">,</span>
+                               <span class="n">b</span><span class="o">.</span><span class="n">GetSmarts</span><span class="p">(),</span>
+                               <span class="n">bb_label</span><span class="p">))</span>
+
+        <span class="c1"># Save core atoms so we know that cis/trans was POSSIBLE to specify</span>
+        <span class="n">required_bond_defs_coreatoms</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">ba_label</span><span class="p">,</span> <span class="n">bb_label</span><span class="p">))</span>
+        <span class="n">required_bond_defs_coreatoms</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">bb_label</span><span class="p">,</span> <span class="n">ba_label</span><span class="p">))</span>
+            
+        <span class="c1"># Define heaviest isotope neighbor for each atom, excluding the other side of the double bond</span>
+        <span class="n">ba_neighbor_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">labeling_func</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">ba</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()]</span>
+        <span class="n">ba_neighbor_labels</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">bb_label</span><span class="p">)</span> <span class="c1"># remove other side of =</span>
+        <span class="n">ba_neighbor_labels_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ba_neighbor_labels</span><span class="p">)</span>
+        <span class="n">bb_neighbor_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">labeling_func</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">bb</span><span class="o">.</span><span class="n">GetNeighbors</span><span class="p">()]</span>
+        <span class="n">bb_neighbor_labels</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">ba_label</span><span class="p">)</span> <span class="c1"># remove other side of =</span>
+        <span class="n">bb_neighbor_labels_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">bb_neighbor_labels</span><span class="p">)</span>
+
+        <span class="c1"># The direction of the bond being observed might need to be flipped,</span>
+        <span class="c1"># based on</span>
+        <span class="c1">#     (a) if it is the heaviest atom on this side, and </span>
+        <span class="c1">#     (b) if the begin/end atoms for the directional bond are </span>
+        <span class="c1">#         in the wrong order (i.e., if the double-bonded atom </span>
+        <span class="c1">#         is the begin atom)</span>
+        <span class="n">front_spec</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">back_spec</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">bab</span> <span class="ow">in</span> <span class="n">ba</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">bab</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span> <span class="o">!=</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">bab</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">())</span> <span class="o">==</span> <span class="n">ba_label</span><span class="p">:</span>
+                    <span class="c1"># Bond is in wrong order - flip</span>
+                    <span class="k">if</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">bab</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">())</span> <span class="o">!=</span> <span class="n">ba_neighbor_labels_max</span><span class="p">:</span>
+                        <span class="c1"># Defined atom is not the heaviest - flip</span>
+                        <span class="n">front_spec</span> <span class="o">=</span> <span class="n">bab</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span>
+                        <span class="k">break</span>
+                    <span class="n">front_spec</span> <span class="o">=</span> <span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">bab</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()]</span>
+                    <span class="k">break</span>
+                <span class="k">if</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">bab</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">())</span> <span class="o">!=</span> <span class="n">ba_neighbor_labels_max</span><span class="p">:</span>
+                    <span class="c1"># Defined atom is not heaviest</span>
+                    <span class="n">front_spec</span> <span class="o">=</span> <span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">bab</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()]</span>
+                    <span class="k">break</span>
+                <span class="n">front_spec</span> <span class="o">=</span> <span class="n">bab</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">front_spec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Chirality not specified at front end of the bond!&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Front specification: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">front_spec</span><span class="p">))</span>
+            
+            <span class="k">for</span> <span class="n">bbb</span> <span class="ow">in</span> <span class="n">bb</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">bbb</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span> <span class="o">!=</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">:</span>
+                    <span class="c1"># For the &quot;back&quot; specification, the double-bonded atom *should* be the BeginAtom</span>
+                    <span class="k">if</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">bbb</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">())</span> <span class="o">==</span> <span class="n">bb_label</span><span class="p">:</span>
+                        <span class="c1"># Bond is in wrong order - flip</span>
+                        <span class="k">if</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">bbb</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">())</span> <span class="o">!=</span> <span class="n">bb_neighbor_labels_max</span><span class="p">:</span>
+                            <span class="c1"># Defined atom is not the heaviest - flip</span>
+                            <span class="n">back_spec</span> <span class="o">=</span> <span class="n">bbb</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span>
+                            <span class="k">break</span>
+                        <span class="n">back_spec</span> <span class="o">=</span> <span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">bbb</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()]</span>
+                        <span class="k">break</span>
+                    <span class="k">if</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">bbb</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">())</span> <span class="o">!=</span> <span class="n">bb_neighbor_labels_max</span><span class="p">:</span>
+                        <span class="c1"># Defined atom is not heaviest - flip</span>
+                        <span class="n">back_spec</span> <span class="o">=</span> <span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">bbb</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()]</span>
+                        <span class="k">break</span>
+                    <span class="n">back_spec</span> <span class="o">=</span> <span class="n">bbb</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span>
+                    <span class="k">break</span>
+        <span class="k">if</span> <span class="n">back_spec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Chirality not specified at back end of the bond!&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Back specification: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">back_spec</span><span class="p">))</span>
+
+        <span class="c1"># Is this an overall unspecified bond? Put it in the dictionary anyway, </span>
+        <span class="c1"># so there is something to match</span>
+        <span class="k">if</span> <span class="n">front_spec</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">back_spec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Create a definition over this bond so that reactant MUST be unspecified, too</span>
+            <span class="k">for</span> <span class="n">start_atom</span> <span class="ow">in</span> <span class="n">ba_neighbor_labels</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">end_atom</span> <span class="ow">in</span> <span class="n">bb_neighbor_labels</span><span class="p">:</span>
+                    <span class="n">required_bond_defs</span><span class="p">[(</span><span class="n">start_atom</span><span class="p">,</span> <span class="n">ba_label</span><span class="p">,</span> <span class="n">bb_label</span><span class="p">,</span> <span class="n">end_atom</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">)</span>
+                    <span class="n">required_bond_defs</span><span class="p">[(</span><span class="n">ba_label</span><span class="p">,</span> <span class="n">start_atom</span><span class="p">,</span> <span class="n">bb_label</span><span class="p">,</span> <span class="n">end_atom</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">)</span>
+                    <span class="n">required_bond_defs</span><span class="p">[(</span><span class="n">start_atom</span><span class="p">,</span> <span class="n">ba_label</span><span class="p">,</span> <span class="n">end_atom</span><span class="p">,</span> <span class="n">bb_label</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">)</span>
+                    <span class="n">required_bond_defs</span><span class="p">[(</span><span class="n">ba_label</span><span class="p">,</span> <span class="n">start_atom</span><span class="p">,</span> <span class="n">end_atom</span><span class="p">,</span> <span class="n">bb_label</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">)</span>
+                    <span class="n">required_bond_defs</span><span class="p">[(</span><span class="n">bb_label</span><span class="p">,</span> <span class="n">end_atom</span><span class="p">,</span> <span class="n">start_atom</span><span class="p">,</span> <span class="n">ba_label</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">)</span>
+                    <span class="n">required_bond_defs</span><span class="p">[(</span><span class="n">end_atom</span><span class="p">,</span> <span class="n">bb_label</span><span class="p">,</span> <span class="n">start_atom</span><span class="p">,</span> <span class="n">ba_label</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">)</span>
+                    <span class="n">required_bond_defs</span><span class="p">[(</span><span class="n">bb_label</span><span class="p">,</span> <span class="n">end_atom</span><span class="p">,</span> <span class="n">ba_label</span><span class="p">,</span> <span class="n">start_atom</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">)</span>
+                    <span class="n">required_bond_defs</span><span class="p">[(</span><span class="n">end_atom</span><span class="p">,</span> <span class="n">bb_label</span><span class="p">,</span> <span class="n">ba_label</span><span class="p">,</span> <span class="n">start_atom</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">)</span>
+            <span class="k">continue</span>
+        
+        <span class="k">if</span> <span class="n">front_spec</span> <span class="o">==</span> <span class="n">back_spec</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-&gt; locally TRANS&#39;</span><span class="p">)</span>
+            <span class="n">b</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="s1">&#39;localChirality&#39;</span><span class="p">,</span> <span class="s1">&#39;trans&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;--&gt; locally CIS&#39;</span><span class="p">)</span>
+            <span class="n">b</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="s1">&#39;localChirality&#39;</span><span class="p">,</span> <span class="s1">&#39;cis&#39;</span><span class="p">)</span>
+
+        <span class="n">possible_defs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">start_atom</span> <span class="ow">in</span> <span class="n">ba_neighbor_labels</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">end_atom</span> <span class="ow">in</span> <span class="n">bb_neighbor_labels</span><span class="p">:</span>
+                <span class="n">needs_inversion</span> <span class="o">=</span> <span class="p">(</span><span class="n">start_atom</span> <span class="o">!=</span> <span class="n">ba_neighbor_labels_max</span><span class="p">)</span> <span class="o">!=</span> \
+                    <span class="p">(</span><span class="n">end_atom</span> <span class="o">!=</span> <span class="n">bb_neighbor_labels_max</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">start_atom_dir</span> <span class="ow">in</span> <span class="p">[</span><span class="n">BondDir</span><span class="o">.</span><span class="n">ENDUPRIGHT</span><span class="p">,</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">ENDDOWNRIGHT</span><span class="p">]:</span>
+                    <span class="c1"># When locally trans, BondDir of start shold be same as end, </span>
+                    <span class="c1"># unless we need inversion</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">front_spec</span> <span class="o">!=</span> <span class="n">back_spec</span><span class="p">)</span> <span class="o">!=</span> <span class="n">needs_inversion</span><span class="p">:</span> 
+                        <span class="c1"># locally cis and does not need inversion (True, False)</span>
+                        <span class="c1"># or locally trans and does need inversion (False, True)</span>
+                        <span class="n">end_atom_dir</span> <span class="o">=</span> <span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">start_atom_dir</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># locally cis and does need inversion (True, True)</span>
+                        <span class="c1"># or locally trans and does not need inversion (False, False)</span>
+                        <span class="n">end_atom_dir</span> <span class="o">=</span> <span class="n">start_atom_dir</span>
+
+                    <span class="c1"># Enumerate all combinations of atom orders...</span>
+                    <span class="n">possible_defs</span><span class="p">[(</span><span class="n">start_atom</span><span class="p">,</span> <span class="n">ba_label</span><span class="p">,</span> <span class="n">bb_label</span><span class="p">,</span> <span class="n">end_atom</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">start_atom_dir</span><span class="p">,</span> <span class="n">end_atom_dir</span><span class="p">)</span>
+                    <span class="n">possible_defs</span><span class="p">[(</span><span class="n">ba_label</span><span class="p">,</span> <span class="n">start_atom</span><span class="p">,</span> <span class="n">bb_label</span><span class="p">,</span> <span class="n">end_atom</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">start_atom_dir</span><span class="p">],</span> <span class="n">end_atom_dir</span><span class="p">)</span>
+                    <span class="n">possible_defs</span><span class="p">[(</span><span class="n">start_atom</span><span class="p">,</span> <span class="n">ba_label</span><span class="p">,</span> <span class="n">end_atom</span><span class="p">,</span> <span class="n">bb_label</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">start_atom_dir</span><span class="p">,</span> <span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">end_atom_dir</span><span class="p">])</span>
+                    <span class="n">possible_defs</span><span class="p">[(</span><span class="n">ba_label</span><span class="p">,</span> <span class="n">start_atom</span><span class="p">,</span> <span class="n">end_atom</span><span class="p">,</span> <span class="n">bb_label</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">start_atom_dir</span><span class="p">],</span> <span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">end_atom_dir</span><span class="p">])</span>
+
+                    <span class="n">possible_defs</span><span class="p">[(</span><span class="n">bb_label</span><span class="p">,</span> <span class="n">end_atom</span><span class="p">,</span> <span class="n">start_atom</span><span class="p">,</span> <span class="n">ba_label</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">end_atom_dir</span><span class="p">,</span> <span class="n">start_atom_dir</span><span class="p">)</span>
+                    <span class="n">possible_defs</span><span class="p">[(</span><span class="n">bb_label</span><span class="p">,</span> <span class="n">end_atom</span><span class="p">,</span> <span class="n">ba_label</span><span class="p">,</span> <span class="n">start_atom</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">end_atom_dir</span><span class="p">,</span> <span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">start_atom_dir</span><span class="p">])</span>
+                    <span class="n">possible_defs</span><span class="p">[(</span><span class="n">end_atom</span><span class="p">,</span> <span class="n">bb_label</span><span class="p">,</span> <span class="n">start_atom</span><span class="p">,</span> <span class="n">ba_label</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">end_atom_dir</span><span class="p">],</span> <span class="n">start_atom_dir</span><span class="p">)</span>
+                    <span class="n">possible_defs</span><span class="p">[(</span><span class="n">end_atom</span><span class="p">,</span> <span class="n">bb_label</span><span class="p">,</span> <span class="n">ba_label</span><span class="p">,</span> <span class="n">start_atom</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">end_atom_dir</span><span class="p">],</span> <span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">start_atom_dir</span><span class="p">])</span>
+
+        <span class="c1"># Save to the definition of this bond (in either direction)</span>
+        <span class="n">required_bond_defs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">possible_defs</span><span class="p">)</span>
+        
+    <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;All bond specs for this template:&#39;</span> <span class="p">)</span>
+    <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">([(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">required_bond_defs</span><span class="o">.</span><span class="n">items</span><span class="p">()]))</span>
+    <span class="k">return</span> <span class="n">required_bond_defs</span><span class="p">,</span> <span class="n">required_bond_defs_coreatoms</span></div>
+
+<div class="viewcode-block" id="get_atoms_across_double_bonds"><a class="viewcode-back" href="../../rdchiral.html#rdchiral.bonds.get_atoms_across_double_bonds">[docs]</a><span class="k">def</span> <span class="nf">get_atoms_across_double_bonds</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">labeling_func</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span><span class="n">a</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">()):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This function takes a molecule and returns a list of cis/trans specifications</span>
+<span class="sd">    according to the following:</span>
+
+<span class="sd">    (isotopes, dirs)</span>
+
+<span class="sd">    where atoms = (a1, a2, a3, a4) and dirs = (d1, d2)</span>
+<span class="sd">    and (a1, a2) defines the ENDUPRIGHT/ENDDOWNRIGHT direction of the &quot;front&quot;</span>
+<span class="sd">    of the bond using d1, and (a3, a4) defines the direction of the &quot;back&quot; of </span>
+<span class="sd">    the bond using d2.</span>
+
+<span class="sd">    This is used to initialize reactants with a SINGLE definition constraining</span>
+<span class="sd">    the chirality. Templates have their chirality fully enumerated, so we can</span>
+<span class="sd">    match this specific definition to the full set of possible definitions</span>
+<span class="sd">    when determining if a match should be made.</span>
+
+<span class="sd">    NOTE: the atom isotopes are returned. This is so we can later use them</span>
+<span class="sd">    to get the old_mapno property from the corresponding product atom, which is</span>
+<span class="sd">    an outcome-specific assignment</span>
+
+<span class="sd">    We also include implicit chirality here based on ring membership, but keep</span>
+<span class="sd">    track of that separately</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">atoms_across_double_bonds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">atomrings</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span> <span class="o">!=</span> <span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Define begin and end atoms of the double bond</span>
+        <span class="n">ba</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">()</span>
+        <span class="n">bb</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">()</span>
+
+        <span class="c1"># Now check if it is even possible to specify</span>
+        <span class="k">if</span> <span class="n">ba</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">bb</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">ba_label</span> <span class="o">=</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">ba</span><span class="p">)</span>
+        <span class="n">bb_label</span> <span class="o">=</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span>
+            
+        <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Found a double bond with potential cis/trans (based on degree)&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ba_label</span><span class="p">,</span>
+                               <span class="n">b</span><span class="o">.</span><span class="n">GetSmarts</span><span class="p">(),</span>
+                               <span class="n">bb_label</span><span class="p">))</span>
+        
+        <span class="c1"># Try to specify front and back direction separately</span>
+        <span class="n">front_isotopes</span> <span class="o">=</span> <span class="kc">None</span> 
+        <span class="n">front_dir</span> <span class="o">=</span> <span class="kc">None</span> 
+        <span class="n">back_isotopes</span> <span class="o">=</span> <span class="kc">None</span> 
+        <span class="n">back_dir</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">is_implicit</span> <span class="o">=</span> <span class="kc">False</span> 
+        <span class="n">bab</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="n">bbb</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span>
+        <span class="k">for</span> <span class="n">bab</span> <span class="ow">in</span> <span class="p">(</span><span class="n">z</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">ba</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">()</span> <span class="k">if</span> <span class="n">z</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span> <span class="o">!=</span> <span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">bab</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span> <span class="o">!=</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">:</span>
+                <span class="n">front_isotopes</span> <span class="o">=</span> <span class="p">(</span><span class="n">labeling_func</span><span class="p">(</span><span class="n">bab</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">()),</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">bab</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">()))</span>
+                <span class="n">front_dir</span> <span class="o">=</span> <span class="n">bab</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span>
+                <span class="k">break</span> 
+        <span class="k">for</span> <span class="n">bbb</span> <span class="ow">in</span> <span class="p">(</span><span class="n">z</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">bb</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">()</span> <span class="k">if</span> <span class="n">z</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span> <span class="o">!=</span> <span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">bbb</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span> <span class="o">!=</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">:</span>
+                <span class="n">back_isotopes</span> <span class="o">=</span> <span class="p">(</span><span class="n">labeling_func</span><span class="p">(</span><span class="n">bbb</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">()),</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">bbb</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">()))</span>
+                <span class="n">back_dir</span> <span class="o">=</span> <span class="n">bbb</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span>
+                <span class="k">break</span> 
+
+        <span class="c1"># If impossible to spec, just continue</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">bab</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">bbb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Did we actually get a specification out?</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">front_dir</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">back_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+
+            <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">IsInRing</span><span class="p">():</span> 
+                <span class="c1"># Implicit cis! Now to figure out right definitions...</span>
+                <span class="k">if</span> <span class="n">atomrings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">atomrings</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetRingInfo</span><span class="p">()</span><span class="o">.</span><span class="n">AtomRings</span><span class="p">()</span> <span class="c1"># tuple of tuples of atomIdx</span>
+                <span class="k">for</span> <span class="n">atomring</span> <span class="ow">in</span> <span class="n">atomrings</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">ba</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="ow">in</span> <span class="n">atomring</span> <span class="ow">and</span> <span class="n">bb</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">()</span> <span class="ow">in</span> <span class="n">atomring</span><span class="p">:</span>
+                        <span class="n">front_isotopes</span> <span class="o">=</span> <span class="p">(</span><span class="n">labeling_func</span><span class="p">(</span><span class="n">bab</span><span class="o">.</span><span class="n">GetOtherAtom</span><span class="p">(</span><span class="n">ba</span><span class="p">)),</span> <span class="n">ba_label</span><span class="p">)</span>
+                        <span class="n">back_isotopes</span> <span class="o">=</span> <span class="p">(</span><span class="n">bb_label</span><span class="p">,</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">bbb</span><span class="o">.</span><span class="n">GetOtherAtom</span><span class="p">(</span><span class="n">bb</span><span class="p">)))</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">bab</span><span class="o">.</span><span class="n">GetOtherAtomIdx</span><span class="p">(</span><span class="n">ba</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">())</span> <span class="ow">in</span> <span class="n">atomring</span><span class="p">)</span> <span class="o">!=</span> \
+                                <span class="p">(</span><span class="n">bbb</span><span class="o">.</span><span class="n">GetOtherAtomIdx</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">GetIdx</span><span class="p">())</span> <span class="ow">in</span> <span class="n">atomring</span><span class="p">):</span>
+                            <span class="c1"># one of these atoms are in the ring, one is outside -&gt; trans</span>
+                            <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Implicit trans found&#39;</span><span class="p">)</span>
+                            <span class="n">front_dir</span> <span class="o">=</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">ENDUPRIGHT</span>
+                            <span class="n">back_dir</span> <span class="o">=</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">ENDUPRIGHT</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Implicit cis found&#39;</span><span class="p">)</span>
+                            <span class="n">front_dir</span> <span class="o">=</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">ENDUPRIGHT</span> 
+                            <span class="n">back_dir</span> <span class="o">=</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">ENDDOWNRIGHT</span>
+                        <span class="n">is_implicit</span> <span class="o">=</span> <span class="kc">True</span> 
+                        <span class="k">break</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Okay no, actually unspecified</span>
+                <span class="c1"># Specify direction as BondDir.NONE using whatever bab and bbb were at the end fo the loop</span>
+                <span class="c1"># note: this is why we use &quot;for bab in ___generator___&quot;, so that we know the current</span>
+                <span class="c1">#       value of bab and bbb correspond to a single bond we can def. by</span>
+                <span class="n">front_isotopes</span> <span class="o">=</span> <span class="p">(</span><span class="n">labeling_func</span><span class="p">(</span><span class="n">bab</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">()),</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">bab</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">()))</span>
+                <span class="n">front_dir</span> <span class="o">=</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span>
+                <span class="n">back_isotopes</span> <span class="o">=</span> <span class="p">(</span><span class="n">labeling_func</span><span class="p">(</span><span class="n">bbb</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">()),</span> <span class="n">labeling_func</span><span class="p">(</span><span class="n">bbb</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">()))</span>
+                <span class="n">back_dir</span> <span class="o">=</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span>
+
+        <span class="c1"># Save this (a1, a2, a3, a4) -&gt; (d1, d2) spec</span>
+        <span class="n">atoms_across_double_bonds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">front_isotopes</span> <span class="o">+</span> <span class="n">back_isotopes</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">front_dir</span><span class="p">,</span> <span class="n">back_dir</span><span class="p">),</span>
+                <span class="n">is_implicit</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">atoms_across_double_bonds</span></div>
+
+<div class="viewcode-block" id="restore_bond_stereo_to_sp2_atom"><a class="viewcode-back" href="../../rdchiral.html#rdchiral.bonds.restore_bond_stereo_to_sp2_atom">[docs]</a><span class="k">def</span> <span class="nf">restore_bond_stereo_to_sp2_atom</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">bond_dirs_by_isotope</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Copy over single-bond directions (ENDUPRIGHT, ENDDOWNRIGHT) to </span>
+<span class="sd">    the single bonds attached to some double-bonded atom, a</span>
+
+<span class="sd">    a - atom with a double bond</span>
+<span class="sd">    bond_dirs_by_isotope - dictionary of (begin_isotope, end_isotope): bond_dir</span>
+<span class="sd">        that defines if a bond should be ENDUPRIGHT or ENDDOWNRIGHT. The reverse</span>
+<span class="sd">        key is also included with the reverse bond direction. If the source</span>
+<span class="sd">        molecule did not have a specified chirality at this double bond, then</span>
+<span class="sd">        the isotope tuples will be missing from the dict</span>
+
+<span class="sd">    In some cases, like C=C/O&gt;&gt;C=C/Br, we should assume that stereochem was</span>
+<span class="sd">    preserved, even though isotopes won&#39;t match. There might be some reactions</span>
+<span class="sd">    where the chirality is inverted (like C=C/O &gt;&gt; C=C\Br), but let&#39;s not</span>
+<span class="sd">    worry about those for now...</span>
+
+<span class="sd">    Returns True if a bond direction was copied&#39;&#39;&#39;</span>
+
+    <span class="k">for</span> <span class="n">bond_to_spec</span> <span class="ow">in</span> <span class="n">a</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">():</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">bond_to_spec</span><span class="o">.</span><span class="n">GetOtherAtom</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">(),</span> <span class="n">a</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">())</span> <span class="ow">in</span> <span class="n">bond_dirs_by_isotope</span><span class="p">:</span>
+            <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">SetBondDir</span><span class="p">(</span>
+                <span class="n">bond_dirs_by_isotope</span><span class="p">[</span>
+                    <span class="p">(</span><span class="n">bond_to_spec</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">()</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">(),</span>
+                     <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">()</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">())</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Tried to copy bond direction b/w </span><span class="si">{}</span><span class="s1"> and </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">()</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">(),</span>
+                <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">()</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">()</span>
+            <span class="p">))</span>
+            <span class="k">return</span> <span class="kc">True</span>
+    
+    <span class="c1"># Weird case, like C=C/O &gt;&gt; C=C/Br</span>
+    <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Bond stereo could not be restored to sp2 atom, missing the branch that was used to define before...&#39;</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="c1"># Either the branch used to define was replaced with H (deg 3 -&gt; deg 2)</span>
+        <span class="c1"># or the branch used to define was reacted (deg 2 -&gt; deg 2)</span>
+        <span class="k">for</span> <span class="n">bond_to_spec</span> <span class="ow">in</span> <span class="n">a</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span> <span class="o">==</span> <span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">GetOtherAtom</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s1">&#39;old_mapno&#39;</span><span class="p">):</span> 
+                <span class="c1"># new atom, deg2-&gt;deg2, assume direction preserved</span>
+                <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Only single-bond attachment to atom </span><span class="si">{}</span><span class="s1"> is new, try to reproduce chirality&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">()))</span>
+                <span class="n">needs_inversion</span> <span class="o">=</span> <span class="kc">False</span> 
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># old atom, just was not used in chirality definition - set opposite</span>
+                <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Only single-bond attachment to atom </span><span class="si">{}</span><span class="s1"> is old, try to reproduce chirality&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">()))</span>
+                <span class="n">needs_inversion</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">bond_dir</span> <span class="ow">in</span> <span class="n">bond_dirs_by_isotope</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">bond_dir</span> <span class="o">!=</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">()</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">needs_inversion</span><span class="p">:</span>
+                            <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">SetBondDir</span><span class="p">(</span><span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">bond_dir</span><span class="p">])</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">SetBondDir</span><span class="p">(</span><span class="n">bond_dir</span><span class="p">)</span>
+                        <span class="k">return</span> <span class="kc">True</span> 
+
+    <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">GetDegree</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="c1"># If we lost the branch defining stereochem, it must have been replaced</span>
+        <span class="k">for</span> <span class="n">bond_to_spec</span> <span class="ow">in</span> <span class="n">a</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">GetBondType</span><span class="p">()</span> <span class="o">==</span> <span class="n">BondType</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">oa</span> <span class="o">=</span> <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">GetOtherAtom</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">oa</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s1">&#39;old_mapno&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">oa</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s1">&#39;react_atom_idx&#39;</span><span class="p">):</span>
+                <span class="c1"># looking at an old atom, which should have opposite direction as removed atom</span>
+                <span class="n">needs_inversion</span> <span class="o">=</span> <span class="kc">True</span> 
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># looking at a new atom, assume same as removed atom</span>
+                <span class="n">needs_inversion</span> <span class="o">=</span> <span class="kc">False</span> 
+
+            <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">bond_dir</span> <span class="ow">in</span> <span class="n">bond_dirs_by_isotope</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">bond_dir</span> <span class="o">!=</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">()</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">needs_inversion</span><span class="p">:</span>
+                            <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">SetBondDir</span><span class="p">(</span><span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">bond_dir</span><span class="p">])</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">bond_to_spec</span><span class="o">.</span><span class="n">SetBondDir</span><span class="p">(</span><span class="n">bond_dir</span><span class="p">)</span>
+                        <span class="k">return</span> <span class="kc">True</span> 
+
+    <span class="k">return</span> <span class="kc">False</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../askcos.html">askcos package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../makeit.html">makeit package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,397 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.utilities.io.draw &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for makeit.utilities.io.draw</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">rdkit.Chem</span> <span class="k">as</span> <span class="nn">Chem</span>
+<span class="kn">import</span> <span class="nn">rdkit.Chem.AllChem</span> <span class="k">as</span> <span class="nn">AllChem</span>
+<span class="kn">import</span> <span class="nn">rdkit.Chem.Draw</span> <span class="k">as</span> <span class="nn">Draw</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="k">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">ImageOps</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+<span class="c1"># from rdkit.Chem.Draw.cairoCanvas import Canvas</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Many of these functions are taken from RDKit.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+
+<div class="viewcode-block" id="mols_from_smiles_list"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.mols_from_smiles_list">[docs]</a><span class="k">def</span> <span class="nf">mols_from_smiles_list</span><span class="p">(</span><span class="n">all_smiles</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Given a list of smiles strings, this function creates rdkit</span>
+<span class="sd">    molecules&#39;&#39;&#39;</span>
+    <span class="n">mols</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">smiles</span> <span class="ow">in</span> <span class="n">all_smiles</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">smiles</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">mols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">mols</span></div>
+
+
+<div class="viewcode-block" id="defaultDrawOptions"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.defaultDrawOptions">[docs]</a><span class="k">def</span> <span class="nf">defaultDrawOptions</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;This function returns an RDKit drawing options object with </span>
+<span class="sd">    default drawing options.&#39;&#39;&#39;</span>
+
+    <span class="n">opts</span> <span class="o">=</span> <span class="n">Draw</span><span class="o">.</span><span class="n">DrawingOptions</span><span class="p">()</span>
+    <span class="c1"># opts.elemDict = defaultdict(lambda: (0,0,0)) # all atoms are black</span>
+    <span class="n">opts</span><span class="o">.</span><span class="n">noCarbonSymbols</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">opts</span><span class="o">.</span><span class="n">selectColor</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">opts</span><span class="o">.</span><span class="n">wedgeBonds</span> <span class="o">=</span> <span class="kc">True</span>
+    
+    <span class="n">opts</span><span class="o">.</span><span class="n">elemDict</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">opts</span><span class="o">.</span><span class="n">dotsPerAngstrom</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="n">opts</span><span class="o">.</span><span class="n">bondLineWidth</span> <span class="o">=</span> <span class="mf">1.5</span>
+    <span class="n">atomLabelFontFace</span> <span class="o">=</span> <span class="s1">&#39;arial&#39;</span>
+
+    <span class="k">return</span> <span class="n">opts</span></div>
+
+
+<div class="viewcode-block" id="StripAlphaFromImage"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.StripAlphaFromImage">[docs]</a><span class="k">def</span> <span class="nf">StripAlphaFromImage</span><span class="p">(</span><span class="n">img</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;This function takes an RGBA PIL image and returns an RGB image&#39;&#39;&#39;</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">img</span>
+    <span class="k">return</span> <span class="n">Image</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="s1">&#39;RGB&#39;</span><span class="p">,</span> <span class="n">img</span><span class="o">.</span><span class="n">split</span><span class="p">()[:</span><span class="mi">3</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="MolToImage"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.MolToImage">[docs]</a><span class="k">def</span> <span class="nf">MolToImage</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1000</span><span class="p">),</span> <span class="n">kekulize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">canvas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Wrapper for RDKit&#39;s MolToImage. If mol == None, an arrow is drawn&#39;&#39;&#39;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="p">:</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="n">defaultDrawOptions</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">mol</span> <span class="o">==</span> <span class="s1">&#39;-&gt;&#39;</span><span class="p">:</span>
+        <span class="n">subImgSize</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="n">img</span><span class="p">,</span> <span class="n">canvas</span> <span class="o">=</span> <span class="n">Draw</span><span class="o">.</span><span class="n">_createCanvas</span><span class="p">(</span><span class="n">subImgSize</span><span class="p">)</span>
+        <span class="n">p0</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">subImgSize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">//</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">p1</span> <span class="o">=</span> <span class="p">(</span><span class="n">subImgSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="n">subImgSize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">//</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">p3</span> <span class="o">=</span> <span class="p">(</span><span class="n">subImgSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">20</span><span class="p">,</span> <span class="n">subImgSize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">//</span><span class="mi">2</span><span class="o">-</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">p4</span> <span class="o">=</span> <span class="p">(</span><span class="n">subImgSize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">20</span><span class="p">,</span> <span class="n">subImgSize</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">canvas</span><span class="o">.</span><span class="n">addCanvasLine</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">lineWidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">canvas</span><span class="o">.</span><span class="n">addCanvasLine</span><span class="p">(</span><span class="n">p3</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">lineWidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">canvas</span><span class="o">.</span><span class="n">addCanvasLine</span><span class="p">(</span><span class="n">p4</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">lineWidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">canvas</span><span class="p">,</span> <span class="s1">&#39;flush&#39;</span><span class="p">):</span>
+            <span class="n">canvas</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">canvas</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">img</span>        
+    <span class="k">elif</span> <span class="n">mol</span> <span class="o">==</span> <span class="s1">&#39;&lt;-&#39;</span><span class="p">:</span>  <span class="c1"># retro arrow or error</span>
+        <span class="n">subImgSize</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="o">=</span> <span class="n">subImgSize</span>
+        <span class="n">img</span><span class="p">,</span> <span class="n">canvas</span> <span class="o">=</span> <span class="n">Draw</span><span class="o">.</span><span class="n">_createCanvas</span><span class="p">(</span><span class="n">subImgSize</span><span class="p">)</span>
+        <span class="n">canvas</span><span class="o">.</span><span class="n">addCanvasLine</span><span class="p">((</span><span class="mi">10</span><span class="p">,</span> <span class="n">b</span><span class="o">//</span><span class="mi">2</span><span class="o">-</span><span class="mi">7</span><span class="p">),</span> <span class="p">(</span><span class="n">a</span><span class="o">-</span><span class="mi">17</span><span class="p">,</span> <span class="n">b</span><span class="o">//</span><span class="mi">2</span><span class="o">-</span><span class="mi">7</span><span class="p">),</span>
+                             <span class="n">lineWidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">canvas</span><span class="o">.</span><span class="n">addCanvasLine</span><span class="p">((</span><span class="mi">10</span><span class="p">,</span> <span class="n">b</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="mi">7</span><span class="p">),</span> <span class="p">(</span><span class="n">a</span><span class="o">-</span><span class="mi">17</span><span class="p">,</span> <span class="n">b</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="mi">7</span><span class="p">),</span>
+                             <span class="n">lineWidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">canvas</span><span class="o">.</span><span class="n">addCanvasLine</span><span class="p">((</span><span class="n">a</span><span class="o">-</span><span class="mi">24</span><span class="p">,</span> <span class="n">b</span><span class="o">//</span><span class="mi">2</span><span class="o">-</span><span class="mi">14</span><span class="p">),</span> <span class="p">(</span><span class="n">a</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="n">b</span><span class="o">//</span><span class="mi">2</span><span class="p">),</span>
+                             <span class="n">lineWidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">canvas</span><span class="o">.</span><span class="n">addCanvasLine</span><span class="p">((</span><span class="n">a</span><span class="o">-</span><span class="mi">24</span><span class="p">,</span> <span class="n">b</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="mi">14</span><span class="p">),</span> <span class="p">(</span><span class="n">a</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="n">b</span><span class="o">//</span><span class="mi">2</span><span class="p">),</span>
+                             <span class="n">lineWidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">canvas</span><span class="p">,</span> <span class="s1">&#39;flush&#39;</span><span class="p">):</span>
+            <span class="n">canvas</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">canvas</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">img</span>
+    <span class="k">elif</span> <span class="n">mol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Draw</span><span class="o">.</span><span class="n">MolToImage</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">max_size</span><span class="p">,</span> <span class="n">kekulize</span><span class="o">=</span><span class="n">kekulize</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span>
+                               <span class="n">canvas</span><span class="o">=</span><span class="n">canvas</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TrimImgByWhite"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.TrimImgByWhite">[docs]</a><span class="k">def</span> <span class="nf">TrimImgByWhite</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;This function takes a PIL image, img, and crops it to the minimum rectangle </span>
+<span class="sd">    based on its whiteness/transparency. 5 pixel padding used automatically.&#39;&#39;&#39;</span>
+
+    <span class="c1"># Convert to array</span>
+    <span class="n">as_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>  <span class="c1"># N x N x (r,g,b,a)</span>
+
+    <span class="c1"># Set previously-transparent pixels to white</span>
+    <span class="k">if</span> <span class="n">as_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">as_array</span><span class="p">[</span><span class="n">as_array</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">as_array</span> <span class="o">=</span> <span class="n">as_array</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+
+    <span class="c1"># Content defined as non-white and non-transparent pixel</span>
+    <span class="n">has_content</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">as_array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint32</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">255</span> <span class="o">*</span> <span class="mi">3</span>
+    <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">has_content</span><span class="p">)</span>
+
+    <span class="c1"># Crop down</span>
+    <span class="n">margin</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">x_range</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">min</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span> <span class="o">-</span> <span class="n">margin</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span> <span class="nb">min</span><span class="p">([</span><span class="nb">max</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span> <span class="o">+</span> <span class="n">margin</span><span class="p">,</span> <span class="n">as_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+    <span class="n">y_range</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">min</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span> <span class="o">-</span> <span class="n">margin</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span> <span class="nb">min</span><span class="p">([</span><span class="nb">max</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span> <span class="o">+</span> <span class="n">margin</span><span class="p">,</span> <span class="n">as_array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+    <span class="n">as_array_cropped</span> <span class="o">=</span> <span class="n">as_array</span><span class="p">[</span>
+        <span class="n">x_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">x_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">y_range</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+
+    <span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">as_array_cropped</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;RGB&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ImageOps</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">border</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="StitchPILsHorizontally"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.StitchPILsHorizontally">[docs]</a><span class="k">def</span> <span class="nf">StitchPILsHorizontally</span><span class="p">(</span><span class="n">imgs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;This function takes a list of PIL images and concatenates</span>
+<span class="sd">    them onto a new image horizontally, with each one</span>
+<span class="sd">    vertically centered.&#39;&#39;&#39;</span>
+
+    <span class="c1"># Create blank image (def: transparent white)</span>
+    <span class="n">heights</span> <span class="o">=</span> <span class="p">[</span><span class="n">img</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">imgs</span><span class="p">]</span>
+    <span class="n">height</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">heights</span><span class="p">)</span>
+    <span class="n">widths</span> <span class="o">=</span> <span class="p">[</span><span class="n">img</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">imgs</span><span class="p">]</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">widths</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="s1">&#39;RGB&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">),</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">))</span>
+
+    <span class="c1"># Add in sub-images</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">imgs</span><span class="p">):</span>
+        <span class="n">offset_x</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">widths</span><span class="p">[:</span><span class="n">i</span><span class="p">])</span>  <span class="c1"># left to right</span>
+        <span class="n">offset_y</span> <span class="o">=</span> <span class="p">(</span><span class="n">height</span> <span class="o">-</span> <span class="n">heights</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">paste</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="p">(</span><span class="n">offset_x</span><span class="p">,</span> <span class="n">offset_y</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="CheckAtomForGeneralization"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.CheckAtomForGeneralization">[docs]</a><span class="k">def</span> <span class="nf">CheckAtomForGeneralization</span><span class="p">(</span><span class="n">atom</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Given an RDKit atom, this function determines if that atom&#39;s SMART </span>
+<span class="sd">    representation was likely a result of generalization. This assumes that</span>
+<span class="sd">    the transform string was generated using explicit Hs with aliphatic </span>
+<span class="sd">    carbons as C, aromatic carbons as c, and non-carbons as #N where N is the </span>
+<span class="sd">    atomic number of the generalized species.&#39;&#39;&#39;</span>
+
+    <span class="n">smarts</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetSmarts</span><span class="p">()</span>
+
+    <span class="c1"># Check if this was a result of generalization</span>
+    <span class="c1"># non-carbon atom, generlized</span>
+    <span class="k">if</span> <span class="s1">&#39;#&#39;</span> <span class="ow">in</span> <span class="n">smarts</span><span class="p">:</span>
+        <span class="n">atomSymbol</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetSymbol</span><span class="p">()</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">SetAtomicNum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="s1">&#39;dummyLabel&#39;</span><span class="p">,</span> <span class="s1">&#39;[</span><span class="si">{}</span><span class="s1">]&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">atomSymbol</span><span class="p">))</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">()</span>
+    <span class="c1"># aliphatic carbon, generalized (all non-generalized use explicit Hs)</span>
+    <span class="k">elif</span> <span class="s1">&#39;[C:&#39;</span> <span class="ow">in</span> <span class="n">smarts</span> <span class="ow">and</span> <span class="s1">&#39;H&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">smarts</span><span class="p">:</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">SetAtomicNum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="s1">&#39;dummyLabel&#39;</span><span class="p">,</span> <span class="s1">&#39;C[al]&#39;</span><span class="p">)</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="s1">&#39;[c:&#39;</span> <span class="ow">in</span> <span class="n">smarts</span> <span class="ow">and</span> <span class="s1">&#39;H&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">smarts</span><span class="p">:</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">SetAtomicNum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="s1">&#39;dummyLabel&#39;</span><span class="p">,</span> <span class="s1">&#39;C[ar]&#39;</span><span class="p">)</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">()</span>
+
+    <span class="c1"># Clear atom map number of 0 -&gt; this is a dummy assignment!</span>
+    <span class="k">if</span> <span class="s1">&#39;:0]&#39;</span> <span class="ow">in</span> <span class="n">smarts</span><span class="p">:</span>
+        <span class="n">atom</span><span class="o">.</span><span class="n">ClearProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ReactionToImage"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.ReactionToImage">[docs]</a><span class="k">def</span> <span class="nf">ReactionToImage</span><span class="p">(</span><span class="n">rxn</span><span class="p">,</span> <span class="n">dummyAtoms</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">kekulize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Modification of RDKit&#39;s ReactionToImage to allow for each molecule </span>
+<span class="sd">    to have a different drawn size. rxn is an RDKit reaction object</span>
+
+<span class="sd">    warning: this function adds hydrogens as it sees fit&#39;&#39;&#39;</span>
+    <span class="c1"># Extract mols from reaction</span>
+    <span class="n">mols</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rxn</span><span class="o">.</span><span class="n">GetNumReactantTemplates</span><span class="p">()):</span>
+        <span class="n">mol</span> <span class="o">=</span> <span class="n">rxn</span><span class="o">.</span><span class="n">GetReactantTemplate</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">mol</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">mols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dummyAtoms</span><span class="p">:</span>
+            <span class="p">[</span><span class="n">CheckAtomForGeneralization</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()]</span>
+
+    <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;retro&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="n">mols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&lt;-&#39;</span><span class="p">)</span>  <span class="c1"># placeholder for arrow</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rxn</span><span class="o">.</span><span class="n">GetNumProductTemplates</span><span class="p">()):</span>
+        <span class="n">mol</span> <span class="o">=</span> <span class="n">rxn</span><span class="o">.</span><span class="n">GetProductTemplate</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+        <span class="n">mol</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">mols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dummyAtoms</span><span class="p">:</span>
+            <span class="p">[</span><span class="n">CheckAtomForGeneralization</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span> <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()]</span>
+
+    <span class="c1"># Generate images for all molecules/arrow</span>
+    <span class="n">imgs</span> <span class="o">=</span> <span class="p">[</span><span class="n">TrimImgByWhite</span><span class="p">(</span><span class="n">MolToImage</span><span class="p">(</span>
+        <span class="n">mol</span><span class="p">,</span> <span class="n">kekulize</span><span class="o">=</span><span class="n">kekulize</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span> <span class="k">for</span> <span class="n">mol</span> <span class="ow">in</span> <span class="n">mols</span><span class="p">]</span>
+
+    <span class="c1"># Combine</span>
+    <span class="k">return</span> <span class="n">StitchPILsHorizontally</span><span class="p">(</span><span class="n">imgs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ReactionStringToImage"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.ReactionStringToImage">[docs]</a><span class="k">def</span> <span class="nf">ReactionStringToImage</span><span class="p">(</span><span class="n">rxn_string</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">retro</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;This function takes a SMILES rxn_string as input, not an </span>
+<span class="sd">    RDKit reaction object, and draws it.&#39;&#39;&#39;</span>
+
+    <span class="n">reactants</span><span class="p">,</span> <span class="n">agents</span><span class="p">,</span> <span class="n">products</span> <span class="o">=</span> <span class="p">[</span><span class="n">mols_from_smiles_list</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span>
+                                   <span class="p">[</span><span class="n">mols</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">mols</span> <span class="ow">in</span> <span class="n">rxn_string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&gt;&#39;</span><span class="p">)]]</span>
+    <span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="n">reactants</span> <span class="o">+</span> <span class="n">products</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Could not parse entirety of reaction: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rxn_string</span><span class="p">))</span>
+
+    <span class="c1"># Stich together mols (ignore agents)</span>
+    <span class="k">if</span> <span class="n">retro</span><span class="p">:</span>
+        <span class="n">mols</span> <span class="o">=</span> <span class="n">reactants</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;&lt;-&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">products</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mols</span> <span class="o">=</span> <span class="n">reactants</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;-&gt;&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">products</span>
+    <span class="k">if</span> <span class="n">update</span><span class="p">:</span>
+        <span class="p">[</span><span class="n">mol</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">mol</span> <span class="ow">in</span> <span class="n">mols</span> <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">str</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">strip</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">mol</span> <span class="ow">in</span> <span class="n">mols</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">mol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">str</span><span class="p">:</span>
+                <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">ClearProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()]</span>
+
+    <span class="c1"># Generate images</span>
+    <span class="n">imgs</span> <span class="o">=</span> <span class="p">[</span><span class="n">TrimImgByWhite</span><span class="p">(</span><span class="n">MolToImage</span><span class="p">(</span>
+        <span class="n">mol</span><span class="p">,</span> <span class="n">kekulize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span> <span class="k">for</span> <span class="n">mol</span> <span class="ow">in</span> <span class="n">mols</span><span class="p">]</span>
+
+    <span class="c1"># Combine</span>
+    <span class="k">return</span> <span class="n">StitchPILsHorizontally</span><span class="p">(</span><span class="n">imgs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TransformStringToImage"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.TransformStringToImage">[docs]</a><span class="k">def</span> <span class="nf">TransformStringToImage</span><span class="p">(</span><span class="n">transform</span><span class="p">,</span> <span class="n">retro</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Wrapper function meant to take a SMARTS transform and return a PIL image</span>
+<span class="sd">    of that transform.</span>
+
+<span class="sd">    TODO: Need to improve generalization visually! Right now it still shows&#39;&#39;&#39;</span>
+
+    <span class="n">options</span> <span class="o">=</span> <span class="n">defaultDrawOptions</span><span class="p">()</span>
+    <span class="n">options</span><span class="o">.</span><span class="n">dotsPerAngstrom</span> <span class="o">=</span> <span class="mi">40</span>
+
+    <span class="c1"># To generalize un-mapped atoms in transform, need to identify square brackets</span>
+    <span class="c1"># without colon in the middle (e.g., [C]) and replace with dummy label [C:0] so</span>
+    <span class="c1"># generalization display works</span>
+    <span class="n">old_tags</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">&#39;\[[^:]+\]&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">old_tag</span> <span class="ow">in</span> <span class="n">old_tags</span><span class="p">:</span>
+        <span class="n">new_tag</span> <span class="o">=</span> <span class="n">old_tag</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;]&#39;</span><span class="p">,</span> <span class="s1">&#39;:0]&#39;</span><span class="p">)</span>
+        <span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">old_tag</span><span class="p">,</span> <span class="n">new_tag</span><span class="p">)</span>
+    <span class="n">rxn</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">ReactionFromSmarts</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ReactionToImage</span><span class="p">(</span><span class="n">rxn</span><span class="p">,</span> <span class="n">dummyAtoms</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span> <span class="n">retro</span><span class="o">=</span><span class="n">retro</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MolsSmilesToImage"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.MolsSmilesToImage">[docs]</a><span class="k">def</span> <span class="nf">MolsSmilesToImage</span><span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;This function takes a SMILES string of one or more molecules</span>
+<span class="sd">    and generates a combined image for that molecule set.&#39;&#39;&#39;</span>
+
+    <span class="c1"># Generate mols</span>
+    <span class="n">mols</span> <span class="o">=</span> <span class="n">mols_from_smiles_list</span><span class="p">(</span><span class="n">smiles</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">))</span>
+    <span class="c1"># Generate images</span>
+    <span class="n">imgs</span> <span class="o">=</span> <span class="p">[</span><span class="n">TrimImgByWhite</span><span class="p">(</span><span class="n">MolToImage</span><span class="p">(</span>
+        <span class="n">mol</span><span class="p">,</span> <span class="n">kekulize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span> <span class="k">for</span> <span class="n">mol</span> <span class="ow">in</span> <span class="n">mols</span><span class="p">]</span>
+    <span class="c1"># Combine</span>
+    <span class="k">return</span> <span class="n">StitchPILsHorizontally</span><span class="p">(</span><span class="n">imgs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="c1"># Simple test cases</span>
+    <span class="n">rxn_string</span> <span class="o">=</span> <span class="s1">&#39;Fc1ccc(C2(Cn3cncn3)CO2)c(F)c1.c1nc[nH]n1.Cl.O=C([O-])O.[Na+]&gt;&gt;OC(Cn1cncn1)(Cn1cncn1)c1ccc(F)cc1F&#39;</span>
+    <span class="c1"># rxn = AllChem.ReactionFromSmarts(rxn_string)</span>
+    <span class="c1"># rxn_image = ReactionToImage(rxn)</span>
+    <span class="c1"># rxn_image.save(&#39;test_rxn.png&#39;)</span>
+    <span class="n">rxn_image_string</span> <span class="o">=</span> <span class="n">ReactionStringToImage</span><span class="p">(</span><span class="n">rxn_string</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">rxn_image_string</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;draw_test_rxn_string.png&#39;</span><span class="p">)</span>
+    <span class="n">rxn_image_string</span> <span class="o">=</span> <span class="n">ReactionStringToImage</span><span class="p">(</span><span class="n">rxn_string</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">retro</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">rxn_image_string</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;draw_retro_test_rxn_string.png&#39;</span><span class="p">)</span>
+
+    <span class="n">tform</span> <span class="o">=</span> <span class="s1">&#39;([O;H0:3]=[C;H0:4](-[C:5])-[NH:2]-[C:1])&gt;&gt;([C:1]-[NH2:2]).([OH:3]-[C;H0:4](=O)-[C:5])&#39;</span>
+    <span class="n">img</span> <span class="o">=</span> <span class="n">TransformStringToImage</span><span class="p">(</span><span class="n">tform</span><span class="p">)</span>
+    <span class="n">img</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;draw_transform.png&#39;</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../askcos.html">askcos package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../makeit.html">makeit package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

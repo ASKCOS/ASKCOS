@@ -1,0 +1,10 @@
+makeit.scripts.jupyter\_misc package
+====================================
+
+Module contents
+---------------
+
+.. automodule:: makeit.scripts.jupyter_misc
+    :members:
+    :undoc-members:
+    :show-inheritance:

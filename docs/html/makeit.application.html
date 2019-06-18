@@ -1,0 +1,178 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.application package &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="makeit.interfaces package" href="makeit.interfaces.html" />
+    <link rel="prev" title="makeit package" href="makeit.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="makeit-application-package">
+<h1>makeit.application package<a class="headerlink" href="#makeit-application-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-makeit.application.run">
+<span id="makeit-application-run-module"></span><h2>makeit.application.run module<a class="headerlink" href="#module-makeit.application.run" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.application.run.MAKEIT">
+<em class="property">class </em><code class="descclassname">makeit.application.run.</code><code class="descname">MAKEIT</code><span class="sig-paren">(</span><em>target_product</em>, <em>expansion_time</em>, <em>max_depth</em>, <em>max_branching</em>, <em>max_trees</em>, <em>retro_mincount</em>, <em>retro_mincount_chiral</em>, <em>synth_mincount</em>, <em>rank_threshold_inclusion</em>, <em>prob_threshold_inclusion</em>, <em>max_total_contexts</em>, <em>template_count</em>, <em>max_ppg</em>, <em>output_dir</em>, <em>chiral</em>, <em>nproc</em>, <em>celery</em>, <em>context_recommender</em>, <em>forward_scoring_method</em>, <em>tree_scoring_method</em>, <em>context_prioritization</em>, <em>template_prioritization</em>, <em>precursor_prioritization</em>, <em>parallel_tree</em>, <em>precursor_score_mode</em>, <em>max_cum_template_prob</em>, <em>apply_fast_filter</em>, <em>filter_threshold</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/application/run.html#MAKEIT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.application.run.MAKEIT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main application for running the make-it program.
+Proposes potential synthetic routes to a desired target compound in two steps:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Building a retro synthetic tree and extracting buyable routes</li>
+<li>Evaluation the likelihood of succes of each of the reactions in the found buyable routes</li>
+<li>Returns all (or some) of the likely synthetic routes</li>
+</ul>
+</div></blockquote>
+<dl class="method">
+<dt id="makeit.application.run.MAKEIT.construct_buyable_trees">
+<code class="descname">construct_buyable_trees</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/application/run.html#MAKEIT.construct_buyable_trees"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.application.run.MAKEIT.construct_buyable_trees" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="makeit.application.run.MAKEIT.evaluate_synthesis_trees">
+<code class="descname">evaluate_synthesis_trees</code><span class="sig-paren">(</span><em>trees</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/application/run.html#MAKEIT.evaluate_synthesis_trees"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.application.run.MAKEIT.evaluate_synthesis_trees" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="makeit.application.run.find_synthesis">
+<code class="descclassname">makeit.application.run.</code><code class="descname">find_synthesis</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/application/run.html#find_synthesis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.application.run.find_synthesis" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="makeit.application.run.print_at_depth">
+<code class="descclassname">makeit.application.run.</code><code class="descname">print_at_depth</code><span class="sig-paren">(</span><em>chemical_node</em>, <em>depth=1</em>, <em>writefunc=&lt;function &lt;lambda&gt;&gt;</em>, <em>delim=' '</em>, <em>img=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/application/run.html#print_at_depth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.application.run.print_at_depth" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-makeit.application">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-makeit.application" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="askcos.html">askcos package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="makeit.html">makeit package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="makeit.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">makeit.application package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-makeit.application.run">makeit.application.run module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-makeit.application">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.interfaces.html">makeit.interfaces package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.prioritization.html">makeit.prioritization package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.retrosynthetic.html">makeit.retrosynthetic package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.scripts.html">makeit.scripts package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.synthetic.html">makeit.synthetic package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.utilities.html">makeit.utilities package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit.global_config">makeit.global_config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="makeit.html">makeit package</a><ul>
+      <li>Previous: <a href="makeit.html" title="previous chapter">makeit package</a></li>
+      <li>Next: <a href="makeit.interfaces.html" title="next chapter">makeit.interfaces package</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/makeit.application.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

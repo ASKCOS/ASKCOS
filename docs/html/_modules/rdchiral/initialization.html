@@ -1,0 +1,245 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rdchiral.initialization &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for rdchiral.initialization</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">rdkit.Chem</span> <span class="k">as</span> <span class="nn">Chem</span>
+<span class="kn">import</span> <span class="nn">rdkit.Chem.AllChem</span> <span class="k">as</span> <span class="nn">AllChem</span>
+<span class="kn">from</span> <span class="nn">rdkit.Chem.rdchem</span> <span class="k">import</span> <span class="n">ChiralType</span><span class="p">,</span> <span class="n">BondType</span><span class="p">,</span> <span class="n">BondDir</span><span class="p">,</span> <span class="n">BondStereo</span>
+
+<span class="kn">from</span> <span class="nn">rdchiral.chiral</span> <span class="k">import</span> <span class="n">template_atom_could_have_been_tetra</span>
+<span class="kn">from</span> <span class="nn">rdchiral.utils</span> <span class="k">import</span> <span class="n">vprint</span><span class="p">,</span> <span class="n">PLEVEL</span>
+<span class="kn">from</span> <span class="nn">rdchiral.bonds</span> <span class="k">import</span> <span class="n">enumerate_possible_cistrans_defs</span><span class="p">,</span> <span class="n">bond_dirs_by_mapnum</span><span class="p">,</span> \
+    <span class="n">get_atoms_across_double_bonds</span>
+
+<span class="n">BondDirOpposite</span> <span class="o">=</span> <span class="p">{</span><span class="n">AllChem</span><span class="o">.</span><span class="n">BondDir</span><span class="o">.</span><span class="n">ENDUPRIGHT</span><span class="p">:</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">BondDir</span><span class="o">.</span><span class="n">ENDDOWNRIGHT</span><span class="p">,</span>
+                   <span class="n">AllChem</span><span class="o">.</span><span class="n">BondDir</span><span class="o">.</span><span class="n">ENDDOWNRIGHT</span><span class="p">:</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">BondDir</span><span class="o">.</span><span class="n">ENDUPRIGHT</span><span class="p">}</span>
+
+<div class="viewcode-block" id="rdchiralReaction"><a class="viewcode-back" href="../../rdchiral.html#rdchiral.initialization.rdchiralReaction">[docs]</a><span class="k">class</span> <span class="nc">rdchiralReaction</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Class to store everything that should be pre-computed for a reaction. This</span>
+<span class="sd">    makes library application much faster, since we can pre-do a lot of work</span>
+<span class="sd">    instead of doing it for every mol-template pair</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reaction_smarts</span><span class="p">):</span>
+        <span class="c1"># Keep smarts, useful for reporting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reaction_smarts</span> <span class="o">=</span> <span class="n">reaction_smarts</span>
+        
+        <span class="c1"># Initialize - assigns stereochemistry and fills in missing rct map numbers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rxn</span> <span class="o">=</span> <span class="n">initialize_rxn_from_smarts</span><span class="p">(</span><span class="n">reaction_smarts</span><span class="p">)</span>
+
+        <span class="c1"># Combine template fragments so we can play around with isotopes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template_r</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_p</span> <span class="o">=</span> <span class="n">get_template_frags_from_rxn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rxn</span><span class="p">)</span>
+
+        <span class="c1"># Define molAtomMapNumber-&gt;atom dictionary for template rct and prd</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atoms_rt_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">GetIntProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">):</span> <span class="n">a</span> \
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_r</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">)}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atoms_pt_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">GetIntProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">):</span> <span class="n">a</span> \
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_p</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">)}</span>
+
+        <span class="c1"># Check consistency (this should not be necessary...)</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms_rt_map</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms_pt_map</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">()</span> \
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms_rt_map</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms_pt_map</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Atomic identity should not change in a reaction!&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Call template_atom_could_have_been_tetra to pre-assign value to atom</span>
+        <span class="p">[</span><span class="n">template_atom_could_have_been_tetra</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_r</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()]</span>
+        <span class="p">[</span><span class="n">template_atom_could_have_been_tetra</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_p</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()]</span>
+
+        <span class="c1"># Pre-list chiral double bonds (for copying back into outcomes/matching)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rt_bond_dirs_by_mapnum</span> <span class="o">=</span> <span class="n">bond_dirs_by_mapnum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_r</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pt_bond_dirs_by_mapnum</span> <span class="o">=</span> <span class="n">bond_dirs_by_mapnum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_p</span><span class="p">)</span>
+
+        <span class="c1"># Enumerate possible cis/trans...</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">required_rt_bond_defs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_bond_defs_coreatoms</span> <span class="o">=</span> \
+            <span class="n">enumerate_possible_cistrans_defs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_r</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="rdchiralReactants"><a class="viewcode-back" href="../../rdchiral.html#rdchiral.initialization.rdchiralReactants">[docs]</a><span class="k">class</span> <span class="nc">rdchiralReactants</span><span class="p">():</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Class to store everything that should be pre-computed for a reactant mol</span>
+<span class="sd">    so that library application is faster</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reactant_smiles</span><span class="p">):</span>
+        <span class="c1"># Keep original smiles, useful for reporting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactant_smiles</span> <span class="o">=</span> <span class="n">reactant_smiles</span>  
+
+        <span class="c1"># Initialize into RDKit mol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactants</span> <span class="o">=</span> <span class="n">initialize_reactants_from_smiles</span><span class="p">(</span><span class="n">reactant_smiles</span><span class="p">)</span>
+
+        <span class="c1"># Set isotope-&gt;atom dictionary</span>
+        <span class="c1"># all reactant atoms must be mapped after initialization, so this is safe</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atoms_r</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">():</span> <span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactants</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()}</span>
+
+        <span class="c1"># Create copy of molecule without chiral information, used with</span>
+        <span class="c1"># RDKit&#39;s naive runReactants</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactants_achiral</span> <span class="o">=</span> <span class="n">initialize_reactants_from_smiles</span><span class="p">(</span><span class="n">reactant_smiles</span><span class="p">)</span>
+        <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">SetChiralTag</span><span class="p">(</span><span class="n">ChiralType</span><span class="o">.</span><span class="n">CHI_UNSPECIFIED</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactants_achiral</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()]</span>
+        <span class="p">[(</span><span class="n">b</span><span class="o">.</span><span class="n">SetStereo</span><span class="p">(</span><span class="n">BondStereo</span><span class="o">.</span><span class="n">STEREONONE</span><span class="p">),</span> <span class="n">b</span><span class="o">.</span><span class="n">SetBondDir</span><span class="p">(</span><span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">))</span> \
+            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactants_achiral</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">()]</span>
+
+        <span class="c1"># Pre-list reactant bonds (for stitching broken products)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bonds_by_isotope</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">GetBeginAtom</span><span class="p">()</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">(),</span> <span class="n">b</span><span class="o">.</span><span class="n">GetEndAtom</span><span class="p">()</span><span class="o">.</span><span class="n">GetIsotope</span><span class="p">(),</span> <span class="n">b</span><span class="p">)</span> \
+            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactants</span><span class="o">.</span><span class="n">GetBonds</span><span class="p">()</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Pre-list chiral double bonds (for copying back into outcomes/matching)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bond_dirs_by_isotope</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bonds_by_isotope</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span> <span class="o">!=</span> <span class="n">BondDir</span><span class="o">.</span><span class="n">NONE</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">bond_dirs_by_isotope</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)]</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">bond_dirs_by_isotope</span><span class="p">[(</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">BondDirOpposite</span><span class="p">[</span><span class="n">b</span><span class="o">.</span><span class="n">GetBondDir</span><span class="p">()]</span>
+
+        <span class="c1"># Get atoms across double bonds defined by isotope</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atoms_across_double_bonds</span> <span class="o">=</span> <span class="n">get_atoms_across_double_bonds</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reactants</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="initialize_rxn_from_smarts"><a class="viewcode-back" href="../../rdchiral.html#rdchiral.initialization.initialize_rxn_from_smarts">[docs]</a><span class="k">def</span> <span class="nf">initialize_rxn_from_smarts</span><span class="p">(</span><span class="n">reaction_smarts</span><span class="p">):</span>
+    <span class="c1"># Initialize reaction</span>
+    <span class="n">rxn</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">ReactionFromSmarts</span><span class="p">(</span><span class="n">reaction_smarts</span><span class="p">)</span>
+    <span class="n">rxn</span><span class="o">.</span><span class="n">Initialize</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">rxn</span><span class="o">.</span><span class="n">Validate</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;validation failed&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Validated rxn without errors&#39;</span><span class="p">)</span>
+
+    <span class="n">unmapped</span> <span class="o">=</span> <span class="mi">700</span>
+    <span class="k">for</span> <span class="n">rct</span> <span class="ow">in</span> <span class="n">rxn</span><span class="o">.</span><span class="n">GetReactants</span><span class="p">():</span>
+        <span class="n">rct</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">()</span>
+        <span class="n">Chem</span><span class="o">.</span><span class="n">AssignStereochemistry</span><span class="p">(</span><span class="n">rct</span><span class="p">)</span>
+        <span class="c1"># Fill in atom map numbers</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">rct</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">a</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">):</span>
+                <span class="n">a</span><span class="o">.</span><span class="n">SetIntProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">,</span> <span class="n">unmapped</span><span class="p">)</span>
+                <span class="n">unmapped</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Added </span><span class="si">{}</span><span class="s1"> map nums to unmapped reactants&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">unmapped</span><span class="o">-</span><span class="mi">700</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">unmapped</span> <span class="o">&gt;</span> <span class="mi">800</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Why do you have so many unmapped atoms in the template reactants?&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">rxn</span></div>
+
+<div class="viewcode-block" id="initialize_reactants_from_smiles"><a class="viewcode-back" href="../../rdchiral.html#rdchiral.initialization.initialize_reactants_from_smiles">[docs]</a><span class="k">def</span> <span class="nf">initialize_reactants_from_smiles</span><span class="p">(</span><span class="n">reactant_smiles</span><span class="p">):</span>
+    <span class="c1"># Initialize reactants</span>
+    <span class="n">reactants</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">reactant_smiles</span><span class="p">)</span>
+    <span class="n">Chem</span><span class="o">.</span><span class="n">AssignStereochemistry</span><span class="p">(</span><span class="n">reactants</span><span class="p">,</span> <span class="n">flagPossibleStereoCenters</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">reactants</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">()</span>
+    <span class="c1"># To have the product atoms match reactant atoms, we</span>
+    <span class="c1"># need to populate the Isotope field, since this field</span>
+    <span class="c1"># gets copied over during the reaction.</span>
+    <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">SetIsotope</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">reactants</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">())]</span>
+    <span class="k">if</span> <span class="n">PLEVEL</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Initialized reactants, assigned isotopes, stereochem, flagpossiblestereocenters&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">reactants</span></div>
+
+<div class="viewcode-block" id="get_template_frags_from_rxn"><a class="viewcode-back" href="../../rdchiral.html#rdchiral.initialization.get_template_frags_from_rxn">[docs]</a><span class="k">def</span> <span class="nf">get_template_frags_from_rxn</span><span class="p">(</span><span class="n">rxn</span><span class="p">):</span>
+    <span class="c1"># Copy reaction template so we can play around with isotopes</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">rct</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rxn</span><span class="o">.</span><span class="n">GetReactants</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">template_r</span> <span class="o">=</span> <span class="n">rct</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">template_r</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">CombineMols</span><span class="p">(</span><span class="n">template_r</span><span class="p">,</span> <span class="n">rct</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">prd</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rxn</span><span class="o">.</span><span class="n">GetProducts</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">template_p</span> <span class="o">=</span> <span class="n">prd</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">template_p</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">CombineMols</span><span class="p">(</span><span class="n">template_p</span><span class="p">,</span> <span class="n">prd</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">template_r</span><span class="p">,</span> <span class="n">template_p</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../askcos.html">askcos package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../makeit.html">makeit package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,384 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.synthetic.enumeration.transformer &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for makeit.synthetic.enumeration.transformer</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">makeit.global_config</span> <span class="k">as</span> <span class="nn">gc</span>
+<span class="n">USE_STEREOCHEMISTRY</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="kn">import</span> <span class="nn">rdkit.Chem</span> <span class="k">as</span> <span class="nn">Chem</span>
+<span class="kn">from</span> <span class="nn">rdkit.Chem</span> <span class="k">import</span> <span class="n">AllChem</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">makeit.utilities.io.pickle</span> <span class="k">as</span> <span class="nn">pickle</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>  <span class="c1"># used for passing args to multiprocessing</span>
+<span class="kn">from</span> <span class="nn">makeit.utilities.io.logger</span> <span class="k">import</span> <span class="n">MyLogger</span>
+<span class="kn">from</span> <span class="nn">makeit.synthetic.enumeration.results</span> <span class="k">import</span> <span class="n">ForwardResult</span><span class="p">,</span> <span class="n">ForwardProduct</span>
+<span class="kn">from</span> <span class="nn">pymongo</span> <span class="k">import</span> <span class="n">MongoClient</span>
+<span class="kn">from</span> <span class="nn">makeit.interfaces.template_transformer</span> <span class="k">import</span> <span class="n">TemplateTransformer</span>
+<span class="kn">from</span> <span class="nn">makeit.interfaces.forward_enumerator</span> <span class="k">import</span> <span class="n">ForwardEnumerator</span>
+<span class="kn">from</span> <span class="nn">makeit.prioritization.templates.popularity</span> <span class="k">import</span> <span class="n">PopularityTemplatePrioritizer</span>
+<span class="kn">from</span> <span class="nn">makeit.prioritization.templates.relevance</span> <span class="k">import</span> <span class="n">RelevanceTemplatePrioritizer</span>
+<span class="kn">from</span> <span class="nn">makeit.prioritization.default</span> <span class="k">import</span> <span class="n">DefaultPrioritizer</span>
+<span class="kn">from</span> <span class="nn">makeit.utilities.reactants</span> <span class="k">import</span> <span class="n">clean_reactant_mapping</span>
+<span class="kn">from</span> <span class="nn">makeit.utilities.outcomes</span> <span class="k">import</span> <span class="n">summarize_reaction_outcome</span>
+
+<span class="n">forward_transformer_loc</span> <span class="o">=</span> <span class="s1">&#39;forward_transformer&#39;</span>
+
+
+<div class="viewcode-block" id="ForwardTransformer"><a class="viewcode-back" href="../../../../makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer">[docs]</a><span class="k">class</span> <span class="nc">ForwardTransformer</span><span class="p">(</span><span class="n">TemplateTransformer</span><span class="p">,</span> <span class="n">ForwardEnumerator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Defines an object to perform one-step syntheses for a molecule.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        mincount (int): Minimum popularity of used templates.</span>
+<span class="sd">        templates (list of ??):</span>
+<span class="sd">        id_to_index (dict ??):</span>
+<span class="sd">        celery (bool): Whether to use Celery workers.</span>
+<span class="sd">        template_prioritizers (dict ??):</span>
+<span class="sd">        start_at (int):</span>
+<span class="sd">        stop_if (bool or str): SMILES string of molecule to stop at if found, or</span>
+<span class="sd">            False for no target.</span>
+<span class="sd">        singleonly (bool):</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mincount</span><span class="o">=</span><span class="n">gc</span><span class="o">.</span><span class="n">SYNTH_TRANSFORMS</span><span class="p">[</span><span class="s1">&#39;mincount&#39;</span><span class="p">],</span> <span class="n">celery</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initializes ForwardTransformer.</span>
+
+<span class="sd">        ??VV??</span>
+<span class="sd">        TEMPLATE_DB: indicate the database you want to use (def. none)</span>
+<span class="sd">        loc: indicate that local file data should be read instead of online data (def. false)</span>
+<span class="sd">        ??^^??</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            mincount (int, optional): Minimum popularity of used templates.</span>
+<span class="sd">                (default: {gc.SYNTH_TRANSFORMS[&#39;mincount&#39;]})</span>
+<span class="sd">            celery (bool, optional): Whether to use Celery workers.</span>
+<span class="sd">                (default: {False})</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mincount</span> <span class="o">=</span> <span class="n">mincount</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">templates</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id_to_index</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">celery</span> <span class="o">=</span> <span class="n">celery</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template_prioritizers</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">ForwardTransformer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ForwardTransformer.template_count"><a class="viewcode-back" href="../../../../makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.template_count">[docs]</a>    <span class="k">def</span> <span class="nf">template_count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns number of templates loaded?? by transformer.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">templates</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ForwardTransformer.get_outcomes"><a class="viewcode-back" href="../../../../makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.get_outcomes">[docs]</a>    <span class="k">def</span> <span class="nf">get_outcomes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smiles</span><span class="p">,</span> <span class="n">mincount</span><span class="p">,</span> <span class="n">template_prioritization</span><span class="p">,</span> <span class="n">start_at</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_at</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                     <span class="n">singleonly</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stop_if</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">template_count</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">max_cum_prob</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Performs a one-step synthesis reaction for a given SMILES string.</span>
+
+<span class="sd">        Each candidate in self.result.products is of type ForwardProduct</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            smiles (str): SMILES string of ??</span>
+<span class="sd">            mincount (int): Minimum popularity of used templates.</span>
+<span class="sd">            template_prioritization (??): Specifies method to use for ordering</span>
+<span class="sd">                templates.</span>
+<span class="sd">            start_at (int, optional): Index of first prioritized template to</span>
+<span class="sd">                use. (default: {-1})</span>
+<span class="sd">            end_at (int, optional): Index of prioritized template to stop</span>
+<span class="sd">                before. (default: {-1})</span>
+<span class="sd">            singleonly (bool, optional): Whether to reduce each product to the</span>
+<span class="sd">                largest (longest) one. (default: {True})</span>
+<span class="sd">            stop_if (bool or string, optional): SMILES string of molecule to</span>
+<span class="sd">                stop at if found, or False for no target. (default: {False})</span>
+<span class="sd">            template_count (int, optional): Maximum number of templates to use.</span>
+<span class="sd">                (default: {10000})</span>
+<span class="sd">            max_cum_prob (float, optional): Maximum cumulative probability of</span>
+<span class="sd">                all templates used. (default: {1.0})</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_template_prioritizers</span><span class="p">(</span><span class="n">template_prioritization</span><span class="p">)</span>
+        <span class="c1"># Get sorted by popularity during loading.</span>
+        <span class="k">if</span> <span class="n">template_prioritization</span> <span class="o">==</span> <span class="n">gc</span><span class="o">.</span><span class="n">popularity</span><span class="p">:</span>
+            <span class="n">prioritized_templates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">templates</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">template_prioritizer</span><span class="o">.</span><span class="n">set_max_templates</span><span class="p">(</span><span class="n">template_count</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">template_prioritizer</span><span class="o">.</span><span class="n">set_max_cum_prob</span><span class="p">(</span><span class="n">max_cum_prob</span><span class="p">)</span>
+            <span class="n">prioritized_templates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_prioritizer</span><span class="o">.</span><span class="n">get_priority</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">templates</span><span class="p">,</span> <span class="n">smiles</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mincount</span> <span class="o">=</span> <span class="n">mincount</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_at</span> <span class="o">=</span> <span class="n">start_at</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">singleonly</span> <span class="o">=</span> <span class="n">singleonly</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stop_if</span> <span class="o">=</span> <span class="n">stop_if</span>
+
+        <span class="k">if</span> <span class="n">end_at</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">end_at</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">templates</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">end_at</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">templates</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">end_at</span> <span class="o">=</span> <span class="n">end_at</span>
+         <span class="c1"># Define mol to operate on</span>
+        <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+        <span class="n">clean_reactant_mapping</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+        <span class="n">reactants_smiles</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+        <span class="n">smiles</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span>
+            <span class="n">mol</span><span class="p">,</span> <span class="n">isomericSmiles</span><span class="o">=</span><span class="n">USE_STEREOCHEMISTRY</span><span class="p">)</span>  <span class="c1"># to canonicalize</span>
+        <span class="c1"># Initialize results object</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">celery</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">ForwardResult</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_at</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_at</span><span class="p">):</span>
+
+            <span class="c1"># only use templates between the specified boundaries.</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="n">prioritized_templates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">template</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">mincount</span><span class="p">:</span>
+                <span class="n">products</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_one_template</span><span class="p">(</span>
+                    <span class="n">mol</span><span class="p">,</span> <span class="n">smiles</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">singleonly</span><span class="o">=</span><span class="n">singleonly</span><span class="p">,</span> <span class="n">stop_if</span><span class="o">=</span><span class="n">stop_if</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">celery</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">product</span> <span class="ow">in</span> <span class="n">products</span><span class="p">:</span>
+                        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;smiles_list&#39;</span><span class="p">:</span> <span class="n">product</span><span class="o">.</span><span class="n">smiles_list</span><span class="p">,</span>
+                                       <span class="s1">&#39;smiles&#39;</span><span class="p">:</span> <span class="n">product</span><span class="o">.</span><span class="n">smiles</span><span class="p">,</span>
+                                       <span class="s1">&#39;edits&#39;</span><span class="p">:</span> <span class="n">product</span><span class="o">.</span><span class="n">edits</span><span class="p">,</span>
+                                       <span class="s1">&#39;template_ids&#39;</span><span class="p">:</span> <span class="n">product</span><span class="o">.</span><span class="n">template_ids</span><span class="p">,</span>
+                                       <span class="s1">&#39;num_examples&#39;</span><span class="p">:</span> <span class="n">product</span><span class="o">.</span><span class="n">num_examples</span>
+                                       <span class="p">})</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">add_products</span><span class="p">(</span><span class="n">products</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ForwardTransformer.load"><a class="viewcode-back" href="../../../../makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chiral</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">refs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">efgs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rxn_ex</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">worker_no</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">rxns</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loads and parses the template database to a useable one</span>
+<span class="sd">        Chrial and rxn_ex are not used, but for compatibility with retro_transformer</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">worker_no</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Loading synthetic transformer, including all templates with more than </span><span class="si">{}</span><span class="s1"> hits&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mincount</span><span class="p">),</span> <span class="n">forward_transformer_loc</span><span class="p">)</span>
+
+        <span class="kn">from</span> <span class="nn">makeit.utilities.io.files</span> <span class="k">import</span> <span class="n">get_synthtransformer_path</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">get_synthtransformer_path</span><span class="p">(</span>
+            <span class="n">gc</span><span class="o">.</span><span class="n">SYNTH_TRANSFORMS</span><span class="p">[</span><span class="s1">&#39;database&#39;</span><span class="p">],</span>
+            <span class="n">gc</span><span class="o">.</span><span class="n">SYNTH_TRANSFORMS</span><span class="p">[</span><span class="s1">&#39;collection&#39;</span><span class="p">],</span>
+            <span class="n">gc</span><span class="o">.</span><span class="n">SYNTH_TRANSFORMS</span><span class="p">[</span><span class="s1">&#39;mincount&#39;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_from_file</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">chiral</span><span class="o">=</span><span class="n">chiral</span><span class="p">,</span> <span class="n">rxns</span><span class="o">=</span><span class="n">rxns</span><span class="p">,</span> <span class="n">refs</span><span class="o">=</span><span class="n">refs</span><span class="p">,</span> <span class="n">efgs</span><span class="o">=</span><span class="n">efgs</span><span class="p">,</span> <span class="n">rxn_ex</span><span class="o">=</span><span class="n">rxn_ex</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_from_database</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">chiral</span><span class="o">=</span><span class="n">chiral</span><span class="p">,</span> <span class="n">rxns</span><span class="o">=</span><span class="n">rxns</span><span class="p">,</span> <span class="n">refs</span><span class="o">=</span><span class="n">refs</span><span class="p">,</span> <span class="n">efgs</span><span class="o">=</span><span class="n">efgs</span><span class="p">,</span> <span class="n">rxn_ex</span><span class="o">=</span><span class="n">rxn_ex</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reorder</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">worker_no</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Synthetic transformer has been loaded - using </span><span class="si">{}</span><span class="s1"> templates&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">num_templates</span><span class="p">),</span> <span class="n">forward_transformer_loc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ForwardTransformer.apply_one_template"><a class="viewcode-back" href="../../../../makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.apply_one_template">[docs]</a>    <span class="k">def</span> <span class="nf">apply_one_template</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mol</span><span class="p">,</span> <span class="n">smiles</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">singleonly</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stop_if</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Takes a mol object and applies a single template.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">template</span><span class="p">[</span><span class="s1">&#39;product_smiles&#39;</span><span class="p">]:</span>
+                <span class="n">react_mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span>
+                    <span class="n">smiles</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">template</span><span class="p">[</span><span class="s1">&#39;product_smiles&#39;</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">react_mol</span> <span class="o">=</span> <span class="n">mol</span>
+
+            <span class="n">outcomes</span> <span class="o">=</span> <span class="n">template</span><span class="p">[</span><span class="s1">&#39;rxn_f&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">RunReactants</span><span class="p">([</span><span class="n">react_mol</span><span class="p">])</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">gc</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">:</span>
+                <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Failed transformation for </span><span class="si">{}</span><span class="s1"> because of </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">template</span><span class="p">[</span><span class="s1">&#39;reaction_smarts&#39;</span><span class="p">],</span> <span class="n">e</span><span class="p">),</span> <span class="n">forward_transformer_loc</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">outcomes</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">outcome</span> <span class="ow">in</span> <span class="n">outcomes</span><span class="p">:</span>
+                <span class="n">smiles_list</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="c1"># all products represented as single mol by transforms</span>
+                <span class="n">outcome</span> <span class="o">=</span> <span class="n">outcome</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">outcome</span><span class="o">.</span><span class="n">UpdatePropertyCache</span><span class="p">()</span>
+                    <span class="n">Chem</span><span class="o">.</span><span class="n">SanitizeMol</span><span class="p">(</span><span class="n">outcome</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">gc</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">:</span>
+                        <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Non-sensible molecule constructed by template </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">template</span><span class="p">[</span><span class="s1">&#39;reaction_smarts&#39;</span><span class="p">]),</span> <span class="n">forward_transformer_loc</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># NOTE: To get the edits (and preserve atom mapping) RDKit must be</span>
+                <span class="c1"># build from the fork at github.com/connorcoley/rdkit</span>
+                <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">),</span> <span class="n">a</span><span class="o">.</span><span class="n">GetProp</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s1">&#39;old_molAtomMapNumber&#39;</span><span class="p">)))</span>
+                    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">outcome</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="s1">&#39;old_molAtomMapNumber&#39;</span><span class="p">)</span> <span class="ow">in</span> <span class="n">a</span><span class="o">.</span><span class="n">GetPropsAsDict</span><span class="p">()]</span>
+
+                <span class="c1"># Reduce to largest (longest) product only</span>
+                <span class="n">candidate_smiles</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span>
+                    <span class="n">outcome</span><span class="p">,</span> <span class="n">isomericSmiles</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">smiles_list</span> <span class="o">=</span> <span class="n">candidate_smiles</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">singleonly</span><span class="p">:</span>
+                    <span class="n">candidate_smiles</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                        <span class="n">candidate_smiles</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="nb">len</span><span class="p">)</span>
+                <span class="n">outcome</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">candidate_smiles</span><span class="p">)</span>
+
+                <span class="c1"># Find what edits were made</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">edits</span> <span class="o">=</span> <span class="n">summarize_reaction_outcome</span><span class="p">(</span><span class="n">react_mol</span><span class="p">,</span> <span class="n">outcome</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="n">edits</span> <span class="o">=</span> <span class="p">[]</span>
+
+                <span class="c1"># Remove mapping before matching</span>
+                <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">ClearProp</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">outcome</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">HasProp</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">))]</span>  <span class="c1"># remove atom mapping from outcome</span>
+
+                <span class="c1"># Overwrite candidate_smiles without atom mapping numbers</span>
+                <span class="n">candidate_smiles</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span>
+                    <span class="n">outcome</span><span class="p">,</span> <span class="n">isomericSmiles</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+                <span class="n">product</span> <span class="o">=</span> <span class="n">ForwardProduct</span><span class="p">(</span>
+                    <span class="n">smiles_list</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">smiles_list</span><span class="p">),</span>
+                    <span class="n">smiles</span><span class="o">=</span><span class="n">candidate_smiles</span><span class="p">,</span>
+                    <span class="n">template_id</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">template</span><span class="p">[</span><span class="s1">&#39;_id&#39;</span><span class="p">]),</span>
+                    <span class="n">num_examples</span><span class="o">=</span><span class="n">template</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">],</span>
+                    <span class="n">edits</span><span class="o">=</span><span class="n">edits</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">candidate_smiles</span> <span class="o">==</span> <span class="n">smiles</span><span class="p">:</span>
+                    <span class="k">continue</span>  <span class="c1"># no transformation</span>
+                <span class="k">if</span> <span class="n">stop_if</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">stop_if</span> <span class="ow">in</span> <span class="n">product</span><span class="o">.</span><span class="n">smiles_list</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span>
+                            <span class="s1">&#39;Found true product - skipping remaining templates to apply&#39;</span><span class="p">)</span>
+                        <span class="k">return</span> <span class="kc">True</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">product</span><span class="p">)</span>
+            <span class="c1"># Were we trying to stop early?</span>
+            <span class="k">if</span> <span class="n">stop_if</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="n">results</span></div></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">MyLogger</span><span class="o">.</span><span class="n">initialize_logFile</span><span class="p">()</span>
+    <span class="n">ft</span> <span class="o">=</span> <span class="n">ForwardTransformer</span><span class="p">(</span><span class="n">mincount</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">ft</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+    <span class="n">template_count</span> <span class="o">=</span> <span class="n">ft</span><span class="o">.</span><span class="n">template_count</span><span class="p">()</span>
+    <span class="n">smiles</span> <span class="o">=</span> <span class="s1">&#39;NC(=O)[C@H](CCC=O)N1C(=O)c2ccccc2C1=O&#39;</span>
+    <span class="k">for</span> <span class="n">batch_size</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">100</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
+        <span class="n">outcomes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">start_at</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">template_count</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">outcomes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ft</span><span class="o">.</span><span class="n">get_outcomes</span><span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">start_at</span><span class="o">=</span><span class="n">start_at</span><span class="p">,</span>
+                                            <span class="n">end_at</span><span class="o">=</span><span class="n">start_at</span><span class="o">+</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">template_prioritization</span><span class="o">=</span><span class="n">gc</span><span class="o">.</span><span class="n">popularity</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Ran </span><span class="si">{}</span><span class="s1"> batches of </span><span class="si">{}</span><span class="s1"> templates&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">))</span>
+        <span class="n">unique_res</span> <span class="o">=</span> <span class="n">ForwardResult</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">smiles</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">outcomes</span><span class="p">:</span>
+            <span class="n">unique_res</span><span class="o">.</span><span class="n">add_products</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">products</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unique_res</span><span class="o">.</span><span class="n">products</span><span class="p">))</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../askcos.html">askcos package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../makeit.html">makeit package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

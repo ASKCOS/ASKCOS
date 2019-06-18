@@ -1,0 +1,38 @@
+askcos.askcos\_site.askcos\_celery.contextrecommender package
+=============================================================
+
+Submodules
+----------
+
+askcos.askcos\_site.askcos\_celery.contextrecommender.cr\_coordinator module
+----------------------------------------------------------------------------
+
+.. automodule:: askcos.askcos_site.askcos_celery.contextrecommender.cr_coordinator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+askcos.askcos\_site.askcos\_celery.contextrecommender.cr\_network\_worker module
+--------------------------------------------------------------------------------
+
+.. automodule:: askcos.askcos_site.askcos_celery.contextrecommender.cr_network_worker
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+askcos.askcos\_site.askcos\_celery.contextrecommender.cr\_nn\_worker module
+---------------------------------------------------------------------------
+
+.. automodule:: askcos.askcos_site.askcos_celery.contextrecommender.cr_nn_worker
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: askcos.askcos_site.askcos_celery.contextrecommender
+    :members:
+    :undoc-members:
+    :show-inheritance:

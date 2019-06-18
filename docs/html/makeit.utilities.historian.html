@@ -1,0 +1,264 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>makeit.utilities.historian package &#8212; ASKCOS 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="makeit.utilities.io package" href="makeit.utilities.io.html" />
+    <link rel="prev" title="makeit.utilities.efgs package" href="makeit.utilities.efgs.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="makeit-utilities-historian-package">
+<h1>makeit.utilities.historian package<a class="headerlink" href="#makeit-utilities-historian-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-makeit.utilities.historian.chemicals">
+<span id="makeit-utilities-historian-chemicals-module"></span><h2>makeit.utilities.historian.chemicals module<a class="headerlink" href="#module-makeit.utilities.historian.chemicals" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.utilities.historian.chemicals.ChemHistorian">
+<em class="property">class </em><code class="descclassname">makeit.utilities.historian.chemicals.</code><code class="descname">ChemHistorian</code><span class="sig-paren">(</span><em>by_xrn=False</em>, <em>REACTIONS=None</em>, <em>CHEMICALS=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Historian class is used to look up chemicals to see how often they have
+been seen in Reaxys</p>
+<dl class="method">
+<dt id="makeit.utilities.historian.chemicals.ChemHistorian.compress_keys">
+<code class="descname">compress_keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.compress_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.compress_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert keys to hashed values to save space</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.utilities.historian.chemicals.ChemHistorian.dump_to_file">
+<code class="descname">dump_to_file</code><span class="sig-paren">(</span><em>file_path='/usr/local/ASKCOS/makeit/data/historian/chemicals.pickle'</em>, <em>refs=False</em>, <em>compressed=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.dump_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.dump_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the data from the online datbases to a local file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.utilities.historian.chemicals.ChemHistorian.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>online=True</em>, <em>CHEMICAL_DB=None</em>, <em>REACTION_DB=None</em>, <em>refs=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the object from a MongoDB collection</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.utilities.historian.chemicals.ChemHistorian.load_databases">
+<code class="descname">load_databases</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.load_databases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.load_databases" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the pricing data from the online database</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.utilities.historian.chemicals.ChemHistorian.load_from_file">
+<code class="descname">load_from_file</code><span class="sig-paren">(</span><em>file_path='/usr/local/ASKCOS/makeit/data/historian/chemicals.pickle'</em>, <em>refs=False</em>, <em>compressed=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.load_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.load_from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the data for the pricer from a locally stored file instead of from the online database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.utilities.historian.chemicals.ChemHistorian.lookup_smiles">
+<code class="descname">lookup_smiles</code><span class="sig-paren">(</span><em>smiles</em>, <em>alreadyCanonical=False</em>, <em>isomericSmiles=True</em>, <em>refs=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.lookup_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.lookup_smiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up a price by SMILES. Tries it as-entered and then
+re-canonicalizes it in RDKit unless the user specifies that
+the string is definitely already canonical.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.utilities.historian.chemicals.ChemHistorian.upload_to_db">
+<code class="descname">upload_to_db</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.upload_to_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.upload_to_db" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="makeit.utilities.historian.chemicals.tup_to_dict">
+<code class="descclassname">makeit.utilities.historian.chemicals.</code><code class="descname">tup_to_dict</code><span class="sig-paren">(</span><em>info=[0, 0, [], []], refs=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#tup_to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.tup_to_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a historical entry as a tuple and returns a labeled dict</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-makeit.utilities.historian.reactions">
+<span id="makeit-utilities-historian-reactions-module"></span><h2>makeit.utilities.historian.reactions module<a class="headerlink" href="#module-makeit.utilities.historian.reactions" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="makeit.utilities.historian.reactions.ReactionHistorian">
+<em class="property">class </em><code class="descclassname">makeit.utilities.historian.reactions.</code><code class="descname">ReactionHistorian</code><span class="sig-paren">(</span><em>by_xrn=False</em>, <em>REACTIONS=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#ReactionHistorian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Historian class is used to look up chemicals to see how often they have
+been seen in Reaxys</p>
+<dl class="method">
+<dt id="makeit.utilities.historian.reactions.ReactionHistorian.dump_to_file">
+<code class="descname">dump_to_file</code><span class="sig-paren">(</span><em>file_path='/usr/local/ASKCOS/makeit/data/historian/reactions.pickle'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#ReactionHistorian.dump_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.dump_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the data from the online datbases to a local file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.utilities.historian.reactions.ReactionHistorian.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>online=True</em>, <em>REACTION_DB=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#ReactionHistorian.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the object from a MongoDB collection</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.utilities.historian.reactions.ReactionHistorian.load_databases">
+<code class="descname">load_databases</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#ReactionHistorian.load_databases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.load_databases" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the pricing data from the online database</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.utilities.historian.reactions.ReactionHistorian.load_from_file">
+<code class="descname">load_from_file</code><span class="sig-paren">(</span><em>file_path='/usr/local/ASKCOS/makeit/data/historian/reactions.pickle'</em>, <em>testing=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#ReactionHistorian.load_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.load_from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the data for the pricer from a locally stored file instead of from the online database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="makeit.utilities.historian.reactions.ReactionHistorian.lookup_smiles">
+<code class="descname">lookup_smiles</code><span class="sig-paren">(</span><em>smiles</em>, <em>alreadyCanonical=False</em>, <em>isomericSmiles=True</em>, <em>refs=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#ReactionHistorian.lookup_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.lookup_smiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up a price by SMILES. Tries it as-entered and then
+re-canonicalizes it in RDKit unl ess the user specifies that
+the string is definitely already canonical.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="makeit.utilities.historian.reactions.tup_to_dict">
+<code class="descclassname">makeit.utilities.historian.reactions.</code><code class="descname">tup_to_dict</code><span class="sig-paren">(</span><em>info=[0, []], refs=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#tup_to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.tup_to_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a historical entry as a tuple and returns a labeled dict</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-makeit.utilities.historian">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-makeit.utilities.historian" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">ASKCOS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="askcos.html">askcos package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="makeit.html">makeit package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="makeit.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="makeit.application.html">makeit.application package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.interfaces.html">makeit.interfaces package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.prioritization.html">makeit.prioritization package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.retrosynthetic.html">makeit.retrosynthetic package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.scripts.html">makeit.scripts package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="makeit.synthetic.html">makeit.synthetic package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="makeit.utilities.html">makeit.utilities package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="makeit.utilities.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.atoms">makeit.utilities.atoms module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.canonicalization">makeit.utilities.canonicalization module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.conditions">makeit.utilities.conditions module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.contexts">makeit.utilities.contexts module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.descriptors">makeit.utilities.descriptors module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.fastfilter_utilities">makeit.utilities.fastfilter_utilities module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.fingerprinting">makeit.utilities.fingerprinting module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.formats">makeit.utilities.formats module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.outcomes">makeit.utilities.outcomes module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.parsing">makeit.utilities.parsing module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.reactants">makeit.utilities.reactants module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.strings">makeit.utilities.strings module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.threadsafe">makeit.utilities.threadsafe module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities.with_dummy">makeit.utilities.with_dummy module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="makeit.utilities.html#module-makeit.utilities">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit.global_config">makeit.global_config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.html#module-makeit">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rdchiral.html">rdchiral package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="makeit.html">makeit package</a><ul>
+  <li><a href="makeit.utilities.html">makeit.utilities package</a><ul>
+      <li>Previous: <a href="makeit.utilities.efgs.html" title="previous chapter">makeit.utilities.efgs package</a></li>
+      <li>Next: <a href="makeit.utilities.io.html" title="next chapter">makeit.utilities.io package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, ASKCOS.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/makeit.utilities.historian.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
