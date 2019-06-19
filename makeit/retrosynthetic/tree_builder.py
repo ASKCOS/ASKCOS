@@ -1,7 +1,7 @@
 
 import makeit.global_config as gc
 from multiprocessing import Process, Manager, Queue
-import sys 
+import sys
 if sys.version_info[0] < 3:
     import Queue as VanillaQueue
 else:
@@ -21,55 +21,144 @@ treebuilder_loc = 'tree_builder'
 
 
 class TreeBuilder:
+    """Class for retrosynthetic tree expansion using a depth-first search.
 
+    Attributes:
+        celery (bool): Whether or not Celery is being used. If True, then the
+            TreeBuilder relies on reservable retrotransformer workers
+            initialized separately. If False, then retrotransformer workers will
+            be spun up using multiprocessing.
+        mincount (int): Minimum number of precedents for an achiral template for
+            inclusion in the template library. Only used when retrotransformers
+            need to be initialized.
+        mincount_chiral (int): Minimum number of precedents for a chiral
+            template for inclusion in the template library. Only used when
+            retrotransformers need to be initialized. Chiral templates are
+            necessarily more specific, so we generally use a lower threshold
+            than achiral templates.
+        max_depth (int): Maximum number of reactions to allow before stopping
+            the recursive expansion down one branch.
+        max_branching (int): Maximum number of precursor suggestions to add to
+            the tree at each expansion.
+        expansion_time (int): Time (in seconds) to allow for expansion before
+            searching the generated tree for buyable pathways.
+        template_prioritization (str): Strategy used for template
+            prioritization, as a string. There are a limited number of
+            available options - consult the global configuration file for info.
+        precursor_prioritization (str): Strategy used for precursor
+            prioritization, as a string. There are a limited number of available
+            options - consult the global configuration file for info.
+        precursor_score_mode (str): Mode to use for precursor scoring when using
+            the SCScore prioritizer and multiple reactant fragments must be
+            scored together.
+        nproc (int): Number of retrotransformer processes to fork for faster
+            expansion.
+        template_count (int): Maximum number of templates to apply at each
+            expansion.
+        max_cum_template_prob (float): Maximum cumulative template probability
+            (i.e., relevance score), used as part of the relevance
+            template_prioritizer.
+        max_ppg (int or float): Maximum price ($/g) for a chemical to be
+            considered buyable, and thus potentially usable as a leaf node.
+        apply_fast_filter (bool): Whether to use the fast filter.
+        *filter_threshold (float):
+        chiral (bool):  Whether or not to pay close attention to chirality. When
+            False, even achiral templates can lead to accidental inversion of
+            chirality in non-reacting parts of the molecule. It is highly
+            recommended to keep this as True.
+        pricer (Pricer): Pricer object to be used for checking stop criteria
+            (buyability).
+        chemhistorian (ChemHistorian): ChemHistorian object used to see how
+            often chemicals have occured in database.
+        retroTransformer (RetroTransformer): RetroTransformer object to be used
+            for expansion when *not* using Celery.
+        *pending_results (list of ??):
+        *is_ready (list of ??):
+        *expansion_queues (Queue of 2-tuples of (int, str)):
+        *private_worker_queue ():
+        *running (bool):
+        *done (Manager.Value(str, int)):
+        *tree_dict (dict or Manager.dict):
+        *chem_to_id (dict or Manager.dict):
+        *buyable_leaves (set of Manager.list):
+        *current_id (int or Manager.Value(str, int)):
+        *manager (Manager):
+        *paused (Manager.Value(str, int)):
+        *idle (list of bool):
+        *results_queue (Queue):
+        *workers (list of ??):
+        *coordinator (None):
+        known_bad_reactions (list of str): Reactions to forbid during expansion,
+            represented as list of reaction SMILES strings. Each reaction SMILES
+            must be canonicalized, have atom mapping removed, and have its
+            reactant fragments be sorted. Forbidden reactions are checked when
+            processing children returned by the RetroTransformer.
+        forbidden_molecules (list of str): Molecules to forbid during expansion,
+            represented as a list of SMILES strings. Each string must be
+            canonicalized without atom mapping. Forbidden molecules will not be
+            allowed as intermediates or leaf nodes.
+    """
     def __init__(self, retroTransformer=None, pricer=None, max_branching=20, max_depth=3, expansion_time=240,
                  celery=False, nproc=1, mincount=25, chiral=True, mincount_chiral=10,
                  template_prioritization=gc.relevance, precursor_prioritization=gc.relevanceheuristic,
                  chemhistorian=None):
-        """Class for retrosynthetic tree expansion using a depth-first search
+        """Initialization of an object of the TreeBuilder class.
 
-        Initialization of an object of the TreeBuilder class sets default values
-        for various settings and loads transformers as needed (i.e., based on 
-        whether Celery is being used or not). Most settings are overridden
-        by the get_buyable_paths method anyway.
+        Sets default values for various settings and loads transformers as
+        needed (i.e., based on whether Celery is being used or not). Most
+        settings are overridden by the get_buyable_paths method anyway.
 
-        Keyword Arguments:
-            retroTransformer {None or RetroTransformer} -- RetroTransformer object
-                to be used for expansion when *not* using Celery. If none, 
-                will be initialized using the model_loader.load_Retro_Transformer
-                function (default: {None})
-            pricer {Pricer} -- Pricer object to be used for checking stop criteria
-                (buyability). If none, will be initialized using default settings
-                from the global configuration (default: {None})
-            max_branching {number} -- Maximum number of precursor suggestions to
-                add to the tree at each expansion (default: {20})
-            max_depth {number} -- Maximum number of reactions to allow before
-                stopping the recursive expansion down one branch (default: {3})
-            expansion_time {number} -- Time (in seconds) to allow for expansion
-                before searching the generated tree for buyable pathways (default: {240})
-            celery {bool} -- Whether or not Celery is being used. If True, then 
-                the TreeBuilder relies on reservable retrotransformer workers
-                initialized separately. If False, then retrotransformer workers
-                will be spun up using multiprocessing (default: {False})
-            nproc {number} -- Number of retrotransformer processes to fork for
-                faster expansion (default: {1})
-            mincount {number} -- Minimum number of precedents for an achiral template
-                for inclusion in the template library. Only used when retrotransformers
-                need to be initialized (default: {25})
-            mincount_chiral {number} -- Minimum number of precedents for a chiral template
-                for inclusion in the template library. Only used when retrotransformers
-                need to be initialized. Chiral templates are necessarily more specific,
-                so we generally use a lower threshold than achiral templates (default: {10})
-            chiral {bool} -- Whether or not to pay close attention to chirality. When 
-                False, even achiral templates can lead to accidental inversion of
-                chirality in non-reacting parts of the molecule. It is highly 
-                recommended to keep this as True (default: {True})
-            template_prioritization {string} -- Strategy used for template
-                prioritization, as a string. There are a limited number of available
-                options - consult the global configuration file for info (default: {gc.popularity})
-            precursor_prioritization {string} -- Strategy used for precursor
-                prioritization, as a string. There are a limited number of available
-                options - consult the global configuration file for info (default: {gc.heuristic})
+        Args:
+            retroTransformer (None or RetroTransformer, optional):
+                RetroTransformer object to be used for expansion when *not*
+                using Celery. If None, will be initialized using the
+                model_loader.load_Retro_Transformer function. (default: {None})
+            pricer (None or Pricer, optional): Pricer object to be used for
+                checking stop criteria (buyability). If None, will be
+                initialized using default settings from the global
+                configuration. (default: {None})
+            max_branching (int, optional): Maximum number of precursor
+                suggestions to add to the tree at each expansion.
+                (default: {20})
+            max_depth (int, optional): Maximum number of reactions to allow
+                before stopping the recursive expansion down one branch.
+                (default: {3})
+            expansion_time (int, optional): Time (in seconds) to allow for
+                expansion before searching the generated tree for buyable
+                pathways. (default: {240})
+            celery (bool, optional): Whether or not Celery is being used. If
+                True, then the TreeBuilder relies on reservable retrotransformer
+                workers initialized separately. If False, then retrotransformer
+                workers will be spun up using multiprocessing.
+                (default: {False})
+            nproc (int, optional): Number of retrotransformer processes to fork
+                for faster expansion. (default: {1})
+            mincount (int, optional): Minimum number of precedents for an
+                achiral template for inclusion in the template library. Only
+                used when retrotransformers need to be initialized.
+                (default: {25})
+            chiral (bool, optional): Whether or not to pay close attention to
+                chirality. When False, even achiral templates can lead to
+                accidental inversion of chirality in non-reacting parts of the
+                molecule. It is highly recommended to keep this as True.
+                (default: {True})
+            mincount_chiral (int, optional): Minimum number of precedents for a
+                chiral template for inclusion in the template library. Only used
+                when retrotransformers need to be initialized. Chiral templates
+                are necessarily more specific, so we generally use a lower
+                threshold than achiral templates. (default: {10})
+            template_prioritization (str, optional): Strategy used for template
+                prioritization, as a string. There are a limited number of
+                available options - consult the global configuration file for
+                info. (default: {gc.popularity})
+            precursor_prioritization (str, optional): Strategy used for
+                precursor prioritization, as a string. There are a limited
+                number of available options - consult the global configuration
+                file for info. (default: {gc.heuristic})
+            chemhistorian (None or ChemHistorian, optional): ChemHistorian
+                object used to see how often chemicals have occured in
+                database. If None, will be loaded from the default file in the
+                global configuration. (default: {None})
         """
         # General parameters
         self.celery = celery
@@ -92,7 +181,7 @@ class TreeBuilder:
 
         self.chemhistorian = chemhistorian
         if chemhistorian is None:
-            from makeit.utilities.historian.chemicals import ChemHistorian 
+            from makeit.utilities.historian.chemicals import ChemHistorian
             self.chemhistorian = ChemHistorian()
             self.chemhistorian.load_from_file(refs=False, compressed=True)
 
@@ -110,11 +199,13 @@ class TreeBuilder:
         # Define method to check if all results processed
         if self.celery:
             def waiting_for_results():
+                """Returns if results are being processed by Celery."""
                 # update
                 time.sleep(1)
                 return self.pending_results != [] or self.is_ready != []
         else:
             def waiting_for_results():
+                """Returns if results are being processed by multiprocessing."""
                 waiting = [expansion_queue.empty()
                            for expansion_queue in self.expansion_queues]
                 waiting.append(self.results_queue.empty())
@@ -127,6 +218,7 @@ class TreeBuilder:
         # Define method to get a processed result.
         if self.celery:
             def get_ready_result():
+                """Yields a processed result from Celery."""
                 # Update which processes are ready
                 self.is_ready = [i for (i, res) in enumerate(
                     self.pending_results) if res.ready()]
@@ -141,6 +233,7 @@ class TreeBuilder:
                     self.pending_results) if i not in self.is_ready]
         else:
             def get_ready_result():
+                """Yields a processed result from multiprocessing."""
                 while not self.results_queue.empty():
                     yield self.results_queue.get(0.2)
 
@@ -150,6 +243,10 @@ class TreeBuilder:
         # note: Celery will reserve an entire preforked pool of workers
         if self.celery:
             def prepare():
+                """Starts up parallelization for Celery.
+
+                Note: Celery will reserve an entire preforked pool of workers.
+                """
                 try:
                     if self.chiral:
                         request = tb_c_worker.reserve_worker_pool.delay()
@@ -163,6 +260,7 @@ class TreeBuilder:
                         'Did not find an available pool of workers! Try again later ({})'.format(e))
         else:
             def prepare():
+                """Starts up parallelization for multiprocessing."""
                 MyLogger.print_and_log('Tree builder spinning off {} child processes'.format(
                     self.nproc), treebuilder_loc)
                 for i in range(self.nproc):
@@ -174,6 +272,7 @@ class TreeBuilder:
         # Define method to stop working.
         if self.celery:
             def stop():
+                """Stops Celery workers."""
                 if self.pending_results != []:
                     # OPTION 1 - REVOKE TASKS, WHICH GETS SENT TO ALL WORKERS REGARDLESS OF TYPE
                     #[res.revoke() for res in pending_results]
@@ -192,6 +291,7 @@ class TreeBuilder:
                 self.running = False
         else:
             def stop():
+                """Stops multiprocessing workers."""
                 if not self.running:
                     return
                 self.done.value = 1
@@ -208,6 +308,7 @@ class TreeBuilder:
 
         # Define method to expand a single compound
         if self.celery:
+            """Expands a single compound with Celery."""
             def expand(smiles, chem_id, depth):
                 # Chiral transformation or heuristic prioritization requires
                 # same database
@@ -243,6 +344,7 @@ class TreeBuilder:
                     ))
         else:
             def expand(smiles, chem_id, depth):
+                """Expands a single compound with multiprocessing."""
                 #print('Coordinator put {} (ID {}) in queue queue {}'.format(smiles, chem_id, depth))
                 self.expansion_queues[depth].put((chem_id, smiles))
         self.expand = expand
@@ -250,9 +352,11 @@ class TreeBuilder:
         # Define how first target is set.
         if self.celery:
             def set_initial_target(smiles):
+                """Sets first target for Celery."""
                 self.expand(smiles, 1, 0)
         else:
             def set_initial_target(smiles):
+                """Sets first target for multiprocessing."""
                 self.expansion_queues[-1].put((1, smiles))
                 print(self.expansion_queues)
                 print('Put something on expansion queue')
@@ -262,7 +366,7 @@ class TreeBuilder:
         self.set_initial_target = set_initial_target
 
     def reset(self):
-        """Clears saved state and resets counters
+        """Clears saved state and resets counters.
 
         Called after initialization and after getting buyable pathways
         to free up memory and - in the case of Celery - be prepared to
@@ -300,19 +404,19 @@ class TreeBuilder:
     def get_children(self, precursors):
         """Reformats result of an expansion for tree buidler
 
-        Arguments:
-            precursors {list of dicts} -- precursor information as a list of
+        Args:
+            precursors (list of dicts): Precursor information as a list of
                 dictionaries, where each dictionary contains information about
                 the precursor identity and auxiliary information like
                 whether the template requires heavy atoms to be contributed
                 by reagents.
 
         Returns:
-            [list of (dict, list)] -- precursor information reformatted into
-                a list of 2-tuples, where the 2-tuple consists of a dictionary
-                containing basically the same information as the precursor 
+            list of (dict, list): Precursor information reformatted into a list
+                of 2-tuples, where the 2-tuple consists of a dictionary
+                containing basically the same information as the precursor
                 dictionaries, as well as the smiles_split of the precursor,
-                which is a list of reactant SMILES strings
+                which is a list of reactant SMILES strings.
         """
         children = []
         for precursor in precursors:
@@ -332,14 +436,14 @@ class TreeBuilder:
         return children
 
     def add_children(self, children, smiles, unique_id):
-        """Add results of one expansion to the tree dictionary
+        """Add results of one expansion to the tree dictionary.
 
-        Arguments:
-            children {list of (dict, list)} -- list of candidate disconnections
-                for the target SMILES, formatted as returned by get_children()
-            smiles {string} -- SMILES string of product (target) molecule
-            unique_id {integer >= 1} -- ID of product (target) molecule in the
-                tree dictionary
+        Args:
+            children (list of (dict, list)): Candidate disconnections for the
+                target SMILES, formatted as returned by get_children().
+            smiles (str): SMILES string of product (target) molecule.
+            unique_id (int >= 1): ID of product (target) molecule in the
+                tree dictionary.
         """
 
         parent_chem_doc = self.tree_dict[unique_id]  # copy to overwrite later
@@ -448,15 +552,15 @@ class TreeBuilder:
         self.tree_dict[unique_id] = parent_chem_doc
 
     def work(self, i):
-        """Work function for retroTransformer processes
+        """Work function for retroTransformer processes.
 
         Only used when Celery is false and multiprocessing is used instead. Will
-        constantly look for molecules on expansion queues to expand (in a DFS) 
+        constantly look for molecules on expansion queues to expand (in a DFS)
         and add results to the results queue.
 
         Arguments:
-            i {integer >= 0} -- index assigned to the worker, used to assign
-                idle status to the shared list self.idle[i]
+            i (int >= 0): Index assigned to the worker, used to assign idle
+                status to the shared list self.idle[i].
         """
         while True:
             # If done, stop
@@ -487,7 +591,7 @@ class TreeBuilder:
                     precursors = result.return_top(n=self.max_branching)
 
                     self.results_queue.put((_id, smiles, precursors))
-                    
+
 
                 except VanillaQueue.Empty:
                     #print('Queue {} empty for worker {}'.format(j, i))
@@ -499,8 +603,7 @@ class TreeBuilder:
             self.idle[i] = True
 
     def coordinate(self):
-        """Run the expansion up to a specified self.expansion_time (seconds)
-        """
+        """Run the expansion up to a specified self.expansion_time (seconds)."""
         start_time = time.time()
         elapsed_time = time.time() - start_time
         next = 1
@@ -519,10 +622,10 @@ class TreeBuilder:
                 print('##ERROR#: {}'.format(e))
 
     def build_tree(self, target):
-        """Recursively build out the synthesis tree
+        """Recursively build out the synthesis tree.
 
         Arguments:
-            target {string} -- SMILES of target molecule
+            target (string): SMILES of target molecule.
         """
         self.running = True
         if self.celery:
@@ -558,13 +661,13 @@ class TreeBuilder:
                 self.stop()
 
     def tree_status(self):
-        """Summarize size of tree after expansion
+        """Summarize size of tree after expansion.
 
         Returns:
-            num_chemicals {int} -- number of chemical nodes in the tree
-            num_reactions {int} -- number of reaction nodes in the tree
-            at_depth {dict} -- dictionary containing counts at each integer
-                depth (chemicals) and half-integer depth (reactions)
+            num_chemicals (int): Number of chemical nodes in the tree.
+            num_reactions (int): Number of reaction nodes in the tree.
+            at_depth (dict): Dictionary containing counts at each integer
+                depth (chemicals) and half-integer depth (reactions).
         """
 
         num_chemicals = 0
@@ -588,74 +691,86 @@ class TreeBuilder:
                           max_cum_template_prob=1, max_natom_dict=defaultdict(lambda: 1e9, {'logic': None}),
                           min_chemical_history_dict={'as_reactant':1e9, 'as_product':1e9,'logic':None},
                           apply_fast_filter= False, filter_threshold=0.5):
-        """Get viable synthesis trees using an iterative deepening depth-first search
+        """Get viable synthesis trees using an iterative depth-first search.
 
-        [description]
-
-        Arguments:
-            target {[type]} -- [description]
-
-        Keyword Arguments:
-            max_depth {number} -- Maximum number of reactions to allow before
-                stopping the recursive expansion down one branch (default: {3})
-            max_branching {number} -- Maximum number of precursor suggestions to
-                add to the tree at each expansion (default: {25})
-            expansion_time {number} -- Time (in seconds) to allow for expansion
-                before searching the generated tree for buyable pathways (default: {240})
-            nproc {number} -- Number of retrotransformer processes to fork for
-                faster expansion (default: {1})
-            mincount {number} -- Minimum number of precedents for an achiral template
-                for inclusion in the template library. Only used when retrotransformers
-                need to be initialized (default: {25})
-            mincount_chiral {number} -- Minimum number of precedents for a chiral template
-                for inclusion in the template library. Only used when retrotransformers
-                need to be initialized. Chiral templates are necessarily more specific,
-                so we generally use a lower threshold than achiral templates (default: {10})
-            chiral {bool} -- Whether or not to pay close attention to chirality. When 
-                False, even achiral templates can lead to accidental inversion of
-                chirality in non-reacting parts of the molecule. It is highly 
-                recommended to keep this as True (default: {True})
-            template_prioritization {string} -- Strategy used for template
-                prioritization, as a string. There are a limited number of available
-                options - consult the global configuration file for info (default: {gc.relevance})
-            precursor_prioritization {string} -- Strategy used for precursor
-                prioritization, as a string. There are a limited number of available
-                options - consult the global configuration file for info (default: {gc.heuristic})
-            max_trees {number} -- Maximum number of buyable trees to return. Does
-                not affect expansion time (default: {25})
-            max_ppg {number} -- Maximum price ($/g) for a chemical to be considered
-                buyable, and thus potentially usable as a leaf node (default: {1e10})
-            known_bad_reactions {list} -- Reactions to forbid during expansion, 
-                represented as list of reaction SMILES strings. Each reaction SMILES
-                must be canonicalized, have atom mapping removed, and have its
-                reactant fragments be sorted. Forbidden reactions are checked 
-                when processing children returned by the RetroTransformer (default: {[]})
-            forbidden_molecules {list} -- Molecules to forbid during expansion, 
-                represented as a list of SMILES strings. Each string must be
-                canonicalized without atom mapping. Forbidden molecules will not
-                be allowed as intermediates or leaf nodes (default: {[]})
-            template_count {number} -- Maximum number of templates to apply at
-                each expansion (default: {100})
-            precursor_score_mode {string} -- Mode to use for precursor scoring
-                when using the SCScore prioritizer and multiple reactant
-                fragments must be scored together (default: {gc.max})
-            max_cum_template_prob {number} -- Maximum cumulative template
+        Args:
+            target (str): SMILES string of target molecule.
+            max_depth (int, optional): Maximum number of reactions to allow
+                before stopping the recursive expansion down one branch.
+                (default: {3})
+            max_branching (int, optional): Maximum number of precursor
+                suggestions to add to the tree at each expansion.
+                (default: {25})
+            expansion_time (int, optional): Time (in seconds) to allow for
+                expansion before searching the generated tree for buyable
+                pathways. (default: {240})
+            template_prioritization (str, optional): Strategy used for template
+                prioritization, as a string. There are a limited number of
+                available options - consult the global configuration file for
+                info. (default: {gc.relevance})
+            precursor_prioritization (str, optional): Strategy used for
+                precursor prioritization, as a string. There are a limited
+                number of available options - consult the global configuration
+                file for info. (default: {gc.heuristic})
+            nproc (int, optional): Number of retrotransformer processes to fork
+                for faster expansion. (default: {1})
+            mincount (int, optional): Minimum number of precedents for an
+                achiral template for inclusion in the template library. Only
+                used when retrotransformers need to be initialized.
+                (default: {25})
+            chiral (bool, optional): Whether or not to pay close attention to
+                chirality. When False, even achiral templates can lead to
+                accidental inversion of chirality in non-reacting parts of the
+                molecule. It is highly recommended to keep this as True.
+                (default: {True})
+            mincount_chiral (int, optional): Minimum number of precedents for a
+                chiral template for inclusion in the template library. Only used
+                when retrotransformers need to be initialized. Chiral templates
+                are necessarily more specific, so we generally use a lower
+                threshold than achiral templates. (default: {10})
+            max_trees (int, optional): Maximum number of buyable trees to
+                return. Does not affect expansion time. (default: {25})
+            max_ppg (int or float, optional): Maximum price ($/g) for a chemical
+                to be considered buyable, and thus potentially usable as a leaf
+                node. (default: {1e10})
+            known_bad_reactions (list of str, optional): Reactions to forbid
+                during expansion, represented as list of reaction SMILES
+                strings. Each reaction SMILES must be canonicalized, have atom
+                mapping removed, and have its reactant fragments be sorted.
+                Forbidden reactions are checked when processing children
+                returned by the RetroTransformer. (default: {[]})
+            forbidden_molecules (list of str, optional):) Molecules to forbid
+                during expansion, represented as a list of SMILES strings. Each
+                string must be canonicalized without atom mapping. Forbidden
+                molecules will not be allowed as intermediates or leaf nodes.
+                (default: {[]})
+            template_count (int, optional): Maximum number of templates to apply
+                at each expansion. (default: {100})
+            precursor_score_mode (str, optional): Mode to use for precursor
+                scoring when using the SCScore prioritizer and multiple reactant
+                fragments must be scored together. (default: {gc.max})
+            max_cum_template_prob (float, optional): Maximum cumulative template
                 probability (i.e., relevance score), used as part of the
-                relevance template_prioritizer (default: {1})
-            max_natom_dict {dict} -- Dictionary defining a potential chemical
-                property stopping criterion based on the number of atoms of
-                C, N, O, and H in a molecule. The 'logic' keyword of the dict
-                refers to how that maximum number of atom information is combined
-                with the requirement that chemicals be cheaper than max_ppg
-                (default: {defaultdict(lambda: 1e9, {'logic': None})})
-            min_chemical_history_dict {dict} -- Dictionary defining a potential
-                chemical stopping criterion based on the number of times a
-                molecule has been seen previously. Always uses logical OR
+                relevance template_prioritizer. (default: {1})
+            max_natom_dict (dict, optional): Dictionary defining a potential
+                chemical property stopping criterion based on the number of
+                atoms of C, N, O, and H in a molecule. The 'logic' keyword of
+                the dict refers to how that maximum number of atom information
+                is combined with the requirement that chemicals be cheaper than
+                max_ppg. (default: {defaultdict(lambda: 1e9, {'logic': None})})
+            min_chemical_history_dict (dict, optional): Dictionary defining a
+                potential chemical stopping criterion based on the number of
+                times a molecule has been seen previously. Always uses logical
+                OR.
+                (default: {{'as_reactant':1e9, 'as_product':1e9,'logic':None}})
+            apply_fast_filter (bool, optional): Whether to apply the fast
+                filter in ?? (default: {False})
+            filter_threshold (float, optional): ?? (default: {0.5})
 
         Returns:
-            tree_status -- result of tree_status()
-            trees -- list of dictionaries, where each dictionary defines a
-                synthetic route
+            tree_status ((int, int, dict)): Result of tree_status().
+            trees (list of dict): List of dictionaries, where each dictionary
+                defines a synthetic route.
         """
 
         self.mincount = mincount
@@ -670,7 +785,7 @@ class TreeBuilder:
         self.template_count = template_count
         self.max_cum_template_prob = max_cum_template_prob
         self.max_ppg = max_ppg
-        self.apply_fast_filter= apply_fast_filter
+        self.apply_fast_filter = apply_fast_filter
         self.filter_threshold = filter_threshold
 
         MyLogger.print_and_log('Starting to expand {} using max_natom_dict {}, min_history {}'.format(
@@ -678,7 +793,7 @@ class TreeBuilder:
 
         if min_chemical_history_dict['logic'] not in [None, 'none'] and \
                 self.chemhistorian is None:
-            from makeit.utilities.historian.chemicals import ChemHistorian 
+            from makeit.utilities.historian.chemicals import ChemHistorian
             self.chemhistorian = ChemHistorian()
             self.chemhistorian.load_from_file(refs=False, compressed=True)
             MyLogger.print_and_log('Loaded compressed chemhistorian from file', treebuilder_loc, level=1)
@@ -701,7 +816,7 @@ class TreeBuilder:
         def is_popular_enough(hist):
             return hist['as_reactant'] >= min_chemical_history_dict['as_reactant'] or \
                     hist['as_product'] >= min_chemical_history_dict['as_product']
-        
+
         if min_chemical_history_dict['logic'] in [None, 'none']:
             if max_natom_dict['logic'] in [None, 'none']:
                 def is_a_leaf_node(smiles, ppg, hist):
@@ -722,7 +837,7 @@ class TreeBuilder:
             else:
                 def is_a_leaf_node(smiles, ppg, hist):
                     return is_popular_enough(hist) or (is_buyable(ppg) and is_small_enough(smiles))
-            
+
         self.is_a_leaf_node = is_a_leaf_node
 
         # Override: if relevance method is used, chiral database must be used!
@@ -753,11 +868,10 @@ class TreeBuilder:
         self.build_tree(target)
 
         def IDDFS():
-            """Perform an iterative deepening depth-first search to find buyable
-            pathways.
-                        
+            """Finds valid pathways with iterative deepening depth-first search.
+
             Yields:
-                nested dictionaries defining synthesis trees
+                Nested dictionaries defining synthesis trees.
             """
             for depth in range(self.max_depth+1):
                 for path in DLS_chem(1, depth, headNode=True):
@@ -765,18 +879,17 @@ class TreeBuilder:
 
         def DLS_chem(chem_id, depth, headNode=False):
             """Expand at a fixed depth for the current node chem_id.
-            
-            Arguments:
-                chem_id {int >= 1} -- unique ID of the current chemical
-                depth {int >= 0} -- current depth of the search
-            
-            Keyword Arguments:
-                headNode {bool} -- Whether this is the first (head) node, in which
-                    case it must be expanded even if it is buyable itself (default: {False})
+
+            Args:
+                chem_id (int >= 1): Unique ID of the current chemical.
+                depth (int >= 0): Current depth of the search.
+                headNode (bool, optional): Whether this is the first (head)
+                    node, in which case it must be expanded even if it is
+                    buyable itself. (default: {False})
 
             Yields:
-                list -- paths connecting to buyable molecules that are children
-                    of the current chemical
+                list: Paths connecting to buyable molecules that are children
+                    of the current chemical.
             """
             # Copy list so each new branch has separate list.
 
@@ -797,15 +910,15 @@ class TreeBuilder:
                             yield [rxn_dict(rxn_id, rxn_smiles, children=path, **self.tree_dict[rxn_id])]
 
         def DLS_rxn(rxn_id, depth):
-            """Return children paths starting from a specific rxn_id
-            
+            """Return children paths starting from a specific rxn_id.
+
             Arguments:
-                rxn_id {int >= 2} -- unique ID of this reaction in the tree_dict
-                depth {int >= 0} -- current depth of the search
-            
+                rxn_id (int >= 2): Unique ID of this reaction in the tree_dict.
+                depth (int >= 0): Current depth of the search.
+
             Yields:
-                list -- paths connecting to buyable molecules that are children
-                    of the current reaction
+                list: paths connecting to buyable molecules that are children
+                    of the current reaction.
             """
 
             # Only one reactant? easy!
