@@ -3295,10 +3295,6 @@
         "CCCC(C(=O)c1ccccc1)N1CCCC1",
         "CCCC(C(=O)c1ccccc1)N1CCCC1"
     ],
-    "aspirin": [
-        "CC(=O)Oc1ccccc1C(=O)O",
-        "CC(=O)Oc1ccccc1C(=O)O"
-    ],
     "dibutylone": [
         "CCC(C(=O)c1ccc2c(c1)OCO2)N(C)C",
         "CCC(C(=O)c1ccc2c(c1)OCO2)N(C)C"
