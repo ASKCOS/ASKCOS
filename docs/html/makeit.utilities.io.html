@@ -57,75 +57,245 @@
 <dl class="function">
 <dt id="makeit.utilities.io.draw.CheckAtomForGeneralization">
 <code class="descclassname">makeit.utilities.io.draw.</code><code class="descname">CheckAtomForGeneralization</code><span class="sig-paren">(</span><em>atom</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/io/draw.html#CheckAtomForGeneralization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.io.draw.CheckAtomForGeneralization" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given an RDKit atom, this function determines if that atom’s SMART
+<dd><p>Determines if an atom’s SMART representation is from generalization.</p>
+<p>Given an RDKit atom, this function determines if that atom’s SMART
 representation was likely a result of generalization. This assumes that
 the transform string was generated using explicit Hs with aliphatic
 carbons as C, aromatic carbons as c, and non-carbons as #N where N is the
 atomic number of the generalized species.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>atom</strong> (<em>Chem.Atom</em>) – Atom to check SMART representation of.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.io.draw.MolToImage">
 <code class="descclassname">makeit.utilities.io.draw.</code><code class="descname">MolToImage</code><span class="sig-paren">(</span><em>mol</em>, <em>max_size=(1000</em>, <em>1000)</em>, <em>kekulize=True</em>, <em>options=None</em>, <em>canvas=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/io/draw.html#MolToImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.io.draw.MolToImage" title="Permalink to this definition">¶</a></dt>
-<dd><p>Wrapper for RDKit’s MolToImage. If mol == None, an arrow is drawn</p>
+<dd><p>Wrapper for RDKit’s <code class="docutils literal notranslate"><span class="pre">MolToImage</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>mol</strong> (<em>Chem.Mol</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Molecule or arrow to draw.</li>
+<li><strong>max_size</strong> (<em>2-tuple of</em><em> (</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>)</em><em>, </em><em>optional</em>) – Maximum image size to
+return. (default: {(1000, 1000)})</li>
+<li><strong>kekulize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to kekulize the molecule.
+(default: {True})</li>
+<li><strong>options</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>??</em><em>, </em><em>optional</em>) – RDKit drawing options. If None, will use
+defaults. (default: {None})</li>
+<li><strong>canvas</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>Draw.Canvas</em><em>, </em><em>optional</em>) – Canvas to draw image onto.
+(default: {None})</li>
+<li><strong>**kwargs</strong> – Additional optional arugments passed to RDKit’s
+<code class="docutils literal notranslate"><span class="pre">MolToImage</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Drawn molecule.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">PIL.Image</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.io.draw.MolsSmilesToImage">
 <code class="descclassname">makeit.utilities.io.draw.</code><code class="descname">MolsSmilesToImage</code><span class="sig-paren">(</span><em>smiles</em>, <em>options=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/io/draw.html#MolsSmilesToImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.io.draw.MolsSmilesToImage" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function takes a SMILES string of one or more molecules
+<dd><p>Draws molecule(s) from SMILES.</p>
+<p>This function takes a SMILES string of one or more molecules
 and generates a combined image for that molecule set.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>smiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of molecule(s) to draw.</li>
+<li><strong>options</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>??</em><em>, </em><em>optional</em>) – RDKit drawing options. If None, will use
+defaults. (default: {None})</li>
+<li><strong>**kwargs</strong> – Unused.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Drawing of the molecule(s).</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">PIL.Image</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.io.draw.ReactionStringToImage">
 <code class="descclassname">makeit.utilities.io.draw.</code><code class="descname">ReactionStringToImage</code><span class="sig-paren">(</span><em>rxn_string</em>, <em>strip=True</em>, <em>update=True</em>, <em>options=None</em>, <em>retro=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/io/draw.html#ReactionStringToImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.io.draw.ReactionStringToImage" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function takes a SMILES rxn_string as input, not an
+<dd><p>Draws a reaction from a SMILES string.</p>
+<p>This function takes a SMILES rxn_string as input, not an
 RDKit reaction object, and draws it.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>rxn_string</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of reaction.</li>
+<li><strong>strip</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to strip the atoms. (default: {True})</li>
+<li><strong>update</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to update the property cache of the
+molecules. (default: {True})</li>
+<li><strong>options</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>??</em><em>, </em><em>optional</em>) – RDKit drawing options. If None, will use
+defaults. (default: {None})</li>
+<li><strong>retro</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether the reaction is in the retrosynthetic
+direction. (default: {False})</li>
+<li><strong>**kwargs</strong> – Unused.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Drawing of the reaction.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">PIL.Image</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.io.draw.ReactionToImage">
 <code class="descclassname">makeit.utilities.io.draw.</code><code class="descname">ReactionToImage</code><span class="sig-paren">(</span><em>rxn</em>, <em>dummyAtoms=False</em>, <em>kekulize=True</em>, <em>options=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/io/draw.html#ReactionToImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.io.draw.ReactionToImage" title="Permalink to this definition">¶</a></dt>
-<dd><p>Modification of RDKit’s ReactionToImage to allow for each molecule
+<dd><p>Draws a reaction.</p>
+<p>Modification of RDKit’s ReactionToImage to allow for each molecule
 to have a different drawn size. rxn is an RDKit reaction object</p>
-<p>warning: this function adds hydrogens as it sees fit</p>
+<p>Warning: This function adds hydrogens as it sees fit.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>rxn</strong> (<em>Chem.Reaction</em>) – Reaction to draw.</li>
+<li><strong>dummyAtoms</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to check for generalization.
+(default: {False})</li>
+<li><strong>kekulize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to kekulize the molecule.
+(default: {True})</li>
+<li><strong>options</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>??</em><em>, </em><em>optional</em>) – RDKit drawing options. If None, will use
+defaults. (default: {None})</li>
+<li><strong>**kwargs</strong> – Additional optional arugments. Used for <code class="docutils literal notranslate"><span class="pre">retro</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Drawing of the reaction.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">PIL.Image</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.io.draw.StitchPILsHorizontally">
 <code class="descclassname">makeit.utilities.io.draw.</code><code class="descname">StitchPILsHorizontally</code><span class="sig-paren">(</span><em>imgs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/io/draw.html#StitchPILsHorizontally"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.io.draw.StitchPILsHorizontally" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function takes a list of PIL images and concatenates
+<dd><p>Combines images into a single horizontal image.</p>
+<p>This function takes a list of PIL images and concatenates
 them onto a new image horizontally, with each one
 vertically centered.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>imgs</strong> (<em>list of PIL.Image</em>) – Images to stitch together.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Single, horizontally-stitched image.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">PIL.Image</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.io.draw.StripAlphaFromImage">
 <code class="descclassname">makeit.utilities.io.draw.</code><code class="descname">StripAlphaFromImage</code><span class="sig-paren">(</span><em>img</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/io/draw.html#StripAlphaFromImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.io.draw.StripAlphaFromImage" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function takes an RGBA PIL image and returns an RGB image</p>
+<dd><p>Returns an RGB image from an RGBA PIL image.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>img</strong> (<em>PIL.Image</em>) – RGBA image to remove the alpha from.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.io.draw.TransformStringToImage">
 <code class="descclassname">makeit.utilities.io.draw.</code><code class="descname">TransformStringToImage</code><span class="sig-paren">(</span><em>transform</em>, <em>retro=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/io/draw.html#TransformStringToImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.io.draw.TransformStringToImage" title="Permalink to this definition">¶</a></dt>
-<dd><p>Wrapper function meant to take a SMARTS transform and return a PIL image
+<dd><p>Draws a SMARTS transform.</p>
+<p>Wrapper function meant to take a SMARTS transform and return a PIL image
 of that transform.</p>
 <p>TODO: Need to improve generalization visually! Right now it still shows</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>transform</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMARTS string of transform.</li>
+<li><strong>retro</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether the reaction is in the retrosynthetic
+direction. (default: {True})</li>
+<li><strong>**kwargs</strong> – Additional optional arguments passed through to
+<code class="docutils literal notranslate"><span class="pre">ReactionToImage</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Drawing of the transform.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">PIL.Image</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.io.draw.TrimImgByWhite">
 <code class="descclassname">makeit.utilities.io.draw.</code><code class="descname">TrimImgByWhite</code><span class="sig-paren">(</span><em>img</em>, <em>padding=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/io/draw.html#TrimImgByWhite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.io.draw.TrimImgByWhite" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function takes a PIL image, img, and crops it to the minimum rectangle
+<dd><p>Crops an image to the minimum possible size.</p>
+<p>This function takes a PIL image, img, and crops it to the minimum rectangle
 based on its whiteness/transparency. 5 pixel padding used automatically.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>img</strong> (<em>PIL.Image</em>) – Image to crop.</li>
+<li><strong>padding</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Amount of padding to use around image
+(in addition to the 5 pixel padding always used). (default: {0})</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Trimmed image.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">PIL.Image</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.io.draw.defaultDrawOptions">
 <code class="descclassname">makeit.utilities.io.draw.</code><code class="descname">defaultDrawOptions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/io/draw.html#defaultDrawOptions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.io.draw.defaultDrawOptions" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function returns an RDKit drawing options object with
-default drawing options.</p>
+<dd><p>Returns an RDKit drawing options object with default drawing options.</p>
 </dd></dl>
 
 <dl class="function">
@@ -136,8 +306,19 @@ default drawing options.</p>
 <dl class="function">
 <dt id="makeit.utilities.io.draw.mols_from_smiles_list">
 <code class="descclassname">makeit.utilities.io.draw.</code><code class="descname">mols_from_smiles_list</code><span class="sig-paren">(</span><em>all_smiles</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/io/draw.html#mols_from_smiles_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.io.draw.mols_from_smiles_list" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a list of smiles strings, this function creates rdkit
-molecules</p>
+<dd><p>Given a list of smiles strings, this function creates rdkit molecules.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>all_smiles</strong> (<em>list of str</em>) – SMILES strings to be converted to molecules.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Molecules from the SMILES strings.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list of Chem.Mol</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>

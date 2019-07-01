@@ -36,23 +36,30 @@
 <span></span>
 
 <div class="viewcode-block" id="Scorer"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.scorer.Scorer">[docs]</a><span class="k">class</span> <span class="nc">Scorer</span><span class="p">():</span>
-    
+    <span class="sd">&quot;&quot;&quot;Interface for scorer classes.&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{}):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
-    
+
 <div class="viewcode-block" id="Scorer.evaluate"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.scorer.Scorer.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{}):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Scores reactions with different contexts.</span>
+
 <span class="sd">        Implemented method should return:</span>
-<span class="sd">        A list of results (one for each context)</span>
-<span class="sd">        Each result should contain:</span>
-<span class="sd">        A list of outcomes, of which each outcome is a dictionnary containing:</span>
-<span class="sd">        a rank, a forward result, a score and a probability.</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="sd">        </span>
+<span class="sd">        * A list of results (one for each context).</span>
+
+<span class="sd">          Each result should contain:</span>
+
+<span class="sd">          * A list of outcomes, of which each outcome is a dictionnary</span>
+<span class="sd">            containing:</span>
+
+<span class="sd">            * rank</span>
+<span class="sd">            * forward result</span>
+<span class="sd">            * score</span>
+<span class="sd">            * probability</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 <div class="viewcode-block" id="Scorer.stop_expansion"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.scorer.Scorer.stop_expansion">[docs]</a>    <span class="k">def</span> <span class="nf">stop_expansion</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Method to kill all spun up workers</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Method to kill all spun up workers.&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
 </pre></div>
 

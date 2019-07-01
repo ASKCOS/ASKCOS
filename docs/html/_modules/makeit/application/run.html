@@ -49,13 +49,18 @@
 
 
 <div class="viewcode-block" id="MAKEIT"><a class="viewcode-back" href="../../../makeit.application.html#makeit.application.run.MAKEIT">[docs]</a><span class="k">class</span> <span class="nc">MAKEIT</span><span class="p">:</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Main application for running the make-it program.</span>
-<span class="sd">    Proposes potential synthetic routes to a desired target compound in two steps:</span>
-<span class="sd">     - Building a retro synthetic tree and extracting buyable routes</span>
-<span class="sd">     - Evaluation the likelihood of succes of each of the reactions in the found buyable routes</span>
-<span class="sd">     - Returns all (or some) of the likely synthetic routes</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Main application for running the make-it program.</span>
+
+<span class="sd">    Proposes potential synthetic routes to a desired target compound in two</span>
+<span class="sd">    steps:</span>
+
+<span class="sd">    - Building a retro synthetic tree and extracting buyable routes</span>
+<span class="sd">    - Evaluation the likelihood of succes of each of the reactions in the found</span>
+<span class="sd">      buyable routes</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        All (or some) of the likely synthetic routes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_product</span><span class="p">,</span> <span class="n">expansion_time</span><span class="p">,</span> <span class="n">max_depth</span><span class="p">,</span> <span class="n">max_branching</span><span class="p">,</span> <span class="n">max_trees</span><span class="p">,</span> <span class="n">retro_mincount</span><span class="p">,</span> <span class="n">retro_mincount_chiral</span><span class="p">,</span>
                  <span class="n">synth_mincount</span><span class="p">,</span> <span class="n">rank_threshold_inclusion</span><span class="p">,</span> <span class="n">prob_threshold_inclusion</span><span class="p">,</span> <span class="n">max_total_contexts</span><span class="p">,</span> <span class="n">template_count</span><span class="p">,</span>

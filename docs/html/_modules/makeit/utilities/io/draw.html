@@ -43,14 +43,20 @@
 <span class="c1"># from rdkit.Chem.Draw.cairoCanvas import Canvas</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">re</span>
-<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Many of these functions are taken from RDKit.</span>
-<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">&quot;&quot;&quot;</span>
 
 
 <div class="viewcode-block" id="mols_from_smiles_list"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.mols_from_smiles_list">[docs]</a><span class="k">def</span> <span class="nf">mols_from_smiles_list</span><span class="p">(</span><span class="n">all_smiles</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;Given a list of smiles strings, this function creates rdkit</span>
-<span class="sd">    molecules&#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Given a list of smiles strings, this function creates rdkit molecules.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        all_smiles (list of str): SMILES strings to be converted to molecules.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list of Chem.Mol: Molecules from the SMILES strings.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">mols</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">smiles</span> <span class="ow">in</span> <span class="n">all_smiles</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">smiles</span><span class="p">:</span>
@@ -60,15 +66,14 @@
 
 
 <div class="viewcode-block" id="defaultDrawOptions"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.defaultDrawOptions">[docs]</a><span class="k">def</span> <span class="nf">defaultDrawOptions</span><span class="p">():</span>
-    <span class="sd">&#39;&#39;&#39;This function returns an RDKit drawing options object with </span>
-<span class="sd">    default drawing options.&#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Returns an RDKit drawing options object with default drawing options.&quot;&quot;&quot;</span>
 
     <span class="n">opts</span> <span class="o">=</span> <span class="n">Draw</span><span class="o">.</span><span class="n">DrawingOptions</span><span class="p">()</span>
     <span class="c1"># opts.elemDict = defaultdict(lambda: (0,0,0)) # all atoms are black</span>
     <span class="n">opts</span><span class="o">.</span><span class="n">noCarbonSymbols</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">opts</span><span class="o">.</span><span class="n">selectColor</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">opts</span><span class="o">.</span><span class="n">wedgeBonds</span> <span class="o">=</span> <span class="kc">True</span>
-    
+
     <span class="n">opts</span><span class="o">.</span><span class="n">elemDict</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
     <span class="n">opts</span><span class="o">.</span><span class="n">dotsPerAngstrom</span> <span class="o">=</span> <span class="mi">20</span>
     <span class="n">opts</span><span class="o">.</span><span class="n">bondLineWidth</span> <span class="o">=</span> <span class="mf">1.5</span>
@@ -78,7 +83,11 @@
 
 
 <div class="viewcode-block" id="StripAlphaFromImage"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.StripAlphaFromImage">[docs]</a><span class="k">def</span> <span class="nf">StripAlphaFromImage</span><span class="p">(</span><span class="n">img</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;This function takes an RGBA PIL image and returns an RGB image&#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Returns an RGB image from an RGBA PIL image.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        img (PIL.Image): RGBA image to remove the alpha from.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">img</span>
@@ -87,7 +96,24 @@
 
 <div class="viewcode-block" id="MolToImage"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.MolToImage">[docs]</a><span class="k">def</span> <span class="nf">MolToImage</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1000</span><span class="p">),</span> <span class="n">kekulize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">canvas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;Wrapper for RDKit&#39;s MolToImage. If mol == None, an arrow is drawn&#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Wrapper for RDKit&#39;s ``MolToImage``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mol (Chem.Mol or str): Molecule or arrow to draw.</span>
+<span class="sd">        max_size (2-tuple of (int, int), optional): Maximum image size to</span>
+<span class="sd">            return. (default: {(1000, 1000)})</span>
+<span class="sd">        kekulize (bool, optional): Whether to kekulize the molecule.</span>
+<span class="sd">            (default: {True})</span>
+<span class="sd">        options (None or ??, optional): RDKit drawing options. If None, will use</span>
+<span class="sd">            defaults. (default: {None})</span>
+<span class="sd">        canvas (None or Draw.Canvas, optional): Canvas to draw image onto.</span>
+<span class="sd">            (default: {None})</span>
+<span class="sd">        **kwargs: Additional optional arugments passed to RDKit&#39;s</span>
+<span class="sd">            ``MolToImage``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        PIL.Image: Drawn molecule.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="p">:</span>
         <span class="n">options</span> <span class="o">=</span> <span class="n">defaultDrawOptions</span><span class="p">()</span>
@@ -105,7 +131,7 @@
             <span class="n">canvas</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">canvas</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">img</span>        
+        <span class="k">return</span> <span class="n">img</span>
     <span class="k">elif</span> <span class="n">mol</span> <span class="o">==</span> <span class="s1">&#39;&lt;-&#39;</span><span class="p">:</span>  <span class="c1"># retro arrow or error</span>
         <span class="n">subImgSize</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
         <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="o">=</span> <span class="n">subImgSize</span>
@@ -129,8 +155,19 @@
 
 
 <div class="viewcode-block" id="TrimImgByWhite"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.TrimImgByWhite">[docs]</a><span class="k">def</span> <span class="nf">TrimImgByWhite</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;This function takes a PIL image, img, and crops it to the minimum rectangle </span>
-<span class="sd">    based on its whiteness/transparency. 5 pixel padding used automatically.&#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Crops an image to the minimum possible size.</span>
+
+<span class="sd">    This function takes a PIL image, img, and crops it to the minimum rectangle</span>
+<span class="sd">    based on its whiteness/transparency. 5 pixel padding used automatically.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        img (PIL.Image): Image to crop.</span>
+<span class="sd">        padding (int, optional): Amount of padding to use around image</span>
+<span class="sd">            (in addition to the 5 pixel padding always used). (default: {0})</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        PIL.Image: Trimmed image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># Convert to array</span>
     <span class="n">as_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>  <span class="c1"># N x N x (r,g,b,a)</span>
@@ -158,9 +195,18 @@
 
 
 <div class="viewcode-block" id="StitchPILsHorizontally"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.StitchPILsHorizontally">[docs]</a><span class="k">def</span> <span class="nf">StitchPILsHorizontally</span><span class="p">(</span><span class="n">imgs</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;This function takes a list of PIL images and concatenates</span>
+    <span class="sd">&quot;&quot;&quot;Combines images into a single horizontal image.</span>
+
+<span class="sd">    This function takes a list of PIL images and concatenates</span>
 <span class="sd">    them onto a new image horizontally, with each one</span>
-<span class="sd">    vertically centered.&#39;&#39;&#39;</span>
+<span class="sd">    vertically centered.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        imgs (list of PIL.Image): Images to stitch together.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        PIL.Image: Single, horizontally-stitched image.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># Create blank image (def: transparent white)</span>
     <span class="n">heights</span> <span class="o">=</span> <span class="p">[</span><span class="n">img</span><span class="o">.</span><span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">imgs</span><span class="p">]</span>
@@ -179,11 +225,17 @@
 
 
 <div class="viewcode-block" id="CheckAtomForGeneralization"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.CheckAtomForGeneralization">[docs]</a><span class="k">def</span> <span class="nf">CheckAtomForGeneralization</span><span class="p">(</span><span class="n">atom</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;Given an RDKit atom, this function determines if that atom&#39;s SMART </span>
+    <span class="sd">&quot;&quot;&quot;Determines if an atom&#39;s SMART representation is from generalization.</span>
+
+<span class="sd">    Given an RDKit atom, this function determines if that atom&#39;s SMART</span>
 <span class="sd">    representation was likely a result of generalization. This assumes that</span>
-<span class="sd">    the transform string was generated using explicit Hs with aliphatic </span>
-<span class="sd">    carbons as C, aromatic carbons as c, and non-carbons as #N where N is the </span>
-<span class="sd">    atomic number of the generalized species.&#39;&#39;&#39;</span>
+<span class="sd">    the transform string was generated using explicit Hs with aliphatic</span>
+<span class="sd">    carbons as C, aromatic carbons as c, and non-carbons as #N where N is the</span>
+<span class="sd">    atomic number of the generalized species.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        atom (Chem.Atom): Atom to check SMART representation of.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">smarts</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">GetSmarts</span><span class="p">()</span>
 
@@ -210,10 +262,26 @@
 
 
 <div class="viewcode-block" id="ReactionToImage"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.ReactionToImage">[docs]</a><span class="k">def</span> <span class="nf">ReactionToImage</span><span class="p">(</span><span class="n">rxn</span><span class="p">,</span> <span class="n">dummyAtoms</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">kekulize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;Modification of RDKit&#39;s ReactionToImage to allow for each molecule </span>
+    <span class="sd">&quot;&quot;&quot;Draws a reaction.</span>
+
+<span class="sd">    Modification of RDKit&#39;s ReactionToImage to allow for each molecule</span>
 <span class="sd">    to have a different drawn size. rxn is an RDKit reaction object</span>
 
-<span class="sd">    warning: this function adds hydrogens as it sees fit&#39;&#39;&#39;</span>
+<span class="sd">    Warning: This function adds hydrogens as it sees fit.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        rxn (Chem.Reaction): Reaction to draw.</span>
+<span class="sd">        dummyAtoms (bool, optional): Whether to check for generalization.</span>
+<span class="sd">            (default: {False})</span>
+<span class="sd">        kekulize (bool, optional): Whether to kekulize the molecule.</span>
+<span class="sd">            (default: {True})</span>
+<span class="sd">        options (None or ??, optional): RDKit drawing options. If None, will use</span>
+<span class="sd">            defaults. (default: {None})</span>
+<span class="sd">        **kwargs: Additional optional arugments. Used for ``retro``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        PIL.Image: Drawing of the reaction.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Extract mols from reaction</span>
     <span class="n">mols</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rxn</span><span class="o">.</span><span class="n">GetNumReactantTemplates</span><span class="p">()):</span>
@@ -245,8 +313,25 @@
 
 <div class="viewcode-block" id="ReactionStringToImage"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.ReactionStringToImage">[docs]</a><span class="k">def</span> <span class="nf">ReactionStringToImage</span><span class="p">(</span><span class="n">rxn_string</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">retro</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;This function takes a SMILES rxn_string as input, not an </span>
-<span class="sd">    RDKit reaction object, and draws it.&#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Draws a reaction from a SMILES string.</span>
+
+<span class="sd">    This function takes a SMILES rxn_string as input, not an</span>
+<span class="sd">    RDKit reaction object, and draws it.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        rxn_string (str): SMILES string of reaction.</span>
+<span class="sd">        strip (bool, optional): Whether to strip the atoms. (default: {True})</span>
+<span class="sd">        update (bool, optional): Whether to update the property cache of the</span>
+<span class="sd">            molecules. (default: {True})</span>
+<span class="sd">        options (None or ??, optional): RDKit drawing options. If None, will use</span>
+<span class="sd">            defaults. (default: {None})</span>
+<span class="sd">        retro (bool, optional): Whether the reaction is in the retrosynthetic</span>
+<span class="sd">            direction. (default: {False})</span>
+<span class="sd">        **kwargs: Unused.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        PIL.Image: Drawing of the reaction.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">reactants</span><span class="p">,</span> <span class="n">agents</span><span class="p">,</span> <span class="n">products</span> <span class="o">=</span> <span class="p">[</span><span class="n">mols_from_smiles_list</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span>
                                    <span class="p">[</span><span class="n">mols</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">mols</span> <span class="ow">in</span> <span class="n">rxn_string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&gt;&#39;</span><span class="p">)]]</span>
@@ -275,10 +360,23 @@
 
 
 <div class="viewcode-block" id="TransformStringToImage"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.TransformStringToImage">[docs]</a><span class="k">def</span> <span class="nf">TransformStringToImage</span><span class="p">(</span><span class="n">transform</span><span class="p">,</span> <span class="n">retro</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;Wrapper function meant to take a SMARTS transform and return a PIL image</span>
+    <span class="sd">&quot;&quot;&quot;Draws a SMARTS transform.</span>
+
+<span class="sd">    Wrapper function meant to take a SMARTS transform and return a PIL image</span>
 <span class="sd">    of that transform.</span>
 
-<span class="sd">    TODO: Need to improve generalization visually! Right now it still shows&#39;&#39;&#39;</span>
+<span class="sd">    TODO: Need to improve generalization visually! Right now it still shows</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        transform (str): SMARTS string of transform.</span>
+<span class="sd">        retro (bool, optional): Whether the reaction is in the retrosynthetic</span>
+<span class="sd">            direction. (default: {True})</span>
+<span class="sd">        **kwargs: Additional optional arguments passed through to</span>
+<span class="sd">            ``ReactionToImage``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        PIL.Image: Drawing of the transform.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">options</span> <span class="o">=</span> <span class="n">defaultDrawOptions</span><span class="p">()</span>
     <span class="n">options</span><span class="o">.</span><span class="n">dotsPerAngstrom</span> <span class="o">=</span> <span class="mi">40</span>
@@ -295,8 +393,20 @@
 
 
 <div class="viewcode-block" id="MolsSmilesToImage"><a class="viewcode-back" href="../../../../makeit.utilities.io.html#makeit.utilities.io.draw.MolsSmilesToImage">[docs]</a><span class="k">def</span> <span class="nf">MolsSmilesToImage</span><span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;This function takes a SMILES string of one or more molecules</span>
-<span class="sd">    and generates a combined image for that molecule set.&#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Draws molecule(s) from SMILES.</span>
+
+<span class="sd">    This function takes a SMILES string of one or more molecules</span>
+<span class="sd">    and generates a combined image for that molecule set.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        smiles (str): SMILES string of molecule(s) to draw.</span>
+<span class="sd">        options (None or ??, optional): RDKit drawing options. If None, will use</span>
+<span class="sd">            defaults. (default: {None})</span>
+<span class="sd">        **kwargs: Unused.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        PIL.Image: Drawing of the molecule(s).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># Generate mols</span>
     <span class="n">mols</span> <span class="o">=</span> <span class="n">mols_from_smiles_list</span><span class="p">(</span><span class="n">smiles</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">))</span>

@@ -35,11 +35,18 @@
   <h1>Source code for makeit.utilities.strings</h1><div class="highlight"><pre>
 <span></span>
 <div class="viewcode-block" id="string_or_range_to_float"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.strings.string_or_range_to_float">[docs]</a><span class="k">def</span> <span class="nf">string_or_range_to_float</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Translate a number in string format to a float.</span>
+    <span class="sd">&quot;&quot;&quot;Translate a number or range in string format to a float.</span>
+
 <span class="sd">    If the string represents a range, return the average of that range.</span>
-<span class="sd">    &#39;&#39;&#39;</span>
-    
+
+<span class="sd">    Args:</span>
+<span class="sd">        text (str): Number or range string to be converted to a float.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float or None: Number converted / average of range or None if it could</span>
+<span class="sd">            not be converted.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">try</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>

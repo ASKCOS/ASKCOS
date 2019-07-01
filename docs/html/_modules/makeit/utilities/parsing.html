@@ -40,13 +40,23 @@
 <span class="n">parsing_loc</span> <span class="o">=</span> <span class="s1">&#39;parsing&#39;</span>
 
 <div class="viewcode-block" id="canonicalize_smiles"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.parsing.canonicalize_smiles">[docs]</a><span class="k">def</span> <span class="nf">canonicalize_smiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns canonicalized SMILES string.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        smiles (str): SMILES string to canonicalize.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1">#rdkit defaults canonicalize to true</span>
     <span class="k">return</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="parse_molecule_to_smiles"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.parsing.parse_molecule_to_smiles">[docs]</a><span class="k">def</span> <span class="nf">parse_molecule_to_smiles</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Parse a molecular type (smiles, rdkit mol or mol file) into smiles format)</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Parses a molecular type (smiles, rdkit mol or mol file) to smiles format).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        target (str or Chem.Mol): SMILES string, filename, or Chem.Mol to parse.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str or None: SMILES string of target, or None if parsing fails.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">mol</span><span class="p">:</span>
@@ -66,6 +76,12 @@
                 <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Unable to parse target molecule format. Parsing Only available for: Smiles, RDKIT molecule and mol files. Returning &quot;None&quot;&#39;</span><span class="p">,</span> <span class="n">parsing_loc</span><span class="p">,</span> <span class="n">level</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="kc">None</span></div>
 <div class="viewcode-block" id="check_smiles"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.parsing.check_smiles">[docs]</a><span class="k">def</span> <span class="nf">check_smiles</span><span class="p">(</span><span class="n">chemical</span><span class="p">,</span> <span class="n">chemicals</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Checks recorded SMILES for a chemical against the SMILES from its name.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        chemical (pymongo.collection): Chemical to check the SMILES of.</span>
+<span class="sd">        chemicals (pymongo.collection): Database of recorded chemicals.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">is_checked</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">is_checked</span> <span class="o">=</span> <span class="n">chemical</span><span class="p">[</span><span class="s1">&#39;checked&#39;</span><span class="p">]</span>
@@ -80,8 +96,8 @@
         <span class="n">trivial_name</span> <span class="o">=</span> <span class="n">chemical</span><span class="p">[</span><span class="s1">&#39;IDE_CN&#39;</span><span class="p">]</span>
     <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
         <span class="k">return</span>
-    <span class="n">smiles_from_name</span> <span class="o">=</span> <span class="kc">None</span>    
-    
+    <span class="n">smiles_from_name</span> <span class="o">=</span> <span class="kc">None</span>
+
     <span class="c1">#Short cut on not fully interpreted chemicals</span>
     <span class="k">if</span> <span class="n">trivial_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;&lt;&#39;</span><span class="p">:</span>
         <span class="c1">#don&#39;t bother, skips anyway: is faster.</span>
@@ -92,16 +108,16 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="n">smiles_from_name</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="s1">&#39;https://cactus.nci.nih.gov/chemical/structure/</span><span class="si">{}</span><span class="s1">/smiles&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trivial_name</span><span class="p">))</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">pass</span> 
+        <span class="k">pass</span>
 
-    <span class="k">try</span><span class="p">:</span>   
+    <span class="k">try</span><span class="p">:</span>
         <span class="n">recorded_can_smiles</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">recorded_smiles</span><span class="p">))</span>
         <span class="n">can_smiles_from_name</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">smiles_from_name</span><span class="p">))</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="c1">#don&#39;t bother, skips anyway: is faster.</span>
         <span class="c1">#chemicals.update({&#39;_id&#39;:chemical[&#39;_id&#39;]},{&#39;$set&#39;:{&#39;checked&#39;:True}})</span>
         <span class="k">return</span>
-    
+
     <span class="k">if</span><span class="p">(</span><span class="n">recorded_can_smiles</span> <span class="o">!=</span> <span class="n">can_smiles_from_name</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Chemical &quot;</span><span class="si">{}</span><span class="s1">&quot; with reaxys id </span><span class="si">{}</span><span class="s1">:&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trivial_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;%20&#39;</span><span class="p">,</span><span class="s1">&#39; &#39;</span><span class="p">),</span> <span class="n">chemical</span><span class="p">[</span><span class="s1">&#39;_id&#39;</span><span class="p">]))</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Recorded smiles: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">recorded_can_smiles</span><span class="p">))</span>
@@ -119,7 +135,7 @@
                 <span class="k">while</span> <span class="ow">not</span> <span class="n">change</span><span class="p">:</span>
                     <span class="n">change</span> <span class="o">=</span> <span class="n">raw_input</span><span class="p">(</span><span class="s1">&#39;Do you want to manually enter a smiles string? (Y)es or (N)o</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
                     <span class="k">if</span> <span class="n">change</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span> <span class="ow">or</span> <span class="n">change</span> <span class="o">==</span> <span class="s1">&#39;Y&#39;</span><span class="p">:</span>
-                        <span class="n">new_smiles</span> <span class="o">=</span> <span class="n">raw_input</span><span class="p">(</span><span class="s1">&#39;Pleas type the desired smiles:</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+                        <span class="n">new_smiles</span> <span class="o">=</span> <span class="n">raw_input</span><span class="p">(</span><span class="s1">&#39;Please type the desired smiles:</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
                         <span class="n">chemicals</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;_id&#39;</span><span class="p">:</span><span class="n">chemical</span><span class="p">[</span><span class="s1">&#39;_id&#39;</span><span class="p">]},{</span><span class="s1">&#39;$set&#39;</span><span class="p">:{</span><span class="s1">&#39;SMILES_new&#39;</span><span class="p">:</span><span class="n">new_smiles</span><span class="p">,</span> <span class="s1">&#39;checked&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">}})</span>
                         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Smiles have been changed to: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">new_smiles</span><span class="p">))</span>
                     <span class="k">elif</span> <span class="n">change</span> <span class="o">==</span> <span class="s1">&#39;n&#39;</span> <span class="ow">or</span> <span class="n">change</span> <span class="o">==</span> <span class="s1">&#39;N&#39;</span><span class="p">:</span>
@@ -128,33 +144,41 @@
                     <span class="k">else</span><span class="p">:</span>
                         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Please answer with one of the given options.&#39;</span><span class="p">)</span>
                         <span class="n">change</span> <span class="o">=</span> <span class="kc">None</span>
-                        
+
             <span class="k">else</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Please answer with one of the given options.&#39;</span><span class="p">)</span>
-                <span class="n">ans</span> <span class="o">=</span> <span class="kc">None</span>       
+                <span class="n">ans</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">chemicals</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;_id&#39;</span><span class="p">:</span><span class="n">chemical</span><span class="p">[</span><span class="s1">&#39;_id&#39;</span><span class="p">]},{</span><span class="s1">&#39;$set&#39;</span><span class="p">:{</span><span class="s1">&#39;checked&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">}})</span></div>
 
 <div class="viewcode-block" id="parse_list_to_smiles"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.parsing.parse_list_to_smiles">[docs]</a><span class="k">def</span> <span class="nf">parse_list_to_smiles</span><span class="p">(</span><span class="n">mol_list</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Parse a format of reactants (list of smiles, rdkit mol or mol files; or single smiles, rdkit mol or mol file)</span>
-<span class="sd">    into single smiles format.</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Parses reactants into SMILES string.</span>
+
+<span class="sd">    Format of reactants: list of smiles, rdkit mol, or mol files; or</span>
+<span class="sd">    single smiles, rdkit mol, or mol file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mol_list (str, Chem.Mol, or list of str or Chem.Mol): Reactants to be</span>
+<span class="sd">            parsed into SMILES strings.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str or None: SMILES string of reactants or None if parsing fails.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">isList</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="n">mol_list</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;list&#39;</span><span class="p">:</span>
         <span class="n">isList</span> <span class="o">=</span> <span class="kc">True</span>
-    
+
     <span class="n">smiles</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="k">if</span> <span class="n">isList</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">mol</span> <span class="ow">in</span> <span class="n">mol_list</span><span class="p">:</span>
+            <span class="c1"># QUESTION: Won&#39;t this raise an exception if mol cannot be parsed?</span>
             <span class="k">if</span> <span class="n">smiles</span><span class="p">:</span>
                 <span class="n">smiles</span> <span class="o">+=</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="n">parse_molecule_to_smiles</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">smiles</span> <span class="o">+=</span> <span class="n">parse_molecule_to_smiles</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">smiles</span> <span class="o">=</span> <span class="n">parse_molecule_to_smiles</span><span class="p">(</span><span class="n">mol_list</span><span class="p">)</span>
-    
+
     <span class="k">return</span> <span class="n">smiles</span></div>
-    
 </pre></div>
 
           </div>

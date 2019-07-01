@@ -140,12 +140,13 @@ class ChemicalTemplateApplication(object):
     one template to one product can lead to many distinct product sets.
 
     Attributes:
-        smiles (string): SMILES string of the chemical.
+        smiles (str): SMILES string of the chemical.
         template_idx (): Index of template to apply.
         waiting (bool):
         vaild (bool):
-        reactions (dict of {str: Reaction}):
+        reactions (dict of {str - Reaction}): ??
     """
+    # TODO: Fix the - to be a single colon
 
     def __init__(self, smiles, template_idx):
         self.smiles = smiles.strip()

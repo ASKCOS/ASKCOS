@@ -44,57 +44,206 @@
 <dl class="class">
 <dt id="makeit.utilities.historian.chemicals.ChemHistorian">
 <em class="property">class </em><code class="descclassname">makeit.utilities.historian.chemicals.</code><code class="descname">ChemHistorian</code><span class="sig-paren">(</span><em>by_xrn=False</em>, <em>REACTIONS=None</em>, <em>CHEMICALS=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian" title="Permalink to this definition">¶</a></dt>
-<dd><p>The Historian class is used to look up chemicals to see how often they have
-been seen in Reaxys</p>
+<dd><p>Looks up chemicals to see how often they have been seen in Reaxys.</p>
+<dl class="attribute">
+<dt id="makeit.utilities.historian.chemicals.ChemHistorian.CHEMICAL_DB">
+<code class="descname">CHEMICAL_DB</code><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.CHEMICAL_DB" title="Permalink to this definition">¶</a></dt>
+<dd><p>Database of chemicals.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">MongoDB</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.utilities.historian.chemicals.ChemHistorian.REACTION_DB">
+<code class="descname">REACTION_DB</code><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.REACTION_DB" title="Permalink to this definition">¶</a></dt>
+<dd><p>Database of reactions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">MongoDB</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.utilities.historian.chemicals.ChemHistorian.CHEMICAL_HISTORY_DB">
+<code class="descname">CHEMICAL_HISTORY_DB</code><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.CHEMICAL_HISTORY_DB" title="Permalink to this definition">¶</a></dt>
+<dd><p>Database of chemical history.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">MongoDB</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.utilities.historian.chemicals.ChemHistorian.occurrences">
+<code class="descname">occurrences</code><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.occurrences" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">defaultdict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="method">
 <dt id="makeit.utilities.historian.chemicals.ChemHistorian.compress_keys">
 <code class="descname">compress_keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.compress_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.compress_keys" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert keys to hashed values to save space</p>
+<dd><p>Converts keys to hashed values to save space.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.utilities.historian.chemicals.ChemHistorian.dump_to_file">
 <code class="descname">dump_to_file</code><span class="sig-paren">(</span><em>file_path='/usr/local/ASKCOS/makeit/data/historian/chemicals.pickle'</em>, <em>refs=False</em>, <em>compressed=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.dump_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.dump_to_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write the data from the online datbases to a local file</p>
+<dd><p>Writes the data from the online datbases to a local file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Path to the output file.
+(default: {gc.historian_data})</li>
+<li><strong>refs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include the references or just
+the counts. (default: {False})</li>
+<li><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether the data is compressed.
+(default: {False})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.utilities.historian.chemicals.ChemHistorian.load">
 <code class="descname">load</code><span class="sig-paren">(</span><em>online=True</em>, <em>CHEMICAL_DB=None</em>, <em>REACTION_DB=None</em>, <em>refs=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.load" title="Permalink to this definition">¶</a></dt>
-<dd><p>Loads the object from a MongoDB collection</p>
+<dd><p>Loads the object from a MongoDB collection.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>online</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to load from the online database or
+a local file. (default: {True})</li>
+<li><strong>CHEMICAL_DB</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>??</em><em>, </em><em>optional</em>) – <p>??</p>
+</li>
+<li><strong>REACTION_DB</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>??</em><em>, </em><em>optional</em>) – <p>??</p>
+</li>
+<li><strong>refs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include references.
+(default: {True})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.utilities.historian.chemicals.ChemHistorian.load_databases">
 <code class="descname">load_databases</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.load_databases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.load_databases" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load the pricing data from the online database</p>
+<dd><p>Loads the history data from the online database.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.utilities.historian.chemicals.ChemHistorian.load_from_file">
 <code class="descname">load_from_file</code><span class="sig-paren">(</span><em>file_path='/usr/local/ASKCOS/makeit/data/historian/chemicals.pickle'</em>, <em>refs=False</em>, <em>compressed=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.load_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.load_from_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load the data for the pricer from a locally stored file instead of from the online database.</p>
+<dd><p>Loads the data for the pricer from a locally stored file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Path to the input file.
+(default: {gc.historian_data})</li>
+<li><strong>refs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include the references or just
+the counts. (default: {False})</li>
+<li><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether the data is compressed.
+(default: {False})</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.7)"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code></a> – If file does not exist.</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.utilities.historian.chemicals.ChemHistorian.lookup_smiles">
 <code class="descname">lookup_smiles</code><span class="sig-paren">(</span><em>smiles</em>, <em>alreadyCanonical=False</em>, <em>isomericSmiles=True</em>, <em>refs=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.lookup_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.lookup_smiles" title="Permalink to this definition">¶</a></dt>
-<dd><p>Looks up a price by SMILES. Tries it as-entered and then
-re-canonicalizes it in RDKit unless the user specifies that
-the string is definitely already canonical.</p>
+<dd><p>Looks up number of occurances by SMILES.</p>
+<p>Tries it as-entered and then re-canonicalizes it in RDKit unless the
+user specifies that the string is definitely already canonical.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>smiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of molecule to look up.</li>
+<li><strong>alreadyCanonical</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to SMILES string has
+already been canonicalized. (default: {False})</li>
+<li><strong>isomericSmiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether the SMILES string is
+isomeric. Must be true, since function is only intended for
+isomeric. (default: {True})</li>
+<li><strong>refs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include references.
+(default: {False})</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Labeled dictionaty from tup_to_dict().</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.7)"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code></a> – If isomericSmiles is False.</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.utilities.historian.chemicals.ChemHistorian.upload_to_db">
 <code class="descname">upload_to_db</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#ChemHistorian.upload_to_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.ChemHistorian.upload_to_db" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Uploads the data to the online database.</p>
+</dd></dl>
 
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.historian.chemicals.tup_to_dict">
 <code class="descclassname">makeit.utilities.historian.chemicals.</code><code class="descname">tup_to_dict</code><span class="sig-paren">(</span><em>info=[0, 0, [], []], refs=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/chemicals.html#tup_to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.chemicals.tup_to_dict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Takes a historical entry as a tuple and returns a labeled dict</p>
+<dd><p>Returns a labeled dict from a given historical entry as a tuple.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>info</strong> (<em>(</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a><em>)</em><em>, </em><em>optional</em>) – Entry to convert into dict.
+(default: {[0, 0, [], []]})</li>
+<li><strong>refs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include references or only counts.
+(default: {False})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>
@@ -103,38 +252,151 @@ the string is definitely already canonical.</p>
 <dl class="class">
 <dt id="makeit.utilities.historian.reactions.ReactionHistorian">
 <em class="property">class </em><code class="descclassname">makeit.utilities.historian.reactions.</code><code class="descname">ReactionHistorian</code><span class="sig-paren">(</span><em>by_xrn=False</em>, <em>REACTIONS=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#ReactionHistorian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian" title="Permalink to this definition">¶</a></dt>
-<dd><p>The Historian class is used to look up chemicals to see how often they have
-been seen in Reaxys</p>
+<dd><p>Looks up chemicals to see how often they have been seen in Reaxys.</p>
+<dl class="attribute">
+<dt id="makeit.utilities.historian.reactions.ReactionHistorian.REACTION_DB">
+<code class="descname">REACTION_DB</code><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.REACTION_DB" title="Permalink to this definition">¶</a></dt>
+<dd><p>Database of reactions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">MongoDB</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.utilities.historian.reactions.ReactionHistorian.CHEMICAL_HISTORY_DB">
+<code class="descname">CHEMICAL_HISTORY_DB</code><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.CHEMICAL_HISTORY_DB" title="Permalink to this definition">¶</a></dt>
+<dd><p>Database of chemical history.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">MongoDB</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.utilities.historian.reactions.ReactionHistorian.occurrences">
+<code class="descname">occurrences</code><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.occurrences" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">defaultdict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.utilities.historian.reactions.ReactionHistorian.occurrences_flat">
+<code class="descname">occurrences_flat</code><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.occurrences_flat" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">defaultdict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="method">
 <dt id="makeit.utilities.historian.reactions.ReactionHistorian.dump_to_file">
 <code class="descname">dump_to_file</code><span class="sig-paren">(</span><em>file_path='/usr/local/ASKCOS/makeit/data/historian/reactions.pickle'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#ReactionHistorian.dump_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.dump_to_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write the data from the online datbases to a local file</p>
+<dd><p>Writes the data from the online datbases to a local file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Path to the output file.
+(default: {gc.reactionhistorian_data})</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.utilities.historian.reactions.ReactionHistorian.load">
 <code class="descname">load</code><span class="sig-paren">(</span><em>online=True</em>, <em>REACTION_DB=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#ReactionHistorian.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.load" title="Permalink to this definition">¶</a></dt>
-<dd><p>Loads the object from a MongoDB collection</p>
+<dd><p>Loads the object from a MongoDB collection.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>online</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to load from the online database or
+a local file. (default: {True})</li>
+<li><strong>REACTION_DB</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)"><em>None</em></a><em> or </em><em>??</em><em>, </em><em>optional</em>) – <p>??</p>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.utilities.historian.reactions.ReactionHistorian.load_databases">
 <code class="descname">load_databases</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#ReactionHistorian.load_databases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.load_databases" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load the pricing data from the online database</p>
+<dd><p>Loads the history data from the online database.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.utilities.historian.reactions.ReactionHistorian.load_from_file">
 <code class="descname">load_from_file</code><span class="sig-paren">(</span><em>file_path='/usr/local/ASKCOS/makeit/data/historian/reactions.pickle'</em>, <em>testing=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#ReactionHistorian.load_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.load_from_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load the data for the pricer from a locally stored file instead of from the online database.</p>
+<dd><p>Loads the data for the pricer from a locally stored file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Path to the input file.
+(default: {gc.reactionhistorian_data})</li>
+<li><strong>testing</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to only run a test.
+(default: {False})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.utilities.historian.reactions.ReactionHistorian.lookup_smiles">
 <code class="descname">lookup_smiles</code><span class="sig-paren">(</span><em>smiles</em>, <em>alreadyCanonical=False</em>, <em>isomericSmiles=True</em>, <em>refs=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#ReactionHistorian.lookup_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.ReactionHistorian.lookup_smiles" title="Permalink to this definition">¶</a></dt>
-<dd><p>Looks up a price by SMILES. Tries it as-entered and then
-re-canonicalizes it in RDKit unl ess the user specifies that
-the string is definitely already canonical.</p>
+<dd><p>Looks up number of occurances by SMILES.</p>
+<p>Tries it as-entered and then re-canonicalizes it in RDKit unless the
+user specifies that the string is definitely already canonical.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>smiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of molecule to look up.</li>
+<li><strong>alreadyCanonical</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to SMILES string has
+already been canonicalized. (default: {False})</li>
+<li><strong>isomericSmiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether the SMILES string is
+isomeric. (default: {True})</li>
+<li><strong>refs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include references.
+(default: {False})</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Labeled dictionaty from tup_to_dict().</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a></p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -142,7 +404,21 @@ the string is definitely already canonical.</p>
 <dl class="function">
 <dt id="makeit.utilities.historian.reactions.tup_to_dict">
 <code class="descclassname">makeit.utilities.historian.reactions.</code><code class="descname">tup_to_dict</code><span class="sig-paren">(</span><em>info=[0, []], refs=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/historian/reactions.html#tup_to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.historian.reactions.tup_to_dict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Takes a historical entry as a tuple and returns a labeled dict</p>
+<dd><p>Returns a labeled dict from a given historical entry as a tuple.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>info</strong> (<em>(</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a><em>)</em><em>, </em><em>optional</em>) – Entry to convert into dict.
+(default: {[0, []]})</li>
+<li><strong>refs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include references or only counts.
+(default: {False})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>

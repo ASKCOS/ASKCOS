@@ -43,7 +43,7 @@
 <li class="toctree-l1"><a class="reference internal" href="makeit.retrosynthetic.mcts.html">makeit.retrosynthetic.mcts package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="makeit.retrosynthetic.mcts.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="makeit.retrosynthetic.mcts.html#module-makeit.retrosynthetic.mcts.cost">makeit.retrosynthetic.mcts.cost module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="makeit.retrosynthetic.mcts.html#module-makeit.retrosynthetic.mcts.misc">makeit.retrosynthetic.mcts.misc module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="makeit.retrosynthetic.mcts.html#makeit-retrosynthetic-mcts-misc-module">makeit.retrosynthetic.mcts.misc module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="makeit.retrosynthetic.mcts.html#module-makeit.retrosynthetic.mcts.nodes">makeit.retrosynthetic.mcts.nodes module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="makeit.retrosynthetic.mcts.html#module-makeit.retrosynthetic.mcts.rl_model">makeit.retrosynthetic.mcts.rl_model module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="makeit.retrosynthetic.mcts.html#module-makeit.retrosynthetic.mcts.tree_builder">makeit.retrosynthetic.mcts.tree_builder module</a></li>
@@ -352,7 +352,7 @@ relevance probabilities for precursors (default: {True})</li>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
 <dt>Result of</dt>
-<dd><p class="first last">applying given template to molecule including the template
+<dd><p class="first last">applying given template to the molecule including the template
 relevance probabilities of all resulting precursors when
 calculate_next_probs is True.</p>
 </dd>
@@ -495,18 +495,550 @@ handle deprecated options.</li>
 <dl class="class">
 <dt id="makeit.retrosynthetic.tree_builder.TreeBuilder">
 <em class="property">class </em><code class="descclassname">makeit.retrosynthetic.tree_builder.</code><code class="descname">TreeBuilder</code><span class="sig-paren">(</span><em>retroTransformer=None</em>, <em>pricer=None</em>, <em>max_branching=20</em>, <em>max_depth=3</em>, <em>expansion_time=240</em>, <em>celery=False</em>, <em>nproc=1</em>, <em>mincount=25</em>, <em>chiral=True</em>, <em>mincount_chiral=10</em>, <em>template_prioritization='Relevance'</em>, <em>precursor_prioritization='RelevanceHeuristic'</em>, <em>chemhistorian=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/tree_builder.html#TreeBuilder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>Class for retrosynthetic tree expansion using a depth-first search.</p>
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.celery">
+<code class="descname">celery</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.celery" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether or not Celery is being used. If True, then the
+TreeBuilder relies on reservable retrotransformer workers
+initialized separately. If False, then retrotransformer workers will
+be spun up using multiprocessing.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.mincount">
+<code class="descname">mincount</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.mincount" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimum number of precedents for an achiral template for
+inclusion in the template library. Only used when retrotransformers
+need to be initialized.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.mincount_chiral">
+<code class="descname">mincount_chiral</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.mincount_chiral" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimum number of precedents for a chiral
+template for inclusion in the template library. Only used when
+retrotransformers need to be initialized. Chiral templates are
+necessarily more specific, so we generally use a lower threshold
+than achiral templates.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.max_depth">
+<code class="descname">max_depth</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.max_depth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maximum number of reactions to allow before stopping
+the recursive expansion down one branch.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.max_branching">
+<code class="descname">max_branching</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.max_branching" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maximum number of precursor suggestions to add to
+the tree at each expansion.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.expansion_time">
+<code class="descname">expansion_time</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.expansion_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time (in seconds) to allow for expansion before
+searching the generated tree for buyable pathways.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.template_prioritization">
+<code class="descname">template_prioritization</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.template_prioritization" title="Permalink to this definition">¶</a></dt>
+<dd><p>Strategy used for template
+prioritization, as a string. There are a limited number of
+available options - consult the global configuration file for info.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.precursor_prioritization">
+<code class="descname">precursor_prioritization</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.precursor_prioritization" title="Permalink to this definition">¶</a></dt>
+<dd><p>Strategy used for precursor
+prioritization, as a string. There are a limited number of available
+options - consult the global configuration file for info.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.precursor_score_mode">
+<code class="descname">precursor_score_mode</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.precursor_score_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mode to use for precursor scoring when using
+the SCScore prioritizer and multiple reactant fragments must be
+scored together.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.nproc">
+<code class="descname">nproc</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.nproc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of retrotransformer processes to fork for faster
+expansion.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.template_count">
+<code class="descname">template_count</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.template_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maximum number of templates to apply at each
+expansion.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.max_cum_template_prob">
+<code class="descname">max_cum_template_prob</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.max_cum_template_prob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maximum cumulative template probability
+(i.e., relevance score), used as part of the relevance
+template_prioritizer.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.max_ppg">
+<code class="descname">max_ppg</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.max_ppg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maximum price ($/g) for a chemical to be
+considered buyable, and thus potentially usable as a leaf node.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a> or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.apply_fast_filter">
+<code class="descname">apply_fast_filter</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.apply_fast_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether to use the fast filter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*filter_threshold</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.chiral">
+<code class="descname">chiral</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.chiral" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether or not to pay close attention to chirality. When
+False, even achiral templates can lead to accidental inversion of
+chirality in non-reacting parts of the molecule. It is highly
+recommended to keep this as True.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.pricer">
+<code class="descname">pricer</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.pricer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pricer object to be used for checking stop criteria
+(buyability).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference internal" href="makeit.utilities.buyable.html#makeit.utilities.buyable.pricer.Pricer" title="makeit.utilities.buyable.pricer.Pricer">Pricer</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.chemhistorian">
+<code class="descname">chemhistorian</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.chemhistorian" title="Permalink to this definition">¶</a></dt>
+<dd><p>ChemHistorian object used to see how
+often chemicals have occured in database.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference internal" href="makeit.utilities.historian.html#makeit.utilities.historian.chemicals.ChemHistorian" title="makeit.utilities.historian.chemicals.ChemHistorian">ChemHistorian</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.retroTransformer">
+<code class="descname">retroTransformer</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.retroTransformer" title="Permalink to this definition">¶</a></dt>
+<dd><p>RetroTransformer object to be used
+for expansion when <em>not</em> using Celery.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference internal" href="#makeit.retrosynthetic.transformer.RetroTransformer" title="makeit.retrosynthetic.transformer.RetroTransformer">RetroTransformer</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*pending_results</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of ??</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*is_ready</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of ??</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*expansion_queues</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">Queue of 2-tuples of (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*private_worker_queue ()</code></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*running</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*done</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">Manager.Value(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*tree_dict</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a> or Manager.dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*chem_to_id</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a> or Manager.dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*buyable_leaves</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">set of Manager.list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*current_id</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a> or Manager.Value(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*manager</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">Manager</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*paused</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">Manager.Value(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*idle</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*results_queue</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">Queue</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*workers</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of ??</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">*coordinator</code></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.known_bad_reactions">
+<code class="descname">known_bad_reactions</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.known_bad_reactions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reactions to forbid during expansion,
+represented as list of reaction SMILES strings. Each reaction SMILES
+must be canonicalized, have atom mapping removed, and have its
+reactant fragments be sorted. Forbidden reactions are checked when
+processing children returned by the RetroTransformer.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.forbidden_molecules">
+<code class="descname">forbidden_molecules</code><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.forbidden_molecules" title="Permalink to this definition">¶</a></dt>
+<dd><p>Molecules to forbid during expansion,
+represented as a list of SMILES strings. Each string must be
+canonicalized without atom mapping. Forbidden molecules will not be
+allowed as intermediates or leaf nodes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.add_children">
 <code class="descname">add_children</code><span class="sig-paren">(</span><em>children</em>, <em>smiles</em>, <em>unique_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/tree_builder.html#TreeBuilder.add_children"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.add_children" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add results of one expansion to the tree dictionary</p>
+<dd><p>Add results of one expansion to the tree dictionary.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>{list of</strong> (<em>children</em>) – for the target SMILES, formatted as returned by get_children()</li>
-<li><strong>{string} -- SMILES string of product</strong> (<em>smiles</em>) – </li>
-<li><strong>{integer &gt;= 1} -- ID of product</strong> (<em>unique_id</em>) – tree dictionary</li>
+<li><strong>children</strong> (<em>list of</em><em> (</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a><em>)</em>) – Candidate disconnections for the
+target SMILES, formatted as returned by get_children().</li>
+<li><strong>smiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of product (target) molecule.</li>
+<li><strong>unique_id</strong> (<em>int &gt;= 1</em>) – ID of product (target) molecule in the
+tree dictionary.</li>
 </ul>
 </td>
 </tr>
@@ -517,12 +1049,12 @@ handle deprecated options.</li>
 <dl class="method">
 <dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.build_tree">
 <code class="descname">build_tree</code><span class="sig-paren">(</span><em>target</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/tree_builder.html#TreeBuilder.build_tree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.build_tree" title="Permalink to this definition">¶</a></dt>
-<dd><p>Recursively build out the synthesis tree</p>
+<dd><p>Recursively build out the synthesis tree.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>{string} -- SMILES of target molecule</strong> (<em>target</em>) – </td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> (<em>string</em>) – SMILES of target molecule.</td>
 </tr>
 </tbody>
 </table>
@@ -531,69 +1063,103 @@ handle deprecated options.</li>
 <dl class="method">
 <dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.coordinate">
 <code class="descname">coordinate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/tree_builder.html#TreeBuilder.coordinate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.coordinate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run the expansion up to a specified self.expansion_time (seconds)</p>
+<dd><p>Run the expansion for specified <code class="docutils literal notranslate"><span class="pre">self.expansion_time</span></code> (seconds).</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.get_buyable_paths">
 <code class="descname">get_buyable_paths</code><span class="sig-paren">(</span><em>target</em>, <em>max_depth=3</em>, <em>max_branching=25</em>, <em>expansion_time=240</em>, <em>template_prioritization='Relevance'</em>, <em>precursor_prioritization='Heuristic'</em>, <em>nproc=1</em>, <em>mincount=25</em>, <em>chiral=True</em>, <em>mincount_chiral=10</em>, <em>max_trees=25</em>, <em>max_ppg=10000000000.0</em>, <em>known_bad_reactions=[]</em>, <em>forbidden_molecules=[]</em>, <em>template_count=100</em>, <em>precursor_score_mode='Maximum'</em>, <em>max_cum_template_prob=1</em>, <em>max_natom_dict={'logic': None}</em>, <em>min_chemical_history_dict={'as_product': 1000000000.0</em>, <em>'as_reactant': 1000000000.0</em>, <em>'logic': None}</em>, <em>apply_fast_filter=False</em>, <em>filter_threshold=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/tree_builder.html#TreeBuilder.get_buyable_paths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.get_buyable_paths" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get viable synthesis trees using an iterative deepening depth-first search</p>
-<p>[description]</p>
+<dd><p>Get viable synthesis trees using an iterative depth-first search.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>{</strong><strong>[</strong><strong>type</strong><strong>]</strong><strong>} --</strong><strong> [</strong><strong>description</strong><strong>]</strong> (<em>target</em>) – </p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Keyword Arguments:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body"><ul class="first simple">
-<li><strong>{number} -- Maximum number of reactions to allow before</strong> (<em>max_depth</em>) – stopping the recursive expansion down one branch (default: {3})</li>
-<li><strong>{number} -- Maximum number of precursor suggestions to</strong> (<em>max_branching</em>) – add to the tree at each expansion (default: {25})</li>
-<li><strong>{number} -- Time</strong> (<em>expansion_time</em>) – before searching the generated tree for buyable pathways (default: {240})</li>
-<li><strong>{number} -- Number of retrotransformer processes to fork for</strong> (<em>nproc</em>) – faster expansion (default: {1})</li>
-<li><strong>{number} -- Minimum number of precedents for an achiral template</strong> (<a class="reference internal" href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.mincount" title="makeit.synthetic.enumeration.transformer.ForwardTransformer.mincount"><em>mincount</em></a>) – for inclusion in the template library. Only used when retrotransformers
-need to be initialized (default: {25})</li>
-<li><strong>{number} -- Minimum number of precedents for a chiral template</strong> (<em>mincount_chiral</em>) – for inclusion in the template library. Only used when retrotransformers
-need to be initialized. Chiral templates are necessarily more specific,
-so we generally use a lower threshold than achiral templates (default: {10})</li>
-<li><strong>{bool} -- Whether</strong><strong> or </strong><strong>not to pay close attention to chirality. When</strong> (<a class="reference internal" href="rdchiral.html#module-rdchiral.chiral" title="rdchiral.chiral"><em>chiral</em></a>) – False, even achiral templates can lead to accidental inversion of
-chirality in non-reacting parts of the molecule. It is highly
-recommended to keep this as True (default: {True})</li>
-<li><strong>{string} -- Strategy used for template</strong> (<em>template_prioritization</em>) – prioritization, as a string. There are a limited number of available
-options - consult the global configuration file for info (default: {gc.relevance})</li>
-<li><strong>{string} -- Strategy used for precursor</strong> (<em>precursor_prioritization</em>) – prioritization, as a string. There are a limited number of available
-options - consult the global configuration file for info (default: {gc.heuristic})</li>
-<li><strong>{number} -- Maximum number of buyable trees to return. Does</strong> (<em>max_trees</em>) – not affect expansion time (default: {25})</li>
-<li><strong>{number} -- Maximum price</strong> (<em>max_ppg</em>) – buyable, and thus potentially usable as a leaf node (default: {1e10})</li>
-<li><strong>{list} -- Reactions to forbid during expansion</strong><strong>,</strong> (<em>known_bad_reactions</em>) – represented as list of reaction SMILES strings. Each reaction SMILES
-must be canonicalized, have atom mapping removed, and have its
-reactant fragments be sorted. Forbidden reactions are checked
-when processing children returned by the RetroTransformer (default: {[]})</li>
-<li><strong>{list} -- Molecules to forbid during expansion</strong><strong>,</strong> (<em>forbidden_molecules</em>) – represented as a list of SMILES strings. Each string must be
-canonicalized without atom mapping. Forbidden molecules will not
-be allowed as intermediates or leaf nodes (default: {[]})</li>
-<li><strong>{number} -- Maximum number of templates to apply at</strong> (<a class="reference internal" href="makeit.prioritization.templates.html#makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.template_count" title="makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.template_count"><em>template_count</em></a>) – each expansion (default: {100})</li>
-<li><strong>{string} -- Mode to use for precursor scoring</strong> (<em>precursor_score_mode</em>) – when using the SCScore prioritizer and multiple reactant
-fragments must be scored together (default: {gc.max})</li>
-<li><strong>{number} -- Maximum cumulative template</strong> (<em>max_cum_template_prob</em>) – probability (i.e., relevance score), used as part of the
-relevance template_prioritizer (default: {1})</li>
-<li><strong>{dict} -- Dictionary defining a potential chemical</strong> (<em>max_natom_dict</em>) – property stopping criterion based on the number of atoms of
-C, N, O, and H in a molecule. The ‘logic’ keyword of the dict
-refers to how that maximum number of atom information is combined
-with the requirement that chemicals be cheaper than max_ppg
-(default: {defaultdict(lambda: 1e9, {‘logic’: None})})</li>
-<li><strong>{dict} -- Dictionary defining a potential</strong> (<em>min_chemical_history_dict</em>) – chemical stopping criterion based on the number of times a
-molecule has been seen previously. Always uses logical OR</li>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>target</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of target molecule.</li>
+<li><strong>max_depth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Maximum number of reactions to allow
+before stopping the recursive expansion down one branch.
+(default: {3})</li>
+<li><strong>max_branching</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Maximum number of precursor
+suggestions to add to the tree at each expansion.
+(default: {25})</li>
+<li><strong>expansion_time</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Time (in seconds) to allow for
+expansion before searching the generated tree for buyable
+pathways. (default: {240})</li>
+<li><strong>template_prioritization</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Strategy used for template
+prioritization, as a string. There are a limited number of
+available options - consult the global configuration file for
+info. (default: {gc.relevance})</li>
+<li><strong>precursor_prioritization</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Strategy used for
+precursor prioritization, as a string. There are a limited
+number of available options - consult the global configuration
+file for info. (default: {gc.heuristic})</li>
+<li><strong>nproc</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Number of retrotransformer processes to fork
+for faster expansion. (default: {1})</li>
+<li><strong>mincount</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Minimum number of precedents for an
+achiral template for inclusion in the template library. Only
+used when retrotransformers need to be initialized.
+(default: {25})</li>
+<li><strong>chiral</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether or not to pay close attention to
+chirality. When False, even achiral templates can lead to
+accidental inversion of chirality in non-reacting parts of the
+molecule. It is highly recommended to keep this as True.
+(default: {True})</li>
+<li><strong>mincount_chiral</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Minimum number of precedents for a
+chiral template for inclusion in the template library. Only used
+when retrotransformers need to be initialized. Chiral templates
+are necessarily more specific, so we generally use a lower
+threshold than achiral templates. (default: {10})</li>
+<li><strong>max_trees</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Maximum number of buyable trees to
+return. Does not affect expansion time. (default: {25})</li>
+<li><strong>max_ppg</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Maximum price ($/g) for a chemical
+to be considered buyable, and thus potentially usable as a leaf
+node. (default: {1e10})</li>
+<li><strong>known_bad_reactions</strong> (<em>list of str</em><em>, </em><em>optional</em>) – Reactions to forbid
+during expansion, represented as list of reaction SMILES
+strings. Each reaction SMILES must be canonicalized, have atom
+mapping removed, and have its reactant fragments be sorted.
+Forbidden reactions are checked when processing children
+returned by the RetroTransformer. (default: {[]})</li>
+<li><strong>forbidden_molecules</strong> (<em>list of str</em><em>, </em><em>optional</em>) – ) Molecules to forbid
+during expansion, represented as a list of SMILES strings. Each
+string must be canonicalized without atom mapping. Forbidden
+molecules will not be allowed as intermediates or leaf nodes.
+(default: {[]})</li>
+<li><strong>template_count</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Maximum number of templates to apply
+at each expansion. (default: {100})</li>
+<li><strong>precursor_score_mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Mode to use for precursor
+scoring when using the SCScore prioritizer and multiple reactant
+fragments must be scored together. (default: {gc.max})</li>
+<li><strong>max_cum_template_prob</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Maximum cumulative template
+probability (i.e., relevance score), used as part of the
+relevance template_prioritizer. (default: {1})</li>
+<li><strong>max_natom_dict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a><em>, </em><em>optional</em>) – Dictionary defining a potential
+chemical property stopping criterion based on the number of
+atoms of C, N, O, and H in a molecule. The ‘logic’ keyword of
+the dict refers to how that maximum number of atom information
+is combined with the requirement that chemicals be cheaper than
+max_ppg. (default: {defaultdict(lambda: 1e9, {‘logic’: None})})</li>
+<li><strong>min_chemical_history_dict</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a><em>, </em><em>optional</em>) – Dictionary defining a
+potential chemical stopping criterion based on the number of
+times a molecule has been seen previously. Always uses logical
+OR.
+(default: {{‘as_reactant’:1e9, ‘as_product’:1e9,’logic’:None}})</li>
+<li><strong>apply_fast_filter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to apply the fast
+filter to filter precursors. (default: {False})</li>
+<li><strong>filter_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em>, </em><em>optional</em>) – Threshld to use with the fast
+filter. (default: {0.5})</li>
 </ul>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>tree_status – result of tree_status()
-trees – list of dictionaries, where each dictionary defines a</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><p>Result of tree_status().
+trees (list of dict): List of dictionaries, where each dictionary</p>
 <blockquote>
-<div><p>synthetic route</p>
+<div><p>defines a synthetic route.</p>
 </div></blockquote>
 </p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">tree_status ((<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a>))</p>
 </td>
 </tr>
 </tbody>
@@ -608,19 +1174,22 @@ trees – list of dictionaries, where each dictionary defines a</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>{list of dicts} -- precursor information as a list of</strong> (<em>precursors</em>) – dictionaries, where each dictionary contains information about
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>precursors</strong> (<em>list of dicts</em>) – Precursor information as a list of
+dictionaries, where each dictionary contains information about
 the precursor identity and auxiliary information like
 whether the template requires heavy atoms to be contributed
 by reagents.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
-<dt>[list of (dict, list)] – precursor information reformatted into</dt>
-<dd>a list of 2-tuples, where the 2-tuple consists of a dictionary
+<dt>Precursor information reformatted into a list</dt>
+<dd>of 2-tuples, where the 2-tuple consists of a dictionary
 containing basically the same information as the precursor
 dictionaries, as well as the smiles_split of the precursor,
-which is a list of reactant SMILES strings</dd>
+which is a list of reactant SMILES strings.</dd>
 </dl>
 </td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list of (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)">list</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -629,7 +1198,7 @@ which is a list of reactant SMILES strings</dd>
 <dl class="method">
 <dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.reset">
 <code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/tree_builder.html#TreeBuilder.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.reset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Clears saved state and resets counters</p>
+<dd><p>Clears saved state and resets counters.</p>
 <p>Called after initialization and after getting buyable pathways
 to free up memory and - in the case of Celery - be prepared to
 handle another request without having results carry over between
@@ -639,16 +1208,18 @@ different tree building requests.</p>
 <dl class="method">
 <dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.tree_status">
 <code class="descname">tree_status</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/tree_builder.html#TreeBuilder.tree_status"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.tree_status" title="Permalink to this definition">¶</a></dt>
-<dd><p>Summarize size of tree after expansion</p>
+<dd><p>Summarize size of tree after expansion.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">num_chemicals {int} – number of chemical nodes in the tree
-num_reactions {int} – number of reaction nodes in the tree
-at_depth {dict} – dictionary containing counts at each integer<blockquote>
-<div>depth (chemicals) and half-integer depth (reactions)</div></blockquote>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Number of chemical nodes in the tree.
+num_reactions (int): Number of reaction nodes in the tree.
+at_depth (dict): Dictionary containing counts at each integer<blockquote>
+<div>depth (chemicals) and half-integer depth (reactions).</div></blockquote>
 </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">num_chemicals (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -657,7 +1228,7 @@ at_depth {dict} – dictionary containing counts at each integer<blockquote>
 <dl class="method">
 <dt id="makeit.retrosynthetic.tree_builder.TreeBuilder.work">
 <code class="descname">work</code><span class="sig-paren">(</span><em>i</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/tree_builder.html#TreeBuilder.work"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.tree_builder.TreeBuilder.work" title="Permalink to this definition">¶</a></dt>
-<dd><p>Work function for retroTransformer processes</p>
+<dd><p>Work function for retroTransformer processes.</p>
 <p>Only used when Celery is false and multiprocessing is used instead. Will
 constantly look for molecules on expansion queues to expand (in a DFS)
 and add results to the results queue.</p>
@@ -665,7 +1236,8 @@ and add results to the results queue.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>{integer &gt;= 0} -- index assigned to the worker</strong><strong>, </strong><strong>used to assign</strong> (<em>i</em>) – idle status to the shared list self.idle[i]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>i</strong> (<em>int &gt;= 0</em>) – Index assigned to the worker, used to assign idle
+status to the shared list self.idle[i].</td>
 </tr>
 </tbody>
 </table>

@@ -45,6 +45,7 @@
 <dt id="makeit.interfaces.context_recommender.ContextRecommender">
 <em class="property">class </em><code class="descclassname">makeit.interfaces.context_recommender.</code><code class="descname">ContextRecommender</code><a class="reference internal" href="_modules/makeit/interfaces/context_recommender.html#ContextRecommender"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.context_recommender.ContextRecommender" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Interface for context recommender classes.</p>
 <dl class="method">
 <dt id="makeit.interfaces.context_recommender.ContextRecommender.get_n_contexts">
 <code class="descname">get_n_contexts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/context_recommender.html#ContextRecommender.get_n_contexts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.context_recommender.ContextRecommender.get_n_contexts" title="Permalink to this definition">¶</a></dt>
@@ -64,12 +65,13 @@
 <dt id="makeit.interfaces.forward_enumerator.ForwardEnumerator">
 <em class="property">class </em><code class="descclassname">makeit.interfaces.forward_enumerator.</code><code class="descname">ForwardEnumerator</code><a class="reference internal" href="_modules/makeit/interfaces/forward_enumerator.html#ForwardEnumerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.forward_enumerator.ForwardEnumerator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Interface for forward enumeration classes. At least an initialization method and a ‘get outcomes’ of the enumeration
+<p>Interface for forward enumeration classes.</p>
+<p>At least an initialization method and a <code class="docutils literal notranslate"><span class="pre">get_outcomes</span></code> of the enumeration
 should be present.</p>
 <dl class="method">
 <dt id="makeit.interfaces.forward_enumerator.ForwardEnumerator.get_outcomes">
 <code class="descname">get_outcomes</code><span class="sig-paren">(</span><em>smiles</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/forward_enumerator.html#ForwardEnumerator.get_outcomes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.forward_enumerator.ForwardEnumerator.get_outcomes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Use the enumerator’s methods to get the possible products for a certain smiles</p>
+<dd><p>Enumerates the possible products for a given smiles.</p>
 </dd></dl>
 
 </dd></dl>
@@ -80,20 +82,33 @@ should be present.</p>
 <dl class="class">
 <dt id="makeit.interfaces.scorer.Scorer">
 <em class="property">class </em><code class="descclassname">makeit.interfaces.scorer.</code><code class="descname">Scorer</code><span class="sig-paren">(</span><em>args</em>, <em>kwargs={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/scorer.html#Scorer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.scorer.Scorer" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>Interface for scorer classes.</p>
+<dl class="method">
 <dt id="makeit.interfaces.scorer.Scorer.evaluate">
 <code class="descname">evaluate</code><span class="sig-paren">(</span><em>args</em>, <em>kwargs={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/scorer.html#Scorer.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.scorer.Scorer.evaluate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Implemented method should return:
-A list of results (one for each context)
-Each result should contain:
-A list of outcomes, of which each outcome is a dictionnary containing:
-a rank, a forward result, a score and a probability.</p>
+<dd><p>Scores reactions with different contexts.</p>
+<p>Implemented method should return:</p>
+<ul>
+<li><p class="first">A list of results (one for each context).</p>
+<p>Each result should contain:</p>
+<ul class="simple">
+<li>A list of outcomes, of which each outcome is a dictionnary
+containing:<ul>
+<li>rank</li>
+<li>forward result</li>
+<li>score</li>
+<li>probability</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.interfaces.scorer.Scorer.stop_expansion">
 <code class="descname">stop_expansion</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/scorer.html#Scorer.stop_expansion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.scorer.Scorer.stop_expansion" title="Permalink to this definition">¶</a></dt>
-<dd><p>Method to kill all spun up workers</p>
+<dd><p>Method to kill all spun up workers.</p>
 </dd></dl>
 
 </dd></dl>
@@ -105,12 +120,114 @@ a rank, a forward result, a score and a probability.</p>
 <dt id="makeit.interfaces.template_transformer.TemplateTransformer">
 <em class="property">class </em><code class="descclassname">makeit.interfaces.template_transformer.</code><code class="descname">TemplateTransformer</code><a class="reference internal" href="_modules/makeit/interfaces/template_transformer.html#TemplateTransformer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>The Transformer class defines an object which can be used to perform
+<p>One-step retrosynthesis transformer.</p>
+<p>The TemplateTransformer class defines an object which can be used to perform
 one-step retrosyntheses for a given molecule.</p>
+<dl class="attribute">
+<dt id="makeit.interfaces.template_transformer.TemplateTransformer.id_to_index">
+<code class="descname">id_to_index</code><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.id_to_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maps template ID to index in <code class="docutils literal notranslate"><span class="pre">self.templates</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.interfaces.template_transformer.TemplateTransformer.precursor_prioritizers">
+<code class="descname">precursor_prioritizers</code><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.precursor_prioritizers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.interfaces.template_transformer.TemplateTransformer.precursor_prioritizer">
+<code class="descname">precursor_prioritizer</code><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.precursor_prioritizer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.interfaces.template_transformer.TemplateTransformer.template_prioritizers">
+<code class="descname">template_prioritizers</code><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.template_prioritizers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.interfaces.template_transformer.TemplateTransformer.template_prioritizer">
+<code class="descname">template_prioritizer</code><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.template_prioritizer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.interfaces.template_transformer.TemplateTransformer.templates">
+<code class="descname">templates</code><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.templates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.interfaces.template_transformer.TemplateTransformer.num_templates">
+<code class="descname">num_templates</code><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.num_templates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of templates loaded by the transformer.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.interfaces.template_transformer.TemplateTransformer.chiral">
+<code class="descname">chiral</code><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.chiral" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether to properly handle chirality.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.interfaces.template_transformer.TemplateTransformer.mincount">
+<code class="descname">mincount</code><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.mincount" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimum template popularity.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.interfaces.template_transformer.TemplateTransformer.mincount_chiral">
+<code class="descname">mincount_chiral</code><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.mincount_chiral" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimum template popularity for chiral templates.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.interfaces.template_transformer.TemplateTransformer.TEMPLATE_DB">
+<code class="descname">TEMPLATE_DB</code><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.TEMPLATE_DB" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="makeit.interfaces.template_transformer.TemplateTransformer.apply_one_template">
 <code class="descname">apply_one_template</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/template_transformer.html#TemplateTransformer.apply_one_template"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.apply_one_template" title="Permalink to this definition">¶</a></dt>
-<dd><p>Takes a mol object and applies a single template, returning
+<dd><p>Applies a single template to a given molecule.</p>
+<p>Takes a mol object and applies a single template, returning
 a list of precursors or outcomes, depending on whether retro or
 synthetic templates are used</p>
 </dd></dl>
@@ -118,13 +235,28 @@ synthetic templates are used</p>
 <dl class="method">
 <dt id="makeit.interfaces.template_transformer.TemplateTransformer.dump_to_file">
 <code class="descname">dump_to_file</code><span class="sig-paren">(</span><em>retro</em>, <em>file_path</em>, <em>chiral=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/template_transformer.html#TemplateTransformer.dump_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.dump_to_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write the template database to a file, of which the path in specified in the general configuration</p>
+<dd><p>Write the template database to a file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>retro</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Whether in the retrosynthetic direction.</li>
+<li><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Specifies where to save the database.</li>
+<li><strong>chiral</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to care about chirality.
+(default: {False})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.interfaces.template_transformer.TemplateTransformer.get_outcomes">
 <code class="descname">get_outcomes</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/template_transformer.html#TemplateTransformer.get_outcomes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.get_outcomes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs a one-step transformation given a SMILES string of a
+<dd><p>Gets outcome of single transformation.</p>
+<p>Performs a one-step transformation given a SMILES string of a
 target molecule by applying each transformation template
 sequentially.</p>
 </dd></dl>
@@ -132,56 +264,140 @@ sequentially.</p>
 <dl class="method">
 <dt id="makeit.interfaces.template_transformer.TemplateTransformer.get_precursor_prioritizers">
 <code class="descname">get_precursor_prioritizers</code><span class="sig-paren">(</span><em>precursor_prioritizer</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/template_transformer.html#TemplateTransformer.get_precursor_prioritizers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.get_precursor_prioritizers" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Loads precursor prioritizer for the transformer to use.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>precursor_prioritizer</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Specifies which prioritization method
+to use.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="makeit.interfaces.template_transformer.TemplateTransformer.get_prioritizers">
 <code class="descname">get_prioritizers</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/template_transformer.html#TemplateTransformer.get_prioritizers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.get_prioritizers" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get the prioritization methods for the transformer (templates and/or precursors)</p>
+<dd><p>Get the prioritization methods for the transformer.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.interfaces.template_transformer.TemplateTransformer.get_template_prioritizers">
 <code class="descname">get_template_prioritizers</code><span class="sig-paren">(</span><em>template_prioritizer</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/template_transformer.html#TemplateTransformer.get_template_prioritizers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.get_template_prioritizers" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Loads template prioritizer for the transformer to use.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>template_prioritizer</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Specifies which prioritization method
+to use.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="makeit.interfaces.template_transformer.TemplateTransformer.load">
 <code class="descname">load</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/template_transformer.html#TemplateTransformer.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.load" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load and initialize templates</p>
+<dd><p>Load and initialize templates.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.interfaces.template_transformer.TemplateTransformer.load_databases">
 <code class="descname">load_databases</code><span class="sig-paren">(</span><em>retro</em>, <em>chiral=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/template_transformer.html#TemplateTransformer.load_databases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.load_databases" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Loads the databases specified by the global config.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>retro</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Whether to load the retrosynthetic databases.</li>
+<li><strong>chiral</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to properly handle chirality.
+(default: {False})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="makeit.interfaces.template_transformer.TemplateTransformer.load_from_database">
 <code class="descname">load_from_database</code><span class="sig-paren">(</span><em>retro</em>, <em>chiral=False</em>, <em>refs=False</em>, <em>rxns=True</em>, <em>efgs=False</em>, <em>rxn_ex=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/template_transformer.html#TemplateTransformer.load_from_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.load_from_database" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Read the template database from the database.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>retro</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Whether in the retrosynthetic direction.</li>
+<li><strong>chiral</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to handle chirality properly
+(only for retro for now). (default: {False})</li>
+<li><strong>refs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include references.
+(default: {False})</li>
+<li><strong>rxns</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to actually load the reaction objects
+(or just the info). (default: {True})</li>
+<li><strong>efgs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include efg information.
+(default: {False})</li>
+<li><strong>rxn_ex</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include reaction examples.
+(default: {False})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="makeit.interfaces.template_transformer.TemplateTransformer.load_from_file">
 <code class="descname">load_from_file</code><span class="sig-paren">(</span><em>retro</em>, <em>file_path</em>, <em>chiral=False</em>, <em>rxns=True</em>, <em>refs=False</em>, <em>efgs=False</em>, <em>rxn_ex=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/template_transformer.html#TemplateTransformer.load_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.load_from_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read the template database from a previously saved file, of which the path is specified in the general
-configuration</p>
-<p>retro: whether in the retrosynthetic direction
-file_path: .pickle file to read dumped templates from
-chiral: whether to handle chirality properly (only for retro for now)
-rxns : whether or not to actually load the reaction objects (or just the info)</p>
+<dd><p>Read the template database from a previously saved file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>retro</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a>) – Whether in the retrosynthetic direction.</li>
+<li><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Pickle file to read dumped templates from.</li>
+<li><strong>chiral</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to handle chirality properly
+(only for retro for now). (default: {False})</li>
+<li><strong>rxns</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to actually load the reaction objects
+(or just the info). (default: {True})</li>
+<li><strong>refs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include references.
+(default: {False})</li>
+<li><strong>efgs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include efg information.
+(default: {False})</li>
+<li><strong>rxn_ex</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include reaction examples.
+(default: {False})</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.interfaces.template_transformer.TemplateTransformer.lookup_id">
 <code class="descname">lookup_id</code><span class="sig-paren">(</span><em>template_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/template_transformer.html#TemplateTransformer.lookup_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.lookup_id" title="Permalink to this definition">¶</a></dt>
-<dd><p>Find the reaction smarts for this template_id</p>
+<dd><p>Find the reaction SMARTS for this template_id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>template_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – ID of requested template.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Reaction SMARTS for requested template.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.interfaces.template_transformer.TemplateTransformer.reorder">
 <code class="descname">reorder</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/interfaces/template_transformer.html#TemplateTransformer.reorder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.interfaces.template_transformer.TemplateTransformer.reorder" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reorder self.templates in descending popularity. Also builds id_to_index table</p>
+<dd><p>Reorder self.templates in descending popularity.</p>
+<p>Also builds id_to_index table.</p>
 </dd></dl>
 
 </dd></dl>

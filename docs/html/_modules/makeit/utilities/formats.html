@@ -34,24 +34,42 @@
             
   <h1>Source code for makeit.utilities.formats</h1><div class="highlight"><pre>
 <div class="viewcode-block" id="chem_dict"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.formats.chem_dict">[docs]</a><span></span><span class="k">def</span> <span class="nf">chem_dict</span><span class="p">(</span><span class="n">_id</span><span class="p">,</span> <span class="n">children</span><span class="o">=</span><span class="p">[],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;Chemical object as expected by website. Removes rct_of, prod_of, and </span>
-<span class="sd">    depth information from the tree_dict entry&#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Returns chemical dictionary in the format required by the website.</span>
+
+<span class="sd">    Chemical object as expected by website. Removes ``rct_of``, ``prod_of``, and</span>
+<span class="sd">    ``depth`` information from the ``tree_dict`` entry.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        _id (int): Chemical ID.</span>
+<span class="sd">        children (list, optional): Children of the node.</span>
+<span class="sd">        **kwargs: The ``tree_dict`` to be modified.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;rct_of&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;prod_of&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;depth&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_id</span> 
-    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;is_chemical&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span> 
-    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;children&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">children</span> 
-    <span class="k">return</span> <span class="n">kwargs</span> </div>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_id</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;is_chemical&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;children&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">children</span>
+    <span class="k">return</span> <span class="n">kwargs</span></div>
 
 
 <div class="viewcode-block" id="rxn_dict"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.formats.rxn_dict">[docs]</a><span class="k">def</span> <span class="nf">rxn_dict</span><span class="p">(</span><span class="n">_id</span><span class="p">,</span> <span class="n">smiles</span><span class="p">,</span> <span class="n">children</span><span class="o">=</span><span class="p">[],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;Reaction object as expected by website. Removes depth and rcts, prod, depth&#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Returns reaction dictionary in the format required by the website.</span>
+
+<span class="sd">    Reaction object as expected by website. Removes ``rct``, ``prod``, and</span>
+<span class="sd">    ``depth`` information from the ``tree_dict`` entry.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        _id (int): Chemical ID.</span>
+<span class="sd">        smiles (str): SMILES string of reaction.</span>
+<span class="sd">        children (list, optional): Children of the node.</span>
+<span class="sd">        **kwargs: The ``tree_dict`` to be modified.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;rcts&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;prod&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;depth&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_id</span>
-    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;is_reaction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span> 
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;is_reaction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;children&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">children</span>
     <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;smiles&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">smiles</span>
     <span class="k">return</span> <span class="n">kwargs</span></div>

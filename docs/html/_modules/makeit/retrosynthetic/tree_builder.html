@@ -36,7 +36,7 @@
 <span></span>
 <span class="kn">import</span> <span class="nn">makeit.global_config</span> <span class="k">as</span> <span class="nn">gc</span>
 <span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="k">import</span> <span class="n">Process</span><span class="p">,</span> <span class="n">Manager</span><span class="p">,</span> <span class="n">Queue</span>
-<span class="kn">import</span> <span class="nn">sys</span> 
+<span class="kn">import</span> <span class="nn">sys</span>
 <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">Queue</span> <span class="k">as</span> <span class="nn">VanillaQueue</span>
 <span class="k">else</span><span class="p">:</span>
@@ -56,55 +56,144 @@
 
 
 <div class="viewcode-block" id="TreeBuilder"><a class="viewcode-back" href="../../../makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder">[docs]</a><span class="k">class</span> <span class="nc">TreeBuilder</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Class for retrosynthetic tree expansion using a depth-first search.</span>
 
+<span class="sd">    Attributes:</span>
+<span class="sd">        celery (bool): Whether or not Celery is being used. If True, then the</span>
+<span class="sd">            TreeBuilder relies on reservable retrotransformer workers</span>
+<span class="sd">            initialized separately. If False, then retrotransformer workers will</span>
+<span class="sd">            be spun up using multiprocessing.</span>
+<span class="sd">        mincount (int): Minimum number of precedents for an achiral template for</span>
+<span class="sd">            inclusion in the template library. Only used when retrotransformers</span>
+<span class="sd">            need to be initialized.</span>
+<span class="sd">        mincount_chiral (int): Minimum number of precedents for a chiral</span>
+<span class="sd">            template for inclusion in the template library. Only used when</span>
+<span class="sd">            retrotransformers need to be initialized. Chiral templates are</span>
+<span class="sd">            necessarily more specific, so we generally use a lower threshold</span>
+<span class="sd">            than achiral templates.</span>
+<span class="sd">        max_depth (int): Maximum number of reactions to allow before stopping</span>
+<span class="sd">            the recursive expansion down one branch.</span>
+<span class="sd">        max_branching (int): Maximum number of precursor suggestions to add to</span>
+<span class="sd">            the tree at each expansion.</span>
+<span class="sd">        expansion_time (int): Time (in seconds) to allow for expansion before</span>
+<span class="sd">            searching the generated tree for buyable pathways.</span>
+<span class="sd">        template_prioritization (str): Strategy used for template</span>
+<span class="sd">            prioritization, as a string. There are a limited number of</span>
+<span class="sd">            available options - consult the global configuration file for info.</span>
+<span class="sd">        precursor_prioritization (str): Strategy used for precursor</span>
+<span class="sd">            prioritization, as a string. There are a limited number of available</span>
+<span class="sd">            options - consult the global configuration file for info.</span>
+<span class="sd">        precursor_score_mode (str): Mode to use for precursor scoring when using</span>
+<span class="sd">            the SCScore prioritizer and multiple reactant fragments must be</span>
+<span class="sd">            scored together.</span>
+<span class="sd">        nproc (int): Number of retrotransformer processes to fork for faster</span>
+<span class="sd">            expansion.</span>
+<span class="sd">        template_count (int): Maximum number of templates to apply at each</span>
+<span class="sd">            expansion.</span>
+<span class="sd">        max_cum_template_prob (float): Maximum cumulative template probability</span>
+<span class="sd">            (i.e., relevance score), used as part of the relevance</span>
+<span class="sd">            template_prioritizer.</span>
+<span class="sd">        max_ppg (int or float): Maximum price ($/g) for a chemical to be</span>
+<span class="sd">            considered buyable, and thus potentially usable as a leaf node.</span>
+<span class="sd">        apply_fast_filter (bool): Whether to use the fast filter.</span>
+<span class="sd">        *filter_threshold (float):</span>
+<span class="sd">        chiral (bool):  Whether or not to pay close attention to chirality. When</span>
+<span class="sd">            False, even achiral templates can lead to accidental inversion of</span>
+<span class="sd">            chirality in non-reacting parts of the molecule. It is highly</span>
+<span class="sd">            recommended to keep this as True.</span>
+<span class="sd">        pricer (Pricer): Pricer object to be used for checking stop criteria</span>
+<span class="sd">            (buyability).</span>
+<span class="sd">        chemhistorian (ChemHistorian): ChemHistorian object used to see how</span>
+<span class="sd">            often chemicals have occured in database.</span>
+<span class="sd">        retroTransformer (RetroTransformer): RetroTransformer object to be used</span>
+<span class="sd">            for expansion when *not* using Celery.</span>
+<span class="sd">        *pending_results (list of ??):</span>
+<span class="sd">        *is_ready (list of ??):</span>
+<span class="sd">        *expansion_queues (Queue of 2-tuples of (int, str)):</span>
+<span class="sd">        *private_worker_queue ():</span>
+<span class="sd">        *running (bool):</span>
+<span class="sd">        *done (Manager.Value(str, int)):</span>
+<span class="sd">        *tree_dict (dict or Manager.dict):</span>
+<span class="sd">        *chem_to_id (dict or Manager.dict):</span>
+<span class="sd">        *buyable_leaves (set of Manager.list):</span>
+<span class="sd">        *current_id (int or Manager.Value(str, int)):</span>
+<span class="sd">        *manager (Manager):</span>
+<span class="sd">        *paused (Manager.Value(str, int)):</span>
+<span class="sd">        *idle (list of bool):</span>
+<span class="sd">        *results_queue (Queue):</span>
+<span class="sd">        *workers (list of ??):</span>
+<span class="sd">        *coordinator (None):</span>
+<span class="sd">        known_bad_reactions (list of str): Reactions to forbid during expansion,</span>
+<span class="sd">            represented as list of reaction SMILES strings. Each reaction SMILES</span>
+<span class="sd">            must be canonicalized, have atom mapping removed, and have its</span>
+<span class="sd">            reactant fragments be sorted. Forbidden reactions are checked when</span>
+<span class="sd">            processing children returned by the RetroTransformer.</span>
+<span class="sd">        forbidden_molecules (list of str): Molecules to forbid during expansion,</span>
+<span class="sd">            represented as a list of SMILES strings. Each string must be</span>
+<span class="sd">            canonicalized without atom mapping. Forbidden molecules will not be</span>
+<span class="sd">            allowed as intermediates or leaf nodes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">retroTransformer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pricer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_branching</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">max_depth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">expansion_time</span><span class="o">=</span><span class="mi">240</span><span class="p">,</span>
                  <span class="n">celery</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">nproc</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">mincount</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">chiral</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mincount_chiral</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
                  <span class="n">template_prioritization</span><span class="o">=</span><span class="n">gc</span><span class="o">.</span><span class="n">relevance</span><span class="p">,</span> <span class="n">precursor_prioritization</span><span class="o">=</span><span class="n">gc</span><span class="o">.</span><span class="n">relevanceheuristic</span><span class="p">,</span>
                  <span class="n">chemhistorian</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Class for retrosynthetic tree expansion using a depth-first search</span>
+        <span class="sd">&quot;&quot;&quot;Initialization of an object of the TreeBuilder class.</span>
 
-<span class="sd">        Initialization of an object of the TreeBuilder class sets default values</span>
-<span class="sd">        for various settings and loads transformers as needed (i.e., based on </span>
-<span class="sd">        whether Celery is being used or not). Most settings are overridden</span>
-<span class="sd">        by the get_buyable_paths method anyway.</span>
+<span class="sd">        Sets default values for various settings and loads transformers as</span>
+<span class="sd">        needed (i.e., based on whether Celery is being used or not). Most</span>
+<span class="sd">        settings are overridden by the get_buyable_paths method anyway.</span>
 
-<span class="sd">        Keyword Arguments:</span>
-<span class="sd">            retroTransformer {None or RetroTransformer} -- RetroTransformer object</span>
-<span class="sd">                to be used for expansion when *not* using Celery. If none, </span>
-<span class="sd">                will be initialized using the model_loader.load_Retro_Transformer</span>
-<span class="sd">                function (default: {None})</span>
-<span class="sd">            pricer {Pricer} -- Pricer object to be used for checking stop criteria</span>
-<span class="sd">                (buyability). If none, will be initialized using default settings</span>
-<span class="sd">                from the global configuration (default: {None})</span>
-<span class="sd">            max_branching {number} -- Maximum number of precursor suggestions to</span>
-<span class="sd">                add to the tree at each expansion (default: {20})</span>
-<span class="sd">            max_depth {number} -- Maximum number of reactions to allow before</span>
-<span class="sd">                stopping the recursive expansion down one branch (default: {3})</span>
-<span class="sd">            expansion_time {number} -- Time (in seconds) to allow for expansion</span>
-<span class="sd">                before searching the generated tree for buyable pathways (default: {240})</span>
-<span class="sd">            celery {bool} -- Whether or not Celery is being used. If True, then </span>
-<span class="sd">                the TreeBuilder relies on reservable retrotransformer workers</span>
-<span class="sd">                initialized separately. If False, then retrotransformer workers</span>
-<span class="sd">                will be spun up using multiprocessing (default: {False})</span>
-<span class="sd">            nproc {number} -- Number of retrotransformer processes to fork for</span>
-<span class="sd">                faster expansion (default: {1})</span>
-<span class="sd">            mincount {number} -- Minimum number of precedents for an achiral template</span>
-<span class="sd">                for inclusion in the template library. Only used when retrotransformers</span>
-<span class="sd">                need to be initialized (default: {25})</span>
-<span class="sd">            mincount_chiral {number} -- Minimum number of precedents for a chiral template</span>
-<span class="sd">                for inclusion in the template library. Only used when retrotransformers</span>
-<span class="sd">                need to be initialized. Chiral templates are necessarily more specific,</span>
-<span class="sd">                so we generally use a lower threshold than achiral templates (default: {10})</span>
-<span class="sd">            chiral {bool} -- Whether or not to pay close attention to chirality. When </span>
-<span class="sd">                False, even achiral templates can lead to accidental inversion of</span>
-<span class="sd">                chirality in non-reacting parts of the molecule. It is highly </span>
-<span class="sd">                recommended to keep this as True (default: {True})</span>
-<span class="sd">            template_prioritization {string} -- Strategy used for template</span>
-<span class="sd">                prioritization, as a string. There are a limited number of available</span>
-<span class="sd">                options - consult the global configuration file for info (default: {gc.popularity})</span>
-<span class="sd">            precursor_prioritization {string} -- Strategy used for precursor</span>
-<span class="sd">                prioritization, as a string. There are a limited number of available</span>
-<span class="sd">                options - consult the global configuration file for info (default: {gc.heuristic})</span>
+<span class="sd">        Args:</span>
+<span class="sd">            retroTransformer (None or RetroTransformer, optional):</span>
+<span class="sd">                RetroTransformer object to be used for expansion when *not*</span>
+<span class="sd">                using Celery. If None, will be initialized using the</span>
+<span class="sd">                model_loader.load_Retro_Transformer function. (default: {None})</span>
+<span class="sd">            pricer (None or Pricer, optional): Pricer object to be used for</span>
+<span class="sd">                checking stop criteria (buyability). If None, will be</span>
+<span class="sd">                initialized using default settings from the global</span>
+<span class="sd">                configuration. (default: {None})</span>
+<span class="sd">            max_branching (int, optional): Maximum number of precursor</span>
+<span class="sd">                suggestions to add to the tree at each expansion.</span>
+<span class="sd">                (default: {20})</span>
+<span class="sd">            max_depth (int, optional): Maximum number of reactions to allow</span>
+<span class="sd">                before stopping the recursive expansion down one branch.</span>
+<span class="sd">                (default: {3})</span>
+<span class="sd">            expansion_time (int, optional): Time (in seconds) to allow for</span>
+<span class="sd">                expansion before searching the generated tree for buyable</span>
+<span class="sd">                pathways. (default: {240})</span>
+<span class="sd">            celery (bool, optional): Whether or not Celery is being used. If</span>
+<span class="sd">                True, then the TreeBuilder relies on reservable retrotransformer</span>
+<span class="sd">                workers initialized separately. If False, then retrotransformer</span>
+<span class="sd">                workers will be spun up using multiprocessing.</span>
+<span class="sd">                (default: {False})</span>
+<span class="sd">            nproc (int, optional): Number of retrotransformer processes to fork</span>
+<span class="sd">                for faster expansion. (default: {1})</span>
+<span class="sd">            mincount (int, optional): Minimum number of precedents for an</span>
+<span class="sd">                achiral template for inclusion in the template library. Only</span>
+<span class="sd">                used when retrotransformers need to be initialized.</span>
+<span class="sd">                (default: {25})</span>
+<span class="sd">            chiral (bool, optional): Whether or not to pay close attention to</span>
+<span class="sd">                chirality. When False, even achiral templates can lead to</span>
+<span class="sd">                accidental inversion of chirality in non-reacting parts of the</span>
+<span class="sd">                molecule. It is highly recommended to keep this as True.</span>
+<span class="sd">                (default: {True})</span>
+<span class="sd">            mincount_chiral (int, optional): Minimum number of precedents for a</span>
+<span class="sd">                chiral template for inclusion in the template library. Only used</span>
+<span class="sd">                when retrotransformers need to be initialized. Chiral templates</span>
+<span class="sd">                are necessarily more specific, so we generally use a lower</span>
+<span class="sd">                threshold than achiral templates. (default: {10})</span>
+<span class="sd">            template_prioritization (str, optional): Strategy used for template</span>
+<span class="sd">                prioritization, as a string. There are a limited number of</span>
+<span class="sd">                available options - consult the global configuration file for</span>
+<span class="sd">                info. (default: {gc.popularity})</span>
+<span class="sd">            precursor_prioritization (str, optional): Strategy used for</span>
+<span class="sd">                precursor prioritization, as a string. There are a limited</span>
+<span class="sd">                number of available options - consult the global configuration</span>
+<span class="sd">                file for info. (default: {gc.heuristic})</span>
+<span class="sd">            chemhistorian (None or ChemHistorian, optional): ChemHistorian</span>
+<span class="sd">                object used to see how often chemicals have occured in</span>
+<span class="sd">                database. If None, will be loaded from the default file in the</span>
+<span class="sd">                global configuration. (default: {None})</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># General parameters</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">celery</span> <span class="o">=</span> <span class="n">celery</span>
@@ -127,7 +216,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">chemhistorian</span> <span class="o">=</span> <span class="n">chemhistorian</span>
         <span class="k">if</span> <span class="n">chemhistorian</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">makeit.utilities.historian.chemicals</span> <span class="k">import</span> <span class="n">ChemHistorian</span> 
+            <span class="kn">from</span> <span class="nn">makeit.utilities.historian.chemicals</span> <span class="k">import</span> <span class="n">ChemHistorian</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">chemhistorian</span> <span class="o">=</span> <span class="n">ChemHistorian</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">chemhistorian</span><span class="o">.</span><span class="n">load_from_file</span><span class="p">(</span><span class="n">refs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">compressed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -145,11 +234,13 @@
         <span class="c1"># Define method to check if all results processed</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">celery</span><span class="p">:</span>
             <span class="k">def</span> <span class="nf">waiting_for_results</span><span class="p">():</span>
+                <span class="sd">&quot;&quot;&quot;Returns if results are being processed by Celery.&quot;&quot;&quot;</span>
                 <span class="c1"># update</span>
                 <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pending_results</span> <span class="o">!=</span> <span class="p">[]</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_ready</span> <span class="o">!=</span> <span class="p">[]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">def</span> <span class="nf">waiting_for_results</span><span class="p">():</span>
+                <span class="sd">&quot;&quot;&quot;Returns if results are being processed by multiprocessing.&quot;&quot;&quot;</span>
                 <span class="n">waiting</span> <span class="o">=</span> <span class="p">[</span><span class="n">expansion_queue</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
                            <span class="k">for</span> <span class="n">expansion_queue</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">expansion_queues</span><span class="p">]</span>
                 <span class="n">waiting</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">results_queue</span><span class="o">.</span><span class="n">empty</span><span class="p">())</span>
@@ -162,6 +253,7 @@
         <span class="c1"># Define method to get a processed result.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">celery</span><span class="p">:</span>
             <span class="k">def</span> <span class="nf">get_ready_result</span><span class="p">():</span>
+                <span class="sd">&quot;&quot;&quot;Yields a processed result from Celery.&quot;&quot;&quot;</span>
                 <span class="c1"># Update which processes are ready</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">is_ready</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">res</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">pending_results</span><span class="p">)</span> <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">ready</span><span class="p">()]</span>
@@ -176,6 +268,7 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">pending_results</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_ready</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">def</span> <span class="nf">get_ready_result</span><span class="p">():</span>
+                <span class="sd">&quot;&quot;&quot;Yields a processed result from multiprocessing.&quot;&quot;&quot;</span>
                 <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">results_queue</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
                     <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">results_queue</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span>
 
@@ -185,6 +278,10 @@
         <span class="c1"># note: Celery will reserve an entire preforked pool of workers</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">celery</span><span class="p">:</span>
             <span class="k">def</span> <span class="nf">prepare</span><span class="p">():</span>
+                <span class="sd">&quot;&quot;&quot;Starts up parallelization for Celery.</span>
+
+<span class="sd">                Note: Celery will reserve an entire preforked pool of workers.</span>
+<span class="sd">                &quot;&quot;&quot;</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chiral</span><span class="p">:</span>
                         <span class="n">request</span> <span class="o">=</span> <span class="n">tb_c_worker</span><span class="o">.</span><span class="n">reserve_worker_pool</span><span class="o">.</span><span class="n">delay</span><span class="p">()</span>
@@ -198,6 +295,7 @@
                         <span class="s1">&#39;Did not find an available pool of workers! Try again later (</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">def</span> <span class="nf">prepare</span><span class="p">():</span>
+                <span class="sd">&quot;&quot;&quot;Starts up parallelization for multiprocessing.&quot;&quot;&quot;</span>
                 <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Tree builder spinning off </span><span class="si">{}</span><span class="s1"> child processes&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">nproc</span><span class="p">),</span> <span class="n">treebuilder_loc</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nproc</span><span class="p">):</span>
@@ -209,6 +307,7 @@
         <span class="c1"># Define method to stop working.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">celery</span><span class="p">:</span>
             <span class="k">def</span> <span class="nf">stop</span><span class="p">():</span>
+                <span class="sd">&quot;&quot;&quot;Stops Celery workers.&quot;&quot;&quot;</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pending_results</span> <span class="o">!=</span> <span class="p">[]:</span>
                     <span class="c1"># OPTION 1 - REVOKE TASKS, WHICH GETS SENT TO ALL WORKERS REGARDLESS OF TYPE</span>
                     <span class="c1">#[res.revoke() for res in pending_results]</span>
@@ -227,6 +326,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">def</span> <span class="nf">stop</span><span class="p">():</span>
+                <span class="sd">&quot;&quot;&quot;Stops multiprocessing workers.&quot;&quot;&quot;</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
                     <span class="k">return</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">1</span>
@@ -243,6 +343,7 @@
 
         <span class="c1"># Define method to expand a single compound</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">celery</span><span class="p">:</span>
+            <span class="sd">&quot;&quot;&quot;Expands a single compound with Celery.&quot;&quot;&quot;</span>
             <span class="k">def</span> <span class="nf">expand</span><span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="n">chem_id</span><span class="p">,</span> <span class="n">depth</span><span class="p">):</span>
                 <span class="c1"># Chiral transformation or heuristic prioritization requires</span>
                 <span class="c1"># same database</span>
@@ -278,6 +379,7 @@
                     <span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">def</span> <span class="nf">expand</span><span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="n">chem_id</span><span class="p">,</span> <span class="n">depth</span><span class="p">):</span>
+                <span class="sd">&quot;&quot;&quot;Expands a single compound with multiprocessing.&quot;&quot;&quot;</span>
                 <span class="c1">#print(&#39;Coordinator put {} (ID {}) in queue queue {}&#39;.format(smiles, chem_id, depth))</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">expansion_queues</span><span class="p">[</span><span class="n">depth</span><span class="p">]</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">chem_id</span><span class="p">,</span> <span class="n">smiles</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">expand</span> <span class="o">=</span> <span class="n">expand</span>
@@ -285,9 +387,11 @@
         <span class="c1"># Define how first target is set.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">celery</span><span class="p">:</span>
             <span class="k">def</span> <span class="nf">set_initial_target</span><span class="p">(</span><span class="n">smiles</span><span class="p">):</span>
+                <span class="sd">&quot;&quot;&quot;Sets first target for Celery.&quot;&quot;&quot;</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">def</span> <span class="nf">set_initial_target</span><span class="p">(</span><span class="n">smiles</span><span class="p">):</span>
+                <span class="sd">&quot;&quot;&quot;Sets first target for multiprocessing.&quot;&quot;&quot;</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">expansion_queues</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">smiles</span><span class="p">))</span>
                 <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expansion_queues</span><span class="p">)</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Put something on expansion queue&#39;</span><span class="p">)</span>
@@ -297,7 +401,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">set_initial_target</span> <span class="o">=</span> <span class="n">set_initial_target</span>
 
 <div class="viewcode-block" id="TreeBuilder.reset"><a class="viewcode-back" href="../../../makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Clears saved state and resets counters</span>
+        <span class="sd">&quot;&quot;&quot;Clears saved state and resets counters.</span>
 
 <span class="sd">        Called after initialization and after getting buyable pathways</span>
 <span class="sd">        to free up memory and - in the case of Celery - be prepared to</span>
@@ -335,19 +439,19 @@
 <div class="viewcode-block" id="TreeBuilder.get_children"><a class="viewcode-back" href="../../../makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.get_children">[docs]</a>    <span class="k">def</span> <span class="nf">get_children</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">precursors</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Reformats result of an expansion for tree buidler</span>
 
-<span class="sd">        Arguments:</span>
-<span class="sd">            precursors {list of dicts} -- precursor information as a list of</span>
+<span class="sd">        Args:</span>
+<span class="sd">            precursors (list of dicts): Precursor information as a list of</span>
 <span class="sd">                dictionaries, where each dictionary contains information about</span>
 <span class="sd">                the precursor identity and auxiliary information like</span>
 <span class="sd">                whether the template requires heavy atoms to be contributed</span>
 <span class="sd">                by reagents.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            [list of (dict, list)] -- precursor information reformatted into</span>
-<span class="sd">                a list of 2-tuples, where the 2-tuple consists of a dictionary</span>
-<span class="sd">                containing basically the same information as the precursor </span>
+<span class="sd">            list of (dict, list): Precursor information reformatted into a list</span>
+<span class="sd">                of 2-tuples, where the 2-tuple consists of a dictionary</span>
+<span class="sd">                containing basically the same information as the precursor</span>
 <span class="sd">                dictionaries, as well as the smiles_split of the precursor,</span>
-<span class="sd">                which is a list of reactant SMILES strings</span>
+<span class="sd">                which is a list of reactant SMILES strings.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">children</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">precursor</span> <span class="ow">in</span> <span class="n">precursors</span><span class="p">:</span>
@@ -367,14 +471,14 @@
         <span class="k">return</span> <span class="n">children</span></div>
 
 <div class="viewcode-block" id="TreeBuilder.add_children"><a class="viewcode-back" href="../../../makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.add_children">[docs]</a>    <span class="k">def</span> <span class="nf">add_children</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">children</span><span class="p">,</span> <span class="n">smiles</span><span class="p">,</span> <span class="n">unique_id</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add results of one expansion to the tree dictionary</span>
+        <span class="sd">&quot;&quot;&quot;Add results of one expansion to the tree dictionary.</span>
 
-<span class="sd">        Arguments:</span>
-<span class="sd">            children {list of (dict, list)} -- list of candidate disconnections</span>
-<span class="sd">                for the target SMILES, formatted as returned by get_children()</span>
-<span class="sd">            smiles {string} -- SMILES string of product (target) molecule</span>
-<span class="sd">            unique_id {integer &gt;= 1} -- ID of product (target) molecule in the</span>
-<span class="sd">                tree dictionary</span>
+<span class="sd">        Args:</span>
+<span class="sd">            children (list of (dict, list)): Candidate disconnections for the</span>
+<span class="sd">                target SMILES, formatted as returned by get_children().</span>
+<span class="sd">            smiles (str): SMILES string of product (target) molecule.</span>
+<span class="sd">            unique_id (int &gt;= 1): ID of product (target) molecule in the</span>
+<span class="sd">                tree dictionary.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">parent_chem_doc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_dict</span><span class="p">[</span><span class="n">unique_id</span><span class="p">]</span>  <span class="c1"># copy to overwrite later</span>
@@ -483,15 +587,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">tree_dict</span><span class="p">[</span><span class="n">unique_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">parent_chem_doc</span></div>
 
 <div class="viewcode-block" id="TreeBuilder.work"><a class="viewcode-back" href="../../../makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.work">[docs]</a>    <span class="k">def</span> <span class="nf">work</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Work function for retroTransformer processes</span>
+        <span class="sd">&quot;&quot;&quot;Work function for retroTransformer processes.</span>
 
 <span class="sd">        Only used when Celery is false and multiprocessing is used instead. Will</span>
-<span class="sd">        constantly look for molecules on expansion queues to expand (in a DFS) </span>
+<span class="sd">        constantly look for molecules on expansion queues to expand (in a DFS)</span>
 <span class="sd">        and add results to the results queue.</span>
 
 <span class="sd">        Arguments:</span>
-<span class="sd">            i {integer &gt;= 0} -- index assigned to the worker, used to assign</span>
-<span class="sd">                idle status to the shared list self.idle[i]</span>
+<span class="sd">            i (int &gt;= 0): Index assigned to the worker, used to assign idle</span>
+<span class="sd">                status to the shared list self.idle[i].</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
             <span class="c1"># If done, stop</span>
@@ -522,7 +626,7 @@
                     <span class="n">precursors</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">return_top</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_branching</span><span class="p">)</span>
 
                     <span class="bp">self</span><span class="o">.</span><span class="n">results_queue</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">_id</span><span class="p">,</span> <span class="n">smiles</span><span class="p">,</span> <span class="n">precursors</span><span class="p">))</span>
-                    
+
 
                 <span class="k">except</span> <span class="n">VanillaQueue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
                     <span class="c1">#print(&#39;Queue {} empty for worker {}&#39;.format(j, i))</span>
@@ -534,8 +638,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">idle</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span></div>
 
 <div class="viewcode-block" id="TreeBuilder.coordinate"><a class="viewcode-back" href="../../../makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.coordinate">[docs]</a>    <span class="k">def</span> <span class="nf">coordinate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Run the expansion up to a specified self.expansion_time (seconds)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Run the expansion for specified ``self.expansion_time`` (seconds).&quot;&quot;&quot;</span>
         <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
         <span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
         <span class="nb">next</span> <span class="o">=</span> <span class="mi">1</span>
@@ -554,10 +657,10 @@
                 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;##ERROR#: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="TreeBuilder.build_tree"><a class="viewcode-back" href="../../../makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.build_tree">[docs]</a>    <span class="k">def</span> <span class="nf">build_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Recursively build out the synthesis tree</span>
+        <span class="sd">&quot;&quot;&quot;Recursively build out the synthesis tree.</span>
 
 <span class="sd">        Arguments:</span>
-<span class="sd">            target {string} -- SMILES of target molecule</span>
+<span class="sd">            target (string): SMILES of target molecule.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">celery</span><span class="p">:</span>
@@ -593,13 +696,13 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TreeBuilder.tree_status"><a class="viewcode-back" href="../../../makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.tree_status">[docs]</a>    <span class="k">def</span> <span class="nf">tree_status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Summarize size of tree after expansion</span>
+        <span class="sd">&quot;&quot;&quot;Summarize size of tree after expansion.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            num_chemicals {int} -- number of chemical nodes in the tree</span>
-<span class="sd">            num_reactions {int} -- number of reaction nodes in the tree</span>
-<span class="sd">            at_depth {dict} -- dictionary containing counts at each integer</span>
-<span class="sd">                depth (chemicals) and half-integer depth (reactions)</span>
+<span class="sd">            num_chemicals (int): Number of chemical nodes in the tree.</span>
+<span class="sd">            num_reactions (int): Number of reaction nodes in the tree.</span>
+<span class="sd">            at_depth (dict): Dictionary containing counts at each integer</span>
+<span class="sd">                depth (chemicals) and half-integer depth (reactions).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">num_chemicals</span> <span class="o">=</span> <span class="mi">0</span>
@@ -623,74 +726,87 @@
                           <span class="n">max_cum_template_prob</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_natom_dict</span><span class="o">=</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="mf">1e9</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;logic&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}),</span>
                           <span class="n">min_chemical_history_dict</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;as_reactant&#39;</span><span class="p">:</span><span class="mf">1e9</span><span class="p">,</span> <span class="s1">&#39;as_product&#39;</span><span class="p">:</span><span class="mf">1e9</span><span class="p">,</span><span class="s1">&#39;logic&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">},</span>
                           <span class="n">apply_fast_filter</span><span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">filter_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get viable synthesis trees using an iterative deepening depth-first search</span>
+        <span class="sd">&quot;&quot;&quot;Get viable synthesis trees using an iterative depth-first search.</span>
 
-<span class="sd">        [description]</span>
-
-<span class="sd">        Arguments:</span>
-<span class="sd">            target {[type]} -- [description]</span>
-
-<span class="sd">        Keyword Arguments:</span>
-<span class="sd">            max_depth {number} -- Maximum number of reactions to allow before</span>
-<span class="sd">                stopping the recursive expansion down one branch (default: {3})</span>
-<span class="sd">            max_branching {number} -- Maximum number of precursor suggestions to</span>
-<span class="sd">                add to the tree at each expansion (default: {25})</span>
-<span class="sd">            expansion_time {number} -- Time (in seconds) to allow for expansion</span>
-<span class="sd">                before searching the generated tree for buyable pathways (default: {240})</span>
-<span class="sd">            nproc {number} -- Number of retrotransformer processes to fork for</span>
-<span class="sd">                faster expansion (default: {1})</span>
-<span class="sd">            mincount {number} -- Minimum number of precedents for an achiral template</span>
-<span class="sd">                for inclusion in the template library. Only used when retrotransformers</span>
-<span class="sd">                need to be initialized (default: {25})</span>
-<span class="sd">            mincount_chiral {number} -- Minimum number of precedents for a chiral template</span>
-<span class="sd">                for inclusion in the template library. Only used when retrotransformers</span>
-<span class="sd">                need to be initialized. Chiral templates are necessarily more specific,</span>
-<span class="sd">                so we generally use a lower threshold than achiral templates (default: {10})</span>
-<span class="sd">            chiral {bool} -- Whether or not to pay close attention to chirality. When </span>
-<span class="sd">                False, even achiral templates can lead to accidental inversion of</span>
-<span class="sd">                chirality in non-reacting parts of the molecule. It is highly </span>
-<span class="sd">                recommended to keep this as True (default: {True})</span>
-<span class="sd">            template_prioritization {string} -- Strategy used for template</span>
-<span class="sd">                prioritization, as a string. There are a limited number of available</span>
-<span class="sd">                options - consult the global configuration file for info (default: {gc.relevance})</span>
-<span class="sd">            precursor_prioritization {string} -- Strategy used for precursor</span>
-<span class="sd">                prioritization, as a string. There are a limited number of available</span>
-<span class="sd">                options - consult the global configuration file for info (default: {gc.heuristic})</span>
-<span class="sd">            max_trees {number} -- Maximum number of buyable trees to return. Does</span>
-<span class="sd">                not affect expansion time (default: {25})</span>
-<span class="sd">            max_ppg {number} -- Maximum price ($/g) for a chemical to be considered</span>
-<span class="sd">                buyable, and thus potentially usable as a leaf node (default: {1e10})</span>
-<span class="sd">            known_bad_reactions {list} -- Reactions to forbid during expansion, </span>
-<span class="sd">                represented as list of reaction SMILES strings. Each reaction SMILES</span>
-<span class="sd">                must be canonicalized, have atom mapping removed, and have its</span>
-<span class="sd">                reactant fragments be sorted. Forbidden reactions are checked </span>
-<span class="sd">                when processing children returned by the RetroTransformer (default: {[]})</span>
-<span class="sd">            forbidden_molecules {list} -- Molecules to forbid during expansion, </span>
-<span class="sd">                represented as a list of SMILES strings. Each string must be</span>
-<span class="sd">                canonicalized without atom mapping. Forbidden molecules will not</span>
-<span class="sd">                be allowed as intermediates or leaf nodes (default: {[]})</span>
-<span class="sd">            template_count {number} -- Maximum number of templates to apply at</span>
-<span class="sd">                each expansion (default: {100})</span>
-<span class="sd">            precursor_score_mode {string} -- Mode to use for precursor scoring</span>
-<span class="sd">                when using the SCScore prioritizer and multiple reactant</span>
-<span class="sd">                fragments must be scored together (default: {gc.max})</span>
-<span class="sd">            max_cum_template_prob {number} -- Maximum cumulative template</span>
+<span class="sd">        Args:</span>
+<span class="sd">            target (str): SMILES string of target molecule.</span>
+<span class="sd">            max_depth (int, optional): Maximum number of reactions to allow</span>
+<span class="sd">                before stopping the recursive expansion down one branch.</span>
+<span class="sd">                (default: {3})</span>
+<span class="sd">            max_branching (int, optional): Maximum number of precursor</span>
+<span class="sd">                suggestions to add to the tree at each expansion.</span>
+<span class="sd">                (default: {25})</span>
+<span class="sd">            expansion_time (int, optional): Time (in seconds) to allow for</span>
+<span class="sd">                expansion before searching the generated tree for buyable</span>
+<span class="sd">                pathways. (default: {240})</span>
+<span class="sd">            template_prioritization (str, optional): Strategy used for template</span>
+<span class="sd">                prioritization, as a string. There are a limited number of</span>
+<span class="sd">                available options - consult the global configuration file for</span>
+<span class="sd">                info. (default: {gc.relevance})</span>
+<span class="sd">            precursor_prioritization (str, optional): Strategy used for</span>
+<span class="sd">                precursor prioritization, as a string. There are a limited</span>
+<span class="sd">                number of available options - consult the global configuration</span>
+<span class="sd">                file for info. (default: {gc.heuristic})</span>
+<span class="sd">            nproc (int, optional): Number of retrotransformer processes to fork</span>
+<span class="sd">                for faster expansion. (default: {1})</span>
+<span class="sd">            mincount (int, optional): Minimum number of precedents for an</span>
+<span class="sd">                achiral template for inclusion in the template library. Only</span>
+<span class="sd">                used when retrotransformers need to be initialized.</span>
+<span class="sd">                (default: {25})</span>
+<span class="sd">            chiral (bool, optional): Whether or not to pay close attention to</span>
+<span class="sd">                chirality. When False, even achiral templates can lead to</span>
+<span class="sd">                accidental inversion of chirality in non-reacting parts of the</span>
+<span class="sd">                molecule. It is highly recommended to keep this as True.</span>
+<span class="sd">                (default: {True})</span>
+<span class="sd">            mincount_chiral (int, optional): Minimum number of precedents for a</span>
+<span class="sd">                chiral template for inclusion in the template library. Only used</span>
+<span class="sd">                when retrotransformers need to be initialized. Chiral templates</span>
+<span class="sd">                are necessarily more specific, so we generally use a lower</span>
+<span class="sd">                threshold than achiral templates. (default: {10})</span>
+<span class="sd">            max_trees (int, optional): Maximum number of buyable trees to</span>
+<span class="sd">                return. Does not affect expansion time. (default: {25})</span>
+<span class="sd">            max_ppg (int or float, optional): Maximum price ($/g) for a chemical</span>
+<span class="sd">                to be considered buyable, and thus potentially usable as a leaf</span>
+<span class="sd">                node. (default: {1e10})</span>
+<span class="sd">            known_bad_reactions (list of str, optional): Reactions to forbid</span>
+<span class="sd">                during expansion, represented as list of reaction SMILES</span>
+<span class="sd">                strings. Each reaction SMILES must be canonicalized, have atom</span>
+<span class="sd">                mapping removed, and have its reactant fragments be sorted.</span>
+<span class="sd">                Forbidden reactions are checked when processing children</span>
+<span class="sd">                returned by the RetroTransformer. (default: {[]})</span>
+<span class="sd">            forbidden_molecules (list of str, optional):) Molecules to forbid</span>
+<span class="sd">                during expansion, represented as a list of SMILES strings. Each</span>
+<span class="sd">                string must be canonicalized without atom mapping. Forbidden</span>
+<span class="sd">                molecules will not be allowed as intermediates or leaf nodes.</span>
+<span class="sd">                (default: {[]})</span>
+<span class="sd">            template_count (int, optional): Maximum number of templates to apply</span>
+<span class="sd">                at each expansion. (default: {100})</span>
+<span class="sd">            precursor_score_mode (str, optional): Mode to use for precursor</span>
+<span class="sd">                scoring when using the SCScore prioritizer and multiple reactant</span>
+<span class="sd">                fragments must be scored together. (default: {gc.max})</span>
+<span class="sd">            max_cum_template_prob (float, optional): Maximum cumulative template</span>
 <span class="sd">                probability (i.e., relevance score), used as part of the</span>
-<span class="sd">                relevance template_prioritizer (default: {1})</span>
-<span class="sd">            max_natom_dict {dict} -- Dictionary defining a potential chemical</span>
-<span class="sd">                property stopping criterion based on the number of atoms of</span>
-<span class="sd">                C, N, O, and H in a molecule. The &#39;logic&#39; keyword of the dict</span>
-<span class="sd">                refers to how that maximum number of atom information is combined</span>
-<span class="sd">                with the requirement that chemicals be cheaper than max_ppg</span>
-<span class="sd">                (default: {defaultdict(lambda: 1e9, {&#39;logic&#39;: None})})</span>
-<span class="sd">            min_chemical_history_dict {dict} -- Dictionary defining a potential</span>
-<span class="sd">                chemical stopping criterion based on the number of times a</span>
-<span class="sd">                molecule has been seen previously. Always uses logical OR</span>
+<span class="sd">                relevance template_prioritizer. (default: {1})</span>
+<span class="sd">            max_natom_dict (dict, optional): Dictionary defining a potential</span>
+<span class="sd">                chemical property stopping criterion based on the number of</span>
+<span class="sd">                atoms of C, N, O, and H in a molecule. The &#39;logic&#39; keyword of</span>
+<span class="sd">                the dict refers to how that maximum number of atom information</span>
+<span class="sd">                is combined with the requirement that chemicals be cheaper than</span>
+<span class="sd">                max_ppg. (default: {defaultdict(lambda: 1e9, {&#39;logic&#39;: None})})</span>
+<span class="sd">            min_chemical_history_dict (dict, optional): Dictionary defining a</span>
+<span class="sd">                potential chemical stopping criterion based on the number of</span>
+<span class="sd">                times a molecule has been seen previously. Always uses logical</span>
+<span class="sd">                OR.</span>
+<span class="sd">                (default: {{&#39;as_reactant&#39;:1e9, &#39;as_product&#39;:1e9,&#39;logic&#39;:None}})</span>
+<span class="sd">            apply_fast_filter (bool, optional): Whether to apply the fast</span>
+<span class="sd">                filter to filter precursors. (default: {False})</span>
+<span class="sd">            filter_threshold (float, optional): Threshld to use with the fast</span>
+<span class="sd">                filter. (default: {0.5})</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            tree_status -- result of tree_status()</span>
-<span class="sd">            trees -- list of dictionaries, where each dictionary defines a</span>
-<span class="sd">                synthetic route</span>
+<span class="sd">            tree_status ((int, int, dict)): Result of tree_status().</span>
+<span class="sd">            trees (list of dict): List of dictionaries, where each dictionary</span>
+<span class="sd">                defines a synthetic route.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">mincount</span> <span class="o">=</span> <span class="n">mincount</span>
@@ -705,7 +821,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">template_count</span> <span class="o">=</span> <span class="n">template_count</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_cum_template_prob</span> <span class="o">=</span> <span class="n">max_cum_template_prob</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_ppg</span> <span class="o">=</span> <span class="n">max_ppg</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">apply_fast_filter</span><span class="o">=</span> <span class="n">apply_fast_filter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply_fast_filter</span> <span class="o">=</span> <span class="n">apply_fast_filter</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">filter_threshold</span> <span class="o">=</span> <span class="n">filter_threshold</span>
 
         <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Starting to expand </span><span class="si">{}</span><span class="s1"> using max_natom_dict </span><span class="si">{}</span><span class="s1">, min_history </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -713,7 +829,7 @@
 
         <span class="k">if</span> <span class="n">min_chemical_history_dict</span><span class="p">[</span><span class="s1">&#39;logic&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;none&#39;</span><span class="p">]</span> <span class="ow">and</span> \
                 <span class="bp">self</span><span class="o">.</span><span class="n">chemhistorian</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">makeit.utilities.historian.chemicals</span> <span class="k">import</span> <span class="n">ChemHistorian</span> 
+            <span class="kn">from</span> <span class="nn">makeit.utilities.historian.chemicals</span> <span class="k">import</span> <span class="n">ChemHistorian</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">chemhistorian</span> <span class="o">=</span> <span class="n">ChemHistorian</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">chemhistorian</span><span class="o">.</span><span class="n">load_from_file</span><span class="p">(</span><span class="n">refs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">compressed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Loaded compressed chemhistorian from file&#39;</span><span class="p">,</span> <span class="n">treebuilder_loc</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -736,7 +852,7 @@
         <span class="k">def</span> <span class="nf">is_popular_enough</span><span class="p">(</span><span class="n">hist</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">hist</span><span class="p">[</span><span class="s1">&#39;as_reactant&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">min_chemical_history_dict</span><span class="p">[</span><span class="s1">&#39;as_reactant&#39;</span><span class="p">]</span> <span class="ow">or</span> \
                     <span class="n">hist</span><span class="p">[</span><span class="s1">&#39;as_product&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">min_chemical_history_dict</span><span class="p">[</span><span class="s1">&#39;as_product&#39;</span><span class="p">]</span>
-        
+
         <span class="k">if</span> <span class="n">min_chemical_history_dict</span><span class="p">[</span><span class="s1">&#39;logic&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;none&#39;</span><span class="p">]:</span>
             <span class="k">if</span> <span class="n">max_natom_dict</span><span class="p">[</span><span class="s1">&#39;logic&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;none&#39;</span><span class="p">]:</span>
                 <span class="k">def</span> <span class="nf">is_a_leaf_node</span><span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="n">ppg</span><span class="p">,</span> <span class="n">hist</span><span class="p">):</span>
@@ -757,7 +873,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">def</span> <span class="nf">is_a_leaf_node</span><span class="p">(</span><span class="n">smiles</span><span class="p">,</span> <span class="n">ppg</span><span class="p">,</span> <span class="n">hist</span><span class="p">):</span>
                     <span class="k">return</span> <span class="n">is_popular_enough</span><span class="p">(</span><span class="n">hist</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">is_buyable</span><span class="p">(</span><span class="n">ppg</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_small_enough</span><span class="p">(</span><span class="n">smiles</span><span class="p">))</span>
-            
+
         <span class="bp">self</span><span class="o">.</span><span class="n">is_a_leaf_node</span> <span class="o">=</span> <span class="n">is_a_leaf_node</span>
 
         <span class="c1"># Override: if relevance method is used, chiral database must be used!</span>
@@ -788,30 +904,28 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">build_tree</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">IDDFS</span><span class="p">():</span>
-            <span class="sd">&quot;&quot;&quot;Perform an iterative deepening depth-first search to find buyable</span>
-<span class="sd">            pathways.</span>
-<span class="sd">                        </span>
+            <span class="sd">&quot;&quot;&quot;Finds valid pathways with iterative deepening depth-first search.</span>
+
 <span class="sd">            Yields:</span>
-<span class="sd">                nested dictionaries defining synthesis trees</span>
+<span class="sd">                Nested dictionaries defining synthesis trees.</span>
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="k">for</span> <span class="n">depth</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
                 <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">DLS_chem</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">depth</span><span class="p">,</span> <span class="n">headNode</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
                     <span class="k">yield</span> <span class="n">chem_dict</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">children</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">tree_dict</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
         <span class="k">def</span> <span class="nf">DLS_chem</span><span class="p">(</span><span class="n">chem_id</span><span class="p">,</span> <span class="n">depth</span><span class="p">,</span> <span class="n">headNode</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Expand at a fixed depth for the current node chem_id.</span>
-<span class="sd">            </span>
-<span class="sd">            Arguments:</span>
-<span class="sd">                chem_id {int &gt;= 1} -- unique ID of the current chemical</span>
-<span class="sd">                depth {int &gt;= 0} -- current depth of the search</span>
-<span class="sd">            </span>
-<span class="sd">            Keyword Arguments:</span>
-<span class="sd">                headNode {bool} -- Whether this is the first (head) node, in which</span>
-<span class="sd">                    case it must be expanded even if it is buyable itself (default: {False})</span>
+            <span class="sd">&quot;&quot;&quot;Expand at a fixed depth for the current node ``chem_id``.</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                chem_id (int &gt;= 1): Unique ID of the current chemical.</span>
+<span class="sd">                depth (int &gt;= 0): Current depth of the search.</span>
+<span class="sd">                headNode (bool, optional): Whether this is the first (head)</span>
+<span class="sd">                    node, in which case it must be expanded even if it is</span>
+<span class="sd">                    buyable itself. (default: {False})</span>
 
 <span class="sd">            Yields:</span>
-<span class="sd">                list -- paths connecting to buyable molecules that are children</span>
-<span class="sd">                    of the current chemical</span>
+<span class="sd">                list: Paths connecting to buyable molecules that are children</span>
+<span class="sd">                    of the current chemical.</span>
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="c1"># Copy list so each new branch has separate list.</span>
 
@@ -832,15 +946,15 @@
                             <span class="k">yield</span> <span class="p">[</span><span class="n">rxn_dict</span><span class="p">(</span><span class="n">rxn_id</span><span class="p">,</span> <span class="n">rxn_smiles</span><span class="p">,</span> <span class="n">children</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">tree_dict</span><span class="p">[</span><span class="n">rxn_id</span><span class="p">])]</span>
 
         <span class="k">def</span> <span class="nf">DLS_rxn</span><span class="p">(</span><span class="n">rxn_id</span><span class="p">,</span> <span class="n">depth</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Return children paths starting from a specific rxn_id</span>
-<span class="sd">            </span>
+            <span class="sd">&quot;&quot;&quot;Return children paths starting from a specific ``rxn_id``.</span>
+
 <span class="sd">            Arguments:</span>
-<span class="sd">                rxn_id {int &gt;= 2} -- unique ID of this reaction in the tree_dict</span>
-<span class="sd">                depth {int &gt;= 0} -- current depth of the search</span>
-<span class="sd">            </span>
+<span class="sd">                rxn_id (int &gt;= 2): Unique ID of this reaction in the tree_dict.</span>
+<span class="sd">                depth (int &gt;= 0): Current depth of the search.</span>
+
 <span class="sd">            Yields:</span>
-<span class="sd">                list -- paths connecting to buyable molecules that are children</span>
-<span class="sd">                    of the current reaction</span>
+<span class="sd">                list: paths connecting to buyable molecules that are children</span>
+<span class="sd">                    of the current reaction.</span>
 <span class="sd">            &quot;&quot;&quot;</span>
 
             <span class="c1"># Only one reactant? easy!</span>

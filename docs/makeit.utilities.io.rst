@@ -1,0 +1,70 @@
+makeit.utilities.io package
+===========================
+
+Submodules
+----------
+
+makeit.utilities.io.arg_parser module
+-------------------------------------
+
+.. automodule:: makeit.utilities.io.arg_parser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+makeit.utilities.io.draw module
+-------------------------------
+
+.. automodule:: makeit.utilities.io.draw
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+makeit.utilities.io.files module
+--------------------------------
+
+.. automodule:: makeit.utilities.io.files
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+makeit.utilities.io.logger module
+---------------------------------
+
+.. automodule:: makeit.utilities.io.logger
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+makeit.utilities.io.model_loader module
+---------------------------------------
+
+.. automodule:: makeit.utilities.io.model_loader
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+makeit.utilities.io.name_parser module
+--------------------------------------
+
+.. automodule:: makeit.utilities.io.name_parser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+makeit.utilities.io.pickle module
+---------------------------------
+
+.. automodule:: makeit.utilities.io.pickle
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: makeit.utilities.io
+    :members:
+    :undoc-members:
+    :show-inheritance:

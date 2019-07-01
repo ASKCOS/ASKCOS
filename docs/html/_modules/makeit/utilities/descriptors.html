@@ -41,45 +41,57 @@
 <span class="kn">import</span> <span class="nn">rdkit.Chem.rdChemReactions</span> <span class="k">as</span> <span class="nn">rdRxns</span>
 <span class="kn">from</span> <span class="nn">makeit.utilities.atoms</span> <span class="k">import</span> <span class="n">atom_dftb</span>
 <span class="kn">from</span> <span class="nn">makeit.utilities.io.logger</span> <span class="k">import</span> <span class="n">MyLogger</span>
-<span class="kn">import</span> <span class="nn">rdkit.Chem</span> <span class="k">as</span> <span class="nn">Chem</span> 
+<span class="kn">import</span> <span class="nn">rdkit.Chem</span> <span class="k">as</span> <span class="nn">Chem</span>
 <span class="n">descriptors_loc</span> <span class="o">=</span> <span class="s1">&#39;descriptors&#39;</span>
 
 <span class="n">att_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
 
 <div class="viewcode-block" id="oneHotVector"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.descriptors.oneHotVector">[docs]</a><span class="k">def</span> <span class="nf">oneHotVector</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">lst</span><span class="p">):</span>
-	<span class="sd">&#39;&#39;&#39;Converts a value to a one-hot vector based on options in lst&#39;&#39;&#39;</span>
+	<span class="sd">&quot;&quot;&quot;Converts a value to a one-hot vector based on options in lst.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		val: Value to be one-hot encoded.</span>
+<span class="sd">		lst (list): Options to encode against.</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		list of bool: One-hot vector.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="k">if</span> <span class="n">val</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">lst</span><span class="p">:</span>
 		<span class="n">val</span> <span class="o">=</span> <span class="n">lst</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 	<span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">==</span> <span class="n">val</span><span class="p">,</span> <span class="n">lst</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="rxn_level_descriptors"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.descriptors.rxn_level_descriptors">[docs]</a><span class="k">def</span> <span class="nf">rxn_level_descriptors</span><span class="p">(</span><span class="n">rxn</span><span class="p">):</span>
-	<span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Given an RDKit reaction, returns a reaction fingerprint as a numpy array</span>
+	<span class="sd">&quot;&quot;&quot;Returns a reaction fingerprint as a numpy array.</span>
+
 <span class="sd">	**for very basic testing**</span>
-<span class="sd">	&#39;&#39;&#39;</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		rxn (rdRxns.ChemicalReaction): Reaction to get fingerprint of.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">settings</span> <span class="o">=</span> <span class="n">rdRxns</span><span class="o">.</span><span class="n">ReactionFingerprintParams</span><span class="p">()</span>
 	<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rdRxns</span><span class="o">.</span><span class="n">CreateStructuralFingerprintForReaction</span><span class="p">(</span><span class="n">rxn</span><span class="p">,</span> <span class="n">settings</span><span class="p">))</span></div>
 
 <span class="c1"># def mol_level_descriptors(mol):</span>
-<span class="c1"># 	&#39;&#39;&#39;</span>
-<span class="c1"># 	Given an RDKit mol, returns a list of molecule-level descriptors </span>
+<span class="c1"># 	&quot;&quot;&quot;</span>
+<span class="c1"># 	Given an RDKit mol, returns a list of molecule-level descriptors</span>
 <span class="c1"># 	and their names</span>
 
 <span class="c1"># 	returns: (labels, attributes)</span>
-<span class="c1"># 	&#39;&#39;&#39;</span>
-	
+<span class="c1"># 	&quot;&quot;&quot;</span>
+
 <span class="c1"># 	labels = [label for (label, f) in Descriptors._descList]</span>
 <span class="c1"># 	attributes = [f(mol) for (label, f) in Descriptors._descList]</span>
-	
+
 <span class="c1"># 	return (labels, attributes)</span>
 
 <div class="viewcode-block" id="atom_level_descriptors"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.descriptors.atom_level_descriptors">[docs]</a><span class="k">def</span> <span class="nf">atom_level_descriptors</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">include</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;functional&#39;</span><span class="p">],</span> <span class="n">asOneHot</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">ORIGINAL_VERSION</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-	<span class="sd">&#39;&#39;&#39;</span>
+	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Given an RDKit mol, returns an N_atom-long list of lists,</span>
 <span class="sd">	each of which contains atom-level descriptors and their names</span>
 
-<span class="sd">	returns: (label, attributes)</span>
-<span class="sd">	&#39;&#39;&#39;</span>
+<span class="sd">	Returns:</span>
+<span class="sd">		(labels, attributes)</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="n">attributes</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">mol</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()]</span>
 	<span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
@@ -123,7 +135,7 @@
 		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">attributes</span><span class="p">)):</span>
 			<span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">attributes</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
 				<span class="n">attributes</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-	
+
 	<span class="k">if</span> <span class="s1">&#39;structural&#39;</span> <span class="ow">in</span> <span class="n">include</span><span class="p">:</span>
 		<span class="p">[</span><span class="n">attributes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">atom_structural</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">asOneHot</span> <span class="o">=</span> <span class="n">asOneHot</span><span class="p">,</span> <span class="n">ORIGINAL_VERSION</span> <span class="o">=</span> <span class="n">ORIGINAL_VERSION</span><span class="p">))</span> \
 			<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">attributes</span><span class="p">))]</span>
@@ -135,7 +147,7 @@
 		<span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span><span class="c1"># often, an invalid element</span>
 			<span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
 			<span class="n">dftb_atom_atts</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">18</span><span class="p">)]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">())]</span>
-		<span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span> 
+		<span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
 			<span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
 			<span class="n">dftb_atom_atts</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">18</span><span class="p">)]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">())]</span>
 		<span class="p">[</span><span class="n">attributes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">dftb_atom_atts</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">())]</span>
@@ -145,16 +157,16 @@
 
 
 <div class="viewcode-block" id="bond_structural"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.descriptors.bond_structural">[docs]</a><span class="k">def</span> <span class="nf">bond_structural</span><span class="p">(</span><span class="n">bond</span><span class="p">,</span> <span class="n">asOneHot</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">extraOne</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-	<span class="sd">&#39;&#39;&#39;</span>
+	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Returns a numpy array of attributes for an RDKit bond</span>
 <span class="sd">	- Bond type as double</span>
 <span class="sd">	- If bond is aromatic</span>
 <span class="sd">	- If bond is conjugated</span>
 <span class="sd">	- If bond is in ring</span>
-<span class="sd">	&#39;&#39;&#39;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="c1"># Redefine oneHotVector function</span>
-	<span class="k">if</span> <span class="ow">not</span> <span class="n">asOneHot</span><span class="p">:</span> 
+	<span class="k">if</span> <span class="ow">not</span> <span class="n">asOneHot</span><span class="p">:</span>
 		<span class="n">oneHotVectorFunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 	<span class="k">else</span><span class="p">:</span>
 		<span class="n">oneHotVectorFunc</span> <span class="o">=</span> <span class="n">oneHotVector</span>
@@ -179,7 +191,7 @@
 	<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">attributes</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">att_dtype</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="atom_structural"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.descriptors.atom_structural">[docs]</a><span class="k">def</span> <span class="nf">atom_structural</span><span class="p">(</span><span class="n">atom</span><span class="p">,</span> <span class="n">asOneHot</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">ORIGINAL_VERSION</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-	<span class="sd">&#39;&#39;&#39;</span>
+	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Returns a numpy array of attributes for an RDKit atom</span>
 <span class="sd">	- atomic number</span>
 <span class="sd">	- number of heavy neighbors</span>
@@ -187,9 +199,9 @@
 <span class="sd">	- formal charge</span>
 <span class="sd">	- is in a ring</span>
 <span class="sd">	- is aromatic</span>
-<span class="sd">	&#39;&#39;&#39;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="c1"># Redefine oneHotVector function</span>
-	<span class="k">if</span> <span class="ow">not</span> <span class="n">asOneHot</span><span class="p">:</span> 
+	<span class="k">if</span> <span class="ow">not</span> <span class="n">asOneHot</span><span class="p">:</span>
 		<span class="n">oneHotVectorFunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 	<span class="k">else</span><span class="p">:</span>
 		<span class="n">oneHotVectorFunc</span> <span class="o">=</span> <span class="n">oneHotVector</span>
@@ -200,7 +212,7 @@
 
 	<span class="k">if</span> <span class="n">ORIGINAL_VERSION</span><span class="p">:</span> <span class="c1"># F_atom = 32 mode</span>
 		<span class="n">attributes</span> <span class="o">+=</span> <span class="n">oneHotVectorFunc</span><span class="p">(</span>
-			<span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">(),</span> 
+			<span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">(),</span>
 			<span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">53</span><span class="p">,</span> <span class="mi">999</span><span class="p">]</span>
 		<span class="p">)</span>
 		<span class="n">attributes</span> <span class="o">+=</span> <span class="n">oneHotVectorFunc</span><span class="p">(</span>
@@ -216,10 +228,10 @@
 		<span class="n">attributes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">GetIsAromatic</span><span class="p">())</span>
 		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">attributes</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">att_dtype</span><span class="p">)</span>
 
-	
+
 	<span class="c1"># Add atomic number (todo: finish)</span>
 	<span class="n">attributes</span> <span class="o">+=</span> <span class="n">oneHotVectorFunc</span><span class="p">(</span>
-		<span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">(),</span> 
+		<span class="n">atom</span><span class="o">.</span><span class="n">GetAtomicNum</span><span class="p">(),</span>
 		<span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">53</span><span class="p">,</span> <span class="mi">999</span><span class="p">]</span>
 	<span class="p">)</span>
 	<span class="c1"># Add heavy neighbor count</span>
@@ -265,10 +277,10 @@
 	<span class="k">return</span> <span class="p">{</span><span class="s1">&#39;atoms&#39;</span><span class="p">:</span> <span class="n">F_atom</span><span class="p">,</span> <span class="s1">&#39;bonds&#39;</span><span class="p">:</span> <span class="n">F_bond</span><span class="p">}</span></div>
 
 <div class="viewcode-block" id="edits_to_vectors"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.descriptors.edits_to_vectors">[docs]</a><span class="k">def</span> <span class="nf">edits_to_vectors</span><span class="p">(</span><span class="n">edits</span><span class="p">,</span> <span class="n">mol</span><span class="p">,</span> <span class="n">atom_desc_dict</span> <span class="o">=</span> <span class="p">{},</span> <span class="n">return_atom_desc_dict</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">ORIGINAL_VERSION</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">include</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;functional&#39;</span><span class="p">,</span> <span class="s1">&#39;structural&#39;</span><span class="p">]):</span>
-	<span class="sd">&#39;&#39;&#39;</span>
+	<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">	Given a set of edits (h_lost, h_gain, bond_lost, and bond_gain) from summarize_reaction_outcome,</span>
 <span class="sd">	this function returns a set of vectors describing those edits.</span>
-<span class="sd">	&#39;&#39;&#39;</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">if</span> <span class="ow">not</span> <span class="n">atom_desc_dict</span><span class="p">:</span>
 		<span class="n">atom_descriptors</span> <span class="o">=</span> <span class="n">atom_level_descriptors</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">include</span> <span class="o">=</span> <span class="n">include</span><span class="p">,</span> <span class="n">asOneHot</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">ORIGINAL_VERSION</span> <span class="o">=</span> <span class="n">ORIGINAL_VERSION</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
@@ -278,28 +290,28 @@
 
 	<span class="c1"># h_lost, h_gain, bond_lost, bond_gain = edits</span>
 	<span class="k">return</span> <span class="p">(</span>
-		<span class="p">[</span><span class="n">atom_desc_dict</span><span class="p">[</span><span class="n">molAtomMapNumber</span><span class="p">]</span> <span class="k">for</span> <span class="n">molAtomMapNumber</span> <span class="ow">in</span> <span class="n">edits</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> 
-		<span class="p">[</span><span class="n">atom_desc_dict</span><span class="p">[</span><span class="n">molAtomMapNumber</span><span class="p">]</span> <span class="k">for</span> <span class="n">molAtomMapNumber</span> <span class="ow">in</span> <span class="n">edits</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> 
+		<span class="p">[</span><span class="n">atom_desc_dict</span><span class="p">[</span><span class="n">molAtomMapNumber</span><span class="p">]</span> <span class="k">for</span> <span class="n">molAtomMapNumber</span> <span class="ow">in</span> <span class="n">edits</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+		<span class="p">[</span><span class="n">atom_desc_dict</span><span class="p">[</span><span class="n">molAtomMapNumber</span><span class="p">]</span> <span class="k">for</span> <span class="n">molAtomMapNumber</span> <span class="ow">in</span> <span class="n">edits</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
 		<span class="p">[</span>
-		<span class="n">atom_desc_dict</span><span class="p">[</span><span class="n">molAtomMapNumber1</span><span class="p">]</span> <span class="o">+</span> 
-		<span class="n">oneHotVector</span><span class="p">(</span><span class="n">bondOrder</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">])</span> <span class="o">+</span> 
+		<span class="n">atom_desc_dict</span><span class="p">[</span><span class="n">molAtomMapNumber1</span><span class="p">]</span> <span class="o">+</span>
+		<span class="n">oneHotVector</span><span class="p">(</span><span class="n">bondOrder</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">])</span> <span class="o">+</span>
 		<span class="n">atom_desc_dict</span><span class="p">[</span><span class="n">molAtomMapNumber2</span><span class="p">]</span> \
 			<span class="k">for</span> <span class="p">(</span><span class="n">molAtomMapNumber1</span><span class="p">,</span> <span class="n">molAtomMapNumber2</span><span class="p">,</span> <span class="n">bondOrder</span><span class="p">)</span> <span class="ow">in</span> <span class="n">edits</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 		<span class="p">],</span>
 		<span class="p">[</span>
-		<span class="n">atom_desc_dict</span><span class="p">[</span><span class="n">molAtomMapNumber1</span><span class="p">]</span> <span class="o">+</span> 
-		<span class="n">oneHotVector</span><span class="p">(</span><span class="n">bondOrder</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">])</span> <span class="o">+</span> 
+		<span class="n">atom_desc_dict</span><span class="p">[</span><span class="n">molAtomMapNumber1</span><span class="p">]</span> <span class="o">+</span>
+		<span class="n">oneHotVector</span><span class="p">(</span><span class="n">bondOrder</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">])</span> <span class="o">+</span>
 		<span class="n">atom_desc_dict</span><span class="p">[</span><span class="n">molAtomMapNumber2</span><span class="p">]</span> \
 			<span class="k">for</span> <span class="p">(</span><span class="n">molAtomMapNumber1</span><span class="p">,</span> <span class="n">molAtomMapNumber2</span><span class="p">,</span> <span class="n">bondOrder</span><span class="p">)</span> <span class="ow">in</span> <span class="n">edits</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
 		<span class="p">]</span>
 	<span class="p">)</span></div>
 
 <div class="viewcode-block" id="edits_to_tensor"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.descriptors.edits_to_tensor">[docs]</a><span class="k">def</span> <span class="nf">edits_to_tensor</span><span class="p">(</span><span class="n">candidate_edits</span><span class="p">,</span> <span class="n">reactants</span><span class="p">,</span> <span class="n">atom_desc_dict</span><span class="p">):</span>
-	
+
     <span class="n">Nc</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidate_edits</span><span class="p">)</span>
     <span class="n">F_atom</span> <span class="o">=</span> <span class="n">edit_vector_lengths</span><span class="p">()[</span><span class="s1">&#39;atoms&#39;</span><span class="p">]</span>
     <span class="n">F_bond</span> <span class="o">=</span> <span class="n">edit_vector_lengths</span><span class="p">()[</span><span class="s1">&#39;bonds&#39;</span><span class="p">]</span>
-    
+
     <span class="k">if</span> <span class="n">Nc</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;No candidate products found at all...?&#39;</span><span class="p">,</span> <span class="n">descriptors_loc</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">None</span>
@@ -321,7 +333,7 @@
     <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="p">(</span><span class="n">candidate_smiles</span><span class="p">,</span> <span class="n">edits</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">candidate_edits</span><span class="p">):</span>
         <span class="n">smiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidate_smiles</span><span class="p">)</span>
         <span class="n">edit_h_lost_vec</span><span class="p">,</span> <span class="n">edit_h_gain_vec</span><span class="p">,</span> \
-            <span class="n">edit_bond_lost_vec</span><span class="p">,</span> <span class="n">edit_bond_gain_vec</span> <span class="o">=</span> <span class="n">edits_to_vectors</span><span class="p">(</span><span class="n">edits</span><span class="p">,</span> <span class="n">reactants</span><span class="p">,</span> 
+            <span class="n">edit_bond_lost_vec</span><span class="p">,</span> <span class="n">edit_bond_gain_vec</span> <span class="o">=</span> <span class="n">edits_to_vectors</span><span class="p">(</span><span class="n">edits</span><span class="p">,</span> <span class="n">reactants</span><span class="p">,</span>
                 <span class="n">atom_desc_dict</span><span class="o">=</span><span class="n">atom_desc_dict</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">edit_h_lost</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">edit_h_lost_vec</span><span class="p">):</span>
@@ -343,9 +355,9 @@
     <span class="n">x_bond_lost</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">x_bond_lost</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">x_bond_gain</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">x_bond_gain</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="k">return</span> <span class="p">[</span><span class="n">x_h_lost</span><span class="p">,</span> <span class="n">x_h_gain</span><span class="p">,</span> <span class="n">x_bond_lost</span><span class="p">,</span> <span class="n">x_bond_gain</span><span class="p">]</span></div>
-<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">def edits_to_tensor(edits, reactants, lenAtom = 43, lenBond = 90, atom_desc_dict = None):</span>
-<span class="sd">	</span>
+
 <span class="sd">	(edit_h_lost_vec, edit_h_gain_vec, edit_bond_lost_vec, edit_bond_gain_vec) = edits_to_vectors(edits, reactants, atom_desc_dict = atom_desc_dict)</span>
 <span class="sd">	x_h_lost = np.zeros((1, 1, len(edit_h_lost_vec), lenAtom))</span>
 <span class="sd">	x_h_gain = np.zeros((1, 1, len(edit_h_gain_vec), lenAtom))</span>
@@ -370,9 +382,9 @@
 <span class="sd">	x_h_gain[np.isinf(x_h_gain)] = 0.0</span>
 <span class="sd">	x_bond_lost[np.isinf(x_bond_lost)] = 0.0</span>
 <span class="sd">	x_bond_gain[np.isinf(x_bond_gain)] = 0.0</span>
-<span class="sd">	</span>
+
 <span class="sd">	return [x_h_lost, x_h_gain, x_bond_lost, x_bond_gain]</span>
-<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">&quot;&quot;&quot;</span>
 </pre></div>
 
           </div>

@@ -34,9 +34,41 @@
             
   <h1>Source code for makeit.retrosynthetic.mcts.nodes</h1><div class="highlight"><pre>
 <div class="viewcode-block" id="Chemical"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical">[docs]</a><span></span><span class="k">class</span> <span class="nc">Chemical</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Represents a chemical compound.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Represents a chemical compound.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        smiles (str): SMILES string of the chemical.</span>
+<span class="sd">        template_idx_results (dict):</span>
+<span class="sd">        purchase_price (float or int): Price per gram of the chemical.</span>
+<span class="sd">            ?? Seems redundant with price ??</span>
+<span class="sd">        as_reactant (int): Number of times the chemical is seen as a reactant in</span>
+<span class="sd">            the reaction database.</span>
+<span class="sd">        as_product (int): Number of times the chemical is seen as a product in</span>
+<span class="sd">            the reaction database.</span>
+<span class="sd">        visit_count (int):</span>
+<span class="sd">        terminal (bool): Whether this node is a terminal node of the tree.</span>
+<span class="sd">        estimate_price (float or int): Estimated minimum cost.</span>
+<span class="sd">        estimate_price_sum (float): Sum of estimated costs. Used to calculate</span>
+<span class="sd">            mean estimate price.</span>
+<span class="sd">        estimate_price_cnt (int): Count of cost estimates. Used to calculate</span>
+<span class="sd">            mean estimate price.</span>
+<span class="sd">        best_template (int): Best template found so far. Gives the lowest price.</span>
+<span class="sd">        prob (dict or None): Template relevance probabilities to be used for</span>
+<span class="sd">            later expansion.</span>
+<span class="sd">        value (None or int): Output of value network, not currently used.</span>
+<span class="sd">        sorted_id (None or list): Sorted template IDs.</span>
+<span class="sd">        price (float or int): Valid minimum cost. Negative means not buyable.</span>
+<span class="sd">        done (bool): Whether this node is done being expanded.</span>
+<span class="sd">        pathway_count (int): Number of pathways that can be used to make this</span>
+<span class="sd">            chemical.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chem_smi</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initializes Chemical.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            chem_smi (str): SMILES string of the chemical.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Initialize lists for incoming and outgoing reactions.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span> <span class="o">=</span> <span class="n">chem_smi</span>
         <span class="c1"># self.reactions = {} # TODO: deprecate, since it doesn&#39;t allow for branching</span>
@@ -45,9 +77,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">as_reactant</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">as_product</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">visit_count</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">terminal</span> <span class="o">=</span> <span class="kc">False</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">terminal</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="c1"># Counter param used for the DFS search. </span>
+        <span class="c1"># Counter param used for the DFS search.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>         <span class="c1"># estimated min cost</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_sum</span> <span class="o">=</span> <span class="mf">0.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_cnt</span> <span class="o">=</span> <span class="mi">0</span>
@@ -55,7 +87,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">best_template</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">prob</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="kc">None</span>         <span class="c1"># output of vaue network, not currently used</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="kc">None</span>         <span class="c1"># output of value network, not currently used</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sorted_id</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">price</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>           <span class="c1"># valid min cost - means not buyable</span>
@@ -70,6 +102,11 @@
         <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span>
 
 <div class="viewcode-block" id="Chemical.set_price"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.set_price">[docs]</a>    <span class="k">def</span> <span class="nf">set_price</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sets the price of the chemical.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            value (float): Price per gram to set the cost of the chemical to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">ppg</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
             <span class="c1"># if ppg &gt; 0 and all_cost_1:</span>
@@ -81,32 +118,48 @@
             <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="Chemical.set_template_relevance_probs"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.set_template_relevance_probs">[docs]</a>    <span class="k">def</span> <span class="nf">set_template_relevance_probs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">top_probs</span><span class="p">,</span> <span class="n">top_indeces</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Information about how we might expand this chemical later&#39;&#39;&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">top_probs</span> <span class="o">=</span> <span class="n">top_probs</span> 
+        <span class="sd">&quot;&quot;&quot;Information about how we might expand this chemical later.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            top_probs (list): Highest template relevance probabilities.</span>
+<span class="sd">            top_indeces (list): Indeces for the corresponding templates.</span>
+<span class="sd">            value (int): Value of precursor. Currently always 1.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">top_probs</span> <span class="o">=</span> <span class="n">top_probs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">top_indeces</span> <span class="o">=</span> <span class="n">top_indeces</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prob</span> <span class="o">=</span> <span class="p">{</span><span class="n">top_indeces</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span> <span class="n">top_probs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">top_probs</span><span class="p">))}</span> <span class="c1"># dict</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sorted_id</span> <span class="o">=</span> <span class="n">top_indeces</span> <span class="c1"># copy</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">update_estimate_price</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Chemical.update_estimate_price"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.update_estimate_price">[docs]</a>    <span class="k">def</span> <span class="nf">update_estimate_price</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates the current estimated price for the chemical.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            value (float or int): The next price estimate to average into</span>
+<span class="sd">                the current estimate.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_sum</span> <span class="o">+=</span> <span class="n">value</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_cnt</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_sum</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_cnt</span></div>
 
 <div class="viewcode-block" id="Chemical.reset"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Resets the chemical.</span>
+
+<span class="sd">        Does nothing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span></div></div>
 
     <span class="c1"># def uniquify_templates(self):</span>
-    <span class="c1">#     &#39;&#39;&#39;Looks through all single-step precursors and merges the CTAs that</span>
-    <span class="c1">#     give identical results&#39;&#39;&#39;</span>
+    <span class="c1">#     &quot;&quot;&quot;Looks through all single-step precursors and merges the CTAs that</span>
+    <span class="c1">#     give identical results&quot;&quot;&quot;</span>
     <span class="c1">#     seen_reactants = {}</span>
     <span class="c1">#     template_idx_static = list(self.template_idx_results.keys())</span>
     <span class="c1">#     for template_idx in template_idx_static:</span>
     <span class="c1">#         CTA = self.template_idx_results[template_idx]</span>
     <span class="c1">#         for reactant_smiles in CTA.reactions:</span>
     <span class="c1">#             if reactant_smiles not in seen_reactants:</span>
-    <span class="c1">#                 seen_reactants[reactant_smiles] = template_idx </span>
+    <span class="c1">#                 seen_reactants[reactant_smiles] = template_idx</span>
     <span class="c1">#             else:</span>
     <span class="c1">#                 # do the merge</span>
     <span class="c1">#                 prev_CTA = self.template_idx_results[seen_reactants[reactant_smiles]]</span>
@@ -116,28 +169,65 @@
     <span class="c1">#                 del self.template_idx_results[template_idx]</span>
 
 <div class="viewcode-block" id="ChemicalTemplateApplication"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication">[docs]</a><span class="k">class</span> <span class="nc">ChemicalTemplateApplication</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Represents the application of a template to a chemical. This is essentially</span>
-<span class="sd">    a list-wrapper for the Reaction class because applying one template to one</span>
-<span class="sd">    product can lead to many distinct product sets.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Represents the application of a template to a chemical.</span>
+
+<span class="sd">    This is essentially a list-wrapper for the Reaction class because applying</span>
+<span class="sd">    one template to one product can lead to many distinct product sets.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        smiles (str): SMILES string of the chemical.</span>
+<span class="sd">        template_idx (): Index of template to apply.</span>
+<span class="sd">        waiting (bool):</span>
+<span class="sd">        vaild (bool):</span>
+<span class="sd">        reactions (dict of {str - Reaction}): ??</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smiles</span><span class="p">,</span> <span class="n">template_idx</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span> <span class="o">=</span> <span class="n">smiles</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">template_idx</span> <span class="o">=</span> <span class="n">template_idx</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">waiting</span> <span class="o">=</span> <span class="kc">True</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">waiting</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">reactions</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1"># key is reactant SMILES string, value is a Reaction</span></div>
 
 
 <div class="viewcode-block" id="Reaction"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction">[docs]</a><span class="k">class</span> <span class="nc">Reaction</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Represents a reaction.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Represents a reaction.</span>
+
+<span class="sd">    Note: No necessary_reagent or num_examples considered yet.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        smiles (str): SMILES string of reaction.</span>
+<span class="sd">        template_idx (): Index of reaction template.</span>
+<span class="sd">        valid (bool): Whether the reaction is considered valid.</span>
+<span class="sd">        reactant_smiles (list of str): SMILES strings of reactants.</span>
+<span class="sd">        visit_count (int):</span>
+<span class="sd">        done (bool): Whether this node is done being expanded.</span>
+<span class="sd">        estimate_price (float or int): Estimated minimum cost.</span>
+<span class="sd">        estimate_price_sum (float): Sum of estimated costs. Used to calculate</span>
+<span class="sd">            mean estimate price.</span>
+<span class="sd">        estimate_price_cnt (int): Count of cost estimates. Used to calculate</span>
+<span class="sd">            mean estimate price.</span>
+<span class="sd">        price (float or int): Valid minimum cost. Negative means not buyable.</span>
+<span class="sd">        pathway_count (int): Number of pathways to this reaction.</span>
+<span class="sd">        filter_score (float):</span>
+<span class="sd">        tforms (list of ??): Will be list if multiple template_idx possible.</span>
+<span class="sd">            When merging, the redundant template_idx will be considered INVALID.</span>
+<span class="sd">        template_score (float): Template relevance score.</span>
+<span class="sd">        plausibility (float): Fast filter score.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smiles</span><span class="p">,</span> <span class="n">template_idx</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize entry.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Initializes Reaction.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            smiles (str): SMILES string of reaction.</span>
+<span class="sd">            template_idx (): Index of reaction template.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span> <span class="o">=</span> <span class="n">smiles</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">template_idx</span> <span class="o">=</span> <span class="n">template_idx</span>
-        <span class="c1"># self.depth  = depth </span>
+        <span class="c1"># self.depth  = depth</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">valid</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reactant_smiles</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">visit_count</span> <span class="o">=</span> <span class="mi">0</span>
@@ -171,13 +261,19 @@
         <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span>
 
 <div class="viewcode-block" id="Reaction.update_estimate_price"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.update_estimate_price">[docs]</a>    <span class="k">def</span> <span class="nf">update_estimate_price</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Updates the current estimated price for the reaction.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            value (float or int): The next price estimate to average into</span>
+<span class="sd">                the current estimate.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_sum</span> <span class="o">+=</span> <span class="n">value</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_cnt</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_sum</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimate_price_cnt</span></div>
 
 <div class="viewcode-block" id="Reaction.reset"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">price</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> </div></div>
-
+        <span class="sd">&quot;&quot;&quot;Resets the cost of the reaction.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">price</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span></div></div>
 </pre></div>
 
           </div>

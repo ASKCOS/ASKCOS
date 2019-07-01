@@ -47,8 +47,8 @@ def arr_for_cost(cost, SCALE = 1.0):
         cost (float): Cost to be put into the array.
         SCALE (float, optional): Unused. (default: {1.0})
     """
-	val = np.array((float(cost),))
-	return val
+    val = np.array((float(cost),))
+    return val
 
 def get_states(pair, FINGERPRINT_SIZE, FP_rad, SCALE = 1.0):
     """Gets information about a molecule.

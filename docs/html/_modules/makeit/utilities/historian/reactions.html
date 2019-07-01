@@ -49,7 +49,14 @@
 
 
 <div class="viewcode-block" id="tup_to_dict"><a class="viewcode-back" href="../../../../makeit.utilities.historian.html#makeit.utilities.historian.reactions.tup_to_dict">[docs]</a><span class="k">def</span> <span class="nf">tup_to_dict</span><span class="p">(</span><span class="n">info</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">[]],</span> <span class="n">refs</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;Takes a historical entry as a tuple and returns a labeled dict&#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Returns a labeled dict from a given historical entry as a tuple.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        info ((int, list), optional): Entry to convert into dict.</span>
+<span class="sd">            (default: {[0, []]})</span>
+<span class="sd">        refs (bool, optional): Whether to include references or only counts.</span>
+<span class="sd">            (default: {False})</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
         <span class="s1">&#39;refs&#39;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">refs</span> <span class="k">else</span> <span class="p">[],</span>
@@ -57,31 +64,41 @@
 
 
 <div class="viewcode-block" id="ReactionHistorian"><a class="viewcode-back" href="../../../../makeit.utilities.historian.html#makeit.utilities.historian.reactions.ReactionHistorian">[docs]</a><span class="k">class</span> <span class="nc">ReactionHistorian</span><span class="p">:</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    The Historian class is used to look up chemicals to see how often they have</span>
-<span class="sd">    been seen in Reaxys</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="sd">&quot;&quot;&quot;Looks up chemicals to see how often they have been seen in Reaxys.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        REACTION_DB (MongoDB): Database of reactions.</span>
+<span class="sd">        CHEMICAL_HISTORY_DB (MongoDB): Database of chemical history.</span>
+<span class="sd">        occurrences (defaultdict):</span>
+<span class="sd">        occurrences_flat (defaultdict):</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">by_xrn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">REACTIONS</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initializes ReactionHistorian.</span>
 
+<span class="sd">        Args:</span>
+<span class="sd">            by_xrn (bool, optional): ?? (default: {False})</span>
+<span class="sd">            REACTIONS (None or MongoDB, optional): ?? (default: {None})</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">REACTION_DB</span> <span class="o">=</span> <span class="n">REACTIONS</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">occurrences</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">[]])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">occurrences_flat</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">[]])</span>
 
 <div class="viewcode-block" id="ReactionHistorian.load_databases"><a class="viewcode-back" href="../../../../makeit.utilities.historian.html#makeit.utilities.historian.reactions.ReactionHistorian.load_databases">[docs]</a>    <span class="k">def</span> <span class="nf">load_databases</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Load the pricing data from the online database</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Loads the history data from the online database.&quot;&quot;&quot;</span>
         <span class="n">db_client</span> <span class="o">=</span> <span class="n">MongoClient</span><span class="p">(</span><span class="n">gc</span><span class="o">.</span><span class="n">MONGO</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">],</span> <span class="n">gc</span><span class="o">.</span><span class="n">MONGO</span><span class="p">[</span>
                                 <span class="s1">&#39;id&#39;</span><span class="p">],</span> <span class="n">connect</span><span class="o">=</span><span class="n">gc</span><span class="o">.</span><span class="n">MONGO</span><span class="p">[</span><span class="s1">&#39;connect&#39;</span><span class="p">])</span>
         <span class="n">db</span> <span class="o">=</span> <span class="n">db_client</span><span class="p">[</span><span class="n">gc</span><span class="o">.</span><span class="n">REACTIONS</span><span class="p">[</span><span class="s1">&#39;database&#39;</span><span class="p">]]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">REACTION_DB</span> <span class="o">=</span> <span class="n">db</span><span class="p">[</span><span class="n">gc</span><span class="o">.</span><span class="n">REACTIONS</span><span class="p">[</span><span class="s1">&#39;collection&#39;</span><span class="p">]]</span></div>
 
 <div class="viewcode-block" id="ReactionHistorian.dump_to_file"><a class="viewcode-back" href="../../../../makeit.utilities.historian.html#makeit.utilities.historian.reactions.ReactionHistorian.dump_to_file">[docs]</a>    <span class="k">def</span> <span class="nf">dump_to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="o">=</span><span class="n">gc</span><span class="o">.</span><span class="n">reactionhistorian_data</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Write the data from the online datbases to a local file</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Writes the data from the online datbases to a local file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path (str, optional): Path to the output file.</span>
+<span class="sd">                (default: {gc.reactionhistorian_data})</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">REACTION_DB</span><span class="p">:</span>
             <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span>
                 <span class="s2">&quot;No database information to output to file.&quot;</span><span class="p">,</span> <span class="n">historian_loc</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
@@ -95,9 +112,14 @@
                 <span class="s2">&quot;Saved to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_path</span><span class="p">),</span> <span class="n">historian_loc</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ReactionHistorian.load_from_file"><a class="viewcode-back" href="../../../../makeit.utilities.historian.html#makeit.utilities.historian.reactions.ReactionHistorian.load_from_file">[docs]</a>    <span class="k">def</span> <span class="nf">load_from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="o">=</span><span class="n">gc</span><span class="o">.</span><span class="n">reactionhistorian_data</span><span class="p">,</span> <span class="n">testing</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Load the data for the pricer from a locally stored file instead of from the online database.</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Loads the data for the pricer from a locally stored file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path (str, optional): Path to the input file.</span>
+<span class="sd">                (default: {gc.reactionhistorian_data})</span>
+<span class="sd">            testing (bool, optional): Whether to only run a test.</span>
+<span class="sd">                (default: {False})</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="n">testing</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">occurrences</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">[]],</span> <span class="p">{</span>
@@ -121,9 +143,13 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">dump_to_file</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="ReactionHistorian.load"><a class="viewcode-back" href="../../../../makeit.utilities.historian.html#makeit.utilities.historian.reactions.ReactionHistorian.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">online</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">REACTION_DB</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Loads the object from a MongoDB collection</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Loads the object from a MongoDB collection.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            online (bool, optional): Whether to load from the online database or</span>
+<span class="sd">                a local file. (default: {True})</span>
+<span class="sd">            REACTION_DB (None or ??, optional): ??</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span>
             <span class="s1">&#39;Loading reaction historian.&#39;</span><span class="p">,</span> <span class="n">historian_loc</span><span class="p">)</span>
 
@@ -143,14 +169,14 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">REACTION_DB</span> <span class="o">=</span> <span class="n">REACTION_DB</span>
 
         <span class="c1"># Then get reactions</span>
-        <span class="k">for</span> <span class="n">reaction_doc</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">REACTION_DB</span><span class="o">.</span><span class="n">find</span><span class="p">({</span><span class="s1">&#39;RXN_SMILES&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;$exists&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}},</span> 
+        <span class="k">for</span> <span class="n">reaction_doc</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">REACTION_DB</span><span class="o">.</span><span class="n">find</span><span class="p">({</span><span class="s1">&#39;RXN_SMILES&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;$exists&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}},</span>
                     <span class="p">[</span><span class="s1">&#39;_id&#39;</span><span class="p">,</span> <span class="s1">&#39;RXN_SMILES&#39;</span><span class="p">,</span> <span class="s1">&#39;RX_NVAR&#39;</span><span class="p">],</span> <span class="n">no_cursor_timeout</span><span class="o">=</span><span class="kc">True</span><span class="p">)):</span>
 
             <span class="c1"># Parse and canonicalize</span>
             <span class="n">reactants</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">reaction_doc</span><span class="p">[</span><span class="s1">&#39;RXN_SMILES&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&gt;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span>
             <span class="n">products</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">reaction_doc</span><span class="p">[</span><span class="s1">&#39;RXN_SMILES&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&gt;&#39;</span><span class="p">)[</span><span class="mi">2</span><span class="p">]))</span>
 
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">reactants</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">products</span><span class="p">:</span> 
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">reactants</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">products</span><span class="p">:</span>
                 <span class="k">continue</span>
 
             <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">ClearProp</span><span class="p">(</span><span class="s1">&#39;molAtomMapNumber&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">reactants</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">()]</span>
@@ -182,11 +208,23 @@
 
 
 <div class="viewcode-block" id="ReactionHistorian.lookup_smiles"><a class="viewcode-back" href="../../../../makeit.utilities.historian.html#makeit.utilities.historian.reactions.ReactionHistorian.lookup_smiles">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_smiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smiles</span><span class="p">,</span> <span class="n">alreadyCanonical</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">isomericSmiles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">refs</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Looks up a price by SMILES. Tries it as-entered and then </span>
-<span class="sd">        re-canonicalizes it in RDKit unl ess the user specifies that</span>
-<span class="sd">        the string is definitely already canonical.</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Looks up number of occurances by SMILES.</span>
+
+<span class="sd">        Tries it as-entered and then re-canonicalizes it in RDKit unless the</span>
+<span class="sd">        user specifies that the string is definitely already canonical.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            smiles (str): SMILES string of molecule to look up.</span>
+<span class="sd">            alreadyCanonical (bool, optional): Whether to SMILES string has</span>
+<span class="sd">                already been canonicalized. (default: {False})</span>
+<span class="sd">            isomericSmiles (bool, optional): Whether the SMILES string is</span>
+<span class="sd">                isomeric. (default: {True})</span>
+<span class="sd">            refs (bool, optional): Whether to include references.</span>
+<span class="sd">                (default: {False})</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: Labeled dictionaty from tup_to_dict().</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">occurrences_flat</span><span class="p">[</span><span class="n">smiles</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">info</span> <span class="o">!=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">[],</span> <span class="p">[]]:</span>
             <span class="k">return</span> <span class="n">tup_to_dict</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">refs</span><span class="o">=</span><span class="n">refs</span><span class="p">)</span>

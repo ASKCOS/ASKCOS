@@ -46,6 +46,7 @@
  | <a href="#G"><strong>G</strong></a>
  | <a href="#H"><strong>H</strong></a>
  | <a href="#I"><strong>I</strong></a>
+ | <a href="#K"><strong>K</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#N"><strong>N</strong></a>
@@ -76,6 +77,8 @@
         <li><a href="makeit.prioritization.templates.html#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.apply">(makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer method)</a>
 </li>
       </ul></li>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.apply_fast_filter">apply_fast_filter (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
       <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.apply_one_template">apply_one_template() (makeit.interfaces.template_transformer.TemplateTransformer method)</a>
 
       <ul>
@@ -88,11 +91,13 @@
 </li>
       <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.transformer.RetroTransformer.apply_one_template_smilesonly">apply_one_template_smilesonly() (makeit.retrosynthetic.transformer.RetroTransformer method)</a>
 </li>
-      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.misc.arr_for_cost">arr_for_cost() (in module makeit.retrosynthetic.mcts.misc)</a>
+      <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.results.ForwardProduct.as_dict">as_dict() (makeit.synthetic.enumeration.results.ForwardProduct method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.results.ForwardProduct.as_dict">as_dict() (makeit.synthetic.enumeration.results.ForwardProduct method)</a>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.as_product">as_product (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
+</li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.as_reactant">as_reactant (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
 </li>
       <li><a href="makeit.synthetic.evaluation.rexgen_direct.core_wln_global.html#makeit.synthetic.evaluation.rexgen_direct.core_wln_global.mol_graph_rich.assignProperties">assignProperties() (in module makeit.synthetic.evaluation.rexgen_direct.core_wln_global.mol_graph_rich)</a>
 </li>
@@ -141,6 +146,8 @@
 </li>
       </ul></li>
       <li><a href="makeit.prioritization.templates.html#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.batch_size">batch_size (makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer attribute)</a>
+</li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.best_template">best_template (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
 </li>
       <li><a href="rdchiral.html#rdchiral.bonds.bond_dirs_by_mapnum">bond_dirs_by_mapnum() (in module rdchiral.bonds)</a>
 </li>
@@ -196,9 +203,11 @@
 </li>
       <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.category_to_name">category_to_name() (makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender method)</a>
 </li>
-      <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.celery">celery (makeit.synthetic.enumeration.transformer.ForwardTransformer attribute)</a>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.celery">celery (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
 
       <ul>
+        <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.celery">(makeit.synthetic.enumeration.transformer.ForwardTransformer attribute)</a>
+</li>
         <li><a href="makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.evaluator.Evaluator.celery">(makeit.synthetic.evaluation.evaluator.Evaluator attribute)</a>
 </li>
       </ul></li>
@@ -210,20 +219,38 @@
 </li>
       <li><a href="makeit.utilities.historian.html#makeit.utilities.historian.chemicals.ChemHistorian">ChemHistorian (class in makeit.utilities.historian.chemicals)</a>
 </li>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.chemhistorian">chemhistorian (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
       <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical">Chemical (class in makeit.retrosynthetic.mcts.nodes)</a>
 </li>
       <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.nearestneighbor.NNContextRecommender.CHEMICAL_DB">CHEMICAL_DB (makeit.synthetic.context.nearestneighbor.NNContextRecommender attribute)</a>
+
+      <ul>
+        <li><a href="makeit.utilities.historian.html#makeit.utilities.historian.chemicals.ChemHistorian.CHEMICAL_DB">(makeit.utilities.historian.chemicals.ChemHistorian attribute)</a>
 </li>
+      </ul></li>
+      <li><a href="makeit.utilities.historian.html#makeit.utilities.historian.chemicals.ChemHistorian.CHEMICAL_HISTORY_DB">CHEMICAL_HISTORY_DB (makeit.utilities.historian.chemicals.ChemHistorian attribute)</a>
+
+      <ul>
+        <li><a href="makeit.utilities.historian.html#makeit.utilities.historian.reactions.ReactionHistorian.CHEMICAL_HISTORY_DB">(makeit.utilities.historian.reactions.ReactionHistorian attribute)</a>
+</li>
+      </ul></li>
       <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication">ChemicalTemplateApplication (class in makeit.retrosynthetic.mcts.nodes)</a>
 </li>
+      <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.chiral">chiral (makeit.interfaces.template_transformer.TemplateTransformer attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.chiral">(makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="makeit.utilities.html#makeit.utilities.contexts.clean_context">clean_context() (in module makeit.utilities.contexts)</a>
 </li>
       <li><a href="makeit.utilities.html#makeit.utilities.contexts.clean_contexts">clean_contexts() (in module makeit.utilities.contexts)</a>
 </li>
       <li><a href="makeit.utilities.html#makeit.utilities.reactants.clean_reactant_mapping">clean_reactant_mapping() (in module makeit.utilities.reactants)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="rdchiral.html#rdchiral.clean.combine_enantiomers_into_racemic">combine_enantiomers_into_racemic() (in module rdchiral.clean)</a>
 </li>
       <li><a href="makeit.utilities.historian.html#makeit.utilities.historian.chemicals.ChemHistorian.compress_keys">compress_keys() (makeit.utilities.historian.chemicals.ChemHistorian method)</a>
@@ -286,10 +313,16 @@
 </li>
       <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.nearestneighbor.NNContextRecommender.dist_limit">dist_limit (makeit.synthetic.context.nearestneighbor.NNContextRecommender attribute)</a>
 </li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.done">done (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.done">(makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
+</li>
+        <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.nearestneighbor.NNContextRecommender.done">(makeit.synthetic.context.nearestneighbor.NNContextRecommender attribute)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.nearestneighbor.NNContextRecommender.done">done (makeit.synthetic.context.nearestneighbor.NNContextRecommender attribute)</a>
-</li>
       <li><a href="makeit.utilities.io.html#makeit.utilities.io.pickle.dump">dump() (in module makeit.utilities.io.pickle)</a>
 </li>
       <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.dump_to_file">dump_to_file() (makeit.interfaces.template_transformer.TemplateTransformer method)</a>
@@ -326,8 +359,26 @@
 </li>
       <li><a href="rdchiral.html#rdchiral.bonds.enumerate_possible_cistrans_defs">enumerate_possible_cistrans_defs() (in module rdchiral.bonds)</a>
 </li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.estimate_price">estimate_price (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.estimate_price">(makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.estimate_price_cnt">estimate_price_cnt (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.estimate_price_cnt">(makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.estimate_price_sum">estimate_price_sum (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.estimate_price_sum">(makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
+</li>
+      </ul></li>
       <li><a href="makeit.interfaces.html#makeit.interfaces.scorer.Scorer.evaluate">evaluate() (makeit.interfaces.scorer.Scorer method)</a>
 
       <ul>
@@ -348,6 +399,8 @@
 </li>
       <li><a href="makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.evaluator.Evaluator">Evaluator (class in makeit.synthetic.evaluation.evaluator)</a>
 </li>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.expansion_time">expansion_time (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -360,6 +413,8 @@
 </li>
       <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.rl_model.PolicyValueNetwork.feed_dict">feed_dict() (makeit.retrosynthetic.mcts.rl_model.PolicyValueNetwork method)</a>
 </li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.filter_score">filter_score (makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
+</li>
       <li><a href="makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.fast_filter.FastFilterScorer.filter_with_threshold">filter_with_threshold() (makeit.synthetic.evaluation.fast_filter.FastFilterScorer method)</a>
 </li>
       <li><a href="makeit.application.html#makeit.application.run.find_synthesis">find_synthesis() (in module makeit.application.run)</a>
@@ -370,12 +425,14 @@
 </li>
       <li><a href="makeit.synthetic.evaluation.rexgen_release.CandRanker.html#makeit.synthetic.evaluation.rexgen_release.CandRanker.mol_graph.floodfill">floodfill() (in module makeit.synthetic.evaluation.rexgen_release.CandRanker.mol_graph)</a>
 </li>
-      <li><a href="makeit.interfaces.html#makeit.interfaces.forward_enumerator.ForwardEnumerator">ForwardEnumerator (class in makeit.interfaces.forward_enumerator)</a>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.forbidden_molecules">forbidden_molecules (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
 </li>
-      <li><a href="makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.template_based_aux.forwardPredictionNetwork_loc">forwardPredictionNetwork_loc (in module makeit.synthetic.evaluation.template_based_aux)</a>
+      <li><a href="makeit.interfaces.html#makeit.interfaces.forward_enumerator.ForwardEnumerator">ForwardEnumerator (class in makeit.interfaces.forward_enumerator)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.template_based_aux.forwardPredictionNetwork_loc">forwardPredictionNetwork_loc (in module makeit.synthetic.evaluation.template_based_aux)</a>
+</li>
       <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.results.ForwardProduct">ForwardProduct (class in makeit.synthetic.enumeration.results)</a>
 </li>
       <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.results.ForwardResult">ForwardResult (class in makeit.synthetic.enumeration.results)</a>
@@ -457,8 +514,6 @@
       <li><a href="makeit.utilities.efgs.html#makeit.utilities.efgs.EFGs_match.get_EFGS_matches">get_EFGS_matches() (in module makeit.utilities.efgs.EFGs_match)</a>
 </li>
       <li><a href="makeit.synthetic.evaluation.rexgen_direct.core_wln_global.html#makeit.synthetic.evaluation.rexgen_direct.core_wln_global.ioutils_direct.get_feature_batch">get_feature_batch() (in module makeit.synthetic.evaluation.rexgen_direct.core_wln_global.ioutils_direct)</a>
-</li>
-      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.misc.get_feature_vec">get_feature_vec() (in module makeit.retrosynthetic.mcts.misc)</a>
 </li>
       <li><a href="makeit.utilities.html#makeit.utilities.fingerprinting.get_input_condition_as_smiles">get_input_condition_as_smiles() (in module makeit.utilities.fingerprinting)</a>
 </li>
@@ -550,8 +605,6 @@
 </li>
       <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.results.ForwardProduct.get_smiles">get_smiles() (makeit.synthetic.enumeration.results.ForwardProduct method)</a>
 </li>
-      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.misc.get_states">get_states() (in module makeit.retrosynthetic.mcts.misc)</a>
-</li>
       <li><a href="makeit.utilities.io.html#makeit.utilities.io.files.get_synthtransformer_path">get_synthtransformer_path() (in module makeit.utilities.io.files)</a>
 </li>
       <li><a href="rdchiral.html#rdchiral.initialization.get_template_frags_from_rxn">get_template_frags_from_rxn() (in module rdchiral.initialization)</a>
@@ -590,8 +643,12 @@
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.id_to_index">id_to_index (makeit.synthetic.enumeration.transformer.ForwardTransformer attribute)</a>
+      <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.id_to_index">id_to_index (makeit.interfaces.template_transformer.TemplateTransformer attribute)</a>
+
+      <ul>
+        <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.id_to_index">(makeit.synthetic.enumeration.transformer.ForwardTransformer attribute)</a>
 </li>
+      </ul></li>
       <li><a href="makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.template_based.TemplateNeuralNetScorer.initialize">initialize() (makeit.synthetic.evaluation.template_based.TemplateNeuralNetScorer method)</a>
 </li>
       <li><a href="makeit.utilities.io.html#makeit.utilities.io.logger.MyLogger.initialize_logFile">initialize_logFile() (makeit.utilities.io.logger.MyLogger static method)</a>
@@ -609,6 +666,14 @@
       <li><a href="makeit.utilities.html#makeit.utilities.outcomes.is_desired_product">is_desired_product() (in module makeit.utilities.outcomes)</a>
 </li>
       <li><a href="makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.tree_evaluator.TreeEvaluator.is_plausible">is_plausible() (makeit.synthetic.evaluation.tree_evaluator.TreeEvaluator method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="K">K</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.known_bad_reactions">known_bad_reactions (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -840,8 +905,6 @@
 </li>
       <li><a href="makeit.retrosynthetic.mcts.html#module-makeit.retrosynthetic.mcts.cost">makeit.retrosynthetic.mcts.cost (module)</a>
 </li>
-      <li><a href="makeit.retrosynthetic.mcts.html#module-makeit.retrosynthetic.mcts.misc">makeit.retrosynthetic.mcts.misc (module)</a>
-</li>
       <li><a href="makeit.retrosynthetic.mcts.html#module-makeit.retrosynthetic.mcts.nodes">makeit.retrosynthetic.mcts.nodes (module)</a>
 </li>
       <li><a href="makeit.retrosynthetic.mcts.html#module-makeit.retrosynthetic.mcts.rl_model">makeit.retrosynthetic.mcts.rl_model (module)</a>
@@ -918,8 +981,6 @@
 </li>
       <li><a href="makeit.synthetic.evaluation.rexgen_release.CandRanker.html#module-makeit.synthetic.evaluation.rexgen_release.CandRanker.edit_mol">makeit.synthetic.evaluation.rexgen_release.CandRanker.edit_mol (module)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="makeit.synthetic.evaluation.rexgen_release.CandRanker.html#module-makeit.synthetic.evaluation.rexgen_release.CandRanker.models">makeit.synthetic.evaluation.rexgen_release.CandRanker.models (module)</a>
 </li>
       <li><a href="makeit.synthetic.evaluation.rexgen_release.CandRanker.html#module-makeit.synthetic.evaluation.rexgen_release.CandRanker.mol_graph">makeit.synthetic.evaluation.rexgen_release.CandRanker.mol_graph (module)</a>
@@ -928,6 +989,8 @@
 </li>
       <li><a href="makeit.synthetic.evaluation.rexgen_release.CoreFinder.html#module-makeit.synthetic.evaluation.rexgen_release.CoreFinder.core_finder">makeit.synthetic.evaluation.rexgen_release.CoreFinder.core_finder (module)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="makeit.synthetic.evaluation.rexgen_release.CoreFinder.html#module-makeit.synthetic.evaluation.rexgen_release.CoreFinder.ioutils">makeit.synthetic.evaluation.rexgen_release.CoreFinder.ioutils (module)</a>
 </li>
       <li><a href="makeit.synthetic.evaluation.rexgen_release.CoreFinder.html#module-makeit.synthetic.evaluation.rexgen_release.CoreFinder.models">makeit.synthetic.evaluation.rexgen_release.CoreFinder.models (module)</a>
@@ -1010,6 +1073,8 @@
 </li>
       <li><a href="makeit.utilities.html#module-makeit.utilities.with_dummy">makeit.utilities.with_dummy (module)</a>
 </li>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.max_branching">max_branching (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
       <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.nearestneighbor.NNContextRecommender.max_context">max_context (makeit.synthetic.context.nearestneighbor.NNContextRecommender attribute)</a>
 
       <ul>
@@ -1022,7 +1087,13 @@
         <li><a href="makeit.prioritization.templates.html#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.max_cum_prob">(makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer attribute)</a>
 </li>
       </ul></li>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.max_cum_template_prob">max_cum_template_prob (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.max_depth">max_depth (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
       <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.nearestneighbor.NNContextRecommender.max_int">max_int (makeit.synthetic.context.nearestneighbor.NNContextRecommender attribute)</a>
+</li>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.max_ppg">max_ppg (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
 </li>
       <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.nearestneighbor.NNContextRecommender.max_total_context">max_total_context (makeit.synthetic.context.nearestneighbor.NNContextRecommender attribute)</a>
 
@@ -1038,8 +1109,20 @@
 </li>
       <li><a href="makeit.prioritization.precursors.html#makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer">MinCostPrecursorPrioritizer (class in makeit.prioritization.precursors.mincost)</a>
 </li>
-      <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.mincount">mincount (makeit.synthetic.enumeration.transformer.ForwardTransformer attribute)</a>
+      <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.mincount">mincount (makeit.interfaces.template_transformer.TemplateTransformer attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.mincount">(makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
 </li>
+        <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.mincount">(makeit.synthetic.enumeration.transformer.ForwardTransformer attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.mincount_chiral">mincount_chiral (makeit.interfaces.template_transformer.TemplateTransformer attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.mincount_chiral">(makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
+      </ul></li>
       <li><a href="makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.fast_filter.FastFilterScorer.model">model (makeit.synthetic.evaluation.fast_filter.FastFilterScorer attribute)</a>
 
       <ul>
@@ -1048,11 +1131,9 @@
       </ul></li>
       <li><a href="makeit.prioritization.templates.html#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.mol_hiddens">mol_hiddens (makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer attribute)</a>
 </li>
-      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.misc.mol_to_fp">mol_to_fp() (in module makeit.retrosynthetic.mcts.misc)</a>
+      <li><a href="makeit.prioritization.templates.html#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.mol_to_fp">mol_to_fp() (makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer method)</a>
 
       <ul>
-        <li><a href="makeit.prioritization.templates.html#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.mol_to_fp">(makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer method)</a>
-</li>
         <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.rl_model.RLModel.mol_to_fp">(makeit.retrosynthetic.mcts.rl_model.RLModel method)</a>
 </li>
       </ul></li>
@@ -1080,24 +1161,24 @@
 </li>
       <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.results.RetroPrecursor.necessary_reagent">necessary_reagent (makeit.retrosynthetic.results.RetroPrecursor attribute)</a>
 </li>
-      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.misc.network_statistics">network_statistics() (in module makeit.retrosynthetic.mcts.misc)</a>
-</li>
       <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender">NeuralNetContextRecommender (class in makeit.synthetic.context.neuralnetwork)</a>
 </li>
       <li><a href="makeit.utilities.html#makeit.utilities.threadsafe.threadsafe_iter.next">next() (makeit.utilities.threadsafe.threadsafe_iter method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="makeit.prioritization.templates.html#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.NK">NK (makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer attribute)</a>
 </li>
       <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.nearestneighbor.NNContextRecommender">NNContextRecommender (class in makeit.synthetic.context.nearestneighbor)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.nearestneighbor.NNContextRecommender.nnModel">nnModel (makeit.synthetic.context.nearestneighbor.NNContextRecommender attribute)</a>
 
       <ul>
         <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.nnModel">(makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender attribute)</a>
 </li>
       </ul></li>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.nproc">nproc (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
       <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.nearestneighbor.NNContextRecommender.num_cond">num_cond (makeit.synthetic.context.nearestneighbor.NNContextRecommender attribute)</a>
 
       <ul>
@@ -1106,14 +1187,26 @@
       </ul></li>
       <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.results.RetroPrecursor.num_examples">num_examples (makeit.retrosynthetic.results.RetroPrecursor attribute)</a>
 </li>
+      <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.num_templates">num_templates (makeit.interfaces.template_transformer.TemplateTransformer attribute)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="O">O</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="makeit.utilities.historian.html#makeit.utilities.historian.chemicals.ChemHistorian.occurrences">occurrences (makeit.utilities.historian.chemicals.ChemHistorian attribute)</a>
+
+      <ul>
+        <li><a href="makeit.utilities.historian.html#makeit.utilities.historian.reactions.ReactionHistorian.occurrences">(makeit.utilities.historian.reactions.ReactionHistorian attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="makeit.utilities.historian.html#makeit.utilities.historian.reactions.ReactionHistorian.occurrences_flat">occurrences_flat (makeit.utilities.historian.reactions.ReactionHistorian attribute)</a>
+</li>
       <li><a href="makeit.utilities.html#makeit.utilities.descriptors.oneHotVector">oneHotVector() (in module makeit.utilities.descriptors)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="makeit.synthetic.evaluation.rexgen_direct.core_wln_global.html#makeit.synthetic.evaluation.rexgen_direct.core_wln_global.mol_graph.onek_encoding_unk">onek_encoding_unk() (in module makeit.synthetic.evaluation.rexgen_direct.core_wln_global.mol_graph)</a>
 
       <ul>
@@ -1174,8 +1267,18 @@
         <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.path_condition">(makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender method)</a>
 </li>
       </ul></li>
-      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.results.RetroPrecursor.plausibility">plausibility (makeit.retrosynthetic.results.RetroPrecursor attribute)</a>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.pathway_count">pathway_count (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.pathway_count">(makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
 </li>
+      </ul></li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.plausibility">plausibility (makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.results.RetroPrecursor.plausibility">(makeit.retrosynthetic.results.RetroPrecursor attribute)</a>
+</li>
+      </ul></li>
       <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.rl_model.PolicyValueNetwork">PolicyValueNetwork (class in makeit.retrosynthetic.mcts.rl_model)</a>
 </li>
       <li><a href="makeit.prioritization.templates.html#makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer">PopularityTemplatePrioritizer (class in makeit.prioritization.templates.popularity)</a>
@@ -1184,9 +1287,17 @@
 </li>
       <li><a href="makeit.utilities.html#makeit.utilities.fastfilter_utilities.pos_ct">pos_ct() (in module makeit.utilities.fastfilter_utilities)</a>
 </li>
+      <li><a href="makeit.utilities.efgs.html#makeit.utilities.efgs.EFGs_match.precompile_matching_funcs">precompile_matching_funcs() (in module makeit.utilities.efgs.EFGs_match)</a>
+</li>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.precursor_prioritization">precursor_prioritization (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
+      <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.precursor_prioritizer">precursor_prioritizer (makeit.interfaces.template_transformer.TemplateTransformer attribute)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="makeit.utilities.efgs.html#makeit.utilities.efgs.EFGs_match.precompile_matching_funcs">precompile_matching_funcs() (in module makeit.utilities.efgs.EFGs_match)</a>
+      <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.precursor_prioritizers">precursor_prioritizers (makeit.interfaces.template_transformer.TemplateTransformer attribute)</a>
+</li>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.precursor_score_mode">precursor_score_mode (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
 </li>
       <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.results.RetroResult.precursors">precursors (makeit.retrosynthetic.results.RetroResult attribute)</a>
 </li>
@@ -1210,6 +1321,12 @@
 </li>
       <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.rl_model.PolicyValueNetwork.pretrain_feed_dict">pretrain_feed_dict() (makeit.retrosynthetic.mcts.rl_model.PolicyValueNetwork method)</a>
 </li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.price">price (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.price">(makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
+</li>
+      </ul></li>
       <li><a href="makeit.utilities.buyable.html#makeit.utilities.buyable.pricer.Pricer">Pricer (class in makeit.utilities.buyable.pricer)</a>
 </li>
       <li><a href="makeit.prioritization.precursors.html#makeit.prioritization.precursors.heuristic.HeuristicPrecursorPrioritizer.pricer">pricer (makeit.prioritization.precursors.heuristic.HeuristicPrecursorPrioritizer attribute)</a>
@@ -1221,6 +1338,8 @@
 </li>
         <li><a href="makeit.prioritization.precursors.html#makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer.pricer">(makeit.prioritization.precursors.scscore.SCScorePrecursorPrioritizer attribute)</a>
 </li>
+        <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.pricer">(makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
       </ul></li>
       <li><a href="makeit.utilities.io.html#makeit.utilities.io.logger.MyLogger.print_and_log">print_and_log() (makeit.utilities.io.logger.MyLogger static method)</a>
 </li>
@@ -1230,9 +1349,13 @@
 </li>
       <li><a href="makeit.prioritization.html#makeit.prioritization.prioritizer.Prioritizer">Prioritizer (class in makeit.prioritization.prioritizer)</a>
 </li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.prob">prob (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
+</li>
       <li><a href="makeit.prioritization.contexts.html#makeit.prioritization.contexts.probability.ProbabilityContextPrioritizer">ProbabilityContextPrioritizer (class in makeit.prioritization.contexts.probability)</a>
 </li>
       <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.results.ForwardResult.products">products (makeit.synthetic.enumeration.results.ForwardResult attribute)</a>
+</li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.purchase_price">purchase_price (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1282,22 +1405,32 @@
 </li>
       <li><a href="rdchiral.html#rdchiral.main.rdchiralRunText">rdchiralRunText() (in module rdchiral.main)</a>
 </li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.reactant_smiles">reactant_smiles (makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
+</li>
       <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction">Reaction (class in makeit.retrosynthetic.mcts.nodes)</a>
 </li>
       <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.nearestneighbor.NNContextRecommender.reaction_condition">reaction_condition() (makeit.synthetic.context.nearestneighbor.NNContextRecommender method)</a>
 </li>
       <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.nearestneighbor.NNContextRecommender.REACTION_DB">REACTION_DB (makeit.synthetic.context.nearestneighbor.NNContextRecommender attribute)</a>
+
+      <ul>
+        <li><a href="makeit.utilities.historian.html#makeit.utilities.historian.chemicals.ChemHistorian.REACTION_DB">(makeit.utilities.historian.chemicals.ChemHistorian attribute)</a>
 </li>
+        <li><a href="makeit.utilities.historian.html#makeit.utilities.historian.reactions.ReactionHistorian.REACTION_DB">(makeit.utilities.historian.reactions.ReactionHistorian attribute)</a>
+</li>
+      </ul></li>
       <li><a href="makeit.utilities.historian.html#makeit.utilities.historian.reactions.ReactionHistorian">ReactionHistorian (class in makeit.utilities.historian.reactions)</a>
+</li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.reactions">reactions (makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication attribute)</a>
 </li>
       <li><a href="makeit.utilities.io.html#makeit.utilities.io.draw.ReactionStringToImage">ReactionStringToImage() (in module makeit.utilities.io.draw)</a>
 </li>
       <li><a href="makeit.utilities.io.html#makeit.utilities.io.draw.ReactionToImage">ReactionToImage() (in module makeit.utilities.io.draw)</a>
 </li>
-      <li><a href="makeit.utilities.html#makeit.utilities.atoms.read_results">read_results() (in module makeit.utilities.atoms)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="makeit.utilities.html#makeit.utilities.atoms.read_results">read_results() (in module makeit.utilities.atoms)</a>
+</li>
       <li><a href="makeit.utilities.html#makeit.utilities.fastfilter_utilities.real_pos">real_pos() (in module makeit.utilities.fastfilter_utilities)</a>
 </li>
       <li><a href="makeit.prioritization.precursors.html#makeit.prioritization.precursors.relevanceheuristic.RelevanceHeuristicPrecursorPrioritizer">RelevanceHeuristicPrecursorPrioritizer (class in makeit.prioritization.precursors.relevanceheuristic)</a>
@@ -1344,6 +1477,8 @@
 </li>
       <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.transformer.RetroTransformer">RetroTransformer (class in makeit.retrosynthetic.transformer)</a>
 </li>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.retroTransformer">retroTransformer (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
       <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.results.RetroResult.return_top">return_top() (makeit.retrosynthetic.results.RetroResult method)</a>
 </li>
       <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.tree_builder.MCTS.return_trees">return_trees() (makeit.retrosynthetic.mcts.tree_builder.MCTS method)</a>
@@ -1369,8 +1504,6 @@
       <li><a href="makeit.synthetic.context.html#makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender.s2_dict">s2_dict (makeit.synthetic.context.neuralnetwork.NeuralNetContextRecommender attribute)</a>
 </li>
       <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.rl_model.RLModel.save">save() (makeit.retrosynthetic.mcts.rl_model.RLModel method)</a>
-</li>
-      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.misc.save_sparse_tree">save_sparse_tree() (in module makeit.retrosynthetic.mcts.misc)</a>
 </li>
       <li><a href="makeit.prioritization.templates.html#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.score">score (makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer attribute)</a>
 </li>
@@ -1446,8 +1579,16 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.results.ForwardResult.smiles">smiles (makeit.synthetic.enumeration.results.ForwardResult attribute)</a>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.smiles">smiles (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.smiles">(makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication attribute)</a>
 </li>
+        <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.smiles">(makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
+</li>
+        <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.results.ForwardResult.smiles">(makeit.synthetic.enumeration.results.ForwardResult attribute)</a>
+</li>
+      </ul></li>
       <li><a href="makeit.synthetic.evaluation.rexgen_direct.core_wln_global.html#makeit.synthetic.evaluation.rexgen_direct.core_wln_global.mol_graph.smiles2graph">smiles2graph() (in module makeit.synthetic.evaluation.rexgen_direct.core_wln_global.mol_graph)</a>
 
       <ul>
@@ -1490,6 +1631,8 @@
       </ul></li>
       <li><a href="makeit.prioritization.templates.html#makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer.sorted">sorted (makeit.prioritization.templates.popularity.PopularityTemplatePrioritizer attribute)</a>
 </li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.sorted_id">sorted_id (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
+</li>
       <li><a href="makeit.synthetic.evaluation.rexgen_direct.core_wln_global.html#makeit.synthetic.evaluation.rexgen_direct.core_wln_global.nn.sparse_linear">sparse_linear() (in module makeit.synthetic.evaluation.rexgen_direct.core_wln_global.nn)</a>
 
       <ul>
@@ -1529,22 +1672,54 @@
       <ul>
         <li><a href="makeit.prioritization.templates.html#makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer.template_count">(makeit.prioritization.templates.relevance.RelevanceTemplatePrioritizer attribute)</a>
 </li>
+        <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.template_count">(makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
       </ul></li>
       <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.template_count">template_count() (makeit.synthetic.enumeration.transformer.ForwardTransformer method)</a>
 </li>
+      <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.TEMPLATE_DB">TEMPLATE_DB (makeit.interfaces.template_transformer.TemplateTransformer attribute)</a>
+</li>
       <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.results.RetroPrecursor.template_ids">template_ids (makeit.retrosynthetic.results.RetroPrecursor attribute)</a>
 </li>
-      <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.template_prioritizers">template_prioritizers (makeit.synthetic.enumeration.transformer.ForwardTransformer attribute)</a>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.template_idx">template_idx (makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.template_idx">(makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
 </li>
-      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.results.RetroPrecursor.template_score">template_score (makeit.retrosynthetic.results.RetroPrecursor attribute)</a>
+      </ul></li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.template_idx_results">template_idx_results (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
 </li>
+      <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.tree_builder.TreeBuilder.template_prioritization">template_prioritization (makeit.retrosynthetic.tree_builder.TreeBuilder attribute)</a>
+</li>
+      <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.template_prioritizer">template_prioritizer (makeit.interfaces.template_transformer.TemplateTransformer attribute)</a>
+</li>
+      <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.template_prioritizers">template_prioritizers (makeit.interfaces.template_transformer.TemplateTransformer attribute)</a>
+
+      <ul>
+        <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.template_prioritizers">(makeit.synthetic.enumeration.transformer.ForwardTransformer attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.template_score">template_score (makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.html#makeit.retrosynthetic.results.RetroPrecursor.template_score">(makeit.retrosynthetic.results.RetroPrecursor attribute)</a>
+</li>
+      </ul></li>
       <li><a href="makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.template_free.TemplateFreeNeuralNetScorer">TemplateFreeNeuralNetScorer (class in makeit.synthetic.evaluation.template_free)</a>
 </li>
       <li><a href="makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.template_based.TemplateNeuralNetScorer">TemplateNeuralNetScorer (class in makeit.synthetic.evaluation.template_based)</a>
 </li>
-      <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.templates">templates (makeit.synthetic.enumeration.transformer.ForwardTransformer attribute)</a>
+      <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.templates">templates (makeit.interfaces.template_transformer.TemplateTransformer attribute)</a>
+
+      <ul>
+        <li><a href="makeit.synthetic.enumeration.html#makeit.synthetic.enumeration.transformer.ForwardTransformer.templates">(makeit.synthetic.enumeration.transformer.ForwardTransformer attribute)</a>
 </li>
+      </ul></li>
       <li><a href="makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer">TemplateTransformer (class in makeit.interfaces.template_transformer)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.terminal">terminal (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
 </li>
       <li><a href="makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.tree_evaluator.TreeEvaluator.terminate">terminate() (makeit.synthetic.evaluation.tree_evaluator.TreeEvaluator method)</a>
 </li>
@@ -1556,8 +1731,8 @@
         <li><a href="makeit.synthetic.evaluation.rexgen_release.html#makeit.synthetic.evaluation.rexgen_release.predict.TFFP">(class in makeit.synthetic.evaluation.rexgen_release.predict)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.tforms">tforms (makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
+</li>
       <li><a href="makeit.utilities.html#makeit.utilities.threadsafe.threadsafe_generator">threadsafe_generator() (in module makeit.utilities.threadsafe)</a>
 </li>
       <li><a href="makeit.utilities.html#makeit.utilities.threadsafe.threadsafe_iter">threadsafe_iter (class in makeit.utilities.threadsafe)</a>
@@ -1628,7 +1803,11 @@
 <h2 id="V">V</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.misc.value_network_training_states">value_network_training_states() (in module makeit.retrosynthetic.mcts.misc)</a>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.vaild">vaild (makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication attribute)</a>
+</li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.valid">valid (makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
+</li>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.value">value (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
 </li>
       <li><a href="makeit.prioritization.precursors.html#makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer.vars">vars (makeit.prioritization.precursors.mincost.MinCostPrecursorPrioritizer attribute)</a>
 
@@ -1640,6 +1819,12 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Chemical.visit_count">visit_count (makeit.retrosynthetic.mcts.nodes.Chemical attribute)</a>
+
+      <ul>
+        <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.Reaction.visit_count">(makeit.retrosynthetic.mcts.nodes.Reaction attribute)</a>
+</li>
+      </ul></li>
       <li><a href="rdchiral.html#rdchiral.utils.vprint">vprint() (in module rdchiral.utils)</a>
 </li>
   </ul></td>
@@ -1648,6 +1833,8 @@
 <h2 id="W">W</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.waiting">waiting (makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication attribute)</a>
+</li>
       <li><a href="makeit.synthetic.evaluation.html#makeit.synthetic.evaluation.tree_evaluator.TreeEvaluator.waiting_for_results">waiting_for_results() (makeit.synthetic.evaluation.tree_evaluator.TreeEvaluator method)</a>
 </li>
       <li><a href="makeit.utilities.html#makeit.utilities.with_dummy.with_dummy">with_dummy (class in makeit.utilities.with_dummy)</a>

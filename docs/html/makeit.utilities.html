@@ -84,7 +84,7 @@
 </div>
 <div class="section" id="module-makeit.utilities.atoms">
 <span id="makeit-utilities-atoms-module"></span><h2>makeit.utilities.atoms module<a class="headerlink" href="#module-makeit.utilities.atoms" title="Permalink to this headline">¶</a></h2>
-<p>Module meant to work with DFTB+ for calculating atom-level descriptors</p>
+<p>Module meant to work with DFTB+ for calculating atom-level descriptors.</p>
 <dl class="function">
 <dt id="makeit.utilities.atoms.atom_dftb">
 <code class="descclassname">makeit.utilities.atoms.</code><code class="descname">atom_dftb</code><span class="sig-paren">(</span><em>mol</em>, <em>v=False</em>, <em>to_file=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/atoms.html#atom_dftb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.atoms.atom_dftb" title="Permalink to this definition">¶</a></dt>
@@ -184,7 +184,14 @@ of proposed conditions</p>
 <code class="descclassname">makeit.utilities.descriptors.</code><code class="descname">atom_level_descriptors</code><span class="sig-paren">(</span><em>mol, include=['functional'], asOneHot=False, ORIGINAL_VERSION=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/descriptors.html#atom_level_descriptors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.descriptors.atom_level_descriptors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given an RDKit mol, returns an N_atom-long list of lists,
 each of which contains atom-level descriptors and their names</p>
-<p>returns: (label, attributes)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(labels, attributes)</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -229,14 +236,40 @@ this function returns a set of vectors describing those edits.</p>
 <dl class="function">
 <dt id="makeit.utilities.descriptors.oneHotVector">
 <code class="descclassname">makeit.utilities.descriptors.</code><code class="descname">oneHotVector</code><span class="sig-paren">(</span><em>val</em>, <em>lst</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/descriptors.html#oneHotVector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.descriptors.oneHotVector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts a value to a one-hot vector based on options in lst</p>
+<dd><p>Converts a value to a one-hot vector based on options in lst.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>val</strong> – Value to be one-hot encoded.</li>
+<li><strong>lst</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Options to encode against.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">One-hot vector.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list of bool</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.descriptors.rxn_level_descriptors">
 <code class="descclassname">makeit.utilities.descriptors.</code><code class="descname">rxn_level_descriptors</code><span class="sig-paren">(</span><em>rxn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/descriptors.html#rxn_level_descriptors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.descriptors.rxn_level_descriptors" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given an RDKit reaction, returns a reaction fingerprint as a numpy array
-<strong>for very basic testing</strong></p>
+<dd><p>Returns a reaction fingerprint as a numpy array.</p>
+<p><strong>for very basic testing</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rxn</strong> (<em>rdRxns.ChemicalReaction</em>) – Reaction to get fingerprint of.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>
@@ -370,14 +403,44 @@ instead of an integer.</dd>
 <dl class="function">
 <dt id="makeit.utilities.formats.chem_dict">
 <code class="descclassname">makeit.utilities.formats.</code><code class="descname">chem_dict</code><span class="sig-paren">(</span><em>_id</em>, <em>children=[]</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/formats.html#chem_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.formats.chem_dict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Chemical object as expected by website. Removes rct_of, prod_of, and
-depth information from the tree_dict entry</p>
+<dd><p>Returns chemical dictionary in the format required by the website.</p>
+<p>Chemical object as expected by website. Removes <code class="docutils literal notranslate"><span class="pre">rct_of</span></code>, <code class="docutils literal notranslate"><span class="pre">prod_of</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">depth</span></code> information from the <code class="docutils literal notranslate"><span class="pre">tree_dict</span></code> entry.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Chemical ID.</li>
+<li><strong>children</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a><em>, </em><em>optional</em>) – Children of the node.</li>
+<li><strong>**kwargs</strong> – The <code class="docutils literal notranslate"><span class="pre">tree_dict</span></code> to be modified.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.formats.rxn_dict">
 <code class="descclassname">makeit.utilities.formats.</code><code class="descname">rxn_dict</code><span class="sig-paren">(</span><em>_id</em>, <em>smiles</em>, <em>children=[]</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/formats.html#rxn_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.formats.rxn_dict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reaction object as expected by website. Removes depth and rcts, prod, depth</p>
+<dd><p>Returns reaction dictionary in the format required by the website.</p>
+<p>Reaction object as expected by website. Removes <code class="docutils literal notranslate"><span class="pre">rct</span></code>, <code class="docutils literal notranslate"><span class="pre">prod</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">depth</span></code> information from the <code class="docutils literal notranslate"><span class="pre">tree_dict</span></code> entry.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Chemical ID.</li>
+<li><strong>smiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of reaction.</li>
+<li><strong>children</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a><em>, </em><em>optional</em>) – Children of the node.</li>
+<li><strong>**kwargs</strong> – The <code class="docutils literal notranslate"><span class="pre">tree_dict</span></code> to be modified.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>
@@ -399,24 +462,72 @@ depth information from the tree_dict entry</p>
 <dl class="function">
 <dt id="makeit.utilities.parsing.canonicalize_smiles">
 <code class="descclassname">makeit.utilities.parsing.</code><code class="descname">canonicalize_smiles</code><span class="sig-paren">(</span><em>smiles</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/parsing.html#canonicalize_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.parsing.canonicalize_smiles" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns canonicalized SMILES string.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>smiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string to canonicalize.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.parsing.check_smiles">
 <code class="descclassname">makeit.utilities.parsing.</code><code class="descname">check_smiles</code><span class="sig-paren">(</span><em>chemical</em>, <em>chemicals</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/parsing.html#check_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.parsing.check_smiles" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Checks recorded SMILES for a chemical against the SMILES from its name.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>chemical</strong> (<em>pymongo.collection</em>) – Chemical to check the SMILES of.</li>
+<li><strong>chemicals</strong> (<em>pymongo.collection</em>) – Database of recorded chemicals.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.parsing.parse_list_to_smiles">
 <code class="descclassname">makeit.utilities.parsing.</code><code class="descname">parse_list_to_smiles</code><span class="sig-paren">(</span><em>mol_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/parsing.html#parse_list_to_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.parsing.parse_list_to_smiles" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse a format of reactants (list of smiles, rdkit mol or mol files; or single smiles, rdkit mol or mol file)
-into single smiles format.</p>
+<dd><p>Parses reactants into SMILES string.</p>
+<p>Format of reactants: list of smiles, rdkit mol, or mol files; or
+single smiles, rdkit mol, or mol file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>mol_list</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>Chem.Mol</em><em>, or </em><em>list of str</em><em> or </em><em>Chem.Mol</em>) – Reactants to be
+parsed into SMILES strings.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">SMILES string of reactants or None if parsing fails.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a></td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.utilities.parsing.parse_molecule_to_smiles">
 <code class="descclassname">makeit.utilities.parsing.</code><code class="descname">parse_molecule_to_smiles</code><span class="sig-paren">(</span><em>target</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/parsing.html#parse_molecule_to_smiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.parsing.parse_molecule_to_smiles" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parse a molecular type (smiles, rdkit mol or mol file) into smiles format)</p>
+<dd><p>Parses a molecular type (smiles, rdkit mol or mol file) to smiles format).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>target</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em> or </em><em>Chem.Mol</em>) – SMILES string, filename, or Chem.Mol to parse.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">SMILES string of target, or None if parsing fails.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a></td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>
@@ -425,7 +536,20 @@ into single smiles format.</p>
 <dl class="function">
 <dt id="makeit.utilities.reactants.clean_reactant_mapping">
 <code class="descclassname">makeit.utilities.reactants.</code><code class="descname">clean_reactant_mapping</code><span class="sig-paren">(</span><em>reactants</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/reactants.html#clean_reactant_mapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.reactants.clean_reactant_mapping" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Remaps atoms for reactants.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>reactants</strong> (<em>Chem.Mol</em>) – Reactants to remap.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Reactants with remapped atoms.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">Chem.Mol</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </div>
 <div class="section" id="module-makeit.utilities.strings">
@@ -433,8 +557,24 @@ into single smiles format.</p>
 <dl class="function">
 <dt id="makeit.utilities.strings.string_or_range_to_float">
 <code class="descclassname">makeit.utilities.strings.</code><code class="descname">string_or_range_to_float</code><span class="sig-paren">(</span><em>text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/utilities/strings.html#string_or_range_to_float"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.utilities.strings.string_or_range_to_float" title="Permalink to this definition">¶</a></dt>
-<dd><p>Translate a number in string format to a float.
-If the string represents a range, return the average of that range.</p>
+<dd><p>Translate a number or range in string format to a float.</p>
+<p>If the string represents a range, return the average of that range.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>text</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Number or range string to be converted to a float.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>Number converted / average of range or None if it could</dt>
+<dd>not be converted.</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a></td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>

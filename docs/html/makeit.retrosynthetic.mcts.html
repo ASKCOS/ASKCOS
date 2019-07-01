@@ -45,68 +45,110 @@
 <dt id="makeit.retrosynthetic.mcts.cost.BuyablePathwayCount">
 <code class="descclassname">makeit.retrosynthetic.mcts.cost.</code><code class="descname">BuyablePathwayCount</code><span class="sig-paren">(</span><em>chem_key</em>, <em>max_depth</em>, <em>Chemicals</em>, <em>Reactions</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/cost.html#BuyablePathwayCount"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.cost.BuyablePathwayCount" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the total number of buyable routes in a graph G=(C,R).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>chem_key</strong> (<em>2-tuple of</em><em> (</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>)</em>) – SMILES string and depth of chemical.</li>
+<li><strong>max_depth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Maximum depth for a pathway.</li>
+<li><strong>Chemicals</strong> (<em>dict of {</em><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Chemcial}): Chemicals in the graph.</li>
+<li><strong>Reactions</strong> (<em>dict of {</em><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Reaction}): Reactions in the graph.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of buyable routes in the graph.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.retrosynthetic.mcts.cost.MinCost">
 <code class="descclassname">makeit.retrosynthetic.mcts.cost.</code><code class="descname">MinCost</code><span class="sig-paren">(</span><em>chem_key</em>, <em>max_depth</em>, <em>Chemicals</em>, <em>Reactions</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/cost.html#MinCost"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.cost.MinCost" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes the cheapest pathway</p>
+<dd><p>Computes the cheapest pathway.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>chem_key</strong> (<em>2-tuple of</em><em> (</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>)</em>) – SMILES string and depth of chemical.</li>
+<li><strong>max_depth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Maximum depth for a pathway.</li>
+<li><strong>Chemicals</strong> (<em>dict of {</em><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Chemcial}): Chemicals in the graph.</li>
+<li><strong>Reactions</strong> (<em>dict of {</em><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Reaction}): Reactions in the graph.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Cost of the pathway.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.retrosynthetic.mcts.cost.RSF">
 <code class="descclassname">makeit.retrosynthetic.mcts.cost.</code><code class="descname">RSF</code><span class="sig-paren">(</span><em>smiles_list=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/cost.html#RSF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.cost.RSF" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>smiles_list</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a><em>, </em><em>optional</em>) – Unused. (default: {[]})</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">1.0</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="makeit.retrosynthetic.mcts.cost.Reset">
 <code class="descclassname">makeit.retrosynthetic.mcts.cost.</code><code class="descname">Reset</code><span class="sig-paren">(</span><em>Chemicals</em>, <em>Reactions</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/cost.html#Reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.cost.Reset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reset cost info</p>
+<dd><p>Resets cost info.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>Chemicals</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Chemicals to reset.</li>
+<li><strong>Reactions</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Reactions to reset.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="makeit.retrosynthetic.mcts.cost.score_max_depth">
 <code class="descclassname">makeit.retrosynthetic.mcts.cost.</code><code class="descname">score_max_depth</code><span class="sig-paren">(</span><em>smiles=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/cost.html#score_max_depth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.cost.score_max_depth" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns score for maximum depth.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>smiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>, </em><em>optional</em>) – Unused. (default: {‘’})</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">1000</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </div>
-<div class="section" id="module-makeit.retrosynthetic.mcts.misc">
-<span id="makeit-retrosynthetic-mcts-misc-module"></span><h2>makeit.retrosynthetic.mcts.misc module<a class="headerlink" href="#module-makeit.retrosynthetic.mcts.misc" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="makeit.retrosynthetic.mcts.misc.arr_for_cost">
-<code class="descclassname">makeit.retrosynthetic.mcts.misc.</code><code class="descname">arr_for_cost</code><span class="sig-paren">(</span><em>cost</em>, <em>SCALE=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/misc.html#arr_for_cost"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.misc.arr_for_cost" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="makeit.retrosynthetic.mcts.misc.get_feature_vec">
-<code class="descclassname">makeit.retrosynthetic.mcts.misc.</code><code class="descname">get_feature_vec</code><span class="sig-paren">(</span><em>smiles</em>, <em>FINGERPRINT_SIZE</em>, <em>FP_rad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/misc.html#get_feature_vec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.misc.get_feature_vec" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="makeit.retrosynthetic.mcts.misc.get_states">
-<code class="descclassname">makeit.retrosynthetic.mcts.misc.</code><code class="descname">get_states</code><span class="sig-paren">(</span><em>pair</em>, <em>FINGERPRINT_SIZE</em>, <em>FP_rad</em>, <em>SCALE=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/misc.html#get_states"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.misc.get_states" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="makeit.retrosynthetic.mcts.misc.mol_to_fp">
-<code class="descclassname">makeit.retrosynthetic.mcts.misc.</code><code class="descname">mol_to_fp</code><span class="sig-paren">(</span><em>mol</em>, <em>FINGERPRINT_SIZE=16384</em>, <em>FP_rad=3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/misc.html#mol_to_fp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.misc.mol_to_fp" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="makeit.retrosynthetic.mcts.misc.network_statistics">
-<code class="descclassname">makeit.retrosynthetic.mcts.misc.</code><code class="descname">network_statistics</code><span class="sig-paren">(</span><em>smiles_id</em>, <em>Chemicals</em>, <em>Reactions</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/misc.html#network_statistics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.misc.network_statistics" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="makeit.retrosynthetic.mcts.misc.save_sparse_tree">
-<code class="descclassname">makeit.retrosynthetic.mcts.misc.</code><code class="descname">save_sparse_tree</code><span class="sig-paren">(</span><em>smile</em>, <em>smile_id</em>, <em>array</em>, <em>value</em>, <em>success</em>, <em>fid</em>, <em>FP_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/misc.html#save_sparse_tree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.misc.save_sparse_tree" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="makeit.retrosynthetic.mcts.misc.value_network_training_states">
-<code class="descclassname">makeit.retrosynthetic.mcts.misc.</code><code class="descname">value_network_training_states</code><span class="sig-paren">(</span><em>smiles_id</em>, <em>Chemicals</em>, <em>Reactions</em>, <em>FP_rad=3</em>, <em>FPS_size=16384</em>, <em>fileName=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/misc.html#value_network_training_states"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.misc.value_network_training_states" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
+<div class="section" id="makeit-retrosynthetic-mcts-misc-module">
+<h2>makeit.retrosynthetic.mcts.misc module<a class="headerlink" href="#makeit-retrosynthetic-mcts-misc-module" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-makeit.retrosynthetic.mcts.nodes">
 <span id="makeit-retrosynthetic-mcts-nodes-module"></span><h2>makeit.retrosynthetic.mcts.nodes module<a class="headerlink" href="#module-makeit.retrosynthetic.mcts.nodes" title="Permalink to this headline">¶</a></h2>
@@ -115,26 +157,303 @@
 <em class="property">class </em><code class="descclassname">makeit.retrosynthetic.mcts.nodes.</code><code class="descname">Chemical</code><span class="sig-paren">(</span><em>chem_smi</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/nodes.html#Chemical"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Represents a chemical compound.</p>
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.smiles">
+<code class="descname">smiles</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.smiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>SMILES string of the chemical.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.template_idx_results">
+<code class="descname">template_idx_results</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.template_idx_results" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.purchase_price">
+<code class="descname">purchase_price</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.purchase_price" title="Permalink to this definition">¶</a></dt>
+<dd><p>Price per gram of the chemical.
+?? Seems redundant with price ??</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a> or <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.as_reactant">
+<code class="descname">as_reactant</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.as_reactant" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of times the chemical is seen as a reactant in
+the reaction database.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.as_product">
+<code class="descname">as_product</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.as_product" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of times the chemical is seen as a product in
+the reaction database.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.visit_count">
+<code class="descname">visit_count</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.visit_count" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.terminal">
+<code class="descname">terminal</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.terminal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether this node is a terminal node of the tree.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.estimate_price">
+<code class="descname">estimate_price</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.estimate_price" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimated minimum cost.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a> or <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.estimate_price_sum">
+<code class="descname">estimate_price_sum</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.estimate_price_sum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sum of estimated costs. Used to calculate
+mean estimate price.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.estimate_price_cnt">
+<code class="descname">estimate_price_cnt</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.estimate_price_cnt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Count of cost estimates. Used to calculate
+mean estimate price.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.best_template">
+<code class="descname">best_template</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.best_template" title="Permalink to this definition">¶</a></dt>
+<dd><p>Best template found so far. Gives the lowest price.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.prob">
+<code class="descname">prob</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.prob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Template relevance probabilities to be used for
+later expansion.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.value">
+<code class="descname">value</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Output of value network, not currently used.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a> or <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.sorted_id">
+<code class="descname">sorted_id</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.sorted_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sorted template IDs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.7)">None</a> or <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)">list</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.price">
+<code class="descname">price</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.price" title="Permalink to this definition">¶</a></dt>
+<dd><p>Valid minimum cost. Negative means not buyable.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a> or <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.done">
+<code class="descname">done</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.done" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether this node is done being expanded.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Chemical.pathway_count">
+<code class="descname">pathway_count</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.pathway_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of pathways that can be used to make this
+chemical.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="method">
 <dt id="makeit.retrosynthetic.mcts.nodes.Chemical.reset">
 <code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/nodes.html#Chemical.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.reset" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Resets the chemical.</p>
+<p>Does nothing.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="makeit.retrosynthetic.mcts.nodes.Chemical.set_price">
 <code class="descname">set_price</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/nodes.html#Chemical.set_price"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.set_price" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Sets the price of the chemical.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a>) – Price per gram to set the cost of the chemical to.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="makeit.retrosynthetic.mcts.nodes.Chemical.set_template_relevance_probs">
 <code class="descname">set_template_relevance_probs</code><span class="sig-paren">(</span><em>top_probs</em>, <em>top_indeces</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/nodes.html#Chemical.set_template_relevance_probs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.set_template_relevance_probs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Information about how we might expand this chemical later</p>
+<dd><p>Information about how we might expand this chemical later.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>top_probs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Highest template relevance probabilities.</li>
+<li><strong>top_indeces</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – Indeces for the corresponding templates.</li>
+<li><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Value of precursor. Currently always 1.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="makeit.retrosynthetic.mcts.nodes.Chemical.update_estimate_price">
 <code class="descname">update_estimate_price</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/nodes.html#Chemical.update_estimate_price"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Chemical.update_estimate_price" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Updates the current estimated price for the chemical.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – The next price estimate to average into
+the current estimate.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -142,9 +461,69 @@
 <dt id="makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication">
 <em class="property">class </em><code class="descclassname">makeit.retrosynthetic.mcts.nodes.</code><code class="descname">ChemicalTemplateApplication</code><span class="sig-paren">(</span><em>smiles</em>, <em>template_idx</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/nodes.html#ChemicalTemplateApplication"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Represents the application of a template to a chemical. This is essentially
-a list-wrapper for the Reaction class because applying one template to one
-product can lead to many distinct product sets.</p>
+<p>Represents the application of a template to a chemical.</p>
+<p>This is essentially a list-wrapper for the Reaction class because applying
+one template to one product can lead to many distinct product sets.</p>
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.smiles">
+<code class="descname">smiles</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.smiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>SMILES string of the chemical.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.template_idx">
+<code class="descname">template_idx</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.template_idx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Index of template to apply.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.waiting">
+<code class="descname">waiting</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.waiting" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.vaild">
+<code class="descname">vaild</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.vaild" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.reactions">
+<code class="descname">reactions</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.ChemicalTemplateApplication.reactions" title="Permalink to this definition">¶</a></dt>
+<dd><p>??</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">dict of {str - Reaction}</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -152,15 +531,230 @@ product can lead to many distinct product sets.</p>
 <em class="property">class </em><code class="descclassname">makeit.retrosynthetic.mcts.nodes.</code><code class="descname">Reaction</code><span class="sig-paren">(</span><em>smiles</em>, <em>template_idx</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/nodes.html#Reaction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Represents a reaction.</p>
+<p>Note: No necessary_reagent or num_examples considered yet.</p>
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.smiles">
+<code class="descname">smiles</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.smiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>SMILES string of reaction.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.template_idx">
+<code class="descname">template_idx</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.template_idx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Index of reaction template.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.valid">
+<code class="descname">valid</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.valid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the reaction is considered valid.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.reactant_smiles">
+<code class="descname">reactant_smiles</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.reactant_smiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>SMILES strings of reactants.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.visit_count">
+<code class="descname">visit_count</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.visit_count" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.done">
+<code class="descname">done</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.done" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether this node is done being expanded.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.estimate_price">
+<code class="descname">estimate_price</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.estimate_price" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimated minimum cost.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a> or <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.estimate_price_sum">
+<code class="descname">estimate_price_sum</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.estimate_price_sum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sum of estimated costs. Used to calculate
+mean estimate price.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.estimate_price_cnt">
+<code class="descname">estimate_price_cnt</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.estimate_price_cnt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Count of cost estimates. Used to calculate
+mean estimate price.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.price">
+<code class="descname">price</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.price" title="Permalink to this definition">¶</a></dt>
+<dd><p>Valid minimum cost. Negative means not buyable.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a> or <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.pathway_count">
+<code class="descname">pathway_count</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.pathway_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of pathways to this reaction.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.filter_score">
+<code class="descname">filter_score</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.filter_score" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.tforms">
+<code class="descname">tforms</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.tforms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Will be list if multiple template_idx possible.
+When merging, the redundant template_idx will be considered INVALID.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">list of ??</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.template_score">
+<code class="descname">template_score</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.template_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Template relevance score.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="makeit.retrosynthetic.mcts.nodes.Reaction.plausibility">
+<code class="descname">plausibility</code><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.plausibility" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fast filter score.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)">float</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="method">
 <dt id="makeit.retrosynthetic.mcts.nodes.Reaction.reset">
 <code class="descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/nodes.html#Reaction.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.reset" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Resets the cost of the reaction.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="makeit.retrosynthetic.mcts.nodes.Reaction.update_estimate_price">
 <code class="descname">update_estimate_price</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/makeit/retrosynthetic/mcts/nodes.html#Reaction.update_estimate_price"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#makeit.retrosynthetic.mcts.nodes.Reaction.update_estimate_price" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Updates the current estimated price for the reaction.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.7)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – The next price estimate to average into
+the current estimate.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -380,7 +974,7 @@ pathway. (default: {False})</li>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>smiles</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – SMILES string of target molecule.</li>
 <li><strong>max_depth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a><em>, </em><em>optional</em>) – Maximum number of reactions to allow
 before stopping the recursive expansion down one branch.
@@ -432,6 +1026,17 @@ pathway. (default: {False})</li>
 (default: {‘plausibility’})</li>
 <li><strong>**kwargs</strong> – Additional optional arguments.</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><p>Result of tree_status().
+trees (list of dict): List of dictionaries, where each dictionary</p>
+<blockquote>
+<div><p>defines a synthetic route.</p>
+</div></blockquote>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">tree_status ((<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)">dict</a>))</p>
 </td>
 </tr>
 </tbody>

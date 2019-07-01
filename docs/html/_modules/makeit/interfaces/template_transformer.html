@@ -52,15 +52,36 @@
 <span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span>
 
 <div class="viewcode-block" id="TemplateTransformer"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer">[docs]</a><span class="k">class</span> <span class="nc">TemplateTransformer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    The Transformer class defines an object which can be used to perform</span>
+    <span class="sd">&quot;&quot;&quot;One-step retrosynthesis transformer.</span>
+
+<span class="sd">    The TemplateTransformer class defines an object which can be used to perform</span>
 <span class="sd">    one-step retrosyntheses for a given molecule.</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        id_to_index (dict): Maps template ID to index in ``self.templates``.</span>
+<span class="sd">        precursor_prioritizers ():</span>
+<span class="sd">        precursor_prioritizer ():</span>
+<span class="sd">        template_prioritizers ():</span>
+<span class="sd">        template_prioritizer ():</span>
+<span class="sd">        templates ():</span>
+<span class="sd">        num_templates (int): Number of templates loaded by the transformer.</span>
+<span class="sd">        chiral (bool): Whether to properly handle chirality.</span>
+<span class="sd">        mincount (int): Minimum template popularity.</span>
+<span class="sd">        mincount_chiral (int): Minimum template popularity for chiral templates.</span>
+<span class="sd">        TEMPLATE_DB ():</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initializes TemplateTransformer.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">id_to_index</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1"># Dictionary to keep track of ID -&gt; index in self.templates</span>
 
 <div class="viewcode-block" id="TemplateTransformer.get_precursor_prioritizers"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.get_precursor_prioritizers">[docs]</a>    <span class="k">def</span> <span class="nf">get_precursor_prioritizers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">precursor_prioritizer</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Loads precursor prioritizer for the transformer to use.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            precursor_prioritizer (str): Specifies which prioritization method</span>
+<span class="sd">                to use.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">precursor_prioritizer</span><span class="p">:</span>
             <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span>
                 <span class="s1">&#39;Cannot run the Transformer without a precursor prioritization method. Exiting...&#39;</span><span class="p">,</span> <span class="n">transformer_loc</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
@@ -88,6 +109,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">precursor_prioritizer</span> <span class="o">=</span> <span class="n">precursor</span></div>
 
 <div class="viewcode-block" id="TemplateTransformer.get_template_prioritizers"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.get_template_prioritizers">[docs]</a>    <span class="k">def</span> <span class="nf">get_template_prioritizers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template_prioritizer</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Loads template prioritizer for the transformer to use.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            template_prioritizer (str): Specifies which prioritization method</span>
+<span class="sd">                to use.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">template_prioritizer</span><span class="p">:</span>
             <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span>
                 <span class="s1">&#39;Cannot run the Transformer without a template prioritization method. Exiting...&#39;</span><span class="p">,</span> <span class="n">transformer_loc</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
@@ -101,16 +128,21 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">template</span> <span class="o">=</span> <span class="n">PopularityTemplatePrioritizer</span><span class="p">()</span>
                 <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Prioritization method not recognized. Using literature popularity prioritization.&#39;</span><span class="p">,</span> <span class="n">transformer_loc</span><span class="p">,</span> <span class="n">level</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
-                
+
             <span class="n">template</span><span class="o">.</span><span class="n">load_model</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">template_prioritizers</span><span class="p">[</span><span class="n">template_prioritizer</span><span class="p">]</span> <span class="o">=</span> <span class="n">template</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">template_prioritizer</span> <span class="o">=</span> <span class="n">template</span></div>
 
 <div class="viewcode-block" id="TemplateTransformer.dump_to_file"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.dump_to_file">[docs]</a>    <span class="k">def</span> <span class="nf">dump_to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">retro</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">chiral</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Write the template database to a file, of which the path in specified in the general configuration</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Write the template database to a file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            retro (bool): Whether in the retrosynthetic direction.</span>
+<span class="sd">            file_path (str): Specifies where to save the database.</span>
+<span class="sd">            chiral (bool, optional): Whether to care about chirality.</span>
+<span class="sd">                (default: {False})</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">templates</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot dump to file if templates have not been loaded&#39;</span><span class="p">)</span>
@@ -144,16 +176,23 @@
             <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Wrote templates to </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_path</span><span class="p">),</span> <span class="n">transformer_loc</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TemplateTransformer.load_from_file"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.load_from_file">[docs]</a>    <span class="k">def</span> <span class="nf">load_from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">retro</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">chiral</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rxns</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">refs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">efgs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rxn_ex</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Read the template database from a previously saved file, of which the path is specified in the general</span>
-<span class="sd">        configuration</span>
+        <span class="sd">&quot;&quot;&quot;Read the template database from a previously saved file.</span>
 
-<span class="sd">        retro: whether in the retrosynthetic direction</span>
-<span class="sd">        file_path: .pickle file to read dumped templates from </span>
-<span class="sd">        chiral: whether to handle chirality properly (only for retro for now)</span>
-<span class="sd">        rxns : whether or not to actually load the reaction objects (or just the info)</span>
-<span class="sd">        &#39;&#39;&#39;</span>
-        
+<span class="sd">        Args:</span>
+<span class="sd">            retro (bool): Whether in the retrosynthetic direction.</span>
+<span class="sd">            file_path (str): Pickle file to read dumped templates from.</span>
+<span class="sd">            chiral (bool, optional): Whether to handle chirality properly</span>
+<span class="sd">                (only for retro for now). (default: {False})</span>
+<span class="sd">            rxns (bool, optional): Whether to actually load the reaction objects</span>
+<span class="sd">                (or just the info). (default: {True})</span>
+<span class="sd">            refs (bool, optional): Whether to include references.</span>
+<span class="sd">                (default: {False})</span>
+<span class="sd">            efgs (bool, optional): Whether to include efg information.</span>
+<span class="sd">                (default: {False})</span>
+<span class="sd">            rxn_ex (bool, optional): Whether to include reaction examples.</span>
+<span class="sd">                (default: {False})</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Loading templates from </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_path</span><span class="p">),</span> <span class="n">transformer_loc</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
@@ -195,19 +234,18 @@
         <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Loaded templates. Using </span><span class="si">{}</span><span class="s1"> templates&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_templates</span><span class="p">),</span> <span class="n">transformer_loc</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TemplateTransformer.get_prioritizers"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.get_prioritizers">[docs]</a>    <span class="k">def</span> <span class="nf">get_prioritizers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Get the prioritization methods for the transformer (templates and/or precursors)</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Get the prioritization methods for the transformer.&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 <div class="viewcode-block" id="TemplateTransformer.load"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Load and initialize templates</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Load and initialize templates.&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 <div class="viewcode-block" id="TemplateTransformer.reorder"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.reorder">[docs]</a>    <span class="k">def</span> <span class="nf">reorder</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Reorder self.templates in descending popularity. Also builds id_to_index table&#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Reorder self.templates in descending popularity.</span>
+
+<span class="sd">        Also builds id_to_index table.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_templates</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">templates</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">templates</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">templates</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">z</span><span class="p">:</span> <span class="n">z</span><span class="p">[</span>
                                 <span class="s1">&#39;count&#39;</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -216,9 +254,14 @@
         <span class="k">return</span></div>
 
 <div class="viewcode-block" id="TemplateTransformer.lookup_id"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.lookup_id">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template_id</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Find the reaction smarts for this template_id</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Find the reaction SMARTS for this template_id.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            template_id (int): ID of requested template.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Reaction SMARTS for requested template.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_to_index</span><span class="p">:</span>  <span class="c1"># need to build</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">id_to_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">template</span><span class="p">[</span><span class="s1">&#39;_id&#39;</span><span class="p">]:</span> <span class="n">i</span> <span class="k">for</span> <span class="p">(</span>
@@ -226,6 +269,21 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">templates</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id_to_index</span><span class="p">[</span><span class="n">template_id</span><span class="p">]]</span></div>
 
 <div class="viewcode-block" id="TemplateTransformer.load_from_database"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.load_from_database">[docs]</a>    <span class="k">def</span> <span class="nf">load_from_database</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">retro</span><span class="p">,</span> <span class="n">chiral</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">refs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rxns</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">efgs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rxn_ex</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Read the template database from the database.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            retro (bool): Whether in the retrosynthetic direction.</span>
+<span class="sd">            chiral (bool, optional): Whether to handle chirality properly</span>
+<span class="sd">                (only for retro for now). (default: {False})</span>
+<span class="sd">            refs (bool, optional): Whether to include references.</span>
+<span class="sd">                (default: {False})</span>
+<span class="sd">            rxns (bool, optional): Whether to actually load the reaction objects</span>
+<span class="sd">                (or just the info). (default: {True})</span>
+<span class="sd">            efgs (bool, optional): Whether to include efg information.</span>
+<span class="sd">                (default: {False})</span>
+<span class="sd">            rxn_ex (bool, optional): Whether to include reaction examples.</span>
+<span class="sd">                (default: {False})</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Save collection TEMPLATE_DB</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">load_databases</span><span class="p">(</span><span class="n">retro</span><span class="p">,</span> <span class="n">chiral</span><span class="o">=</span><span class="n">chiral</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">chiral</span> <span class="o">=</span> <span class="n">chiral</span>
@@ -332,14 +390,22 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">reorder</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TemplateTransformer.get_outcomes"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.get_outcomes">[docs]</a>    <span class="k">def</span> <span class="nf">get_outcomes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Gets outcome of single transformation.</span>
+
 <span class="sd">        Performs a one-step transformation given a SMILES string of a</span>
 <span class="sd">        target molecule by applying each transformation template</span>
 <span class="sd">        sequentially.</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 <div class="viewcode-block" id="TemplateTransformer.load_databases"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.load_databases">[docs]</a>    <span class="k">def</span> <span class="nf">load_databases</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">retro</span><span class="p">,</span> <span class="n">chiral</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Loads the databases specified by the global config.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            retro (bool): Whether to load the retrosynthetic databases.</span>
+<span class="sd">            chiral (bool, optional): Whether to properly handle chirality.</span>
+<span class="sd">                (default: {False})</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">db_client</span> <span class="o">=</span> <span class="n">MongoClient</span><span class="p">(</span><span class="n">gc</span><span class="o">.</span><span class="n">MONGO</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">],</span> <span class="n">gc</span><span class="o">.</span><span class="n">MONGO</span><span class="p">[</span>
                                 <span class="s1">&#39;id&#39;</span><span class="p">],</span> <span class="n">connect</span><span class="o">=</span><span class="n">gc</span><span class="o">.</span><span class="n">MONGO</span><span class="p">[</span><span class="s1">&#39;connect&#39;</span><span class="p">])</span>
@@ -360,11 +426,12 @@
                 <span class="s1">&#39;database&#39;</span><span class="p">]][</span><span class="n">gc</span><span class="o">.</span><span class="n">SYNTH_TRANSFORMS</span><span class="p">[</span><span class="s1">&#39;collection&#39;</span><span class="p">]]</span></div>
 
 <div class="viewcode-block" id="TemplateTransformer.apply_one_template"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.template_transformer.TemplateTransformer.apply_one_template">[docs]</a>    <span class="k">def</span> <span class="nf">apply_one_template</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Applies a single template to a given molecule.</span>
+
 <span class="sd">        Takes a mol object and applies a single template, returning</span>
-<span class="sd">        a list of precursors or outcomes, depending on whether retro or </span>
+<span class="sd">        a list of precursors or outcomes, depending on whether retro or</span>
 <span class="sd">        synthetic templates are used</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
 </pre></div>
 

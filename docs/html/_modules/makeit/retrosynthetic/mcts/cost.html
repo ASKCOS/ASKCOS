@@ -33,26 +33,53 @@
           <div class="body" role="main">
             
   <h1>Source code for makeit.retrosynthetic.mcts.cost</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span> 
+<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">sys</span>
 
 <div class="viewcode-block" id="score_max_depth"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.cost.score_max_depth">[docs]</a><span class="k">def</span> <span class="nf">score_max_depth</span><span class="p">(</span><span class="n">smiles</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns score for maximum depth.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        smiles (str, optional): Unused. (default: {&#39;&#39;})</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: 1000</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="mi">1000</span></div>
 
 <div class="viewcode-block" id="RSF"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.cost.RSF">[docs]</a><span class="k">def</span> <span class="nf">RSF</span><span class="p">(</span><span class="n">smiles_list</span><span class="o">=</span><span class="p">[]):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        smiles_list (list, optional): Unused. (default: {[]})</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: 1.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="mf">1.</span></div>
 
 <div class="viewcode-block" id="Reset"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.cost.Reset">[docs]</a><span class="k">def</span> <span class="nf">Reset</span><span class="p">(</span><span class="n">Chemicals</span><span class="p">,</span><span class="n">Reactions</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Reset cost info</span>
+    <span class="sd">&quot;&quot;&quot;Resets cost info.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        Chemicals (dict): Chemicals to reset.</span>
+<span class="sd">        Reactions (dict): Reactions to reset.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">Chemicals</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span> <span class="n">Chemicals</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">Reactions</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span> <span class="n">Reactions</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BuyablePathwayCount"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.cost.BuyablePathwayCount">[docs]</a><span class="k">def</span> <span class="nf">BuyablePathwayCount</span><span class="p">(</span><span class="n">chem_key</span><span class="p">,</span> <span class="n">max_depth</span><span class="p">,</span> <span class="n">Chemicals</span><span class="p">,</span> <span class="n">Reactions</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Computes the total number of buyable routes in a graph G=(C,R).</span>
-<span class="sd">    &#39;&#39;&#39;</span>
-    <span class="n">Chemical</span> <span class="o">=</span> <span class="n">Chemicals</span><span class="p">[</span><span class="n">chem_key</span><span class="p">]</span> 
+    <span class="sd">&quot;&quot;&quot;Computes the total number of buyable routes in a graph G=(C,R).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        chem_key (2-tuple of (str, int)): SMILES string and depth of chemical.</span>
+<span class="sd">        max_depth (int): Maximum depth for a pathway.</span>
+<span class="sd">        Chemicals (dict of {(str, int): Chemcial}): Chemicals in the graph.</span>
+<span class="sd">        Reactions (dict of {(str, int): Reaction}): Reactions in the graph.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: Number of buyable routes in the graph.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Chemical</span> <span class="o">=</span> <span class="n">Chemicals</span><span class="p">[</span><span class="n">chem_key</span><span class="p">]</span>
     <span class="n">current_depth</span> <span class="o">=</span> <span class="n">chem_key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">Chemical</span><span class="o">.</span><span class="n">counter</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">Chemical</span><span class="o">.</span><span class="n">incoming_reactions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">Chemical</span><span class="o">.</span><span class="n">purchase_price</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -61,10 +88,10 @@
             <span class="n">Chemical</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">return</span> <span class="n">Chemical</span><span class="o">.</span><span class="n">counter</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">Chemical</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span> 
+            <span class="n">Chemical</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="n">current_depth</span> <span class="o">&lt;</span> <span class="n">max_depth</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">reac</span> <span class="ow">in</span> <span class="n">Chemical</span><span class="o">.</span><span class="n">incoming_reactions</span><span class="p">:</span>
-                <span class="n">rxnsmi</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">_id</span> <span class="o">=</span> <span class="n">reac</span> 
+                <span class="n">rxnsmi</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">_id</span> <span class="o">=</span> <span class="n">reac</span>
                 <span class="n">r</span> <span class="o">=</span> <span class="n">Reactions</span><span class="p">[(</span><span class="n">rxnsmi</span><span class="p">,</span><span class="n">d</span><span class="p">)]</span>
                 <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">mark</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">counter</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -73,15 +100,23 @@
                         <span class="k">for</span> <span class="n">reactant</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">incoming_chemicals</span><span class="p">:</span>
                             <span class="n">r</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">counter</span> <span class="o">*</span> <span class="n">BuyablePathwayCount</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">reactant</span><span class="p">),</span>
                                 <span class="n">max_depth</span><span class="p">,</span><span class="n">Chemicals</span><span class="p">,</span><span class="n">Reactions</span><span class="p">)</span>
-                        <span class="n">r</span><span class="o">.</span><span class="n">mark</span> <span class="o">=</span> <span class="mi">0</span> 
+                        <span class="n">r</span><span class="o">.</span><span class="n">mark</span> <span class="o">=</span> <span class="mi">0</span>
                     <span class="n">Chemical</span><span class="o">.</span><span class="n">counter</span> <span class="o">+=</span> <span class="n">r</span><span class="o">.</span><span class="n">counter</span>
     <span class="k">return</span> <span class="n">Chemical</span><span class="o">.</span><span class="n">counter</span></div>
 
 <div class="viewcode-block" id="MinCost"><a class="viewcode-back" href="../../../../makeit.retrosynthetic.mcts.html#makeit.retrosynthetic.mcts.cost.MinCost">[docs]</a><span class="k">def</span> <span class="nf">MinCost</span><span class="p">(</span><span class="n">chem_key</span><span class="p">,</span> <span class="n">max_depth</span><span class="p">,</span> <span class="n">Chemicals</span><span class="p">,</span> <span class="n">Reactions</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Computes the cheapest pathway</span>
-<span class="sd">    &#39;&#39;&#39;</span>
-    <span class="n">Chemical</span> <span class="o">=</span> <span class="n">Chemicals</span><span class="p">[</span><span class="n">chem_key</span><span class="p">]</span> 
+    <span class="sd">&quot;&quot;&quot;Computes the cheapest pathway.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        chem_key (2-tuple of (str, int)): SMILES string and depth of chemical.</span>
+<span class="sd">        max_depth (int): Maximum depth for a pathway.</span>
+<span class="sd">        Chemicals (dict of {(str, int): Chemcial}): Chemicals in the graph.</span>
+<span class="sd">        Reactions (dict of {(str, int): Reaction}): Reactions in the graph.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: Cost of the pathway.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Chemical</span> <span class="o">=</span> <span class="n">Chemicals</span><span class="p">[</span><span class="n">chem_key</span><span class="p">]</span>
     <span class="n">current_depth</span> <span class="o">=</span> <span class="n">chem_key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">Chemical</span><span class="o">.</span><span class="n">cost</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">Chemical</span><span class="o">.</span><span class="n">purchase_price</span> <span class="o">==</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">Chemical</span><span class="o">.</span><span class="n">purchase_price</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
@@ -94,7 +129,7 @@
 
         <span class="k">if</span> <span class="n">current_depth</span> <span class="o">&lt;</span> <span class="n">max_depth</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">reac</span> <span class="ow">in</span> <span class="n">Chemical</span><span class="o">.</span><span class="n">incoming_reactions</span><span class="p">:</span>
-                <span class="n">rxnsmi</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">_id</span> <span class="o">=</span> <span class="n">reac</span> 
+                <span class="n">rxnsmi</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">_id</span> <span class="o">=</span> <span class="n">reac</span>
                 <span class="n">r</span> <span class="o">=</span> <span class="n">Reactions</span><span class="p">[(</span><span class="n">rxnsmi</span><span class="p">,</span><span class="n">d</span><span class="p">)]</span>
                 <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">mark</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">cost</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -105,7 +140,7 @@
                         <span class="k">for</span> <span class="n">reactant</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">incoming_chemicals</span><span class="p">:</span>
                             <span class="n">r</span><span class="o">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">cost</span> <span class="o">+</span> <span class="n">MinCost</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">reactant</span><span class="p">),</span><span class="n">max_depth</span><span class="p">,</span>
                                 <span class="n">Chemicals</span><span class="p">,</span><span class="n">Reactions</span><span class="p">)</span>
-                        <span class="n">r</span><span class="o">.</span><span class="n">mark</span> <span class="o">=</span> <span class="mi">0</span> 
+                        <span class="n">r</span><span class="o">.</span><span class="n">mark</span> <span class="o">=</span> <span class="mi">0</span>
                     <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">cost</span> <span class="o">&lt;</span> <span class="n">Chemical</span><span class="o">.</span><span class="n">cost</span><span class="p">:</span>
                         <span class="n">Chemical</span><span class="o">.</span><span class="n">cost</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">cost</span>
     <span class="k">return</span> <span class="n">Chemical</span><span class="o">.</span><span class="n">cost</span></div>

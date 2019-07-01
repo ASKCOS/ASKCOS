@@ -34,14 +34,22 @@
             
   <h1>Source code for makeit.utilities.reactants</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">makeit.global_config</span> <span class="k">as</span> <span class="nn">gc</span>
-<span class="kn">import</span> <span class="nn">rdkit.Chem</span> <span class="k">as</span> <span class="nn">Chem</span>          
+<span class="kn">import</span> <span class="nn">rdkit.Chem</span> <span class="k">as</span> <span class="nn">Chem</span>
 <span class="kn">from</span> <span class="nn">rdkit.Chem</span> <span class="k">import</span> <span class="n">AllChem</span>
 <span class="kn">from</span> <span class="nn">makeit.utilities.io.logger</span> <span class="k">import</span> <span class="n">MyLogger</span>
 <span class="n">reactants_loc</span> <span class="o">=</span> <span class="s1">&#39;util.reactants&#39;</span>
 
 
 <div class="viewcode-block" id="clean_reactant_mapping"><a class="viewcode-back" href="../../../makeit.utilities.html#makeit.utilities.reactants.clean_reactant_mapping">[docs]</a><span class="k">def</span> <span class="nf">clean_reactant_mapping</span><span class="p">(</span><span class="n">reactants</span><span class="p">):</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">reactants</span><span class="p">:</span> 
+    <span class="sd">&quot;&quot;&quot;Remaps atoms for reactants.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        reactants (Chem.Mol): Reactants to remap.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Chem.Mol: Reactants with remapped atoms.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">reactants</span><span class="p">:</span>
         <span class="n">MyLogger</span><span class="o">.</span><span class="n">print_and_log</span><span class="p">(</span><span class="s1">&#39;Could not parse reactants </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reactants</span><span class="p">),</span><span class="n">reactants_loc</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Could not parse reactants&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">gc</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Number of reactant atoms: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">reactants</span><span class="o">.</span><span class="n">GetAtoms</span><span class="p">())))</span>

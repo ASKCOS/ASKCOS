@@ -36,19 +36,17 @@
 <span></span>
 
 <div class="viewcode-block" id="ForwardEnumerator"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.forward_enumerator.ForwardEnumerator">[docs]</a><span class="k">class</span> <span class="nc">ForwardEnumerator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Interface for forward enumeration classes. At least an initialization method and a &#39;get outcomes&#39; of the enumeration </span>
+    <span class="sd">&quot;&quot;&quot;Interface for forward enumeration classes.</span>
+
+<span class="sd">    At least an initialization method and a ``get_outcomes`` of the enumeration</span>
 <span class="sd">    should be present.</span>
-<span class="sd">    &#39;&#39;&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
-    
+
 <div class="viewcode-block" id="ForwardEnumerator.get_outcomes"><a class="viewcode-back" href="../../../makeit.interfaces.html#makeit.interfaces.forward_enumerator.ForwardEnumerator.get_outcomes">[docs]</a>    <span class="k">def</span> <span class="nf">get_outcomes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smiles</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">        Use the enumerator&#39;s methods to get the possible products for a certain smiles</span>
-<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="sd">&quot;&quot;&quot;Enumerates the possible products for a given smiles.&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
-    
 </pre></div>
 
           </div>

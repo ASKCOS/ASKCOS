@@ -120,6 +120,11 @@
 <span class="sd">                workers initialized separately. If False, then retrotransformer</span>
 <span class="sd">                workers will be spun up using multiprocessing.</span>
 <span class="sd">                (default: {False})</span>
+<span class="sd">            chiral (bool, optional): Whether or not to pay close attention to</span>
+<span class="sd">                chirality. When False, even achiral templates can lead to</span>
+<span class="sd">                accidental inversion of chirality in non-reacting parts of the</span>
+<span class="sd">                molecule. It is highly recommended to keep this as True.</span>
+<span class="sd">                (default: {True})</span>
 <span class="sd">            nproc (int, optional): Number of retrotransformer processes to fork</span>
 <span class="sd">                for faster expansion. (default: {1})</span>
 <span class="sd">            mincount (int, optional): Minimum number of precedents for an</span>
@@ -131,11 +136,6 @@
 <span class="sd">                when retrotransformers need to be initialized. Chiral templates</span>
 <span class="sd">                are necessarily more specific, so we generally use a lower</span>
 <span class="sd">                threshold than achiral templates. (default: {10})</span>
-<span class="sd">            chiral (bool, optional): Whether or not to pay close attention to</span>
-<span class="sd">                chirality. When False, even achiral templates can lead to</span>
-<span class="sd">                accidental inversion of chirality in non-reacting parts of the</span>
-<span class="sd">                molecule. It is highly recommended to keep this as True.</span>
-<span class="sd">                (default: {True})</span>
 <span class="sd">            template_prioritization (string, optional): Strategy used for</span>
 <span class="sd">                template prioritization, as a string. There are a limited number</span>
 <span class="sd">                of available options - consult the global configuration file for</span>
@@ -144,6 +144,12 @@
 <span class="sd">                precursor prioritization, as a string. There are a limited</span>
 <span class="sd">                number of available options - consult the global configuration</span>
 <span class="sd">                file for info. (default: {gc.heuristic})</span>
+<span class="sd">            chem_historian (None or ChemHistorian, optional): ChemHistorian</span>
+<span class="sd">                object used to see how often chemicals have occured in</span>
+<span class="sd">                database. If None, will be loaded from the default file in the</span>
+<span class="sd">                global configuration. (default: {None})</span>
+<span class="sd">            num_active_pathways (None or int, optional): Number of active</span>
+<span class="sd">                pathways. If None, will be set to ``nproc``. (default: {None})</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">chiral</span><span class="p">:</span>
@@ -1049,7 +1055,7 @@
                 <span class="k">yield</span> <span class="n">chem_dict</span><span class="p">(</span><span class="n">chemsmiles_to_id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">smiles</span><span class="p">),</span> <span class="n">children</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">cheminfodict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">smiles</span><span class="p">))</span>
 
         <span class="k">def</span> <span class="nf">DLS_chem</span><span class="p">(</span><span class="n">chem_smi</span><span class="p">,</span> <span class="n">depth</span><span class="p">,</span> <span class="n">headNode</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Expands at a fixed depth for the current node chem_id.</span>
+            <span class="sd">&quot;&quot;&quot;Expands at a fixed depth for the current node ``chem_id``.</span>
 
 <span class="sd">            Args:</span>
 <span class="sd">                chem_smi (str): SMILES string for given chemical.</span>
@@ -1081,7 +1087,7 @@
 
 
         <span class="k">def</span> <span class="nf">DLS_rxn</span><span class="p">(</span><span class="n">chem_smi</span><span class="p">,</span> <span class="n">template_idx</span><span class="p">,</span> <span class="n">rct_smi</span><span class="p">,</span> <span class="n">depth</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Yields children paths starting from a specific rxn_id.</span>
+            <span class="sd">&quot;&quot;&quot;Yields children paths starting from a specific ``rxn_id``.</span>
 
 <span class="sd">            Args:</span>
 <span class="sd">                chem_smi (str): SMILES string for given chemical.</span>
@@ -1274,6 +1280,11 @@
 <span class="sd">            sort_trees_by (str, optional): Criteria used to sort trees.</span>
 <span class="sd">                (default: {&#39;plausibility&#39;})</span>
 <span class="sd">            **kwargs: Additional optional arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tree_status ((int, int, dict)): Result of tree_status().</span>
+<span class="sd">            trees (list of dict): List of dictionaries, where each dictionary</span>
+<span class="sd">                defines a synthetic route.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span> <span class="o">=</span> <span class="n">smiles</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_depth</span> <span class="o">=</span> <span class="n">max_depth</span>
