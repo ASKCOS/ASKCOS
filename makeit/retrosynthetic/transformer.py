@@ -205,7 +205,7 @@ class RetroTransformer(TemplateTransformer):
 
         Returns:
             list of 5-tuples of (int, str, int, list, float): Result of
-                applying given template to molecule including the template
+                applying given template to the molecule including the template
                 relevance probabilities of all resulting precursors when
                 calculate_next_probs is True.
         """

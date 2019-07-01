@@ -55,7 +55,7 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         FP_len (int): Fingerprint length.
         vars (list of np.ndarry of np.ndarray of np.float32): Weights and bias
             of model.
-        template_count (int):
+        template_count (int): Maximum number of templates to prioritize.
         max_cum_prob (float):
         batch_size ():
         NK (int):

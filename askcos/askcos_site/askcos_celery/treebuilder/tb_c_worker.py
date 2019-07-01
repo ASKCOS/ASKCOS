@@ -28,7 +28,7 @@ def configure_worker(options={}, **kwargs):
     """Configures worker and instantiates RetroTransformer.
 
     Args:
-        options (dict, optional): Used ensure correct queue?? (default: {{}})
+        options (dict, optional): Used ensure correct queue. (default: {{}})
         **kwargs: Unused.
     """
     if 'queues' not in options:
@@ -95,7 +95,12 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
 
 @shared_task
 def apply_one_template_by_idx(*args, **kwargs):
-    """Wrapper function for RetroTransformer.apply_one_template_by_idx."""
+    """Wrapper function for ``RetroTransformer.apply_one_template_by_idx``.
+
+    Returns:
+        list of 5-tuples of (int, str, int, list, float): Result of
+            applying given template to the molecule.
+    """
     return retroTransformer.apply_one_template_by_idx(*args, **kwargs)
 
 @shared_task
@@ -104,6 +109,9 @@ def fast_filter_check(*args, **kwargs):
 
     These workers will already have it initialized. Best way to allow
     independent queries.
+
+    Returns:
+        list: Reaction outcomes.
     """
     print('got request for fast filter')
     return retroTransformer.fast_filter.evaluate(*args, **kwargs)
@@ -116,6 +124,9 @@ def reserve_worker_pool(self):
     Called by a tb_coordinator to reserve this pool of workers to do a tree
     expansion. This is accomplished by changing what queue(s) this pool
     listens to.
+
+    Returns:
+        str: Name of the new queue the worker pool listens to.
     """
     hostname = self.request.hostname
     private_queue = CORRESPONDING_QUEUE + '_' + hostname
@@ -139,7 +150,11 @@ def reserve_worker_pool(self):
 
 @shared_task(bind=True)
 def unreserve_worker_pool(self):
-    """Releases this worker pool so it can listen to the original queues."""
+    """Releases this worker pool so it can listen to the original queues.
+
+    Returns:
+        True
+    """
     hostname = self.request.hostname
     private_queue = CORRESPONDING_QUEUE + '_' + hostname
     print('Tried to unreserve this worker!')

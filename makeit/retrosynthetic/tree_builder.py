@@ -603,7 +603,7 @@ class TreeBuilder:
             self.idle[i] = True
 
     def coordinate(self):
-        """Run the expansion up to a specified self.expansion_time (seconds)."""
+        """Run the expansion for specified ``self.expansion_time`` (seconds)."""
         start_time = time.time()
         elapsed_time = time.time() - start_time
         next = 1
@@ -764,8 +764,9 @@ class TreeBuilder:
                 OR.
                 (default: {{'as_reactant':1e9, 'as_product':1e9,'logic':None}})
             apply_fast_filter (bool, optional): Whether to apply the fast
-                filter in ?? (default: {False})
-            filter_threshold (float, optional): ?? (default: {0.5})
+                filter to filter precursors. (default: {False})
+            filter_threshold (float, optional): Threshld to use with the fast
+                filter. (default: {0.5})
 
         Returns:
             tree_status ((int, int, dict)): Result of tree_status().
@@ -878,7 +879,7 @@ class TreeBuilder:
                     yield chem_dict(1, children=path, **self.tree_dict[1])
 
         def DLS_chem(chem_id, depth, headNode=False):
-            """Expand at a fixed depth for the current node chem_id.
+            """Expand at a fixed depth for the current node ``chem_id``.
 
             Args:
                 chem_id (int >= 1): Unique ID of the current chemical.
@@ -910,7 +911,7 @@ class TreeBuilder:
                             yield [rxn_dict(rxn_id, rxn_smiles, children=path, **self.tree_dict[rxn_id])]
 
         def DLS_rxn(rxn_id, depth):
-            """Return children paths starting from a specific rxn_id.
+            """Return children paths starting from a specific ``rxn_id``.
 
             Arguments:
                 rxn_id (int >= 2): Unique ID of this reaction in the tree_dict.

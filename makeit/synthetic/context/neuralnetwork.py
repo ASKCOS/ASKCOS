@@ -55,7 +55,7 @@ class NeuralNetContextRecommender(ContextRecommender):
                        'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path']):
         """Loads the specified model and weights.
 
-        Wrapper function for load_nn_model.
+        Wrapper function for ``load_nn_model``.
 
         Args:
             model_path (str, optional): Path to file specifying model.

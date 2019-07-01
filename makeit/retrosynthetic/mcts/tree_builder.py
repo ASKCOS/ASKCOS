@@ -85,6 +85,11 @@ class MCTS:
                 workers initialized separately. If False, then retrotransformer
                 workers will be spun up using multiprocessing.
                 (default: {False})
+            chiral (bool, optional): Whether or not to pay close attention to
+                chirality. When False, even achiral templates can lead to
+                accidental inversion of chirality in non-reacting parts of the
+                molecule. It is highly recommended to keep this as True.
+                (default: {True})
             nproc (int, optional): Number of retrotransformer processes to fork
                 for faster expansion. (default: {1})
             mincount (int, optional): Minimum number of precedents for an
@@ -96,11 +101,6 @@ class MCTS:
                 when retrotransformers need to be initialized. Chiral templates
                 are necessarily more specific, so we generally use a lower
                 threshold than achiral templates. (default: {10})
-            chiral (bool, optional): Whether or not to pay close attention to
-                chirality. When False, even achiral templates can lead to
-                accidental inversion of chirality in non-reacting parts of the
-                molecule. It is highly recommended to keep this as True.
-                (default: {True})
             template_prioritization (string, optional): Strategy used for
                 template prioritization, as a string. There are a limited number
                 of available options - consult the global configuration file for
@@ -109,6 +109,12 @@ class MCTS:
                 precursor prioritization, as a string. There are a limited
                 number of available options - consult the global configuration
                 file for info. (default: {gc.heuristic})
+            chem_historian (None or ChemHistorian, optional): ChemHistorian
+                object used to see how often chemicals have occured in
+                database. If None, will be loaded from the default file in the
+                global configuration. (default: {None})
+            num_active_pathways (None or int, optional): Number of active
+                pathways. If None, will be set to ``nproc``. (default: {None})
         """
 
         if not chiral:
@@ -1014,7 +1020,7 @@ class MCTS:
                 yield chem_dict(chemsmiles_to_id(self.smiles), children=path, **cheminfodict(self.smiles))
 
         def DLS_chem(chem_smi, depth, headNode=False):
-            """Expands at a fixed depth for the current node chem_id.
+            """Expands at a fixed depth for the current node ``chem_id``.
 
             Args:
                 chem_smi (str): SMILES string for given chemical.
@@ -1046,7 +1052,7 @@ class MCTS:
 
 
         def DLS_rxn(chem_smi, template_idx, rct_smi, depth):
-            """Yields children paths starting from a specific rxn_id.
+            """Yields children paths starting from a specific ``rxn_id``.
 
             Args:
                 chem_smi (str): SMILES string for given chemical.
@@ -1239,6 +1245,11 @@ class MCTS:
             sort_trees_by (str, optional): Criteria used to sort trees.
                 (default: {'plausibility'})
             **kwargs: Additional optional arguments.
+
+        Returns:
+            tree_status ((int, int, dict)): Result of tree_status().
+            trees (list of dict): List of dictionaries, where each dictionary
+                defines a synthetic route.
         """
         self.smiles = smiles
         self.max_depth = max_depth
