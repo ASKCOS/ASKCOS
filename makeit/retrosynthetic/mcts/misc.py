@@ -65,11 +65,11 @@ def get_states(pair, FINGERPRINT_SIZE, FP_rad, SCALE = 1.0):
         5-tuple of (str, int, np.ndarray, np.ndarray, bool): SMILES string, ID,
             fingerprint, cost array, and whether the molecule is buyable.
     """
-	_id, smiles, cost, is_buyable = pair
-	_id = int(_id)
-	fps = get_feature_vec(smiles, FINGERPRINT_SIZE, FP_rad)
-	carr = arr_for_cost(cost, SCALE)
-	return (smiles, _id, fps, carr, is_buyable)
+    _id, smiles, cost, is_buyable = pair
+    _id = int(_id)
+    fps = get_feature_vec(smiles, FINGERPRINT_SIZE, FP_rad)
+    carr = arr_for_cost(cost, SCALE)
+    return (smiles, _id, fps, carr, is_buyable)
 
 def save_sparse_tree(smile, smile_id, array, value, success, fid, FP_size):
     """Saves a sparse tree for the molecule to disk.
@@ -83,9 +83,9 @@ def save_sparse_tree(smile, smile_id, array, value, success, fid, FP_size):
         fid (File Descriptor): File descriptor to save to.
         FP_size (int): Fingerprint size.
     """
-	array = csr_matrix(np.array(map(int, array)).astype(bool), (1,FP_size), dtype=bool)
-	matrix_parameters = [array.data, array.indices, array.indptr, array.shape, smile, smile_id, value, success]
-	pickle.dump(matrix_parameters,fid,pickle.HIGHEST_PROTOCOL)
+    array = csr_matrix(np.array(map(int, array)).astype(bool), (1,FP_size), dtype=bool)
+    matrix_parameters = [array.data, array.indices, array.indptr, array.shape, smile, smile_id, value, success]
+    pickle.dump(matrix_parameters,fid,pickle.HIGHEST_PROTOCOL)
 
 def value_network_training_states(smiles_id, Chemicals, Reactions, FP_rad = 3, FPS_size = 16384, fileName = ""):
     """Saves information about buyable chemicals to disk.
@@ -99,19 +99,19 @@ def value_network_training_states(smiles_id, Chemicals, Reactions, FP_rad = 3, F
         filename (str, optional): Filename to save to. (default: {''})
     """
     # Chemical
-	smiles, states, values = [], [], []
-	for chem_key, chem_dict in Chemicals.items():
-		cost = float(chem_dict.cost)
-		if cost > 0.0 and cost < 1000.0:
-			smi, depth = chem_key
-			smiles.append(smi)
-			states.append(get_feature_vec(smi,FPS_size,FP_rad))
-			values.append(cost)
-	with open(fileName, "a+b") as fid:
-		for smile, state, value in zip(smiles,states,values):
-			save_sparse_tree(smile, smiles_id, state, float(value), 1, fid, FPS_size)
-	print "... saved {} buyable chemicals to file.".format(len(values))
-	# Reaction
+    smiles, states, values = [], [], []
+    for chem_key, chem_dict in Chemicals.items():
+        cost = float(chem_dict.cost)
+        if cost > 0.0 and cost < 1000.0:
+            smi, depth = chem_key
+            smiles.append(smi)
+            states.append(get_feature_vec(smi,FPS_size,FP_rad))
+            values.append(cost)
+    with open(fileName, "a+b") as fid:
+        for smile, state, value in zip(smiles,states,values):
+            save_sparse_tree(smile, smiles_id, state, float(value), 1, fid, FPS_size)
+    print "... saved {} buyable chemicals to file.".format(len(values))
+    # Reaction
 
 def network_statistics(smiles_id, Chemicals, Reactions):
     """Logs network statistics.
@@ -123,23 +123,23 @@ def network_statistics(smiles_id, Chemicals, Reactions):
         Reactions (dict of {(str, int): Reaction}): Reactions to store
             information about.
     """
-	# Log network statistics ...
-	stats_location = "crn/mol_{}.stats".format(smiles_id)
-	with gzip.open(stats_location, "a+") as fid:
-		for key, Chem in Chemicals.items():
-			smi, dep = key
-			_cost = Chem.cost
-			_paths = Chem.counter
-			_visits = Chem.visit_count
-			_incoming = len(Chem.incoming_reactions)
-			_outgoing = len(Chem.outgoing_reactions)
-			pickle.dump([smi,smiles_id,dep,_cost,_paths,_visits,_incoming,_outgoing], fid, pickle.HIGHEST_PROTOCOL)
-	with gzip.open(stats_location, "a+") as fid:
-		for key, Reac in Reactions.items():
-			smi, dep = key
-			_cost = Reac.cost
-			_paths = Reac.counter
-			_visits = Reac.visit_count
-			_incoming = len(Reac.incoming_chemicals)
-			_outgoing = len(Reac.outgoing_chemicals)
-			pickle.dump([smi,smiles_id,dep,_cost,_paths,_visits,_incoming,_outgoing], fid, pickle.HIGHEST_PROTOCOL)
+    # Log network statistics ...
+    stats_location = "crn/mol_{}.stats".format(smiles_id)
+    with gzip.open(stats_location, "a+") as fid:
+        for key, Chem in Chemicals.items():
+            smi, dep = key
+            _cost = Chem.cost
+            _paths = Chem.counter
+            _visits = Chem.visit_count
+            _incoming = len(Chem.incoming_reactions)
+            _outgoing = len(Chem.outgoing_reactions)
+            pickle.dump([smi,smiles_id,dep,_cost,_paths,_visits,_incoming,_outgoing], fid, pickle.HIGHEST_PROTOCOL)
+    with gzip.open(stats_location, "a+") as fid:
+        for key, Reac in Reactions.items():
+            smi, dep = key
+            _cost = Reac.cost
+            _paths = Reac.counter
+            _visits = Reac.visit_count
+            _incoming = len(Reac.incoming_chemicals)
+            _outgoing = len(Reac.outgoing_chemicals)
+            pickle.dump([smi,smiles_id,dep,_cost,_paths,_visits,_incoming,_outgoing], fid, pickle.HIGHEST_PROTOCOL)

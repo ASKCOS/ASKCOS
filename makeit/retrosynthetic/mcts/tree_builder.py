@@ -906,8 +906,10 @@ class MCTS:
         """Summarize size of tree after expansion.
 
         Returns:
-            num_chemicals (int): Number of chemical nodes in the tree.
-            num_reactions (int): Number of reaction nodes in the tree.
+            (int, int):
+                num_chemicals (int): Number of chemical nodes in the tree.
+
+                num_reactions (int): Number of reaction nodes in the tree.
         """
 
         num_chemicals = len(self.Chemicals)
@@ -1247,9 +1249,11 @@ class MCTS:
             **kwargs: Additional optional arguments.
 
         Returns:
-            tree_status ((int, int, dict)): Result of tree_status().
-            trees (list of dict): List of dictionaries, where each dictionary
-                defines a synthetic route.
+            ((int, int, dict), list of dict):
+                tree_status ((int, int, dict)): Result of tree_status().
+
+                trees (list of dict): List of dictionaries, where each dictionary
+                    defines a synthetic route.
         """
         self.smiles = smiles
         self.max_depth = max_depth
