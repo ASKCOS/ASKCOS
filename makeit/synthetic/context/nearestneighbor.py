@@ -233,10 +233,10 @@ class NNContextRecommender(ContextRecommender):
         Only returns parseable solvents.
 
         Args:
-        n (int): The number of nearest neighbors to extract rxn conditions from,
-            n <= 10 here.
-        dists:
-        idx: np.array output from NearestNeighbor model for one rxn (10L, )
+            n (int): The number of nearest neighbors to extract rxn conditions from,
+                n <= 10 here.
+            dists:
+            idx: np.array output from NearestNeighbor model for one rxn (10L, )
 
         Returns:
             list: Reaction conditions:

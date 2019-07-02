@@ -11,9 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 4
 
-   askcos
-   makeit
-   rdchiral
+   modules
 
 
 

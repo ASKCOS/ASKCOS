@@ -664,12 +664,14 @@ class TreeBuilder:
         """Summarize size of tree after expansion.
 
         Returns:
-            num_chemicals (int): Number of chemical nodes in the tree.
-            num_reactions (int): Number of reaction nodes in the tree.
-            at_depth (dict): Dictionary containing counts at each integer
-                depth (chemicals) and half-integer depth (reactions).
-        """
+            (int, int, dict):
+                num_chemicals (int): Number of chemical nodes in the tree.
 
+                num_reactions (int): Number of reaction nodes in the tree.
+
+                at_depth (dict): Dictionary containing counts at each integer
+                    depth (chemicals) and half-integer depth (reactions).
+        """
         num_chemicals = 0
         num_reactions = 0
         at_depth = {}
@@ -769,11 +771,12 @@ class TreeBuilder:
                 filter. (default: {0.5})
 
         Returns:
-            tree_status ((int, int, dict)): Result of tree_status().
-            trees (list of dict): List of dictionaries, where each dictionary
-                defines a synthetic route.
-        """
+            ((int, int, dict), list of dict):
+                tree_status ((int, int, dict)): Result of tree_status().
 
+                trees (list of dict): List of dictionaries, where each dictionary
+                    defines a synthetic route.
+        """
         self.mincount = mincount
         self.mincount_chiral = mincount_chiral
         self.max_depth = max_depth

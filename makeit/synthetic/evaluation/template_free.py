@@ -17,7 +17,8 @@ class TemplateFreeNeuralNetScorer(Scorer):
     """Template-free neural net evaluator.
 
     Attributes:
-        model (TFFP): Template-free forward predictor.
+        model (makeit.synthetic.evaluation.rexgen_direct.predict.TFFP):
+            Template-free forward predictor.
     """
     def __init__(self, **kwargs):
         """Initializes TemplateFreeNeuralNetScorer.

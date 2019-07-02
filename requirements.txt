@@ -18,3 +18,4 @@ tensorflow==1.4.1
 theano
 tqdm
 uWSGI==2.0.17.1
+sphinx
