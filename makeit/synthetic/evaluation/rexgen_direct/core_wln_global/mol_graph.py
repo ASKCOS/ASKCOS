@@ -13,8 +13,8 @@ def onek_encoding_unk(x, allowable_set):
     return list(map(lambda s: x == s, allowable_set))
 
 def atom_features(atom):
-    return np.array(onek_encoding_unk(atom.GetSymbol(), elem_list) 
-            + onek_encoding_unk(atom.GetDegree(), [0,1,2,3,4,5]) 
+    return np.array(onek_encoding_unk(atom.GetSymbol(), elem_list)
+            + onek_encoding_unk(atom.GetDegree(), [0,1,2,3,4,5])
             + onek_encoding_unk(atom.GetExplicitValence(), [1,2,3,4,5,6])
             + onek_encoding_unk(atom.GetImplicitValence(), [0,1,2,3,4,5])
             + [atom.GetIsAromatic()], dtype=np.float32)
@@ -35,7 +35,7 @@ def smiles2graph(smiles, idxfunc=lambda x:x.GetIdx()):
     atom_nb = np.zeros((n_atoms, max_nb), dtype=np.int32)
     bond_nb = np.zeros((n_atoms, max_nb), dtype=np.int32)
     num_nbs = np.zeros((n_atoms,), dtype=np.int32)
-    
+
     for atom in mol.GetAtoms():
         idx = idxfunc(atom)
         if idx >= n_atoms:
@@ -100,7 +100,8 @@ def smiles2graph_list(smiles_list, idxfunc=lambda x:x.GetIdx()):
     return pack2D(fatom_list), pack2D(fbond_list), pack2D_withidx(gatom_list), pack2D_withidx(gbond_list), pack1D(nb_list), get_mask(fatom_list)
 
 if __name__ == "__main__":
-    np.set_printoptions(threshold='nan')
+    import sys
+    np.set_printoptions(threshold=sys.maxsize)
     a,b,c,d,e,f = smiles2graph_list(["c1cccnc1",'c1nccc2n1ccc2'])
     print(a)
     print(b)
