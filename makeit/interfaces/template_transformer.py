@@ -18,15 +18,36 @@ import makeit.utilities.io.pickle as pickle
 import os, sys
 
 class TemplateTransformer(object):
-    '''
-    The Transformer class defines an object which can be used to perform
+    """One-step retrosynthesis transformer.
+
+    The TemplateTransformer class defines an object which can be used to perform
     one-step retrosyntheses for a given molecule.
-    '''
+
+    Attributes:
+        id_to_index (dict): Maps template ID to index in ``self.templates``.
+        precursor_prioritizers ():
+        precursor_prioritizer ():
+        template_prioritizers ():
+        template_prioritizer ():
+        templates ():
+        num_templates (int): Number of templates loaded by the transformer.
+        chiral (bool): Whether to properly handle chirality.
+        mincount (int): Minimum template popularity.
+        mincount_chiral (int): Minimum template popularity for chiral templates.
+        TEMPLATE_DB ():
+    """
 
     def __init__(self):
+        """Initializes TemplateTransformer."""
         self.id_to_index = {} # Dictionary to keep track of ID -> index in self.templates
 
     def get_precursor_prioritizers(self, precursor_prioritizer):
+        """Loads precursor prioritizer for the transformer to use.
+
+        Args:
+            precursor_prioritizer (str): Specifies which prioritization method
+                to use.
+        """
         if not precursor_prioritizer:
             MyLogger.print_and_log(
                 'Cannot run the Transformer without a precursor prioritization method. Exiting...', transformer_loc, level=3)
@@ -54,6 +75,12 @@ class TemplateTransformer(object):
         self.precursor_prioritizer = precursor
 
     def get_template_prioritizers(self, template_prioritizer):
+        """Loads template prioritizer for the transformer to use.
+
+        Args:
+            template_prioritizer (str): Specifies which prioritization method
+                to use.
+        """
         if not template_prioritizer:
             MyLogger.print_and_log(
                 'Cannot run the Transformer without a template prioritization method. Exiting...', transformer_loc, level=3)
@@ -74,9 +101,14 @@ class TemplateTransformer(object):
         self.template_prioritizer = template
 
     def dump_to_file(self, retro, file_path, chiral=False):
-        '''
-        Write the template database to a file, of which the path in specified in the general configuration
-        '''
+        """Write the template database to a file.
+
+        Args:
+            retro (bool): Whether in the retrosynthetic direction.
+            file_path (str): Specifies where to save the database.
+            chiral (bool, optional): Whether to care about chirality.
+                (default: {False})
+        """
 
         if not self.templates:
             raise ValueError('Cannot dump to file if templates have not been loaded')
@@ -110,15 +142,22 @@ class TemplateTransformer(object):
             MyLogger.print_and_log('Wrote templates to {}'.format(file_path), transformer_loc)
 
     def load_from_file(self, retro, file_path, chiral=False, rxns=True, refs=False, efgs=False, rxn_ex=False):
-        '''
-        Read the template database from a previously saved file, of which the path is specified in the general
-        configuration
+        """Read the template database from a previously saved file.
 
-        retro: whether in the retrosynthetic direction
-        file_path: .pickle file to read dumped templates from
-        chiral: whether to handle chirality properly (only for retro for now)
-        rxns : whether or not to actually load the reaction objects (or just the info)
-        '''
+        Args:
+            retro (bool): Whether in the retrosynthetic direction.
+            file_path (str): Pickle file to read dumped templates from.
+            chiral (bool, optional): Whether to handle chirality properly
+                (only for retro for now). (default: {False})
+            rxns (bool, optional): Whether to actually load the reaction objects
+                (or just the info). (default: {True})
+            refs (bool, optional): Whether to include references.
+                (default: {False})
+            efgs (bool, optional): Whether to include efg information.
+                (default: {False})
+            rxn_ex (bool, optional): Whether to include reaction examples.
+                (default: {False})
+        """
 
         MyLogger.print_and_log('Loading templates from {}'.format(file_path), transformer_loc)
 
@@ -161,19 +200,18 @@ class TemplateTransformer(object):
         MyLogger.print_and_log('Loaded templates. Using {} templates'.format(self.num_templates), transformer_loc)
 
     def get_prioritizers(self, *args, **kwargs):
-        '''
-        Get the prioritization methods for the transformer (templates and/or precursors)
-        '''
+        """Get the prioritization methods for the transformer."""
         raise NotImplementedError
 
     def load(self, *args, **kwargs):
-        '''
-        Load and initialize templates
-        '''
+        """Load and initialize templates."""
         raise NotImplementedError
 
     def reorder(self):
-        '''Reorder self.templates in descending popularity. Also builds id_to_index table'''
+        """Reorder self.templates in descending popularity.
+
+        Also builds id_to_index table.
+        """
         self.num_templates = len(self.templates)
         self.templates = sorted(self.templates, key=lambda z: z[
                                 'count'], reverse=True)
@@ -182,9 +220,14 @@ class TemplateTransformer(object):
         return
 
     def lookup_id(self, template_id):
-        '''
-        Find the reaction smarts for this template_id
-        '''
+        """Find the reaction SMARTS for this template_id.
+
+        Args:
+            template_id (int): ID of requested template.
+
+        Returns:
+            Reaction SMARTS for requested template.
+        """
 
         if self.lookup_only:
             return self.TEMPLATE_DB.find_one({'_id': ObjectId(template_id)})
@@ -195,6 +238,21 @@ class TemplateTransformer(object):
         return self.templates[self.id_to_index[template_id]]
 
     def load_from_database(self, retro, chiral=False, refs=False, rxns=True, efgs=False, rxn_ex=False):
+        """Read the template data from the database.
+
+        Args:
+            retro (bool): Whether in the retrosynthetic direction.
+            chiral (bool, optional): Whether to handle chirality properly
+                (only for retro for now). (default: {False})
+            refs (bool, optional): Whether to include references.
+                (default: {False})
+            rxns (bool, optional): Whether to actually load the reaction objects
+                (or just the info). (default: {True})
+            efgs (bool, optional): Whether to include efg information.
+                (default: {False})
+            rxn_ex (bool, optional): Whether to include reaction examples.
+                (default: {False})
+        """
         # Save collection TEMPLATE_DB
         self.load_databases(retro, chiral=chiral)
         self.chiral = chiral
@@ -301,14 +359,22 @@ class TemplateTransformer(object):
         self.reorder()
 
     def get_outcomes(self, *args, **kwargs):
-        '''
+        """Gets outcome of single transformation.
+
         Performs a one-step transformation given a SMILES string of a
         target molecule by applying each transformation template
         sequentially.
-        '''
+        """
         raise NotImplementedError
 
     def load_databases(self, retro, chiral=False):
+        """Loads the databases specified by the global config.
+
+        Args:
+            retro (bool): Whether to load the retrosynthetic databases.
+            chiral (bool, optional): Whether to properly handle chirality.
+                (default: {False})
+        """
 
         db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
                                 'id'], connect=gc.MONGO['connect'])
@@ -332,9 +398,10 @@ class TemplateTransformer(object):
         #         'database']][gc.SYNTH_TRANSFORMS['collection']]
 
     def apply_one_template(self, *args, **kwargs):
-        '''
+        """Applies a single template to a given molecule.
+
         Takes a mol object and applies a single template, returning
         a list of precursors or outcomes, depending on whether retro or
         synthetic templates are used
-        '''
+        """
         raise NotImplementedError

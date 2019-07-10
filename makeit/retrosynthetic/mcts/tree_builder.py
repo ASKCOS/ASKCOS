@@ -12,8 +12,8 @@ from makeit.utilities.io.logger import MyLogger
 from makeit.utilities.io import model_loader
 from makeit.utilities.formats import chem_dict, rxn_dict
 import askcos_site.askcos_celery.treebuilder.tb_c_worker as tb_c_worker
-import rdkit.Chem as Chem 
-from collections import defaultdict 
+import rdkit.Chem as Chem
+from collections import defaultdict
 
 import makeit.global_config as gc
 import sys
@@ -29,8 +29,8 @@ import numpy as np
 import traceback
 import itertools
 import random
-import time 
-import gzip 
+import time
+import gzip
 import sys
 import os
 
@@ -45,56 +45,76 @@ DONE = 1
 
 
 class MCTS:
+    """Class for retrosynthetic tree expansion using a depth-first search.
+
+    Attributes:
+
+    """
 
     def __init__(self, retroTransformer=None, pricer=None, max_branching=20, max_depth=3, expansion_time=60,
-                 celery=False, chiral=True, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'], 
+                 celery=False, chiral=True, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
                  mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
                  template_prioritization=gc.relevance, precursor_prioritization=gc.relevanceheuristic,
                  chemhistorian=None, nproc=8, num_active_pathways=None):
-        """Class for retrosynthetic tree expansion using a depth-first search
+        """Initialization of an object of the MCTS class.
 
-        Initialization of an object of the TreeBuilder class sets default values
-        for various settings and loads transformers as needed (i.e., based on 
-        whether Celery is being used or not). Most settings are overridden
-        by the get_buyable_paths method anyway.
+        Sets default values for various settings and loads transformers as
+        needed (i.e., based on whether Celery is being used or not).
+        Most settings are overridden by the get_buyable_paths method anyway.
 
-        Keyword Arguments:
-            retroTransformer {None or RetroTransformer} -- RetroTransformer object
-                to be used for expansion when *not* using Celery. If none, 
-                will be initialized using the model_loader.load_Retro_Transformer
-                function (default: {None})
-            pricer {Pricer} -- Pricer object to be used for checking stop criteria
-                (buyability). If none, will be initialized using default settings
-                from the global configuration (default: {None})
-            max_branching {number} -- Maximum number of precursor suggestions to
-                add to the tree at each expansion (default: {20})
-            max_depth {number} -- Maximum number of reactions to allow before
-                stopping the recursive expansion down one branch (default: {3})
-            expansion_time {number} -- Time (in seconds) to allow for expansion
-                before searching the generated tree for buyable pathways (default: {240})
-            celery {bool} -- Whether or not Celery is being used. If True, then 
-                the TreeBuilder relies on reservable retrotransformer workers
-                initialized separately. If False, then retrotransformer workers
-                will be spun up using multiprocessing (default: {False})
-            nproc {number} -- Number of retrotransformer processes to fork for
-                faster expansion (default: {1})
-            mincount {number} -- Minimum number of precedents for an achiral template
-                for inclusion in the template library. Only used when retrotransformers
-                need to be initialized (default: {25})
-            mincount_chiral {number} -- Minimum number of precedents for a chiral template
-                for inclusion in the template library. Only used when retrotransformers
-                need to be initialized. Chiral templates are necessarily more specific,
-                so we generally use a lower threshold than achiral templates (default: {10})
-            chiral {bool} -- Whether or not to pay close attention to chirality. When 
-                False, even achiral templates can lead to accidental inversion of
-                chirality in non-reacting parts of the molecule. It is highly 
-                recommended to keep this as True (default: {True})
-            template_prioritization {string} -- Strategy used for template
-                prioritization, as a string. There are a limited number of available
-                options - consult the global configuration file for info (default: {gc.popularity})
-            precursor_prioritization {string} -- Strategy used for precursor
-                prioritization, as a string. There are a limited number of available
-                options - consult the global configuration file for info (default: {gc.heuristic})
+        Args:
+            retroTransformer (None or RetroTransformer, optional):
+                RetroTransformer object to be used for expansion when *not*
+                using Celery. If None, will be initialized using the
+                model_loader.load_Retro_Transformer function. (default: {None})
+            pricer (None or Pricer, optional): Pricer object to be used for
+                checking stop criteria (buyability). If None, will be
+                initialized using default settings from the global
+                configuration. (default: {None})
+            max_branching (int, optional): Maximum number of precursor
+                suggestions to add to the tree at each expansion.
+                (default: {20})
+            max_depth (int, optional): Maximum number of reactions to allow
+                before stopping the recursive expansion down one branch.
+                (default: {3})
+            expansion_time (int, optional): Time (in seconds) to allow for
+                expansion before searching the generated tree for buyable
+                pathways. (default: {60})
+            celery (bool, optional): Whether or not Celery is being used. If
+                True, then the MCTS relies on reservable retrotransformer
+                workers initialized separately. If False, then retrotransformer
+                workers will be spun up using multiprocessing.
+                (default: {False})
+            chiral (bool, optional): Whether or not to pay close attention to
+                chirality. When False, even achiral templates can lead to
+                accidental inversion of chirality in non-reacting parts of the
+                molecule. It is highly recommended to keep this as True.
+                (default: {True})
+            nproc (int, optional): Number of retrotransformer processes to fork
+                for faster expansion. (default: {1})
+            mincount (int, optional): Minimum number of precedents for an
+                achiral template for inclusion in the template library. Only
+                used when retrotransformers need to be initialized.
+                (default: {25})
+            mincount_chiral (int, optional): Minimum number of precedents for a
+                chiral template for inclusion in the template library. Only used
+                when retrotransformers need to be initialized. Chiral templates
+                are necessarily more specific, so we generally use a lower
+                threshold than achiral templates. (default: {10})
+            template_prioritization (string, optional): Strategy used for
+                template prioritization, as a string. There are a limited number
+                of available options - consult the global configuration file for
+                info. (default: {gc.popularity})
+            precursor_prioritization (string, optional): Strategy used for
+                precursor prioritization, as a string. There are a limited
+                number of available options - consult the global configuration
+                file for info. (default: {gc.heuristic})
+            chem_historian (None or ChemHistorian, optional): ChemHistorian
+                object used to see how often chemicals have occured in
+                database. If None, will be loaded from the default file in the
+                global configuration. (default: {None})
+            num_active_pathways (None or int, optional): Number of active
+                pathways. If None, will be set to ``nproc``. (default: {None})
         """
 
         if not chiral:
@@ -103,7 +123,7 @@ class MCTS:
         self.celery = celery
         self.mincount = mincount
         self.mincount_chiral = mincount_chiral
-        self.max_depth = max_depth  
+        self.max_depth = max_depth
         self.max_branching = max_branching
         self.expansion_time = expansion_time
         self.template_prioritization = template_prioritization
@@ -129,7 +149,7 @@ class MCTS:
 
         self.chemhistorian = chemhistorian
         if chemhistorian is None:
-            from makeit.utilities.historian.chemicals import ChemHistorian 
+            from makeit.utilities.historian.chemicals import ChemHistorian
             self.chemhistorian = ChemHistorian()
             self.chemhistorian.load_from_file(refs=False, compressed=True)
 
@@ -144,7 +164,7 @@ class MCTS:
         template_prioritizer = RelevanceTemplatePrioritizer(use_tf=False)
         template_prioritizer.load_model()
         self.template_prioritizer = template_prioritizer
-        
+
 
         # When not using Celery, need to ensure retroTransformer initialized
         if not self.celery:
@@ -167,6 +187,13 @@ class MCTS:
 
         if self.celery:
             def expand(_id, smiles, template_idx): # TODO: make Celery workers
+                """Adds pathway to be worked on with Celery.
+
+                Args:
+                    _id (int): ID of pending pathway.
+                    smiles (str): SMILES string of molecule to be exanded.
+                    template_idx (int): ID of template to apply to molecule.
+                """
                 # Chiral transformation or heuristic prioritization requires
                 # same database. _id is _id of active pathway
                 self.pending_results.append(tb_c_worker.apply_one_template_by_idx.apply_async(
@@ -181,6 +208,13 @@ class MCTS:
                 self.active_pathways_pending[_id] += 1
         else:
             def expand(_id, smiles, template_idx):
+                """Adds pathway to be worked on with multiprocessing.
+
+                Args:
+                    _id (int): ID of pending pathway.
+                    smiles (str): SMILES string of molecule to be exanded.
+                    template_idx (int): ID of template to apply to molecule.
+                """
                 self.expansion_queue.put((_id, smiles, template_idx))
                 self.status[(smiles, template_idx)] = WAITING
                 self.active_pathways_pending[_id] += 1
@@ -191,6 +225,7 @@ class MCTS:
         # Define method to start up parallelization.
         if self.celery:
             def prepare():
+                """Starts parallelization with Celery."""
                 try:
                     # if self.chiral:
                     #     request = tb_c_worker.reserve_worker_pool.delay()
@@ -208,8 +243,9 @@ class MCTS:
                         'Did not find any workers? Try again later ({})'.format(e))
         else:
             def prepare():
+                """Starts parallelization with multiprocessing."""
                 if len(self.workers) == self.nproc:
-                    all_alive = True 
+                    all_alive = True
                     for p in self.workers:
                         if not (p and p.is_alive()):
                             all_alive = False
@@ -227,6 +263,12 @@ class MCTS:
         # Define method to get a processed result.
         if self.celery:
             def get_ready_result():
+                """Yields processed results from Celery.
+
+                Yields:
+                    list of 5-tuples of (int, string, int, list, float): Results
+                        from workers after applying a template to a molecule.
+                """
                 # Update which processes are ready
                 self.is_ready = [i for (i, res) in enumerate(self.pending_results) if res.ready()]
                 for i in self.is_ready:
@@ -235,28 +277,55 @@ class MCTS:
                 self.pending_results = [res for (i, res) in enumerate(self.pending_results) if i not in self.is_ready]
         else:
             def get_ready_result():
+                """Yields processed results from multiprocessing.
+
+                Yields:
+                    list of 5-tuples of (int, string, int, list, float): Results
+                        from workers after applying a template to a molecule.
+                """
                 while not self.results_queue.empty():
                     yield self.results_queue.get(timeout=0.5)
         self.get_ready_result = get_ready_result
 
+        # QUESTION: Why is this method defined here and not in the class?
         # Define how first target is set.
         def set_initial_target(_id, leaves): # i = index of active pathway
+            """Sets the first target.
+
+            Expands given molecules with given templates.
+
+            Args:
+                _id (int): Unused; passed through.
+                leaves (list of 2-tuples of (str, int)): Pairs of molecule
+                    SMILES and template IDs to be applied to them.
+            """
             for leaf in leaves:
                 if leaf in self.status: # already being worked on
                     continue
                 chem_smi, template_idx = leaf
-                self.expand(_id, chem_smi, template_idx)     
+                self.expand(_id, chem_smi, template_idx)
         self.set_initial_target = set_initial_target
 
         # Define method to stop working.
         if self.celery:
             def stop(soft_stop=False):
+                """Stops work with Celery.
+
+                Args:
+                    soft_stop (bool, optional): Unused. (default: {false})
+                """
                 self.running = False
                 if self.pending_results != []: # clear anything left over - might not be necessary
                     for i in range(len(self.pending_results)):
-                        self.pending_results[i].revoke() 
+                        self.pending_results[i].revoke()
         else:
             def stop(soft_stop=False):
+                """Stops work with multiprocessing.
+
+                Args:
+                    soft_stop (bool, optional): Whether to let active workers
+                        continue. (default: {false})
+                """
                 if not self.running:
                     return
                 #MyLogger.print_and_log('Terminating tree building process.', treebuilder_loc)
@@ -278,16 +347,31 @@ class MCTS:
         #   return None
 
     def ResetVisitCount(self):
-        for chem_key in self.Chemicals: 
+        """Resets visit count of chemicals and reactions to zero.
+
+        Also empties successes and rewards for reactions.
+        """
+        for chem_key in self.Chemicals:
             self.Chemicals[chem_key].visit_count = 0
-        for rxn_key in self.Reactions: 
+        for rxn_key in self.Reactions:
             self.Reactions[rxn_key].visit_count = 0
             self.Reactions[rxn_key].successes = []
             self.Reactions[rxn_key].rewards = []
 
 
     def coordinate(self, soft_stop=False, known_bad_reactions=[], forbidden_molecules=[], return_first=False):
+        """Coordinates workers.
 
+        Args:
+            soft_stop (bool, optional): Whether to use softly stop the workers.
+                (default: {False})
+            known_bad_reactions (list of str, optional): Reactions to
+                eliminate from output. (default: {[]})
+            forbidden_molecules (list of str, optional): SMILES strings of
+                molecules to eliminate from output. (default: {[]})
+            return_first (bool, optional): Whether to return after finding first
+                pathway. (default: {False})
+        """
         if not self.celery:
             while not all(self.initialized):
                 MyLogger.print_and_log('Waiting for workers to initialize...', treebuilder_loc)
@@ -311,7 +395,7 @@ class MCTS:
                     print('Pending results? {}'.format(len(self.pending_results)))
                 else:
                     print('Expansion empty? {}'.format(self.expansion_queue.empty()))
-                    print('results_queue empty? {}'.format(self.results_queue.empty()))    
+                    print('results_queue empty? {}'.format(self.results_queue.empty()))
                     print('All idle? {}'.format(self.idle))
 
                 # print(self.expansion_queue.qsize()) # TODO: make this Celery compatible
@@ -328,7 +412,7 @@ class MCTS:
                 self.active_pathways_pending[_id] -= 1
 
                 # Result of applying one template_idx to one chem_smi can be multiple eoutcomes
-                for (_id, chem_smi, template_idx, reactants, filter_score) in all_outcomes:                        
+                for (_id, chem_smi, template_idx, reactants, filter_score) in all_outcomes:
                     # print('coord pulled {} result from result queue'.format(chem_smi))
                     self.status[(chem_smi, template_idx)] = DONE
                     # R = self.Chemicals[chem_smi].reactions[template_idx]
@@ -337,7 +421,7 @@ class MCTS:
                     CTA.waiting = False
 
                     # Any proposed reactants?
-                    if len(reactants) == 0: 
+                    if len(reactants) == 0:
                         CTA.valid = False # no precursors, reaction failed
                         # print('No reactants found for {} {}'.format(_id, chem_smi))
                         continue
@@ -352,13 +436,13 @@ class MCTS:
 
                     # Banned molecule?
                     if any(smi in forbidden_molecules for (smi, _, _, _) in reactants):
-                        CTA.valid = False 
+                        CTA.valid = False
                         continue
 
                     # TODO: check if banned reaction
                     matched_prev = False
                     for prev_tid, prev_cta in C.template_idx_results.items():
-                        if reactant_smiles in prev_cta.reactions: 
+                        if reactant_smiles in prev_cta.reactions:
                             prev_R = prev_cta.reactions[reactant_smiles]
                             matched_prev = True
                             # Now merge the two...
@@ -379,7 +463,7 @@ class MCTS:
                         if smi not in self.Chemicals:
                             self.Chemicals[smi] = Chemical(smi)
                             self.Chemicals[smi].set_template_relevance_probs(top_probs, top_indeces, value)
-                            
+
                             ppg = self.pricer.lookup_smiles(smi, alreadyCanonical=True)
                             self.Chemicals[smi].purchase_price = ppg
                             # if ppg is not None and ppg > 0:
@@ -392,14 +476,14 @@ class MCTS:
                             if self.is_a_terminal_node(smi, ppg, hist):
                                 self.Chemicals[smi].set_price(1) # all nodes treated the same for now
                                 self.Chemicals[smi].terminal = True
-                                self.Chemicals[smi].done = True 
+                                self.Chemicals[smi].done = True
                                 # print('TERMINAL: {}'.format(self.Chemicals[smi]))# DEBUG
 
                     R.estimate_price = sum([self.Chemicals[smi].estimate_price for smi in R.reactant_smiles])
 
                     # Add this reaction result to CTA (key = reactant smiles)
                     CTA.reactions[reactant_smiles] = R
-                       
+
             # See if this rollout is done (TODO: make this Celery compatible)
             for _id in range(self.num_active_pathways):
                 if self.active_pathways_pending[_id] == 0: # this expansion step is done
@@ -408,7 +492,7 @@ class MCTS:
 
                     # Set new target
                     leaves, pathway = self.select_leaf()
-                    self.active_pathways[_id] = pathway 
+                    self.active_pathways[_id] = pathway
                     self.set_initial_target(_id, leaves)
 
 
@@ -458,6 +542,11 @@ class MCTS:
         # print(self.active_pathway)
 
     def work(self, i):
+        """Assigns work (if available) to given worker.
+
+        Args:
+            i (int): Index of worker to be assigned work.
+        """
         # with tf.device('/gpu:%d' % (i % self.ngpus)):
         #     self.model = RLModel()
         #     self.model.load(MODEL_PATH)
@@ -471,13 +560,13 @@ class MCTS:
             if self.done.value:
                 # print 'Worker {} saw done signal, terminating'.format(i)
                 break
-            
+
             # Grab something off the queue
             if not self.expansion_queue.empty():
                 try:
                     self.idle[i] = False
                     (_id, smiles, template_idx) = self.expansion_queue.get(timeout=0.1)  # short timeout
-                
+
                     # print('{} grabbed {} and {} from queue'.format(_id, smiles, template_idx))
                     try:
                         all_outcomes = self.retroTransformer.apply_one_template_by_idx(_id, smiles, template_idx) # TODO: add settings
@@ -486,8 +575,8 @@ class MCTS:
                         all_outcomes = [(_id, smiles, template_idx, [], 0.0)]
                     # print('{} applied one template and got {}'.format(i, all_outcomes))
                     # all_outcomes = list of (_id, smiles, template_idx, reactants, filter_score)
-               
-                    
+
+
                     self.results_queue.put(all_outcomes)
                     # print('{} put {} outcomes on queue'.format(i, len(all_outcomes)))
 
@@ -495,15 +584,28 @@ class MCTS:
                     self.idle[i] = True
                     pass # looks like someone got there first...
 
-            
+
             # time.sleep(0.01)
             self.idle[i] = True
 
     def UCB(self, chem_smi, c_exploration=0.2, path=[]):
-        '''
-        Can either select an unapplied template to apply, or select a specific reactant to expand further (?)
+        """Finds best reaction for a given chemical.
+
+        Can either select an unapplied template to apply, or select a specific
+        reactant to expand further (?)
         TODO: check these changes...
-        '''
+
+        Args:
+            chem_smi (str): SMILES string of target chemical.
+            c_exploration (float, optional): ?? Used to calculate reaction
+                score. (default: {0.2})
+            path (list or dict, optional): Current reation path. (default: {[]})
+
+        Returns:
+            2-tuple of (int, str): Index of template and SMILES strings of
+                reactants corresponding to the highest scoring reaction
+                resulting in the target product.
+        """
         rxn_scores = []
 
         C = self.Chemicals[chem_smi]
@@ -511,7 +613,7 @@ class MCTS:
         max_estimate_price = 0
 
         for template_idx in C.template_idx_results:
-            CTA = C.template_idx_results[template_idx] 
+            CTA = C.template_idx_results[template_idx]
             if CTA.waiting or not CTA.valid:
                 continue
 
@@ -534,13 +636,13 @@ class MCTS:
         # unexpanded template - find most relevant template that hasn't been tried
         num_branches = len(rxn_scores)
         if num_branches < self.max_branching or chem_smi == self.smiles:
-            for template_idx in C.top_indeces: 
+            for template_idx in C.top_indeces:
                 if template_idx not in C.template_idx_results:
                     Q_sa = - (max_estimate_price + 0.1)
                     U_sa = c_exploration * C.prob[template_idx] * np.sqrt(product_visits) / 1
                     score = Q_sa + U_sa
                     rxn_scores.append((score, template_idx, None)) # record estimated score if we were to actually apply that template
-                    # TODO: figure out if this "None" makes sense for the reactants smiles 
+                    # TODO: figure out if this "None" makes sense for the reactants smiles
                     break
 
         if len(rxn_scores) > 0:
@@ -553,6 +655,16 @@ class MCTS:
 
 
     def select_leaf(self, c_exploration=1.):
+        """Builds reaction pathways??
+
+        Args:
+            c_exploration (float, optional): ?? (default: {1.0})
+
+        Returns:
+            2-tuple of (list of 2-tuples of (str, int), dict): SMILES strings of
+                chemical and corresponding template index and pathways from a
+                chemical to its reactants??
+        """
         #start_time = time.time()
         pathway = {}
         leaves = []
@@ -566,13 +678,13 @@ class MCTS:
             template_idx, reactants_smi = self.UCB(chem_smi, c_exploration=c_exploration, path=path)
             if template_idx is None:
                 continue
-            
+
             # Only grow pathway when we have picked a specific reactants_smi (?)
             if reactants_smi is not None:
                 pathway[chem_smi] = (template_idx, reactants_smi) # TODO: figure out if reactants_smi==None case is an issue
             else:
                 pathway[chem_smi] = template_idx # still record template selection
-            
+
             C = self.Chemicals[chem_smi]
             C.visit_count += VIRTUAL_LOSS
 
@@ -611,7 +723,13 @@ class MCTS:
 
 
     def update(self, chem_smi, pathway, depth=0):
-        
+        """??
+
+        Args:
+            chem_smi (str): SMILES string of
+            pathway (dict):
+            depth (int, optional): (default: {0})
+        """
         if depth == 0:
             for smi in pathway:
                 if type(pathway[smi]) == tuple:
@@ -636,7 +754,7 @@ class MCTS:
         C = self.Chemicals[chem_smi]
         CTA = C.template_idx_results[template_idx]
         if CTA.waiting: # haven't actually expanded
-            return 
+            return
 
         if reactants_smi:
             R = CTA.reactions[reactants_smi]
@@ -645,7 +763,7 @@ class MCTS:
 
                 for smi in R.reactant_smiles:
                     self.update(smi, pathway, depth+1)
-                
+
                 estimate_price = sum([self.Chemicals[smi].estimate_price for smi in R.reactant_smiles])
                 R.update_estimate_price(estimate_price)
                 C.update_estimate_price(estimate_price)
@@ -666,7 +784,13 @@ class MCTS:
 
 
     def full_update(self, chem_smi, depth=0, path=[]):
+        """??
 
+        Args:
+            chem_smi (str): SMILES string of target chemical.
+            depth (int, optional): (default: {0})
+            path (list?): (default: {[]})
+        """
         C = self.Chemicals[chem_smi]
         C.pathway_count = 0
 
@@ -713,7 +837,18 @@ class MCTS:
 
 
     def build_tree(self, soft_stop=False, known_bad_reactions=[], forbidden_molecules=[], return_first=False):
+        """Builds retrosynthesis tree.
 
+        Args:
+            soft_stop (bool, optional): Whether to use softly stop the workers.
+                (default: {False})
+            known_bad_reactions (list of str, optional): Reactions to
+                eliminate from output. (default: {[]})
+            forbidden_molecules (list of str, optional): SMILES strings of
+                molecules to eliminate from output. (default: {[]})
+            return_first (bool, optional): Whether to return after finding first
+                pathway. (default: {False})
+        """
         self.running = True
 
         if self.celery:
@@ -725,7 +860,7 @@ class MCTS:
 
             MyLogger.print_and_log('Preparing workers...', treebuilder_loc)
             self.prepare()
-            
+
             # Define first chemical node (target)
             probs, indeces = self.template_prioritizer.get_topk_from_smi(self.smiles, k=self.template_count)
             truncate_to = np.argwhere(np.cumsum(probs) >= self.max_cum_template_prob)
@@ -749,7 +884,7 @@ class MCTS:
                 self.active_pathways[_id] = pathway
                 self.set_initial_target(_id, leaves)
             MyLogger.print_and_log('Set initial leaves for active pathways', treebuilder_loc)
-            
+
             # Coordinate workers.
             self.coordinate(soft_stop=soft_stop, known_bad_reactions=known_bad_reactions,
                 forbidden_molecules=forbidden_molecules, return_first=return_first)
@@ -766,13 +901,15 @@ class MCTS:
         print("---------------------------")
         return # self.Chemicals, C.pathway_count, self.time_for_first_path
 
-
+    # QUESTION: Why return the empty list?
     def tree_status(self):
-        """Summarize size of tree after expansion
+        """Summarize size of tree after expansion.
 
         Returns:
-            num_chemicals {int} -- number of chemical nodes in the tree
-            num_reactions {int} -- number of reaction nodes in the tree
+            (int, int):
+                num_chemicals (int): Number of chemical nodes in the tree.
+
+                num_reactions (int): Number of reaction nodes in the tree.
         """
 
         num_chemicals = len(self.Chemicals)
@@ -781,15 +918,20 @@ class MCTS:
 
 
     def reset(self, soft_reset=False):
-        '''Prepare for a new expansion
+        """Prepare for a new expansion
 
-        TODO: add "soft" feature which does not spin up new workers'''
+        TODO: add "soft" feature which does not spin up new workers
+
+        Args:
+            soft_reset (bool, optional): Whether to do a soft reset.
+                (default: {False})
+        """
         if self.celery:
             # general parameters in celery format
             # TODO: anything goes here?
             self.pending_results = []
         else:
-            
+
             if not soft_reset:
                 MyLogger.print_and_log('Doing a hard worker reset', treebuilder_loc)
                 self.workers = []
@@ -805,34 +947,38 @@ class MCTS:
             else:
                 MyLogger.print_and_log('Doing a soft worker reset', treebuilder_loc)
                 for i in range(self.nproc):
-                    self.idle[i] = True 
+                    self.idle[i] = True
                 try:
                     while True:
                         self.expansion_queue.get(timeout=1)
                 except VanillaQueue.Empty:
                     pass
-            
+
                 try:
                     while True:
                         self.results_queue.get(timeout=1)
                 except VanillaQueue.Empty:
                     pass
 
-        self.running = False  
+        self.running = False
         self.status = {}
         self.active_pathways = [{} for _id in range(self.num_active_pathways)]
         self.active_pathways_pending = [0 for _id in range(self.num_active_pathways)]
-        self.pathway_count = 0 
-        self.mincost = 10000.0        
+        self.pathway_count = 0
+        self.mincost = 10000.0
         self.Chemicals = {} # new
         self.Reactions = {} # new
         self.time_for_first_path = -1
 
 
     def return_trees(self):
-
+        """Returns retrosynthetic pathways trees and their size."""
         def cheminfodict(smi):
-            '''Prepares extra info'''
+            """Returns dict of extra info about a given chemical.
+
+            Args:
+                smi (str): SMILES string of chemical.
+            """
             return {
                 'smiles': smi,
                 'ppg': self.Chemicals[smi].purchase_price,
@@ -841,6 +987,11 @@ class MCTS:
             }
 
         def tidlisttoinfodict(tids):
+            """Returns dict of info from a given list of templates.
+
+                Args:
+                    tids (list of int): Template IDs to get info about.
+            """
             return {
                 'tforms': [str(self.retroTransformer.templates[tid]['_id']) for tid in tids],
                 'num_examples': int(sum([self.retroTransformer.templates[tid]['count'] for tid in tids])),
@@ -862,17 +1013,22 @@ class MCTS:
             return seen_chemsmiles[smi]
 
         def IDDFS():
-            """Perform an iterative deepening depth-first search to find buyable
-            pathways.
-                        
+            """Performs iterative depth-first search to find buyable pathways.
+
             Yields:
-                nested dictionaries defining synthesis trees
+                dict: nested dictionaries defining synthesis trees
             """
             for path in DLS_chem(self.smiles, depth=0, headNode=True):
                 yield chem_dict(chemsmiles_to_id(self.smiles), children=path, **cheminfodict(self.smiles))
 
         def DLS_chem(chem_smi, depth, headNode=False):
-            """Expand at a fixed depth for the current node chem_id."""
+            """Expands at a fixed depth for the current node ``chem_id``.
+
+            Args:
+                chem_smi (str): SMILES string for given chemical.
+                depth (int): Depth node is expanded at.
+                headNode (bool, optional): Unused. (default: {False})
+            """
             C = self.Chemicals[chem_smi]
             if C.terminal:
                 yield []
@@ -890,7 +1046,7 @@ class MCTS:
                     rxn_smiles = '.'.join(sorted(R.reactant_smiles)) + '>>' + chem_smi
                     if rxn_smiles not in done_children_of_this_chemical: # necessary to avoid duplicates
                         for path in DLS_rxn(chem_smi, tid, rct_smi, depth):
-                            yield [rxn_dict(rxnsmiles_to_id(rxn_smiles), rxn_smiles, children=path, 
+                            yield [rxn_dict(rxnsmiles_to_id(rxn_smiles), rxn_smiles, children=path,
                                 plausibility=R.plausibility,
                                 template_score=R.template_score, **tidlisttoinfodict(R.tforms))]
                             # TODO: figure out when to include num_examples
@@ -898,14 +1054,21 @@ class MCTS:
 
 
         def DLS_rxn(chem_smi, template_idx, rct_smi, depth):
-            """Return children paths starting from a specific rxn_id"""
+            """Yields children paths starting from a specific ``rxn_id``.
+
+            Args:
+                chem_smi (str): SMILES string for given chemical.
+                template_idx (int): Index of given template.
+                rct_smi (str): SMILES string for reactants.
+                depth (int): depth of given reaction.
+            """
             # TODO: add in auxiliary information about templates, etc.
             R = self.Chemicals[chem_smi].template_idx_results[template_idx].reactions[rct_smi]
 
             # rxn_list = []
             # for smi in R.reactant_smiles:
             #     rxn_list.append([chem_dict(smi, children=path, **{}) for path in DLS_chem(smi, depth+1)])
-                
+
             # return [rxns[0] for rxns in itertools.product(rxn_list)]
 
             ###################
@@ -1005,36 +1168,94 @@ class MCTS:
         else:
             raise ValueError('Need something to sort by! Invalid option provided {}'.format(self.sort_trees_by))
 
-        return self.tree_status(), trees 
+        return self.tree_status(), trees
 
 
     # TODO: use these settings...
-    def get_buyable_paths(self, 
-                            smiles, 
-                            max_depth=10,
-                            max_branching=25,
-                            expansion_time=30,
-                            nproc=12,
-                            num_active_pathways=None,
-                            chiral=True,
-                            max_trees=5000,
-                            max_ppg=1e10,
-                            known_bad_reactions=[],
-                            forbidden_molecules=[],
-                            template_count=100,
-                            max_cum_template_prob=0.995, 
-                            max_natom_dict=defaultdict(lambda: 1e9, {'logic': None}),
-                            min_chemical_history_dict={'as_reactant':1e9, 'as_product':1e9,'logic':None},
-                            apply_fast_filter=True, 
-                            filter_threshold=0.75,
-                            soft_reset=False,
-                            return_first=False,
-                            sort_trees_by='plausibility',
-                            **kwargs):
+    def get_buyable_paths(self,
+                          smiles,
+                          max_depth=10,
+                          max_branching=25,
+                          expansion_time=30,
+                          nproc=12,
+                          num_active_pathways=None,
+                          chiral=True,
+                          max_trees=5000,
+                          max_ppg=1e10,
+                          known_bad_reactions=[],
+                          forbidden_molecules=[],
+                          template_count=100,
+                          max_cum_template_prob=0.995,
+                          max_natom_dict=defaultdict(lambda: 1e9, {'logic': None}),
+                          min_chemical_history_dict={'as_reactant':1e9, 'as_product':1e9,'logic':None},
+                          apply_fast_filter=True,
+                          filter_threshold=0.75,
+                          soft_reset=False,
+                          return_first=False,
+                          sort_trees_by='plausibility',
+                          **kwargs):
+        """Returns trees with path ending in buyable chemicals.
 
-        
+        Args:
+            smiles (str): SMILES string of target molecule.
+            max_depth (int, optional): Maximum number of reactions to allow
+                before stopping the recursive expansion down one branch.
+                (default: {10})
+            max_branching (int, optional): Maximum number of precursor
+                suggestions to add to the tree at each expansion.
+                (default: {25})
+            expansion_time (int, optional): Time (in seconds) to allow for
+                expansion before searching the generated tree for buyable
+                pathways. (default: {30})
+            nproc (int, optional): Number of retrotransformer processes to fork
+                for faster expansion. (default: {12})
+            num_active_pathways (int or None, optional): Number of active
+                pathways. (default: {None})
+            chiral (bool, optional): Whether or not to pay close attention to
+                chirality. When False, even achiral templates can lead to
+                accidental inversion of chirality in non-reacting parts of the
+                molecule. It is highly recommended to keep this as True.
+                (default: {True})
+            max_trees (int, optional): Maximum number of trees to return.
+                (default: {5000})
+            max_ppg (int, optional): Maximum price per gram of any chemical
+                in a valid path. (default: {1e10})
+            known_bad_reactions (list of str, optional): Reactions to eliminate
+                from output. (default: {[]})
+            forbidden_molecules (list of str, optional): SMILES strings of
+                molecules to eliminate from output. (default: {[]})
+            template_count (int, optional): Maximum number of relevant templates
+                to consider. (default: {100})
+            max_cum_template_prob (float, optional): Maximum cumulative
+                probability of selected relevant templates. (default: {0.995})
+            max_natom_dict (defaultdict, optional): Specifies maximum amounts
+                for certain atoms and the logic it should use to select a
+                chemical (buyable, buyable or max atoms, buyable and max atoms).
+                (default: {defaultdict(lambda: 1e9, {'logic': None})})
+            min_chemical_history_dict (dict, optional): Minimum number of times
+                a chemical must appear as a reactant or product to be selected
+                when logic is "OR" and chemical is not buyable.
+                (default: {{'as_reactant':1e9, 'as_product':1e9,'logic':None}})
+            apply_fast_filter (bool, optional): Whether to apply the fast
+                filter. (default: {True})
+            filter_threshold (float, optional): Threshold to use for the fast
+                filter. (default: {0.75})
+            soft_reset (bool, optional): Whether to softly reset workers.
+                (default: {False})
+            return_first (bool, optional): Whether to return after finding first
+                pathway. (default: {False})
+            sort_trees_by (str, optional): Criteria used to sort trees.
+                (default: {'plausibility'})
+            **kwargs: Additional optional arguments.
 
-        self.smiles = smiles 
+        Returns:
+            ((int, int, dict), list of dict):
+                tree_status ((int, int, dict)): Result of tree_status().
+
+                trees (list of dict): List of dictionaries, where each dictionary
+                    defines a synthetic route.
+        """
+        self.smiles = smiles
         self.max_depth = max_depth
         self.expansion_time = expansion_time
         self.nproc = nproc
@@ -1054,7 +1275,7 @@ class MCTS:
 
         if min_chemical_history_dict['logic'] not in [None, 'none'] and \
                 self.chemhistorian is None:
-            from makeit.utilities.historian.chemicals import ChemHistorian 
+            from makeit.utilities.historian.chemicals import ChemHistorian
             self.chemhistorian = ChemHistorian()
             self.chemhistorian.load_from_file(refs=False, compressed=True)
             MyLogger.print_and_log('Loaded compressed chemhistorian from file', treebuilder_loc, level=1)
@@ -1077,7 +1298,7 @@ class MCTS:
         def is_popular_enough(hist):
             return hist['as_reactant'] >= min_chemical_history_dict['as_reactant'] or \
                     hist['as_product'] >= min_chemical_history_dict['as_product']
-        
+
         if min_chemical_history_dict['logic'] in [None, 'none']:
             if max_natom_dict['logic'] in [None, 'none']:
                 def is_a_terminal_node(smiles, ppg, hist):
@@ -1098,7 +1319,7 @@ class MCTS:
             else:
                 def is_a_terminal_node(smiles, ppg, hist):
                     return is_popular_enough(hist) or (is_buyable(ppg) and is_small_enough(smiles))
-            
+
         self.is_a_terminal_node = is_a_terminal_node
 
 
@@ -1108,9 +1329,9 @@ class MCTS:
 
 
         self.reset(soft_reset=soft_reset)
-        
+
         MyLogger.print_and_log('Starting search for {}'.format(smiles), treebuilder_loc)
-        self.build_tree(soft_stop=kwargs.pop('soft_stop', False), 
+        self.build_tree(soft_stop=kwargs.pop('soft_stop', False),
             known_bad_reactions=known_bad_reactions,
             forbidden_molecules=forbidden_molecules,
             return_first=return_first,
@@ -1136,10 +1357,10 @@ if __name__ == '__main__':
     celery = args.celery in ['true', 'True', True, '1', 1, 'y', 'Y']
     print('Use celery? {}'.format(celery))
 
-    # Load tree builder 
+    # Load tree builder
     NCPUS = 4
     print("There are {} processes available ... ".format(NCPUS))
-    Tree = MCTS(nproc=NCPUS, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'], 
+    Tree = MCTS(nproc=NCPUS, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
         mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
         celery=celery)
 
@@ -1148,7 +1369,7 @@ if __name__ == '__main__':
     ####################################################################################
 
     smiles = 'Cc1ncc([N+](=O)[O-])n1CC(C)O'
-    import rdkit.Chem as Chem 
+    import rdkit.Chem as Chem
     smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
     status, paths = Tree.get_buyable_paths(smiles,
                                         nproc=NCPUS,
@@ -1169,7 +1390,7 @@ if __name__ == '__main__':
     ####################################################################################
 
     smiles = 'CCCCCN(CCCCC)CCCC(=O)OCCC'
-    import rdkit.Chem as Chem 
+    import rdkit.Chem as Chem
     smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
     status, paths = Tree.get_buyable_paths(smiles,
                                         nproc=NCPUS,
@@ -1194,7 +1415,7 @@ if __name__ == '__main__':
 
     # ########### STAGE 1 - PROCESS ALL CHEMICALS
     with open('chemicals.pkl', 'wb') as fid:
-        for _id, smiles in enumerate(smiles_list[:N]): 
+        for _id, smiles in enumerate(smiles_list[:N]):
             smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
             status, paths = Tree.get_buyable_paths(smiles,
                                                 nproc=NCPUS,
@@ -1212,7 +1433,7 @@ if __name__ == '__main__':
     pathway_count = []
     min_price = []
     with open('chemicals.pkl', 'rb') as fid:
-        for _id, smiles in enumerate(smiles_list[:N]): 
+        for _id, smiles in enumerate(smiles_list[:N]):
             smiles = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), True)
             (Chemicals, ftime, paths) = pickle.load(fid)
 
@@ -1224,8 +1445,7 @@ if __name__ == '__main__':
                 min_price.append(Chemicals[smiles].price)
 
         print('After looking at chemical index {}'.format(_id))
-        print('Success ratio: %f (%d/%d)' % (float(success)/total, success, total)  )      
+        print('Success ratio: %f (%d/%d)' % (float(success)/total, success, total)  )
         print('average time for first pathway: %f' % np.mean(first_time))
         print('average number of pathways:     %f' % np.mean(pathway_count))
         print('average minimum price:          %f' % np.mean(min_price))
-    

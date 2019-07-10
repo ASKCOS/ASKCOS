@@ -22,17 +22,35 @@ forward_transformer_loc = 'forward_transformer'
 
 
 class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
-    '''
-    The Transformer class defines an object which can be used to perform
-    one-step retrosyntheses for a given molecule.
-    '''
+    """Defines an object to perform one-step syntheses for a molecule.
+
+    Attributes:
+        mincount (int): Minimum popularity of used templates.
+        templates (list of ??):
+        id_to_index (dict ??):
+        celery (bool): Whether to use Celery workers.
+        template_prioritizers (dict ??):
+        start_at (int):
+        stop_if (bool or str): SMILES string of molecule to stop at if found, or
+            False for no target.
+        singleonly (bool):
+
+    """
 
     def __init__(self, mincount=gc.SYNTH_TRANSFORMS['mincount'], celery=False):
-        '''
-        Initialize a transformer.
+        """Initializes ForwardTransformer.
+
+        ??VV??
         TEMPLATE_DB: indicate the database you want to use (def. none)
         loc: indicate that local file data should be read instead of online data (def. false)
-        '''
+        ??^^??
+
+        Args:
+            mincount (int, optional): Minimum popularity of used templates.
+                (default: {gc.SYNTH_TRANSFORMS['mincount']})
+            celery (bool, optional): Whether to use Celery workers.
+                (default: {False})
+        """
 
         self.mincount = mincount
         self.templates = []
@@ -43,13 +61,33 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
         super(ForwardTransformer, self).__init__()
 
     def template_count(self):
+        """Returns number of templates loaded?? by transformer."""
         return len(self.templates)
 
     def get_outcomes(self, smiles, mincount, template_prioritization, start_at=-1, end_at=-1,
                      singleonly=True, stop_if=False, template_count=10000, max_cum_prob=1.0):
-        '''
+        """Performs a one-step synthesis reaction for a given SMILES string.
+
         Each candidate in self.result.products is of type ForwardProduct
-        '''
+
+        Args:
+            smiles (str): SMILES string of ??
+            mincount (int): Minimum popularity of used templates.
+            template_prioritization (??): Specifies method to use for ordering
+                templates.
+            start_at (int, optional): Index of first prioritized template to
+                use. (default: {-1})
+            end_at (int, optional): Index of prioritized template to stop
+                before. (default: {-1})
+            singleonly (bool, optional): Whether to reduce each product to the
+                largest (longest) one. (default: {True})
+            stop_if (bool or string, optional): SMILES string of molecule to
+                stop at if found, or False for no target. (default: {False})
+            template_count (int, optional): Maximum number of templates to use.
+                (default: {10000})
+            max_cum_prob (float, optional): Maximum cumulative probability of
+                all templates used. (default: {1.0})
+        """
         self.get_template_prioritizers(template_prioritization)
         # Get sorted by popularity during loading.
         if template_prioritization == gc.popularity:
@@ -99,10 +137,10 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
         return (smiles, result)
 
     def load(self, chiral=False, refs=False, efgs=False, rxn_ex=False, worker_no=0, rxns = True):
-        '''
+        """
         Loads and parses the template database to a useable one
         Chrial and rxn_ex are not used, but for compatibility with retro_transformer
-        '''
+        """
         if worker_no == 0:
             MyLogger.print_and_log('Loading synthetic transformer, including all templates with more than {} hits'.format(
                 self.mincount), forward_transformer_loc)
@@ -126,9 +164,9 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                 self.num_templates), forward_transformer_loc)
 
     def apply_one_template(self, mol, smiles, template, singleonly=True, stop_if=False):
-        '''
-        Takes a mol object and applies a single template. 
-        '''
+        """
+        Takes a mol object and applies a single template.
+        """
 
         try:
             if template['product_smiles']:
