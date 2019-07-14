@@ -85,16 +85,19 @@ def get_buyable_paths(*args, **kwargs):
         trees (list of dict): List of dictionaries, where each dictionary
             defines a synthetic route.
     """
+    run_async = kwargs.pop('run_async', False)
     print('Treebuilder MCTS coordinator was asked to expand {}'.format(args[0]))
     _id = get_buyable_paths.request.id
     try:
         result = treeBuilder.get_buyable_paths(*args, **kwargs)
     except:
-        update_result_state(_id, 'failed')
+        if run_async:
+            update_result_state(_id, 'failed')
         return {}
-    update_result_state(_id, 'completed')
-    settings = {'smiles': args[0]}
-    settings.update(kwargs)
-    save_results(result, settings, _id)
+    if run_async:
+        update_result_state(_id, 'completed')
+        settings = {'smiles': args[0]}
+        settings.update(kwargs)
+        save_results(result, settings, _id)
     print('Task completed, returning results.')
     return result
