@@ -364,6 +364,9 @@ def ajax_start_retro_mcts_celery(request):
     '''Start builder'''
     data = {'err': False}
 
+    run_async = json.loads(request.GET.get('async', 'true'))
+    description = request.GET.get('description')
+
     smiles = request.GET.get('smiles', None)
     max_depth = int(request.GET.get('max_depth', 4))
     max_branching = int(request.GET.get('max_branching', 25))
@@ -418,17 +421,34 @@ def ajax_start_retro_mcts_celery(request):
                                   max_cum_template_prob=max_cum_prob, template_count=template_count,
                                   max_natom_dict=max_natom_dict, min_chemical_history_dict=min_chemical_history_dict,
                                   apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold,
-                                  return_first=return_first)
+                                  return_first=return_first,
+                                  run_async=run_async)
 
-    now = datetime.now()
+    if run_async:
+        now = datetime.now()
 
-    saved_result = SavedResults.objects.create(
-        user=request.user,
-        created=now,
-        dt=now.strftime('%B %d, %Y %H:%M:%S %p'),
-        result_id=res.id,
-        result_state='pending',
-        result_type='tree_builder'
-    )
+        saved_result = SavedResults.objects.create(
+            user=request.user,
+            created=now,
+            dt=now.strftime('%B %d, %Y %H:%M:%S %p'),
+            result_id=res.id,
+            result_state='pending',
+            result_type='tree_builder',
+            description=description
+        )
 
-    return JsonResponse({'id': res.id})
+        return JsonResponse({'id': res.id})
+    else:
+        (tree_status, trees) = res.get(expansion_time * 3)
+        (num_chemicals, num_reactions, _) = tree_status
+        data['html_stats'] = 'After expanding (with {} banned reactions, {} banned chemicals), {} total chemicals and {} total reactions'.format(
+            len(blacklisted_reactions), len(forbidden_molecules), num_chemicals, num_reactions)
+        if trees:
+            data['html_trees'] = render_to_string('trees_only.html',
+                                                {'trees': trees, 'can_control_robot': can_control_robot(request)})
+        else:
+            data['html_trees'] = render_to_string('trees_none.html', {})
+
+        # Save to session in case user wants to export
+        request.session['last_retro_interactive'] = trees
+        return JsonResponse(data)
