@@ -61,6 +61,8 @@ function makeNode(child, id) {
     node['shape'] = "image"
     node['type'] = 'chemical'
     var buyableString = (Number(child['ppg'])) ? '$'+child['ppg']+'/g' : 'not buyable'
+    node['as_reactant'] = child['as_reactant']
+    node['as_product'] = child['as_product']
     node['title'] = `${child['smiles']}<br>
     ${child['as_reactant']} precedents as reactant<br>
     ${child['as_product']} precedents as product<br>
@@ -87,7 +89,7 @@ function makeNode(child, id) {
     node['template_score'] = child['template_score']
     node['tforms'] = child['tforms']
     node['label'] = `${child['num_examples']} examples
-    FF score: ${Number(child['plausibility']).toFixed(3)}`
+FF score: ${Number(child['plausibility']).toFixed(3)}`
     node['font'] = {align: 'center'}
   }
   return node
@@ -146,7 +148,12 @@ function initializeNetwork(data, elementDiv) {
         },
         interaction: {
             multiselect: false,
-            hover: true
+            hover: true,
+            dragNodes: false,
+            dragView: false,
+            selectConnectedEdges: false,
+            tooltipDelay: 0,
+            zoomView: false
         },
         layout: {
           hierarchical: {
@@ -204,6 +211,7 @@ var app = new Vue({
       numReactions: 0,
       trees: [],
       settings: {},
+      selected: null
     },
     mounted: function() {
       this.resultId = this.$el.getAttribute('data-id');
@@ -228,7 +236,7 @@ var app = new Vue({
           })
       },
       buildTrees: function(trees) {
-        var container = document.getElementById('app')
+        var container = document.getElementById('left-pane')
         var statsDiv = document.createElement('div')
         statsDiv.classList.add('text-center')
         statsDiv.style.margin = "10px auto"
@@ -253,10 +261,10 @@ var app = new Vue({
           var divElem = document.createElement('div');
           divElem.classList.add('tree-graph');
           container.appendChild(divElem);
-          this.buildTree(tree, divElem);
+          this.buildTree(tree, divElem, count);
         }
       },
-      buildTree: function(tree, elem) {
+      buildTree: function(tree, elem, id) {
         var nodes = new vis.DataSet([]);
         var edges = new vis.DataSet([]);
         makeTreeData(tree, 0, nodes, edges);
@@ -265,7 +273,10 @@ var app = new Vue({
           edges: edges
         }
         var network = initializeNetwork(data, elem);
-        network.on('selectNode', showId);
+        network.id = id;
+        network.on('selectNode', function(params) {
+          app.showNode(id, params.nodes[0])
+        });
         network.fit();
         this.networks.push(network);
         this.networkData.push(data);
@@ -316,7 +327,7 @@ var app = new Vue({
           <td>Min. plausibility: ${this.settings.filter_threshold}</td>
           <td></td>
         </tr>`
-        document.getElementById('app').appendChild(settingsDiv);
+        document.getElementById('settings').appendChild(settingsDiv);
       },
       blacklist: function() {
         n = 0
@@ -351,24 +362,21 @@ var app = new Vue({
                         alert('Blacklisted chemical "' + node.smiles + '" at ' + datetime);
                     }
                 }
-            });
-            // fetch(url, {
-            //   method: "POST",
-            //   headers: {
-            //     "Accept": "application/json",
-            //     "Content-Type": "application/json",
-            //     "X-CSRFToken": csrftoken
-            //   },
-            //   body: JSON.stringify({
-            //     smiles: node.smiles,
-            //     desc: desc,
-            //     datetime: datetime,
-            //     csrfmiddlewaretoken: csrftoken,
-            //   })
-            // }).then(resp => resp.json()).then(json => console.log(json))
+            })
             break
           }
           n += 1;
+        }
+      },
+      showNode: function(networkId, nodeId) {
+        for (network of this.networks) {
+          if (network.id == networkId) {
+            nodeId = network.getSelectedNodes()[0]
+            this.selected = this.networkData[networkId-1].nodes.get(nodeId)
+          }
+          else {
+            network.unselectAll()
+          }
         }
       }
     },

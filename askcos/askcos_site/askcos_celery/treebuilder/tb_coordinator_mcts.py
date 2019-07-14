@@ -93,7 +93,7 @@ def get_buyable_paths(*args, **kwargs):
     except:
         if run_async:
             update_result_state(_id, 'failed')
-        return {}
+        raise
     if run_async:
         update_result_state(_id, 'completed')
         settings = {'smiles': args[0]}
