@@ -22,7 +22,7 @@
             <main>
                 <div class="container-fluid">
                     <div class="row">
-                        <div class="col-md-7 text-center">
+                        <div class="col-md-7 text-center left-pane">
 
 <!-- template for the modal component -->
 <script type="text/x-template" id="modal-template">
@@ -193,7 +193,7 @@
                                             <div><b>Smiles: </b>%% selected.smiles %%</div>
                                             <div><b>Price ($/g): </b>%% selected.ppg %%</div>
                                             <div style="margin-bottom: 10px">
-                                                <img v-bind:src="selected.image" />
+                                                <img v-bind:src="selected.image" style="max-width: 100%"/>
                                             </div>
                                             <h2>Precursors</h2>
                                             <div class="form-inline">
@@ -227,7 +227,7 @@
                 <div class="container-fluid">
                     <div class="row">
                         <div class="col-xs-6">
-                            <img width="100%" v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" />
+                            <img v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" style="max-width: 100%"/>
                         </div>
                         <div class="col-xs-6">
                             <table class="table table-condensed table-bordered">
@@ -273,7 +273,7 @@
                                         <div class="text-left">
                                             <div class="text-center">
                                                 <b>Reaction Smiles: </b>%% selected.reactionSmiles %%
-                                                <img width="100%" v-bind:src="'/draw/reaction/'+encodeURIComponent(selected.reactionSmiles)" />
+                                                <img v-bind:src="'/draw/reaction/'+encodeURIComponent(selected.reactionSmiles)" style="max-width: 100%"/>
                                             </div>
                                             <div class="text-center" style="margin: 10px 0">
                                                 <a :href="'/context/smiles='+encodeURIComponent(selected.reactionSmiles)" target="_blank">

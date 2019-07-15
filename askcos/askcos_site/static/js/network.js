@@ -1,4 +1,6 @@
 var container = document.getElementsByClassName('container')[0];
+container.classList.remove('container')
+container.classList.add('container-fluid')
 container.style.width=null;
 
 function showLoader() {
