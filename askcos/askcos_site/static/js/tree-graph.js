@@ -47,10 +47,6 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function showId(obj) {
-  console.log(obj.nodes[0]);
-}
-
 function makeNode(child, id) {
   var node = {};
   if (child['is_chemical']) {
