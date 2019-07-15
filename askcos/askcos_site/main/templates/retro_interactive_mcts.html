@@ -13,6 +13,19 @@
 
 {% block javascript %}
 <script>
+  function notify(message) {
+    if (Notification.permission === "granted") {
+        var notification = new Notification(message);
+    }
+    else if (Notification.permission !== 'denied') {
+        Notification.requestPermission(function (permission) {
+        if (permission === "granted") {
+            var notification = new Notification(message);
+        }
+        });
+    }
+  }
+
   function showResults(id) {
     fetch('/api/get-result/?id='+id)
       .then(resp => resp.json())
@@ -22,7 +35,6 @@
         $("#start_retro").prop('disabled', false);
         var resLink = '/view-tree-graph/?id='+id
         $('#results').html('Your results are available! Click <a href="'+resLink+'" target="_blank">here</a> to view them.')
-        console.log(json['result'])
     })
   }
 
@@ -32,6 +44,7 @@
       .then(resp => resp.json())
       .then(json => {
         if (json['state'] == 'completed') {
+          notify('Your ASKCOS tree builder job has finished!')
           showResults(id)
         }
         else {
