@@ -1,13 +1,15 @@
 amqp
 celery
+Cython
 Django
 django-extensions
 django-registration
 h5py
+hdbscan
 keras
 mysqlclient
 matplotlib
-numpy
+numpy>=1.16.0
 pillow
 pycairo
 pymongo
@@ -15,8 +17,9 @@ PyYAML
 redis
 scipy
 scikit-learn
+sklearn
 tensorflow==1.13.1
-theano
+theano>=1.0.4
 tqdm
 uWSGI
 sphinx
