@@ -1,5 +1,6 @@
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
+from makeit.utilities.cluster import group_results
 import makeit.global_config as gc
 
 
@@ -73,10 +74,16 @@ class RetroResult:
                 'necessary_reagent': precursor.necessary_reagent,
                 'plausibility': precursor.plausibility,
                 'reacting_atoms':  precursor.reacting_atoms,
-                'mapped_smiles' : precursor.mapped_smiles
+                'mapped_smiles' : precursor.mapped_smiles,
+                'group_id': 0,
             })
             if i + 1 == n:
                 break
+        precurors_list_merged_smiles = [x['smiles'] for x in top]
+        clusterid, feature, cluster_method = group_results(
+            self.target_smiles, precurors_list_merged_smiles)
+        for (i, precursor) in enumerate(top):
+            precursor['group_id'] = clusterid[i]
         return top
 
 
