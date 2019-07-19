@@ -15,3 +15,8 @@ askcos_site/static/admin/*
 
 # artfacts from using JupyterLab
 *ipynb_checkpoints*
+
+# ignore SSL key
+deploy/askcos.ssl.cert
+deploy/askcos.ssl.key
+
