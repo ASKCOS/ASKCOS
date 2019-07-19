@@ -22,17 +22,34 @@ function hideLoader() {
     loader.style.display = "none";
 }
 
+function groupPrecursors(precursors) {
+    var grouped = {}
+    for (precursor of precursors) {
+        if (grouped[precursor.group_id]) {
+            precursor.show = false
+            grouped[precursor.group_id].push(precursor)
+        }
+        else {
+            grouped[precursor.group_id] = new Array(precursor)
+        }
+    }
+    return grouped
+}
+
 function addReactions(reactions, sourceNode, nodes, edges, reactionLimit) {
     var reactionSorting = "retroscore";
     reactions.sort(function(a, b) {
         return b[reactionSorting] - a[reactionSorting]
     })
-    for (n in reactions) {
-        console.log(n)
-        if (n >= reactionLimit) {
+    var added = 0
+    for (r of reactions) {
+        if (added >= reactionLimit) {
             break;
         }
-        addReaction(reactions[n], sourceNode, nodes, edges)
+        if (!app.allowCluster || r.show) {
+            addReaction(r, sourceNode, nodes, edges)
+            added += 1
+        }
     }
 }
 
@@ -234,8 +251,10 @@ var app = new Vue({
             edges: {}
         },
         results: {},
+        clusteredResults: {},
         templateNumExamples: {},
         nodeStructure: {},
+        allowCluster: true,
         allowResolve: false,
         showSettingsModal: false,
         showLoadModal: false,
