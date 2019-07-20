@@ -111,6 +111,7 @@ RETRO_TRANSFORMS = {
 }
 
 RETRO_TRANSFORMS_CHIRAL = {
+    'file_name': 'retrotransformer_chiral_using_reaxys_v2-transforms_retro_v9_mincount10_mincountchiral5.pkl',
     'database': 'askcos',
     'collection': 'retro_templates',
     'mincount': 10,
@@ -144,6 +145,7 @@ CHEMICAL_HISTORY = {
 }
 
 BUYABLES = {
+    'file_name': 'pricer_using_reaxys_v2-chemicals_and_reaxys_v2-buyables.pkl',
     'database': 'askcos',
     'collection': 'buyables',
 }
