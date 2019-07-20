@@ -64,7 +64,6 @@ def MolsSmilesToImageHighlight(smiles, options=None, **kwargs):
     return txt
  
 
-
 '''
 Many of these functions are taken from RDKit.
 '''
