@@ -10,7 +10,7 @@ from makeit.prioritization.templates.popularity import PopularityTemplatePriorit
 from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
 from makeit.prioritization.default import DefaultPrioritizer
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 from bson.objectid import ObjectId
 from makeit.utilities.io.logger import MyLogger
 transformer_loc = 'template_transformer'
@@ -377,8 +377,7 @@ class TemplateTransformer(object):
         """
 
         db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
-                                'id'], connect=gc.MONGO['connect'])
-
+                                'id'], connect=gc.MONGO['connect'], serverSelectionTimeoutMS=1000)
         db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
         collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
         self.TEMPLATE_DB = db_client[db_name][collection]
