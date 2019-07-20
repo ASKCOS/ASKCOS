@@ -3,7 +3,7 @@ from __future__ import print_function
 import makeit.global_config as gc
 import os, sys
 import makeit.utilities.io.pickle as pickle
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 
 USE_STEREOCHEMISTRY = True
 import rdkit.Chem as Chem
@@ -140,11 +140,11 @@ class RetroTransformer(TemplateTransformer):
             )
 
         try:
-            self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
-        except IOError:
-            MyLogger.print_and_log('reading from db', retro_transformer_loc)
-            MyLogger.print_and_log(self.lookup_only, retro_transformer_loc)
+            MyLogger.print_and_log('trying to read from db', retro_transformer_loc)
             self.load_from_database(True, chiral=chiral, rxns=True, refs=True, efgs=True, rxn_ex=True)
+        except errors.ServerSelectionTimeoutError:
+            MyLogger.print_and_log('reading from file', retro_transformer_loc)
+            self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
             # self.dump_to_file(True, file_path, chiral=chiral)
             # self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
         finally:
