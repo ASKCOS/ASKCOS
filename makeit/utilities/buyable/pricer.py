@@ -4,7 +4,7 @@ from collections import defaultdict
 from tqdm import tqdm
 from makeit.utilities.io.logger import MyLogger
 import makeit.utilities.io.pickle as pickle
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 from multiprocessing import Manager
 import os
 pricer_loc = 'pricer'
@@ -32,7 +32,12 @@ class Pricer:
         Load the pricing data from the online database
         '''
         db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
-                                'id'], connect=gc.MONGO['connect'])
+                                'id'], connect=gc.MONGO['connect'], serverSelectionTimeoutMS=1000)
+        try:
+            db_client.server_info()
+        except errors.ServerSelectionTimeoutError:
+            MyLogger.print_and_log('Cannot connect to mongodb to load prices', pricer_loc)
+            return
         db = db_client[gc.BUYABLES['database']]
         self.BUYABLE_DB = db[gc.BUYABLES['collection']]
         db = db_client[gc.CHEMICALS['database']]
@@ -49,7 +54,7 @@ class Pricer:
 
     def load(self):
         '''
-        Load the data for the pricer from a locally stored file instead of from the online database.
+        Try to load the data for the pricer from a mongo database. If server cannot be found, load from locally stored file instead.
         '''
         from makeit.utilities.io.files import get_pricer_path
         file_path = get_pricer_path(
@@ -58,15 +63,15 @@ class Pricer:
             gc.BUYABLES['database'],
             gc.BUYABLES['collection'],
         )
-        if os.path.isfile(file_path):
+        self.load_databases()
+        if not self.BUYABLE_DB and os.path.isfile(file_path):
             with open(file_path, 'rb') as file:
                 self.prices = defaultdict(float, pickle.load(file))
                 self.prices_flat = defaultdict(float, pickle.load(file))
                 self.prices_by_xrn = defaultdict(float, pickle.load(file))
-        else:
-            self.load_databases()
-            # self.load_from_database()
-            # self.dump_to_file(file_path)
+            MyLogger.print_and_log('Loaded prices from flat file', pricer_loc)
+        # self.load_from_database()
+        # self.dump_to_file(file_path)
 
     def load_from_database(self, max_ppg=1e10):
         '''
@@ -126,18 +131,30 @@ class Pricer:
             self.done.value = 1
 
     def lookup_smiles(self, smiles, alreadyCanonical=False, isomericSmiles=True):
+        '''
+        Looks up a price by SMILES. Canonicalize smiles string unless 
+        the user specifies that the smiles string is definitely already 
+        canonical. If the DB connection does not exist, look up from 
+        prices dictionary attribute, otherwise lookup from DB.
+        '''
         if not alreadyCanonical:
             mol = Chem.MolFromSmiles(smiles)
             if not mol:
                 return 0.
             smiles = Chem.MolToSmiles(mol, isomericSmiles=isomericSmiles)
 
-        entry = self.BUYABLE_DB.find_one({'smiles': smiles})
+        if self.BUYABLE_DB is None:
+            return self.prices[smiles]
+
+        entry = self.BUYABLE_DB.find_one({
+            'smiles': smiles,
+            'source': {'$ne': 'LN'}
+        })
 
         if entry:
             return entry['ppg']
         else:
-            return 0.
+            return self.prices[smiles]
 
     def lookup_smiles_old(self, smiles, alreadyCanonical=False, isomericSmiles=True):
         '''
