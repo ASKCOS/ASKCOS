@@ -29,12 +29,22 @@ case $key in
 esac
 done
 
+echo ""
+echo "##################################"
+echo "cleaning up old static file volume"
+echo "##################################"
+docker-compose stop app nginx
+docker-compose rm -f app nginx
+docker volume rm deploy_staticdata
+
+echo ""
 echo "##########################"
 echo "starting database services"
 echo "##########################"
 docker-compose up -d mysql mongo redis rabbit
 
 if [ "$SKIP_SEED" = false ]; then
+  echo ""
   echo "###############################"
   echo "seeding mongo database"
   echo "###############################"
@@ -42,23 +52,27 @@ if [ "$SKIP_SEED" = false ]; then
 fi
 
 if [ "$SKIP_SSL" = false ]; then
+  echo ""
   echo "###############################"
   echo "creating SSL certificates"
   echo "###############################"
   openssl req   -new   -newkey rsa:4096   -days 3650   -nodes   -x509   -subj "/C=US/ST=MA/L=BOS/O=askcos/CN=askcos.$RANDOM_STRING.com"   -keyout askcos.ssl.key -out askcos.ssl.cert
 fi
 
+echo ""
 echo "#################################"
 echo "starting web application services"
 echo "#################################"
 docker-compose up -d nginx app
 
+echo ""
 echo "#######################"
 echo "starting celery workers"
 echo "#######################"
 docker-compose up -d te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker tb_coordinator_mcts tb_c_worker
 
 if [ "$SKIP_MIGRATION" = false ]; then
+  echo ""
   echo "#################"
   echo "migrating user db"
   echo "#################"
