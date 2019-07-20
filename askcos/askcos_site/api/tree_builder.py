@@ -7,7 +7,7 @@ from askcos_site.askcos_celery.treebuilder.tb_coordinator_mcts import get_buyabl
 def tree_builder(request):
     resp = {}
     resp['request'] = dict(**request.GET)
-    run_async = request.GET.get('async', True)
+    run_async = request.GET.get('async', False)
     orig_smiles = request.GET.get('smiles', None)
     mol = Chem.MolFromSmiles(orig_smiles)
     smiles = Chem.MolToSmiles(mol)
