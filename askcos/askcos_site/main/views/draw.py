@@ -85,6 +85,16 @@ def draw_reaction(request, smiles):
     ReactionStringToImage(str(smiles)).save(response, 'png', quality=70)
     return response
 
+def draw_smiles_highlight(request, smiles, reacting_atoms, bonds=False):
+
+    from makeit.utilities.io.draw import MolsSmilesToImageHighlight
+    from ast import literal_eval
+    reacting_atoms = literal_eval(reacting_atoms)
+    res = MolsSmilesToImage(smiles, reacting_atoms=reacting_atoms, bonds)
+    response = HttpResponse(res, content_type='image/png')
+  
+    return response
+
 
 #@login_required
 def draw(request):

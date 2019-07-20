@@ -95,6 +95,7 @@ urlpatterns += [
     url(r'^draw/smiles/(?P<smiles>.+)$', views.draw_smiles, name='draw_smiles'),
     url(r'^draw/template/(?P<template>.+)$', views.draw_template, name='draw_template'),
     url(r'^draw/reaction/(?P<smiles>.+)$', views.draw_reaction, name='draw_reaction'),
+    url(r'^draw/highlight/smiles=(?P<smiles>.+)&highlight_atoms=(?P<highlight_atoms>.+)$', views.draw_smiles_highlight, name='draw_highlight'),
 
     # Separation
     # url(r'^separation/input/$', views.sep_input, name='sep_input'),
