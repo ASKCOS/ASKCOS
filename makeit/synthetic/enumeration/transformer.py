@@ -16,7 +16,7 @@ from makeit.prioritization.templates.popularity import PopularityTemplatePriorit
 from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
 from makeit.prioritization.default import DefaultPrioritizer
 from makeit.utilities.reactants import clean_reactant_mapping
-from makeit.utilities.outcomes import summarize_reaction_outcome
+from makeit.utilities.outcomes import summarize_reaction_outcome, summarize_reaction_outcome_use_isotopes
 
 forward_transformer_loc = 'forward_transformer'
 
@@ -108,6 +108,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
          # Define mol to operate on
         mol = Chem.MolFromSmiles(smiles)
         clean_reactant_mapping(mol)
+        [a.SetIsotope(i+1) for (i, a) in enumerate(mol.GetAtoms())]
         reactants_smiles = Chem.MolToSmiles(mol)
         smiles = Chem.MolToSmiles(
             mol, isomericSmiles=USE_STEREOCHEMISTRY)  # to canonicalize
@@ -202,12 +203,6 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                             template['reaction_smarts']), forward_transformer_loc, level=1)
                     continue
 
-                # NOTE: To get the edits (and preserve atom mapping) RDKit must be
-                # build from the fork at github.com/connorcoley/rdkit
-                [a.SetProp(str('molAtomMapNumber'), a.GetProp(str('old_molAtomMapNumber')))
-                    for a in outcome.GetAtoms()
-                    if str('old_molAtomMapNumber') in a.GetPropsAsDict()]
-
                 # Reduce to largest (longest) product only
                 candidate_smiles = Chem.MolToSmiles(
                     outcome, isomericSmiles=True)
@@ -219,7 +214,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
 
                 # Find what edits were made
                 try:
-                    edits = summarize_reaction_outcome(react_mol, outcome)
+                    edits = summarize_reaction_outcome_use_isotopes(react_mol, outcome)
                 except KeyError:
                     edits = []
 
