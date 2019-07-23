@@ -28,7 +28,7 @@ def get_scaled_drawer(mol):
     point_max.y = max(ys) + 1
     w = int(dpa * (point_max.x - point_min.x))
     h = int(dpa * (point_max.y - point_min.y))
-    drawer = rdMolDraw2D.MolDraw2DCairo(w,h)
+    drawer = rdMolDraw2D.MolDraw2DSVG(w,h)
     drawer.SetScale(w, h, point_min, point_max)
     return drawer
 
@@ -40,9 +40,13 @@ def MolsSmilesToImageHighlight(smiles, options=None, **kwargs):
     dopts = d2.drawOptions()
     reacting_atoms = kwargs.get('reacting_atoms', [])
     bonds = kwargs.get('bonds', False)
+    #TODO has to be a better way to evaluate string to true or false
+    if bonds == 'true' or bonds == 'True':
+        bonds = True
+    else: bonds = False
     if len(reacting_atoms) != 0:
         #highlightAtoms = list(range(Chem.MolFromSmiles(smiles).GetNumAtoms()))
-        highlightAtoms = set([x for tup in ra for x in tup])
+        highlightAtoms = set([x for tup in reacting_atoms for x in tup])
         highlightAtomColors = {x:(0,1,0) for x in highlightAtoms}
         if bonds:
             #TODO some edits have multiple atoms changing in one tuple

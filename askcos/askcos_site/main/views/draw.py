@@ -91,7 +91,7 @@ def draw_smiles_highlight(request, smiles, reacting_atoms, bonds=False):
     from ast import literal_eval
     reacting_atoms = literal_eval(reacting_atoms)
     res = MolsSmilesToImageHighlight(smiles, reacting_atoms=reacting_atoms, bonds=bonds)
-    response = HttpResponse(res, content_type='image/png')
+    response = HttpResponse(res, content_type='image/svg+xml')
   
     return response
 
