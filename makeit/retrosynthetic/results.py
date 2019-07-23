@@ -65,7 +65,7 @@ class RetroPrecursor:
     does NOT contain the target molecule information
     '''
 
-    def __init__(self, smiles_list=[], reacting_atoms=[] template_id=-1, template_score=1, num_examples=0, necessary_reagent='', plausibility=1.0):
+    def __init__(self, smiles_list=[], reacting_atoms=[], template_id=-1, template_score=1, num_examples=0, necessary_reagent='', plausibility=1.0):
         self.retroscore = 0
         self.num_examples = num_examples
         self.smiles_list = smiles_list
