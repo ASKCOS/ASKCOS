@@ -255,8 +255,8 @@ def edits_to_vectors(edits, mol, atom_desc_dict = {}, return_atom_desc_dict = Fa
 
 	# h_lost, h_gain, bond_lost, bond_gain = edits
 	return (
-		[atom_desc_dict[molAtomMapNumber] for molAtomMapNumber in edits[0]],
-		[atom_desc_dict[molAtomMapNumber] for molAtomMapNumber in edits[1]],
+		[atom_desc_dict[str(molAtomMapNumber)] for molAtomMapNumber in edits[0]], 
+		[atom_desc_dict[str(molAtomMapNumber)] for molAtomMapNumber in edits[1]], 
 		[
 		atom_desc_dict[molAtomMapNumber1] +
 		oneHotVector(bondOrder, [1.0, 1.5, 2.0, 3.0]) +
