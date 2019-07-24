@@ -8,9 +8,11 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'askcos_site.settings')
 
 # Note: cannot use guest for authenticating with broker unless on localhost
 REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
+REDIS_PORT = os.environ.get('REDIS_PORT', '6379')
 RABBIT_HOST = os.environ.get('RABBIT_HOST', 'localhost')
-app = Celery('askcos_site', broker='amqp://{}:5672'.format(RABBIT_HOST), 
-    backend='redis://{}:6379'.format(REDIS_HOST),
+RABBIT_PORT = os.environ.get('RABBITMQ_NODE_PORT', '5672')
+app = Celery('askcos_site', broker='amqp://{}:{}'.format(RABBIT_HOST, RABBIT_PORT),
+    backend='redis://{}:{}'.format(REDIS_HOST, REDIS_PORT),
     include=[
         'askcos_site.askcos_celery.treebuilder.tb_worker',
         'askcos_site.askcos_celery.treebuilder.tb_c_worker',

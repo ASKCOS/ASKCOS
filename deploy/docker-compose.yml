@@ -145,18 +145,23 @@ services:
   redis:
     image: redis
     hostname: redis
+    env_file:
+      - .env
     restart: always
     expose:
-      - '6379'
+      - '${REDIS_PORT}'
     volumes:
       - 'redisdata:/data'
+    command: redis-server --port ${REDIS_PORT}
 
   rabbit:
     image: rabbitmq
     hostname: rabbit
+    env_file:
+      - .env
     restart: always
     expose:
-      - '5672'
+      - '${RABBITMQ_NODE_PORT}'
 
 volumes:
   redisdata:
