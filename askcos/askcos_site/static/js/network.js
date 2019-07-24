@@ -259,8 +259,10 @@ var app = new Vue({
         showSettingsModal: false,
         showLoadModal: false,
         showDownloadModal: false,
+        showClusterPopoutModal: false,
         downloadName: "network.json",
         modalData: {},
+        clusterPopoutModalData: {},
         selected: null,
         reactionLimit: 5,
         templatePrioritization: "Relevance",
@@ -700,8 +702,19 @@ var app = new Vue({
                 this.showLoadModal = true
             }
         },
+        openClusterPopoutModal: function(selected, res) {
+            this.clearSelection();
+            if (network) {
+                network.unselectAll();
+            }
+            this.clusterPopoutModalData = {}
+            this.clusterPopoutModalData['selectedSmiles'] = selected.smiles
+            this.clusterPopoutModalData['res'] = res
+            this.clusterPopoutModalData['group_id'] = res.group_id
+            this.showClusterPopoutModal = true
+        },
         isModalOpen: function() {
-            return app.showSettingsModal || app.showDownloadModal || app.showLoadModal
+            return app.showSettingsModal || app.showDownloadModal || app.showLoadModal || app.showClusterPopoutModal
         },
         startTour: function() {
             if (this.target) {
@@ -875,6 +888,7 @@ function closeAll() {
     app.showSettingsModal = false;
     app.showLoadModal = false;
     app.showDownloadModal = false;
+    app.showClusterPopoutModal = false;
 }
 
 var keys = vis.keycharm();
