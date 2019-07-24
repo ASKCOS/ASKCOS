@@ -188,9 +188,9 @@
     </div>
 </modal>
 
-<modal v-if="showClusterPopoutModal" @close="showClusterPopoutModal = false; clusterPopoutModalData = {}">
+<modal v-if="showClusterPopoutModal" @close="showClusterPopoutModal = false; clusterPopoutModalData = {};">
     <div class="mx-auto" slot="header">
-        <h3>Group # %% clusterPopoutModalData['group_id'] %%</h3>
+        <h3>Group #%% clusterPopoutModalData['group_id'] %% <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); clusterPopoutModalData = {};">Edit groups</button> </h3>
     </div>
     <div slot="body" class="text-left">
         <div class="scroll-list">
@@ -205,18 +205,12 @@
                                     <tr>
                                         <td>Rank</td>
                                         <td>#%% res.rank %%</td>
-                                        <td></td>
-                                        <td></td>
                                     </tr>
                                     <tr>
-                                        <td>Score</td>
-                                        <td>%% res.score.toFixed(3) %%</td>
                                         <td># Examples</td>
                                         <td>%% res.num_examples %%</td>
                                     </tr>
                                     <tr>
-                                        <td>Template score</td>
-                                        <td>%% res.template_score.toFixed(3) %%</td>
                                         <td>Plausibility</td>
                                         <td>%% res.plausibility.toFixed(3) %%</td>
                                     </tr>
@@ -225,14 +219,92 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-xs-6">
+                        <div class="col-xs-10">
                             <img v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" style="max-width: 100%"/>
                         </div>
                     </div>
                     <div class="row" style="position: absolute; bottom:0; right:30px;">
                         <div class="mx-auto">
-                            <button v-show="!res.inViz" class="addRes btn btn-success" :data-rank="res.rank" @click="addFromResults(selected, res)"><i class="fas fa-plus"></i></button>
-                            <button v-show="res.inViz" class="remRes btn btn-danger" :data-rank="res.rank" @click="remFromResults(selected, res)"><i class="fas fa-minus"></i></button>
+                            <button v-show="!res.inViz" class="addRes btn btn-success" :data-rank="res.rank" @click="addFromResults(clusterPopoutModalData['selected'], res)"><i class="fas fa-plus"></i></button>
+                            <button v-show="res.inViz" class="remRes btn btn-danger" :data-rank="res.rank" @click="remFromResults(clusterPopoutModalData['selected'], res)"><i class="fas fa-minus"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+            </div>
+        </div>
+    </div>
+</modal>
+
+<modal v-if="showClusterEditModal" @close="showClusterEditModal = false; clusterEditModalData={};">
+    <div class="mx-auto" slot="header">
+        <h3>Editing Group #%% clusterEditModalData['group_id'] %%</h3>
+    </div>
+    <div slot="body" class="text-left">
+        <div class="scroll-list-x">
+            <div class="grid-wrapper-onerow">
+        <template v-for="res in results[clusterEditModalData['selectedSmiles']]">
+            <div v-if="res.group_id == clusterEditModalData['group_id']" class="card" style="position: relative;">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <table class="table table-condensed table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <td>Rank</td>
+                                        <td>#%% res.rank %%</td>
+                                    </tr>
+                                    <tr>
+                                        <td># Examples</td>
+                                        <td>%% res.num_examples %%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Plausibility</td>
+                                        <td>%% res.plausibility.toFixed(3) %%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <img v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" style="max-width: 100%"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+            </div>
+        </div>
+        
+        <div class="scroll-list-x">
+            <div class="grid-wrapper-onerow">
+        <template v-for="res in results[selected.smiles]">
+            <div v-if="res.show" class="card" style="position: relative;">
+                <div class="container-fluid">
+                    <h3>Reaction cluster %% res.group_id %%</h3>
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <table class="table table-condensed table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <td>Rank</td>
+                                        <td>#%% res.rank %%</td>
+                                    </tr>
+                                    <tr>
+                                        <td># Examples</td>
+                                        <td>%% res.num_examples %%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Plausibility</td>
+                                        <td>%% res.plausibility.toFixed(3) %%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-xs-12">
+                            <img v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" style="max-width: 100%"/>
                         </div>
                     </div>
                 </div>
@@ -280,6 +352,7 @@
                                                     <option value="plausibility">Plausibility</option>
                                                 </select>
                                                 Group similar <input type="checkbox" ref="allowCluster" v-model="allowCluster" {{ allowCluster }}/>
+                                                <button class="btn btn-danger"  @click="openClusterEditModal(selected)">Edit groups</button>
                                             </div>
                                         </div>
                                     </div>
