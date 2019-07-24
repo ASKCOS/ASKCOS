@@ -45,6 +45,12 @@ transform: translate(-50%, -50%) !important;
     overflow-y: scroll;
 }
 
+.scroll-list-x {
+    max-height: 45vh;
+    max-width: 90vw;
+    overflow-x: scroll;
+}
+
 .card {
     box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
     transition: 0.3s;
@@ -101,8 +107,16 @@ transform: translate(-50%, -50%) !important;
 .grid-wrapper {
   display: grid;
   grid-template-rows: auto;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   grid-auto-flow: row;
+  grid-gap: 10px;
+}
+
+.grid-wrapper-onerow {
+  display: grid;
+  grid-template-rows: auto;
+  grid-auto-columns: 200px;
+  grid-auto-flow: column;
   grid-gap: 10px;
 }
 

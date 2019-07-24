@@ -260,9 +260,11 @@ var app = new Vue({
         showLoadModal: false,
         showDownloadModal: false,
         showClusterPopoutModal: false,
+        showClusterEditModal: false,
         downloadName: "network.json",
         modalData: {},
         clusterPopoutModalData: {},
+        clusterEditModalData: {},
         selected: null,
         reactionLimit: 5,
         templatePrioritization: "Relevance",
@@ -703,18 +705,40 @@ var app = new Vue({
             }
         },
         openClusterPopoutModal: function(selected, res) {
+            /*
             this.clearSelection();
             if (network) {
                 network.unselectAll();
             }
+            */
             this.clusterPopoutModalData = {}
+            this.clusterPopoutModalData['selected'] = selected
             this.clusterPopoutModalData['selectedSmiles'] = selected.smiles
             this.clusterPopoutModalData['res'] = res
             this.clusterPopoutModalData['group_id'] = res.group_id
             this.showClusterPopoutModal = true
         },
+        openClusterEditModal: function(selected, group_id) {
+            if(selected == null) {
+                alert('No target molecule selected. Please select a molecule in the tree.')
+                return
+            }
+            /*
+            this.clearSelection();
+            if (network) {
+                network.unselectAll();
+            }
+            */
+            if(group_id == undefined) {
+                group_id = 0
+            }
+            this.clusterEditModalData['selected'] = selected
+            this.clusterEditModalData['selectedSmiles'] = selected.smiles
+            this.clusterEditModalData['group_id'] = group_id
+            this.showClusterEditModal = true
+        },
         isModalOpen: function() {
-            return app.showSettingsModal || app.showDownloadModal || app.showLoadModal || app.showClusterPopoutModal
+            return app.showSettingsModal || app.showDownloadModal || app.showLoadModal || app.showClusterPopoutModal || app.showClusterEditModal
         },
         startTour: function() {
             if (this.target) {
@@ -889,6 +913,7 @@ function closeAll() {
     app.showLoadModal = false;
     app.showDownloadModal = false;
     app.showClusterPopoutModal = false;
+    app.showClusterEditModal = false;
 }
 
 var keys = vis.keycharm();
