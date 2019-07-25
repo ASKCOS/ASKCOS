@@ -86,10 +86,10 @@ def bond_to_label(bond):
     
     a1_label = str(bond.GetBeginAtom().GetAtomicNum())
     a2_label = str(bond.GetEndAtom().GetAtomicNum())
-    if bond.GetBeginAtom().GetAtomMapNum():
-        a1_label += str(bond.GetBeginAtom().GetAtomMapNum())
-    if bond.GetEndAtom().GetAtomMapNum():
-        a2_label += str(bond.GetEndAtom().GetAtomMapNum())
+    if bond.GetBeginAtom().GetIsotope():
+        a1_label += str(bond.GetBeginAtom().GetIsotope())
+    if bond.GetEndAtom().GetIsotope():
+        a2_label += str(bond.GetEndAtom().GetIsotope())
     atoms = sorted([a1_label, a2_label])
 
     return '{}{}{}'.format(atoms[0], bond.GetSmarts(), atoms[1])
@@ -103,7 +103,7 @@ def atoms_are_different(atom1, atom2):
     if atom1.GetFormalCharge() != atom2.GetFormalCharge(): return True
     if atom1.GetDegree() != atom2.GetDegree(): return True
     if atom1.GetNumRadicalElectrons() != atom2.GetNumRadicalElectrons(): return True
-    if atom1.GetIsAromatic() != atom2.GetIsAromatic(): return True 
+    if atom1.GetIsAromatic() != atom2.GetIsAromatic(): return True
 
     # Check bonds and nearest neighbor identity
     bonds1 = sorted([bond_to_label(bond) for bond in atom1.GetBonds()]) 
