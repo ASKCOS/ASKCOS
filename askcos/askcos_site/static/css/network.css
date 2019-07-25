@@ -216,3 +216,33 @@ transform: translate(-50%, -50%) !important;
   -webkit-transform: scale(1.1);
   transform: scale(1.1);
 }
+
+/* Drag and drop */
+/* text non-selectable */
+[draggable] {
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* old WebKit */
+  -khtml-user-drag: element;
+  -webkit-user-drag: element;
+}
+
+.nonselectable {
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* old WebKit */
+  -khtml-user-drag: element;
+  -webkit-user-drag: element;
+}
+
+.nopointer {
+  pointer-events: none;
+}
+
+.dragover {
+  border: 2px dashed #000;
+}
