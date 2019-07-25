@@ -53,6 +53,7 @@ class RetroResult:
                 'necessary_reagent': precursor.necessary_reagent,
                 'plausibility': precursor.plausibility,
                 'reacting_atoms':  precursor.reacting_atoms,
+                'mapped_smiles' : precursor.mapped_smiles
             })
             if i + 1 == n:
                 break

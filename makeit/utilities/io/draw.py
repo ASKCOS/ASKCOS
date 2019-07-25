@@ -40,25 +40,27 @@ def MolsSmilesToImageHighlight(smiles, options=None, **kwargs):
     dopts = d2.drawOptions()
     reacting_atoms = kwargs.get('reacting_atoms', [])
     bonds = kwargs.get('bonds', False)
-    #TODO has to be a better way to evaluate string to true or false
-    if bonds == 'true' or bonds == 'True':
-        bonds = True
-    else: bonds = False
-    if len(reacting_atoms) != 0:
-        #highlightAtoms = list(range(Chem.MolFromSmiles(smiles).GetNumAtoms()))
-        highlightAtoms = set([x for tup in reacting_atoms for x in tup])
+    clear_map = kwargs.get('clear_map', True)
+
+    #Will only draw the highlighted atoms if they are mapped by isotope from rdchiral otherwise
+    #the reacting_atoms will not match the atom index and draw the highlight in the incorrect location
+    try:
+        isotope_idx_map = {a.GetIsotope():a.GetIdx() for a in mol.GetAtoms()}
+        highlightAtoms = [isotope_idx_map[x] for x in reacting_atoms]
+        #TODO add options for colors?
         highlightAtomColors = {x:(0,1,0) for x in highlightAtoms}
         if bonds:
             #TODO some edits have multiple atoms changing in one tuple
             highlightBonds = [mol.GetBondBetweenAtoms(x[0],x[1]).GetIdx() for x in reacting_atoms]
         else:
             highlightBonds = []
-    else:
-        atomScores = []
+    except:
         highlightAtoms = []
         highlightBonds = []
         highlightAtomColors = []
-    
+        
+    if clear_map:
+        [a.SetIsotope(0) for a in mol.GetAtoms()]
     m2=Draw.PrepareMolForDrawing(mol)
     d2.DrawMolecule(m2,highlightAtoms=highlightAtoms, \
         highlightBonds=highlightBonds, highlightAtomColors=highlightAtomColors)
