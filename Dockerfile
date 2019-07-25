@@ -1,7 +1,7 @@
 FROM python:3.5-stretch
 
-COPY --from=registry.gitlab.com/mlpds_mit/askcos/askcos/rdkit:2017.03-py35 /usr/local/rdkit-2017-03/rdkit /usr/local/rdkit-2017-03/rdkit
-COPY --from=registry.gitlab.com/mlpds_mit/askcos/askcos/rdkit:2017.03-py35 /usr/local/rdkit-2017-03/lib /usr/local/rdkit-2017-03/lib
+COPY --from=mefortunato/rdkit:2017.03-py35 /usr/local/rdkit-2017-03/rdkit /usr/local/rdkit-2017-03/rdkit
+COPY --from=mefortunato/rdkit:2017.03-py35 /usr/local/rdkit-2017-03/lib /usr/local/rdkit-2017-03/lib
 COPY requirements.txt requirements.txt
 
 RUN apt-get update && \
