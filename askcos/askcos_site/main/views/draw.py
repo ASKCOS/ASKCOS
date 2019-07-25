@@ -90,7 +90,10 @@ def draw_smiles_highlight(request, smiles, reacting_atoms, bonds=False):
     from makeit.utilities.io.draw import MolsSmilesToImageHighlight
     from ast import literal_eval
     reacting_atoms = literal_eval(reacting_atoms)
-    res = MolsSmilesToImageHighlight(smiles, reacting_atoms=reacting_atoms, bonds=bonds)
+    #TODO has to be a better way to evaluate string to true or false
+    if bonds == 'true' or bonds == 'True': bonds = True
+    else: bonds = False
+    res = MolsSmilesToImageHighlight(smiles, reacting_atoms=reacting_atoms, bonds=bonds, clear_map=True)
     response = HttpResponse(res, content_type='image/svg+xml')
   
     return response
