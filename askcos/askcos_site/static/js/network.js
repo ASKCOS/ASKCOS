@@ -237,6 +237,31 @@ function initializeNetwork(data) {
     return network
 }
 
+/* DnD */
+function disable_dragstart_handler(e) {
+    e.preventDefault();
+}
+
+function clusteredit_dragend_handler(event) {
+    event.target.style.opacity = '1';
+}
+
+function clusteredit_dragover_handler(event) {
+    event.preventDefault(); // important
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = 'move'; // important
+}
+
+function clusteredit_dragenter_handler(event) {
+    event.preventDefault(); // important
+    event.stopPropagation();
+    event.target.classList.add('dragover');
+}
+
+function clusteredit_dragleave_handler(event) {
+    event.target.classList.remove('dragover');
+}
+
 Vue.component('modal', {
     template: '#modal-template'
 })
@@ -251,7 +276,6 @@ var app = new Vue({
             edges: {}
         },
         results: {},
-        clusteredResults: {},
         templateNumExamples: {},
         nodeStructure: {},
         allowCluster: true,
@@ -705,7 +729,12 @@ var app = new Vue({
             }
         },
         openClusterPopoutModal: function(selected, res) {
+            if(selected == null) {
+                alert('No target molecule selected. Please select a molecule in the tree.')
+                return
+            }
             /*
+             * cannot deselect
             this.clearSelection();
             if (network) {
                 network.unselectAll();
@@ -724,6 +753,7 @@ var app = new Vue({
                 return
             }
             /*
+             * cannot deselect
             this.clearSelection();
             if (network) {
                 network.unselectAll();
@@ -737,6 +767,34 @@ var app = new Vue({
             this.clusterEditModalData['group_id'] = group_id
             this.showClusterEditModal = true
         },
+        closeClusterEditModal: function() {
+            this.showClusterEditModal = false;
+            this.clusterEditModalData = {};
+        },
+        clusteredit_dragstart_handler: function(precursor, event) {
+            event.target.style.opacity = '0.4';
+            event.dataTransfer.setData('text/plain', precursor.smiles);
+            var img = new Image();
+            img.src = '/draw/smiles/'+encodeURIComponent(precursor.smiles);
+            // set opacity does not work..
+            event.dataTransfer.setDragImage(img, 10, 10);
+            event.dataTransfer.effectAllowed = 'all';
+        },
+        clusteredit_drop_handler: function(target, event) {
+            event.preventDefault(); // important
+            var s = event.dataTransfer.getData('text/plain'); // precursor.simles
+            var r = this.results[this.clusterEditModalData['selectedSmiles']];
+            // find precursor
+            var x;
+            for (x of r) {
+                if (x.smiles == s) {
+                    x.group_id = target.group_id
+                    break
+                }
+            }
+            clusteredit_dragend_handler(event);
+            clusteredit_dragleave_handler(event);
+        },
         isModalOpen: function() {
             return app.showSettingsModal || app.showDownloadModal || app.showLoadModal || app.showClusterPopoutModal || app.showClusterEditModal
         },
@@ -747,6 +805,16 @@ var app = new Vue({
             tour.init();
             tour.restart();
         }
+    },
+    computed: {
+        clusteredResults: function() {
+            var res = {};
+            var x;
+            for (x in this.results) {
+                res[x] = groupPrecursors(this.results[x]);
+            }
+            return res;
+        },
     },
     delimiters: ['%%', '%%'],
 });
@@ -916,5 +984,6 @@ function closeAll() {
     app.showClusterEditModal = false;
 }
 
+/* key binding */
 var keys = vis.keycharm();
 keys.bind("esc", closeAll, 'keyup');

@@ -237,7 +237,7 @@
     </div>
 </modal>
 
-<modal v-if="showClusterEditModal" @close="showClusterEditModal = false; clusterEditModalData={};">
+<modal v-if="showClusterEditModal" @close="closeClusterEditModal();">
     <div class="mx-auto" slot="header">
         <h3>Editing Group #%% clusterEditModalData['group_id'] %%</h3>
     </div>
@@ -245,11 +245,11 @@
         <div class="scroll-list-x">
             <div class="grid-wrapper-onerow">
         <template v-for="res in results[clusterEditModalData['selectedSmiles']]">
-            <div v-if="res.group_id == clusterEditModalData['group_id']" class="card" style="position: relative;">
+            <div v-if="res.group_id == clusterEditModalData['group_id']" class="card" style="position: relative;" v-on:dragstart="clusteredit_dragstart_handler(res, $event)" ondragend="clusteredit_dragend_handler(event);" draggable="true">
                 <div class="container-fluid">
                     <div class="row">
                         <div class="col-xs-12">
-                            <table class="table table-condensed table-bordered">
+                            <table class="table table-condensed table-bordered" style="pointer-events: none;">
                                 <tbody>
                                     <tr>
                                         <td>Rank</td>
@@ -269,7 +269,7 @@
                     </div>
                     <div class="row">
                         <div class="col-xs-12">
-                            <img v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" style="max-width: 100%"/>
+                            <img v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" style="max-width: 100%; pointer-events: none;" draggable="false" ondragstart="disable_dragstart_handler(event);"/>
                         </div>
                     </div>
                 </div>
@@ -281,12 +281,12 @@
         <div class="scroll-list-x">
             <div class="grid-wrapper-onerow">
         <template v-for="res in results[selected.smiles]">
-            <div v-if="res.show" class="card" style="position: relative;">
-                <div class="container-fluid">
-                    <h3>Reaction cluster %% res.group_id %%</h3>
-                    <div class="row">
-                        <div class="col-xs-12">
-                            <table class="table table-condensed table-bordered">
+            <div v-if="res.show" class="card" style="position: relative; pointer-events: all" @drop="clusteredit_drop_handler(res, $event);" ondragover="clusteredit_dragover_handler(event);" ondragenter="clusteredit_dragenter_handler(event);" ondragleave="clusteredit_dragleave_handler(event);">
+                <div class="container-fluid nopointer">
+                    <h3 class="nonselectable nopointer">Reaction cluster %% res.group_id %%</h3>
+                    <div class="row nopointer">
+                        <div class="col-xs-12 nopointer">
+                            <table class="table table-condensed table-bordered nonselectable nopointer">
                                 <tbody>
                                     <tr>
                                         <td>Rank</td>
@@ -303,8 +303,8 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="col-xs-12">
-                            <img v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" style="max-width: 100%"/>
+                        <div class="col-xs-12 nopointer">
+                            <img v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" style="max-width: 100%; pointer-events: none;" draggable="false" ondragstart="disable_dragstart_handler(event);"/>
                         </div>
                     </div>
                 </div>
