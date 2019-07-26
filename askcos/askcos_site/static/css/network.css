@@ -114,7 +114,7 @@ transform: translate(-50%, -50%) !important;
 
 .grid-wrapper-onerow {
   display: grid;
-  grid-template-rows: auto;
+  grid-template-rows: minmax(25vh, max-content);
   grid-auto-columns: 200px;
   grid-auto-flow: column;
   grid-gap: 10px;
@@ -179,6 +179,8 @@ transform: translate(-50%, -50%) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .33);
   transition: all .3s ease;
   font-family: Helvetica, Arial, sans-serif;
+  max-height: 95vh;
+  overflow-y: scroll;
 }
 
 .modal-header h3 {
@@ -245,4 +247,14 @@ transform: translate(-50%, -50%) !important;
 
 .dragover {
   border: 2px dashed #000;
+  pointer-events: none;
+}
+
+.center {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
 }
