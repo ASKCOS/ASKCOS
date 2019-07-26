@@ -242,10 +242,6 @@ function disable_dragstart_handler(e) {
     e.preventDefault();
 }
 
-function clusteredit_dragend_handler(event) {
-    event.target.style.opacity = '1';
-}
-
 function clusteredit_dragover_handler(event) {
     event.preventDefault(); // important
     event.stopPropagation();
@@ -285,10 +281,12 @@ var app = new Vue({
         showDownloadModal: false,
         showClusterPopoutModal: false,
         showClusterEditModal: false,
+        showAddNewPrecursorModal: false,
         downloadName: "network.json",
         modalData: {},
         clusterPopoutModalData: {},
         clusterEditModalData: {},
+        addNewPrecursorModal: {},
         selected: null,
         reactionLimit: 5,
         templatePrioritization: "Relevance",
@@ -779,24 +777,155 @@ var app = new Vue({
             // set opacity does not work..
             event.dataTransfer.setDragImage(img, 10, 10);
             event.dataTransfer.effectAllowed = 'all';
+            // disable all buttons on dragging
+            var buttons = document.querySelectorAll("button");
+            buttons.forEach(function(e){e.style.pointerEvents = "none";});
+        },
+        clusteredit_dragend_handler: function(event) {
+            event.target.style.opacity = '1';
+            // enable all buttons
+            var buttons = document.querySelectorAll("button");
+            buttons.forEach(function(e){e.style.pointerEvents = "all";});
         },
         clusteredit_drop_handler: function(target, event) {
             event.preventDefault(); // important
             var s = event.dataTransfer.getData('text/plain'); // precursor.simles
             var r = this.results[this.clusterEditModalData['selectedSmiles']];
             // find precursor
-            var x;
-            for (x of r) {
+            var old_gid;
+            for (let x of r) {
                 if (x.smiles == s) {
-                    x.group_id = target.group_id
+                    old_gid = x.group_id;
+                    x.group_id = target.group_id;
                     break
                 }
             }
-            clusteredit_dragend_handler(event);
+            this.clusteredit_dragend_handler(event);
             clusteredit_dragleave_handler(event);
+            this.detectClusterDeletion(this.clusterEditModalData['selectedSmiles'], old_gid);
+        },
+        clusteredit_drop_handler_newcluster: function(event) {
+            event.preventDefault(); // important
+            var s = event.dataTransfer.getData('text/plain'); // precursor.simles
+            var r = this.results[this.clusterEditModalData['selectedSmiles']];
+            var all_ids = this.clusteredResultsIndex[this.clusterEditModalData['selectedSmiles']];
+            var new_gid = all_ids[all_ids.length-1]+1;
+            var old_gid;
+            for (let x of r) {
+                if (x.smiles == s) {
+                    old_gid = x.group_id;
+                    x.group_id = new_gid;
+                    break
+                }
+            }
+            
+            this.clusteredit_dragend_handler(event);
+            clusteredit_dragleave_handler(event);
+            this.detectClusterDeletion(this.clusterEditModalData['selectedSmiles'], old_gid);
+        },
+        detectClusterDeletion: function(selected, old_gid) {
+            var all_ids = this.clusteredResultsIndex[selected];
+            if (all_ids.indexOf(old_gid) == -1) {
+                if (all_ids.length > 0) {
+                    var idx = all_ids.findIndex(function(e){return e>old_gid});
+                    if (idx == -1) idx = all_ids.length-1;
+                    this.clusterEditModalData['group_id'] = all_ids[idx];
+                } else {
+                    this.clusterEditModalData['group_id'] = 0;
+                }
+                this.$forceUpdate();
+            }
+        },
+        clusterEditModalIncGroupID: function() {
+            var all_ids = this.clusteredResultsIndex[this.clusterEditModalData['selectedSmiles']];
+            var idx = all_ids.indexOf(this.clusterEditModalData['group_id']);
+            if (idx == all_ids.length-1) {
+            } else {
+                this.clusterEditModalData['group_id'] = all_ids[idx+1];
+            }
+            this.$forceUpdate();
+        },
+        clusterEditModalDecGroupID: function() {
+            var all_ids = this.clusteredResultsIndex[this.clusterEditModalData['selectedSmiles']];
+            var idx = all_ids.indexOf(this.clusterEditModalData['group_id']);
+            if (idx == 0) {
+            } else {
+                this.clusterEditModalData['group_id'] = all_ids[idx-1];
+            }
+            this.$forceUpdate();
+        },
+        clusterEditModalDeletePrecursor: function(selected, smiles) {
+            var r = this.results[selected];
+            var idx = r.findIndex(function(e){return e.smiles==smiles;});
+            var old_gid = r[idx].group_id;
+            r.splice(idx, 1);
+            this.detectClusterDeletion(this.clusterEditModalData['selectedSmiles'], old_gid);
+        },
+        // gid == undefined is to add a new cluster
+        clusterEditModalAddPrecursor: function(selected, smiles, gid) {
+            var isshow = false;
+            if (this.results[selected] == undefined) {
+                this.results[selected] = [];
+                gid = 0;
+                isshow = true;
+            }
+            var all_ids = this.clusteredResultsIndex[selected];
+            if (gid == undefined) {
+                isshow = true;
+                if (all_ids.length == 0) {
+                    gid = 0;
+                } else {
+                    gid = all_ids[all_ids.length-1]+1;
+                }
+            }
+            var rank = 0;
+            for (let i of this.results[selected]) {
+                rank = Math.max(rank, i.rank);
+            }
+            rank += 1;
+            var r = {
+                'show': isshow,
+                'smiles': smiles,
+                'smiles_split': smiles,
+                'group_id': gid,
+                'score': 0,
+                'plausibility': 1,
+                'rank': rank,
+                'num_examples': 0,
+                'necessary_reagent': '',
+                'template_score': 0,
+                'templates': 0
+            };
+            this.results[selected].push(r);
+        },
+        // if group_id == undefined, add to a new group
+        openAddNewPrecursorModal: function(selected, group_id) {
+            this.showAddNewPrecursorModal = true;
+            this.addNewPrecursorModal = {};
+            this.addNewPrecursorModal['selected'] = selected;
+            this.addNewPrecursorModal['group_id'] = group_id.toString();
+            this.addNewPrecursorModal['newprecursorsmiles'] = '';
+        },
+        closeAddNewPrecursorModal: function() {
+            this.showAddNewPrecursorModal = false;
+            this.addNewPrecursorModal = {};
+        },
+        addNewPrecursorModalSubmit: function() {
+            var gid;
+            if (this.addNewPrecursorModal['group_id'] == "undefined") {
+                gid = undefined;
+            } else {
+                gid = Number(this.addNewPrecursorModal['group_id']);
+            }
+            this.addNewPrecursorModal['newprecursorsmiles'] = this.resolveChemName(this.addNewPrecursorModal['newprecursorsmiles']);
+            this.clusterEditModalAddPrecursor(
+                this.addNewPrecursorModal['selected'],
+                this.addNewPrecursorModal['newprecursorsmiles'],
+                gid);
+            this.$forceUpdate();
         },
         isModalOpen: function() {
-            return app.showSettingsModal || app.showDownloadModal || app.showLoadModal || app.showClusterPopoutModal || app.showClusterEditModal
+            return app.showSettingsModal || app.showDownloadModal || app.showLoadModal || app.showClusterPopoutModal || app.showClusterEditModal || app.showAddNewPrecursorModal
         },
         startTour: function() {
             if (this.target) {
@@ -807,11 +936,25 @@ var app = new Vue({
         }
     },
     computed: {
+        // {'target_smiles0':{0:[{result0}, {result1}, ...], 2:[...]}, ...}
         clusteredResults: function() {
             var res = {};
             var x;
             for (x in this.results) {
                 res[x] = groupPrecursors(this.results[x]);
+            }
+            return res;
+        },
+        // {'target_smiles0':[all possible unique group_ids sorted in accending order], ...}
+        clusteredResultsIndex: function() {
+            var res = {};
+            var x;
+            for (x in this.results) {
+                var ids = new Set();
+                for (let i of this.results[x]) {
+                    ids.add(i.group_id);
+                }
+                res[x] = Array.from(ids).sort(function(a, b){return a-b});
             }
             return res;
         },
@@ -982,6 +1125,7 @@ function closeAll() {
     app.showDownloadModal = false;
     app.showClusterPopoutModal = false;
     app.showClusterEditModal = false;
+    app.showAddNewPrecursorModal = false;
 }
 
 /* key binding */
