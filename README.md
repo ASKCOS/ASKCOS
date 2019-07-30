@@ -31,8 +31,10 @@ Bug fixes:
 
 The easiest way to upgrade to the new version of ASKCOS is using Docker and docker-compose. To get started, make sure both docker and docker-compose are installed on your machine. We have a pre-built docker image of ASKCOS hosted on DockerHub. It is a private repository; if you do not have access to pull the image contact mef231@mit.edu. In addition, you need to have the deploy/ folder from our code repository. To get the most recent version of ASKCOS:
 
-docker login # enter credentials
-docker pull mefortunato/askcos:0.3.1
+```bash
+$ docker login # enter credentials
+$ docker pull mefortunato/askcos:0.3.1
+```
 
 Then, follow the instructions under “How do I upgrade ASKCOS to a new version?” below using the new version of the deploy folder from this repository.
 
