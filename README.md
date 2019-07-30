@@ -1,40 +1,67 @@
 
-# Make-It:
+# ASKCOS:
 Software package for the prediction of feasible synthetic routes towards a desired compound and associated tasks related to synthesis planning. Originally developed under the DARPA Make-It program and now being developed under the [MLPDS Consortium](http://mlpds.mit.edu).
 
+# v0.3.1 Release
 
-# Installation with Docker
+Video demo of new UI features: https://drive.google.com/open?id=1SnxTGxgLuZKR1buvYo-4t0Zagof9385Q
+
+Release Notes
+User notes:
+* HTTPS support
+* Tree builder jobs from web user interface run asynchronously and are automatically saved to view later
+* Interactive path planner has new hierarchical view
+* Support email creates issue directly in our development space (gitlab)
+* Support ticket communication is confidential and can only be viewed by the person who logged the issue (outside of our group). The shared flag will be checked to determine if the contents of the issue can be used to create an FAQ in the future. The default is to have the shared flag unchecked.
+
+Developer notes:
+* New GitLab development space
+* Upgraded to Python 3.5, Django 2.2, and celery 4.3
+* New deploy script to help manage order of starting new services
+* New mysql (v5.7) and mongodb (v4.0.10) microservices, for user data and job results, respectively
+* mysql services decouples user data from front end, i.e. - updates to front end won't erase user data or require backup/restore
+* Templates and buyable compounds now exist in a mongo database. Templates are still loaded (now from DB), once at initialization, however buyable lookups are live, i.e. - changes to DB will be reflected in the application without requiring a restart. A future version will include a front end for interaction with buyables database.
+
+Bug fixes:
+* Context recommender API can now return scores with ‘return_scores’ parameter
+* Correct number of workers now appear on status page after scaling services
+* Removed Google Analytics snippet left over from public site
+
+### Upgrade information
+
+The easiest way to upgrade to the new version of ASKCOS is using Docker and docker-compose. To get started, make sure both docker and docker-compose are installed on your machine. We have a pre-built docker image of ASKCOS hosted on DockerHub. It is a private repository; if you do not have access to pull the image contact mef231@mit.edu. In addition, you need to have the deploy/ folder from our code repository. To get the most recent version of ASKCOS:
+
+docker login # enter credentials
+docker pull mefortunato/askcos:0.3.1
+
+Then, follow the instructions under “How do I upgrade ASKCOS to a new version?” below using the new version of the deploy folder from this repository.
+
+### Using GitLab Deploy Tokens
+
+We are in the process of migrating our development space from GitHub to GitLab. There are a number of beneficial features provided through GitLab that encouraged this move. The first of which are deploy tokens, providing __read-only__ access to source code and our container registry available through GitLab. For the next few releases, code and containers will continue to be made available via the GitHub and DockerHub repositories you may be familiar with, but eventually we plan to move exclusively to GitLab. Below is a complete example showing how to deploy the askcos application using deploy tokens (omitted in this example). The only software prerequisites are git, docker, and docker-compose.
+
+```bash
+$ export DEPLOY_TOKEN_USERNAME=
+$ export DEPLOY_TOKEN_PASSWORD=
+$ git clone https://$DEPLOY_TOKEN_USERNAME:$DEPLOY_TOKEN_PASSWORD@gitlab.com/mlpds_mit/askcos/askcos
+$ docker login registry.gitlab.com -u $DEPLOY_TOKEN_USERNAME -p $DEPLOY_TOKEN_PASSWORD
+$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.3.1
+$ docker tag registry.gitlab.com/mlpds_mit/askcos/askcos:0.3.1 mefortunato/askcos:0.3.1
+$ cd askcos/deploy
+$ git checkout v0.3.1
+$ bash deploy
+```
+
+__NOTE:__ The git clone command pulls enough to deploy the application (but not all the data files hosted using git large file store). To acquire the complete source code repository including large data files (if you want to rebuild a custom image, for example), please install git lfs and pull the rest of the repository.
+
+
+# First Time Deployment with Docker
 
 ### Prerequisites
 
  - If you're buidling the image from scratch, make sure git (and git lfs) is installed on your machine
  - Install Docker [OS specific instructions](https://docs.docker.com/install/)
  - Install docker-compose [installation instructions](https://docs.docker.com/compose/install/#install-compose)
-
-### Pulling the Docker image
-
-The docker image is hosted on DockerHub at mefortunato/askcos as well as on gitlab at registry.gitlab.com/mlpds_mit/askcos/askcos. We recommend using the gitlab registry as this will continue to be supported moving forward, and the DockerHub repository will stop being supported at a future date.
-
-To pull the image, make sure Docker is installed on your host machine, and authenticate with:
-
-```bash
-$ docker login
-# then enter credentials at interactive prompt
-```
-
-Alternatively, if you have been given deploy tokens, you can use these to authenticate yourself in place of a username and password. If you do not have deploy tokens, and would like them, please contact us.
-
-After authenticating, you can pull the Docker image with:
-
-```bash
-docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.3.1
-```
-
-The docker image should be tagged `askcos` using the following:
-
-```bash
-docker tag registry.gitlab.com/mlpds_mit/askcos/askcos:0.3.1 askcos
-```
 
 ### Deploying the web application
 
@@ -44,7 +71,11 @@ The entrypoint for deployment is a bash script that runs a few docker-compose co
 $ bash deploy.sh
 ```
 
-If you have already deployed some of the services and know that you can skip the db seeding, migration, or you would like to skip the generation of a random ssl certificate, you can use `--skip-seed`, `--skip-migrations`, and/or `--skip-ssl`.
+There are three optional arguments you can pass along:
+* --skip-seed: This will skip seeding the mongo database. Unless you know that the mongo database is currently up and running, you should probably choose to seed the database
+* --skip-ssl: This will skip the generation of a random self-signed ssl certificate. If you are supplying your own, use this option so as to not override the certificates
+* --skip-migration: This will skip performing the db migration required by django. Only use this if you know the migration has already been performed and the db models have not changed.
+
 
 To stop a currently running application, run the following from the deploy folder, where you ran deploy.sh:
 
@@ -52,23 +83,31 @@ To stop a currently running application, run the following from the deploy folde
 $ docker-compose stop
 ```
 
-If you would like to clean up and remove everything from a previous deployment (NOTE: you will lose user data), run the following from the deploy folder:
+If you would like to clean up and remove everything from a previous deployment (__NOTE: you will lose user data__), run the following from the deploy folder:
 
 ```bash
 $ docker-compose down -v
 ```
 
-### Upgrading from a previous version
+### Upgrading or moving deployments
 
 #### Backing up user data
 
-If you are upgrading the deployment from a previous version, you may want to retain user accounts and user-saved data. Previous to version 0.3.0, user data was stored in an sqlite db at `askcos/db.sqlite3` and a user\_saves directory at `makeit/data/user_saves`, _in the running app container service_. To backup and restore users for versions \<0.3.1, use the backup.sh and restore.sh scripts in the deploy folder. The backup.sh script will create a new directory `deploy/backup/<some long string of numbers>/` with the backed-up data. The long string of numbers will be the year+month+date+time you performed the backup. The restore.sh script will restore this data back into the newly deploy service containers.
+If you are upgrading the deployment from a previous version,or moving the application to a different server, you may want to retain user accounts and user-saved data/results. Previous to version 0.3.1, user data was stored in an sqlite db at `askcos/db.sqlite3` and a user\_saves directory at `makeit/data/user_saves`, _in the running app container service_. Versions >=0.3.1 use a mysql service for user data, and a mongo db for user results. Although the process for backing-up/restoring data is different, currently the `backup.sh` and `restore.sh` scripts are capable of handling the backup process. Please read the following carefully so as to not lose any user data:
 
-If you're using version >= 0.3.0, user data was moved out of the django service into its own mysql database service. The data exists in a docker volume, whose lifecycle is not tied to the life of the container services. In other words, you can freely stop and even destroy the containers without losing user data, just do not remove the volume, i.e. - do __not__ use `docker-compose down -v`.
+1) Start by making sure the previous version you would like to backup is __currently up and running__ with `docker-compose ps`.
+2) Checkout the newest version of the source code (only the deploy folder is necessary)
+3) Run `$ bash backup.sh`
+4) Make sure that the `deploy/backup` folder is present, and there is a folder with a long string of numbers (year+month+date+time) that corresponds to the time you just ran the backup command
+5) If the backup was successful (`db.json` and `user_saves` (\<v0.3.1) or `results.mongo` (\>=0.3.1) should be present), you can safely tear down the old application with `docker-compose down -v`
+6) Deploy the new application with `bash deploy.sh`
+7) Restore user data with `bash restore.sh`
+
+Note: For versions >=0.3.1, user data persists in docker volumes, and is not tied to the lifecycle of the container services. In other words, as long as you do not include the [-v] flag to `docker-compose down`, volumes do not get removed, and user data is safe. In this case, the backup/restore procedure is not necessary.
 
 ### (Optional) Building the ASKCOS Image
 
-The askcos image itself can be built using the Dockerfile in this repository `Make-It/Dockerfile`.
+The askcos image itself can be built using the Dockerfile in this repository.
 
 ```bash
 $ git clone https://gitlab.com/mlpds_mit/askcos/askcos  
@@ -98,7 +137,7 @@ In this case you'll be presented an interactive prompt to create a superuser wit
 
 #### First startup
 
-The celery worker will take a few minutes to start up (possibly up to 5 minutes; it reads a lot of data into memory from disk). The web app itself will be ready before this, however upon the first get request (only the first for each process) a few files will be read from disk, so expect a 10-15 second delay.
+The celery worker will take a few minutes to start up (possibly up to 5 minutes; it reads a lot of data into memory from disk). The web app itself will be ready before this, however upon the first get request (only the first for each process) a few files will be read from disk, so expect a 1-2 second delay.
 
 #### Scaling workers
 
