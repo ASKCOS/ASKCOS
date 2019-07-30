@@ -1,6 +1,6 @@
 from django.shortcuts import render, HttpResponse, redirect
 from django.template.loader import render_to_string
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.conf import settings
@@ -9,6 +9,17 @@ from pymongo.message import bson
 from bson.objectid import ObjectId
 from datetime import datetime
 import os, sys
+
+from pymongo import MongoClient
+from makeit import global_config as gc
+
+client = MongoClient(
+    gc.MONGO['path'],
+    gc.MONGO['id'],
+    connect=gc.MONGO['connect']
+)
+results_db = client['results']
+results_collection = results_db['results']
 
 from ..models import SavedResults, BlacklistedReactions, BlacklistedChemicals
 
@@ -47,17 +58,11 @@ def user_saved_results(request, err=None):
 
 @login_required
 def user_saved_results_id(request, _id=-1):
-    saved_result = SavedResults.objects.filter(user=request.user, id=_id)
-    if saved_result.count() == 0:
+    result = results_collection.find_one({'_id': _id})
+    if not result:
         return user_saved_results(request, err='Could not find that ID')
-    base = os.path.basename(saved_result[0].fpath)
-    with open(os.path.join(settings.LOCAL_STORAGE['user_saves'], base), 'r') as fid:
-        if sys.version_info[0] < 3:
-            html = fid.read().decode('utf8')
-        else:
-            html = fid.read()
-    return render(request, 'saved_results_id.html', 
-        {'saved_result':saved_result[0], 'html':html, 'dt': saved_result[0].dt})
+    return render(request, 'saved_results_id.html',
+        {'html': result['result']})
 
 @login_required
 def user_saved_results_del(request, _id=-1):
@@ -78,26 +83,20 @@ def ajax_user_save_page(request):
         return JsonResponse(data)
     print('Got request to save a page')
     now = datetime.now()
-    unique_str = '%i.txt' % hash((now, request.user))
-    fpath = os.path.join(settings.LOCAL_STORAGE['user_saves'], unique_str)
-    try:
-        with open(fpath, 'w') as fid:
-            if sys.version_info[0] < 3:
-                fid.write(html.encode('utf8'))
-            else:
-                fid.write(html)
-        print('Wrote to {}'.format(fpath))
-        obj = SavedResults.objects.create(user=request.user, 
-            description=desc,
-            dt=dt,
-            created=now,
-            fpath=fpath)
-        print('Created saved object {}'.format(obj.id))
-    except Exception as e:
-        print(e)
-        print('Could not write to file {}?'.format(fpath))
-        return JsonResponse({'err': 'Could not write to file {}?'.format(fpath)})
-
+    result_id = str(hash((now, request.user)))
+    obj = SavedResults.objects.create(user=request.user,
+        description=desc,
+        dt=dt,
+        created=now,
+        result_id=result_id,
+        result_state='N/A',
+        result_type='html'
+    )
+    results_collection.insert_one({
+        '_id': result_id,
+        'result': html,
+    })
+    print('Created saved object {}'.format(obj.id))
     return JsonResponse({'err': False})
 
 @login_required
@@ -122,7 +121,7 @@ def ajax_user_blacklist_reaction(request):
         data = {'err': 'Could not get reaction SMILES to save'}
         return JsonResponse(data)
     print('Got request to block a reaction')
-    obj = BlacklistedReactions.objects.create(user=request.user, 
+    obj = BlacklistedReactions.objects.create(user=request.user,
         description=desc,
         dt=dt,
         created=datetime.now(),
@@ -131,22 +130,22 @@ def ajax_user_blacklist_reaction(request):
     print('Created blacklisted reaction object {}'.format(obj.id))
     return JsonResponse({'err': False})
 
-@login_required 
+@login_required
 def ajax_user_activate_reaction(request):
     _id = request.GET.get('id', -1)
     obj = BlacklistedReactions.objects.filter(user=request.user, id=_id)
     if len(obj) == 1:
-        obj[0].active = True 
+        obj[0].active = True
         obj[0].save()
         return JsonResponse({'err': False})
     return JsonResponse({'err': 'Could not activate?'})
 
-@login_required 
+@login_required
 def ajax_user_deactivate_reaction(request):
     _id = request.GET.get('id', -1)
     obj = BlacklistedReactions.objects.filter(user=request.user, id=_id)
     if len(obj) == 1:
-        obj[0].active = False 
+        obj[0].active = False
         obj[0].save()
         return JsonResponse({'err': False})
     return JsonResponse({'err': 'Could not deactivate?'})
@@ -176,7 +175,7 @@ def ajax_user_blacklist_chemical(request):
         data = {'err': 'Could not get chemical SMILES to save'}
         return JsonResponse(data)
     print('Got request to block a chemical')
-    obj = BlacklistedChemicals.objects.create(user=request.user, 
+    obj = BlacklistedChemicals.objects.create(user=request.user,
         description=desc,
         dt=dt,
         created=datetime.now(),
@@ -185,22 +184,22 @@ def ajax_user_blacklist_chemical(request):
     print('Created blacklisted chemical object {}'.format(obj.id))
     return JsonResponse({'err': False})
 
-@login_required 
+@login_required
 def ajax_user_activate_chemical(request):
     _id = request.GET.get('id', -1)
     obj = BlacklistedChemicals.objects.filter(user=request.user, id=_id)
     if len(obj) == 1:
-        obj[0].active = True 
+        obj[0].active = True
         obj[0].save()
         return JsonResponse({'err': False})
     return JsonResponse({'err': 'Could not activate?'})
 
-@login_required 
+@login_required
 def ajax_user_deactivate_chemical(request):
     _id = request.GET.get('id', -1)
     obj = BlacklistedChemicals.objects.filter(user=request.user, id=_id)
     if len(obj) == 1:
-        obj[0].active = False 
+        obj[0].active = False
         obj[0].save()
         return JsonResponse({'err': False})
     return JsonResponse({'err': 'Could not deactivate?'})

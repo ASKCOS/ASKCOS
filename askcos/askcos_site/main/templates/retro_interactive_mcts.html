@@ -13,6 +13,46 @@
 
 {% block javascript %}
 <script>
+  function notify(message) {
+    if (Notification.permission === "granted") {
+        var notification = new Notification(message);
+    }
+    else if (Notification.permission !== 'denied') {
+        Notification.requestPermission(function (permission) {
+        if (permission === "granted") {
+            var notification = new Notification(message);
+        }
+        });
+    }
+  }
+
+  function showResults(id) {
+    fetch('/api/get-result/?id='+id)
+      .then(resp => resp.json())
+      .then(json => {
+        $("#status").html(': done!');
+        $("#start_retro").html('Start');
+        $("#start_retro").prop('disabled', false);
+        var resLink = '/view-tree-graph/?id='+id
+        $('#results').html('Your results are available! Click <a href="'+resLink+'" target="_blank">here</a> to view them.')
+    })
+  }
+
+  function poll(id) {
+    console.log('polling');
+    fetch('/api/poll-result/?id='+id)
+      .then(resp => resp.json())
+      .then(json => {
+        if (json['state'] == 'completed') {
+          notify('Your ASKCOS tree builder job has finished!')
+          showResults(id)
+        }
+        else {
+          setTimeout(poll, 1000, id)
+        }
+      })
+  }
+
 function showFields(name) {
     if (name=='Relevance') {
         $(".retro_relevance_settings").show();
@@ -131,11 +171,13 @@ $("#id_smiles").change(function () {
                 $("#target_mol_wrapper").show();
                 $("#controls_wrapper").hide();
                 $("#settings_wrapper").hide();
+                $('.async_control').hide();
             } else {
                 $("#target_mol").html(data.html);
                 $("#target_mol_wrapper").show();
                 $("#controls_wrapper").show();
                 $("#settings_wrapper").show();
+                $('.async_control').show();
                 $("#id_smiles").val(data.smiles);
             }
         },
@@ -147,9 +189,14 @@ $("#start_retro").click(function () {
         alert('Be patient! It is running');
     } else {
         console.log('starting retro');
+        $('#results').html('');
+        $("#statistics").html('');
         $("#start_retro").prop('disabled', true);
         $("#status").html(': running...');
         $("#start_retro").html('Running...');
+        if ($('#async').is(":checked")) {
+            $('#results').html('Your job has been submitted asynchronously. A link to view the results will be shown here when the job completes. Feel free to leave this page; your results can be viewed at a later time <a href="/my-results/" target="_blank">here</a>.')
+        }
         $.ajax({
             url: '/ajax/start_retro_mcts_celery/',
             data: {
@@ -170,19 +217,26 @@ $("#start_retro").click(function () {
                 min_chempop_products: $("#min_chempop_products").val(),
                 filter_threshold: $("#filter_threshold").val(),
                 return_first: $("#return_first").is(":checked"),
+                async: $('#async').is(":checked"),
+                description: $('#description').val(),
             },
             dataType: 'json',
             success: function (data) {
-                if (data.err) {
-                    alert(data.message);
-                    $("#status").html(': failed?');
-                } else {
-                    $("#statistics").html(data.html_stats);
-                    $("#results").html(data.html_trees);
-                    $("#status").html(': done!');
+                if ($('#async').is(":checked")) {
+                    poll(data.id)
                 }
-                $("#start_retro").html('Start');
-                $("#start_retro").prop('disabled', false);
+                else {
+                    if (data.err) {
+                        alert(data.message);
+                        $("#status").html(': failed?');
+                    } else {
+                        $("#statistics").html(data.html_stats);
+                        $("#results").html(data.html_trees);
+                        $("#status").html(': done!');
+                    }
+                    $("#start_retro").html('Start');
+                    $("#start_retro").prop('disabled', false);
+                }
             },
             error: function (jqXhr, textStatus, errorMessage) {
                 alert(errorMessage);
@@ -492,6 +546,22 @@ Min freq. as product: <input type="number" id="min_chempop_products" style="widt
 
 
 </tbody>
+
+<tr class="async_control" style="display:none">
+    <th>Async:</th>
+    <td colspan="4">
+        <input type="checkbox" id="async"> <i>New!</i> Run in background and get notified when complete <a href="#" data-toggle="tooltip" title="Check this to have job run asynchronously in the background. You'll be able to leave the page without losing your results. Results are stored on the 'My Results' page (located in top navigation bar)."><span class="glyphicon glyphicon-info-sign"></span></a>
+    </td>
+</tr>
+
+<tr class="async_control" style="display:none">
+    <th></th>
+    <td colspan="4">
+        Description (async only): 
+        <input type="text" id="description"> 
+        <a href="#" data-toggle="tooltip" title="Results will get saved automatically when the job is submitted asynchronously. Give this job a name to help recognize it later in your list of results."><span class="glyphicon glyphicon-info-sign"></span></a>
+    </td>
+</tr>
 
 <!-- Controls -->
 <tr id="controls_wrapper" style="display:none"><th style="vertical-align: bottom; text-align:left">Controls:</th>

@@ -5,11 +5,11 @@ import makeit.global_config as gc
 
 class MyLogger:
     '''
-    Create logger. Four different levels of information output. A level 3 ("FATAL") 
+    Create logger. Four different levels of information output. A level 3 ("FATAL")
     log will exit the program.
     '''
-    logFile = os.path.join(os.path.dirname(
-        os.path.dirname(os.path.dirname(__file__))), 'log.txt')
+    HOME = os.path.expanduser('~')
+    logFile = os.path.join(HOME, '.askcos.log')
     levels = {
         0: 'INFO',
         1: 'WARN',
@@ -19,7 +19,8 @@ class MyLogger:
 
     @staticmethod
     def initialize_logFile(ROOT=os.path.dirname(os.path.dirname(os.path.dirname(__file__))), name=''):
-        MyLogger.logFile = os.path.join(ROOT, '{}_log.txt'.format(name))
+        if name:
+            MyLogger.logFile += '_{}'.format(name)
         if os.path.isfile(MyLogger.logFile):
             os.remove(MyLogger.logFile)
         gc.time_zero = time.time()

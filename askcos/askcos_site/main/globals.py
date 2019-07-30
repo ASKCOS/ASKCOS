@@ -5,40 +5,20 @@ lg.setLevel(RDLogger.CRITICAL)
 from database import db_client
 from django.conf import settings
 import makeit.utilities.io.pickle as pickle
-import os 
+import os
 import makeit.global_config as gc
 
-# Retro transformer
-import makeit.retrosynthetic.transformer as transformer 
-RetroTransformer = transformer.RetroTransformer(mincount=gc.RETRO_TRANSFORMS['mincount'])
-RetroTransformer.load(chiral=False, refs=True, rxns=False) 
-RetroTransformer.reorder()
-RETRO_FOOTNOTE = 'Using {} retrosynthesis templates (mincount {}) from {}/{}'.format(len(RetroTransformer.templates),
-    settings.RETRO_TRANSFORMS['mincount'], settings.RETRO_TRANSFORMS['database'], settings.RETRO_TRANSFORMS['collection'])
-
 # Chiral Retro Transformer
-import makeit.retrosynthetic.transformer as transformer 
-RetroTransformerChiral = transformer.RetroTransformer()
-RetroTransformerChiral.load(chiral=True, refs=True, rxns=False) 
-RetroTransformerChiral.reorder()
-RETRO_CHIRAL_FOOTNOTE = 'Using {} chiral retrosynthesis templates (mincount {} if achiral, mincount {} if chiral) from {}/{}'.format(len(RetroTransformerChiral.templates),
-    settings.RETRO_TRANSFORMS_CHIRAL['mincount'], 
-    settings.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'], 
-    settings.RETRO_TRANSFORMS_CHIRAL['database'], 
-    settings.RETRO_TRANSFORMS_CHIRAL['collection'])
-RetroTransformer.templates += RetroTransformerChiral.templates[:]
-del RetroTransformerChiral
-print('Merged two retrotransformers into one, since this is just for template look-up')
-print('{} total templates available'.format(len(RetroTransformer.templates)))
-RetroTransformer.reorder() # rebuilds id->template dictionary
-
-### Forward transformer 
-import makeit.synthetic.enumeration.transformer as transformer
-SynthTransformer = transformer.ForwardTransformer()
-SynthTransformer.load(chiral=False, rxns=False)
-SynthTransformer.reorder()
-SYNTH_FOOTNOTE = 'Using {} forward templates (mincount {}) from {}/{}'.format(SynthTransformer.num_templates,
-    settings.SYNTH_TRANSFORMS['mincount'], settings.SYNTH_TRANSFORMS['database'], settings.SYNTH_TRANSFORMS['collection'])
+import makeit.retrosynthetic.transformer as transformer
+RetroTransformer = transformer.RetroTransformer(lookup_only=True)
+RetroTransformer.load(chiral=True, refs=True, rxns=False)
+RETRO_CHIRAL_FOOTNOTE = 'Using {} chiral retrosynthesis templates (mincount {} if achiral, mincount {} if chiral) from {}/{}'.format(
+    gc.Relevance_Prioritization['output_size'],
+    gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
+    gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
+    gc.RETRO_TRANSFORMS_CHIRAL['database'],
+    gc.RETRO_TRANSFORMS_CHIRAL['collection']
+)
 
 ### Databases
 db = db_client[settings.REACTIONS['database']]
@@ -74,16 +54,16 @@ Pricer = pricer.Pricer()
 Pricer.load()
 print('Loaded known prices')
 
-TransformerOnlyKnown = None 
+TransformerOnlyKnown = None
 
 PREDICTOR_FOOTNOTE = ''
 
 # Keeping track of what reactions have already been done
 DONE_SYNTH_PREDICTIONS = {}
 
-TEMPLATE_BACKUPS = []
-for (dbname, collname) in settings.TEMPLATE_BACKUPS:
-    TEMPLATE_BACKUPS.append(db_client[dbname][collname])
+# TEMPLATE_BACKUPS = []
+# for (dbname, collname) in settings.TEMPLATE_BACKUPS:
+#     TEMPLATE_BACKUPS.append(db_client[dbname][collname])
 
 
 # Historian

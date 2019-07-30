@@ -14,7 +14,14 @@ historian_loc = 'reactionhistorian'
 
 
 def tup_to_dict(info=[0, []], refs=False):
-    '''Takes a historical entry as a tuple and returns a labeled dict'''
+    """Returns a labeled dict from a given historical entry as a tuple.
+
+    Args:
+        info ((int, list), optional): Entry to convert into dict.
+            (default: {[0, []]})
+        refs (bool, optional): Whether to include references or only counts.
+            (default: {False})
+    """
     return {
         'count': info[0],
         'refs': info[1] if refs else [],
@@ -22,31 +29,41 @@ def tup_to_dict(info=[0, []], refs=False):
 
 
 class ReactionHistorian:
-    '''
-    The Historian class is used to look up chemicals to see how often they have
-    been seen in Reaxys
-    '''
+    """Looks up chemicals to see how often they have been seen in Reaxys.
+
+    Attributes:
+        REACTION_DB (MongoDB): Database of reactions.
+        CHEMICAL_HISTORY_DB (MongoDB): Database of chemical history.
+        occurrences (defaultdict):
+        occurrences_flat (defaultdict):
+    """
 
     def __init__(self, by_xrn=False, REACTIONS=None):
+        """Initializes ReactionHistorian.
 
+        Args:
+            by_xrn (bool, optional): ?? (default: {False})
+            REACTIONS (None or MongoDB, optional): ?? (default: {None})
+        """
         self.REACTION_DB = REACTIONS
 
         self.occurrences = defaultdict(lambda: [0, []])
         self.occurrences_flat = defaultdict(lambda: [0, []])
 
     def load_databases(self):
-        '''
-        Load the pricing data from the online database
-        '''
+        """Loads the history data from the online database."""
         db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
                                 'id'], connect=gc.MONGO['connect'])
         db = db_client[gc.REACTIONS['database']]
         self.REACTION_DB = db[gc.REACTIONS['collection']]
 
     def dump_to_file(self, file_path=gc.reactionhistorian_data):
-        '''
-        Write the data from the online datbases to a local file
-        '''
+        """Writes the data from the online datbases to a local file.
+
+        Args:
+            file_path (str, optional): Path to the output file.
+                (default: {gc.reactionhistorian_data})
+        """
         if not self.REACTION_DB:
             MyLogger.print_and_log(
                 "No database information to output to file.", historian_loc, level=3)
@@ -60,9 +77,14 @@ class ReactionHistorian:
                 "Saved to {}".format(file_path), historian_loc, level=1)
 
     def load_from_file(self, file_path=gc.reactionhistorian_data, testing=False):
-        '''
-        Load the data for the pricer from a locally stored file instead of from the online database.
-        '''
+        """Loads the data for the pricer from a locally stored file.
+
+        Args:
+            file_path (str, optional): Path to the input file.
+                (default: {gc.reactionhistorian_data})
+            testing (bool, optional): Whether to only run a test.
+                (default: {False})
+        """
 
         if testing:
             self.occurrences = defaultdict(lambda: [0, []], {
@@ -86,9 +108,13 @@ class ReactionHistorian:
             self.dump_to_file()
 
     def load(self, online=True, REACTION_DB=None):
-        '''
-        Loads the object from a MongoDB collection
-        '''
+        """Loads the object from a MongoDB collection.
+
+        Args:
+            online (bool, optional): Whether to load from the online database or
+                a local file. (default: {True})
+            REACTION_DB (None or ??, optional): ??
+        """
         MyLogger.print_and_log(
             'Loading reaction historian.', historian_loc)
 
@@ -108,14 +134,14 @@ class ReactionHistorian:
             self.REACTION_DB = REACTION_DB
 
         # Then get reactions
-        for reaction_doc in tqdm(self.REACTION_DB.find({'RXN_SMILES': {'$exists': True}}, 
+        for reaction_doc in tqdm(self.REACTION_DB.find({'RXN_SMILES': {'$exists': True}},
                     ['_id', 'RXN_SMILES', 'RX_NVAR'], no_cursor_timeout=True)):
 
             # Parse and canonicalize
             reactants = Chem.MolFromSmiles(str(reaction_doc['RXN_SMILES'].split('>')[0]))
             products = Chem.MolFromSmiles(str(reaction_doc['RXN_SMILES'].split('>')[2]))
 
-            if not reactants or not products: 
+            if not reactants or not products:
                 continue
 
             [a.ClearProp('molAtomMapNumber') for a in reactants.GetAtoms()]
@@ -147,11 +173,23 @@ class ReactionHistorian:
 
 
     def lookup_smiles(self, smiles, alreadyCanonical=False, isomericSmiles=True, refs=False):
-        '''
-        Looks up a price by SMILES. Tries it as-entered and then 
-        re-canonicalizes it in RDKit unl ess the user specifies that
-        the string is definitely already canonical.
-        '''
+        """Looks up number of occurances by SMILES.
+
+        Tries it as-entered and then re-canonicalizes it in RDKit unless the
+        user specifies that the string is definitely already canonical.
+
+        Args:
+            smiles (str): SMILES string of molecule to look up.
+            alreadyCanonical (bool, optional): Whether to SMILES string has
+                already been canonicalized. (default: {False})
+            isomericSmiles (bool, optional): Whether the SMILES string is
+                isomeric. (default: {True})
+            refs (bool, optional): Whether to include references.
+                (default: {False})
+
+        Returns:
+            dict: Labeled dictionaty from tup_to_dict().
+        """
         info = self.occurrences_flat[smiles]
         if info != [0, 0, [], []]:
             return tup_to_dict(info, refs=refs)

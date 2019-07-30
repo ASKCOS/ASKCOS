@@ -1,16 +1,16 @@
 from django.shortcuts import render, HttpResponse, redirect
 from django.template.loader import render_to_string
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.conf import settings
 import django.contrib.auth.views
 from datetime import datetime
 import time
-import numpy as np 
+import numpy as np
 import json
 import os
-import rdkit.Chem as Chem 
+import rdkit.Chem as Chem
 import makeit.global_config as makeit_gc
 
 # TODO: fix this Celery reference
@@ -64,7 +64,7 @@ def ajax_evaluate_rxnsmiles(request):
         num_contexts = 0
 
     if num_contexts:
-        res = get_context_recommendations.delay(smiles, n=num_contexts, 
+        res = get_context_recommendations.delay(smiles, n=num_contexts,
             context_recommender=context_recommender)
         contexts = res.get(60)
         print('Got context(s)')
@@ -84,8 +84,8 @@ def ajax_evaluate_rxnsmiles(request):
         print('Need reagent and reagent suggestion is: {}'.format(contexts[0][2]))
     if necessary_reagent and contexts[0][2] and Chem.MolFromSmiles(contexts[0][2]):
         reactant_smiles += '.{}'.format(contexts[0][2]) # add rgt
-    
-    res = evaluate.delay(reactant_smiles, products[0], contexts, 
+
+    res = evaluate.delay(reactant_smiles, products[0], contexts,
         forward_scorer=forward_scorer, mincount=synth_mincount, top_n=50,
         return_all_outcomes=True)
     all_outcomes = res.get(300)
@@ -111,7 +111,7 @@ def ajax_evaluate_rxnsmiles(request):
     ranks = [outcome['target']['rank'] for outcome in all_outcomes]
     major_prods = [outcome['top_product']['smiles'] for outcome in all_outcomes]
     major_probs = [outcome['top_product']['prob'] for outcome in all_outcomes]
-    
+
     best_context_i = np.argmax(plausible)
     plausible = plausible[best_context_i]
     rank = ranks[best_context_i]
@@ -128,7 +128,7 @@ def ajax_evaluate_rxnsmiles(request):
         (T1, slvt1, rgt1, cat1, t1, y1) = best_context
 
     if not verbose:
-        
+
         data['html'] = 'Plausibility score: {} (rank {})'.format(plausible, rank)
         if num_contexts:
             if not rgt1: rgt1 = 'no '
@@ -145,7 +145,7 @@ def ajax_evaluate_rxnsmiles(request):
                 data['html'] += '<br><img src="' + url + '">'
         #data['html'] += '<br>(calc. used synth_mincount {})'.format(synth_mincount)
     else:
-        
+
         data['html'] = '<h3>Plausibility score: {} (rank {})</h3>'.format(plausible, rank)
         if num_contexts:
             if not rgt1: rgt1 = 'none'
@@ -157,11 +157,11 @@ def ajax_evaluate_rxnsmiles(request):
             if major_prod != 'none found':
                 url = reverse('draw_smiles', kwargs={'smiles':major_prod})
                 data['html'] += '<br><img src="' + url + '">'
-        
+
     # plausible = plausible / 100.
     B = 150.
     R = 255. - (plausible > 0.5) * (plausible - 0.5) * (255. - B) * 2.
     G = 255. - (plausible < 0.5) * (0.5 - plausible) * (255. - B) * 2.
     data['html_color'] = str('#%02x%02x%02x' % (int(R), int(G), int(B)))
-    
+
     return JsonResponse(data)

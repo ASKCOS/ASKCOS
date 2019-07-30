@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+{% block title %}My Results{% endblock %}
+
+{% block extrahead %}
+<script src="{% static 'js/browser-compat.js' %}"></script>
+<script src="{% static 'js/vue.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/loader.css' %}" type="text/css">
+<link rel="stylesheet" href="{% static 'css/fontawesome.min.css' %}" type="text/css">
+{% endblock %}
+
+{% block page_title %}My Results{% endblock %}
+
+{% block page_body %}
+
+<div id="app" class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center">
+                <button class="btn btn-info" v-on:click="update">Refresh</button>
+            </div>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th class="text-center">Created</th>
+                        <th class="text-center">Description</th>
+                        <th class="text-center">State</th>
+                        <th class="text-center">Type</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template v-for="res in results">
+                        <tr data-id='%% res.id %%'>
+                            <td class="text-center">
+                                <a v-if="(res.type == 'tree_builder') && (res.state=='completed')" :href='"/view-tree-graph/?id="+res.id'>
+                                  <i class="fas fa-external-link-alt"></i>
+                                </a>
+                                <a v-else-if="res.type == 'html'" :href='"/saved/id="+res.id'>
+                                  <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </td>
+                            <td class="text-center">%% res.created %%</td>
+                            <td class="text-center">%% res.description %%</td>
+                            <td class="text-center">%% res.state %%</td>
+                            <td class="text-center">
+                              %% res.type %%
+                            </td>
+                            <td class="text-center">
+                                <i @click="removeResult(res.id)" class="fas fa-trash-alt"></i>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="loader"></div>
+</div>
+
+<script src="{% static 'js/results.js' %}"></script>
+
+{% endblock %}

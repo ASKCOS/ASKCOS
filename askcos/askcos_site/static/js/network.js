@@ -1,4 +1,6 @@
 var container = document.getElementsByClassName('container')[0];
+container.classList.remove('container')
+container.classList.add('container-fluid')
 container.style.width=null;
 
 function showLoader() {
@@ -238,7 +240,8 @@ var app = new Vue({
         numTemplates: 1000,
         maxCumProb: 0.999,
         minPlausibility: 0.01,
-        sortingCategory: "score"
+        sortingCategory: "score",
+        networkHierarchical: false
     },
     beforeMount: function() {
         this.allowResolve = this.$el.querySelector('[ref="allowResolve"]').checked;
@@ -259,83 +262,145 @@ var app = new Vue({
             }).join('&');
             return url+queryString;
         },
-        resolveTarget: function() {
+        resolveTarget: function(name) {
             if (this.allowResolve) {
-                var url = 'https://cactus.nci.nih.gov/chemical/structure/'+encodeURIComponent(this.target)+'/smiles'
+                var url = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/'+encodeURIComponent(name)+'/property/IsomericSMILES/txt'
                 console.log(url)
-                fetch(url)
+                var text = fetch(url)
                     .then(resp => {
                         if (resp.status == 404) {
                             throw Error(resp.statusText);
-                        }
-                        else {
+                        } else {
                             return resp.text()
                         }
                     })
-                    .then(text => {
-                        console.log(text);
-                        this.target = text;
-                        this.changeTarget();
-                    })
                     .catch(err => {
-                        alert('Cannot resolve "'+this.target+'" to smiles');
+                        throw Error('Cannot resolve "'+name+'" to smiles: '+err.message);
+                    })
+                return text;
+            } else {
+                throw Error('Resolving chemical name using external server is not allowed.');
+            }
+        },
+        validatesmiles: function(s, iswarning) {
+            var url = '/api/validate-chem-name/?smiles='+encodeURIComponent(s)
+            console.log(url)
+            var res = fetch(url)
+                .then(resp => {
+                    if (!resp.ok) {
+                        throw 'Unable to connect to server: error code '+resp.status;
+                    } else {
+                        return resp.json()
+                    }
                 })
-            }
-            else {
-                this.changeTarget();
-            }
+                .then(res_json => {
+                    if (!res_json['correct_syntax']) {
+                        if(iswarning) alert('Input SMILES string: invalid syntax')
+                        return false
+                    } else if (!res_json['valid_chem_name']) {
+                        if(iswarning) alert('Input SMILES string: invalid chemical')
+                        return false
+                    } else {
+                        return true
+                    }
+                })
+            return res;
         },
         changeTarget: function() {
             showLoader();
-            var url = this.requestUrl(this.target);
-            fetch(url)
-                .then(resp => {
-                    if (!resp.ok) {
-                        throw Error(resp.statusText);
-                    }
-                    return resp;
-                })
-                .then(resp => resp.json())
-                .then(json => {
-                    this.data.nodes = new vis.DataSet([
-                        {
-                            id: 0,
-                            smiles: this.target,
-                            image: window.location.origin+"/draw/smiles/"+encodeURIComponent(this.target),
-                            shape: "image",
-                            borderWidth: 3,
-                            type: 'chemical',
-                            value: 15,
-                            mass: 2,
-                            color: {
-                                border: '#000088'
-                            }
+            this.validatesmiles(this.target)
+            .then(isvalidsmiles => {
+                if (isvalidsmiles) {
+                    return this.target
+                } else {
+                    return this.resolveTarget(this.target)
+                }
+            })
+            .then(x => {
+                this.target = x;
+                if (this.target != undefined) {
+                    var url = this.requestUrl(this.target);
+                    fetch(url)
+                    .then(resp => {
+                        if (!resp.ok) {
+                            throw resp.status;
                         }
-                    ])
-                    this.data.edges = new vis.DataSet([]);
-                    initializeNetwork(this.data);
-                    network.on('selectNode', this.showInfo);
-                    network.on('deselectNode', this.clearSelection);
-                    this.results[this.target] = json['precursors'];
-                    addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit);
-                    this.getTemplateNumExamples(json['precursors']);
-                    hideLoader();
-                    fetch('/api/price/?smiles='+encodeURIComponent(this.target))
-                        .then(resp => resp.json())
-                        .then(json => {
-                            var ppg = json['price'];
-                            if (ppg == 0) {
-                                ppg = "not buyable"
-                            }
-                            this.data.nodes.update({id: 0, ppg: ppg});
-                            network.selectNodes([0]);
-                            this.selected = this.data.nodes.get(0);
+                        return resp;
                     })
-                })
-                .catch(error => {
+                    .then(resp => resp.json())
+                    .then(json => {
+                        if ('error' in json) {
+                            throw json['error']
+                        } else {
+                            this.data.nodes = new vis.DataSet([
+                                {
+                                    id: 0,
+                                    smiles: this.target,
+                                    image: window.location.origin+"/draw/smiles/"+encodeURIComponent(this.target),
+                                    shape: "image",
+                                    borderWidth: 3,
+                                    type: 'chemical',
+                                    value: 15,
+                                    mass: 2,
+                                    color: {
+                                        border: '#000088'
+                                    }
+                                }
+                            ])
+                            this.data.edges = new vis.DataSet([]);
+                            initializeNetwork(this.data);
+                            network.on('selectNode', this.showInfo);
+                            network.on('deselectNode', this.clearSelection);
+                            this.results[this.target] = json['precursors'];
+                            addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit);
+                            this.getTemplateNumExamples(json['precursors']);
+                            hideLoader();
+                            fetch('/api/price/?smiles='+encodeURIComponent(this.target))
+                                .then(resp => resp.json())
+                                .then(json => {
+                                    var ppg = json['price'];
+                                    if (ppg == 0) {
+                                        ppg = "not buyable"
+                                    }
+                                    this.data.nodes.update({id: 0, ppg: ppg});
+                                    network.selectNodes([0]);
+                                    this.selected = this.data.nodes.get(0);
+                            })
+                        }
+                    })
+                    .catch(error => {
+                        hideLoader();
+                        alert('There was an error fetching precursors for this target with the supplied settings: '+error)
+                    })
+                } else {
                     hideLoader();
-                    alert('There was an error fetching precursors for this target with the supplied settings')
-                })
+                }
+            })
+            .catch(error => {
+                hideLoader();
+                var error_msg = 'unknown error'
+                if ('message' in error) {
+                    error_msg = error.name+':'+error.message
+                } else if (typeof(error) == 'string') {
+                    error_msg = error
+                }
+                alert('There was an error fetching precursors for this target with the supplied settings: '+error_msg)
+            })
+        },
+        toggleHierarchical: function() {
+          if (typeof(network) == 'undefined') {
+            return
+          }
+          if (this.networkHierarchical) {
+            network.setOptions({'layout': {'hierarchical': false}})
+            document.querySelector('#hierarchical-button').innerHTML = 'G'
+            this.networkHierarchical = false;
+          }
+          else {
+            network.setOptions({'layout': {'hierarchical': {sortMethod: 'directed'}}})
+            document.querySelector('#hierarchical-button').innerHTML = 'H'
+            this.networkHierarchical = true;
+          }
         },
         expandNode: function() {
             if (this.isModalOpen() || typeof(network) == "undefined") {
@@ -501,6 +566,7 @@ var app = new Vue({
             this.data.nodes.remove(this.data.nodes.getIds());
             this.data.edges.remove(this.data.edges.getIds());
             this.selected = null;
+            document.querySelector('#hierarchical-button').innerHTML = 'G';
         },
         clearSelection: function() {
             this.selected = null;
@@ -621,7 +687,7 @@ var tour = new Tour({
         {
             element: "#target",
             title: "Start with a target compound",
-            content: "You can start the retrosynthetic planning with a target compound and typing it's SMILES formatted string here. If the name resolver is enabled (see server icon to the right; click icon to toggle), you can also enter a chemical name. The name will be resolved using a third-party server (NIH CACTUS). For this tutorial we're going to explore an example reaction for <a href='https://en.wikipedia.org/wiki/Fluconazole' target='_blank'>Fluconazole</a>. Press 'Next' to continue!",
+            content: "You can start the retrosynthetic planning with a target compound and typing it's SMILES formatted string here. If the name resolver is enabled (see server icon to the right; click icon to toggle), you can also enter a chemical name. The name will be resolved using a third-party server (PubChem). For this tutorial we're going to explore an example reaction for <a href='https://en.wikipedia.org/wiki/Fluconazole' target='_blank'>Fluconazole</a>. Press 'Next' to continue!",
             placement: "bottom",
             onNext: function() {
                 app.target = 'OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F'

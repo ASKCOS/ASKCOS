@@ -72,12 +72,18 @@ def MolsSmilesToImageHighlight(smiles, options=None, **kwargs):
 
 '''
 Many of these functions are taken from RDKit.
-'''
+"""
 
 
 def mols_from_smiles_list(all_smiles):
-    '''Given a list of smiles strings, this function creates rdkit
-    molecules'''
+    """Given a list of smiles strings, this function creates rdkit molecules.
+
+    Args:
+        all_smiles (list of str): SMILES strings to be converted to molecules.
+
+    Returns:
+        list of Chem.Mol: Molecules from the SMILES strings.
+    """
     mols = []
     for smiles in all_smiles:
         if not smiles:
@@ -87,15 +93,14 @@ def mols_from_smiles_list(all_smiles):
 
 
 def defaultDrawOptions():
-    '''This function returns an RDKit drawing options object with 
-    default drawing options.'''
+    """Returns an RDKit drawing options object with default drawing options."""
 
     opts = Draw.DrawingOptions()
     # opts.elemDict = defaultdict(lambda: (0,0,0)) # all atoms are black
     opts.noCarbonSymbols = True
     opts.selectColor = (1, 0, 0)
     opts.wedgeBonds = True
-    
+
     opts.elemDict = defaultdict(lambda: (0, 0, 0))
     opts.dotsPerAngstrom = 20
     opts.bondLineWidth = 1.5
@@ -105,7 +110,11 @@ def defaultDrawOptions():
 
 
 def StripAlphaFromImage(img):
-    '''This function takes an RGBA PIL image and returns an RGB image'''
+    """Returns an RGB image from an RGBA PIL image.
+
+    Args:
+        img (PIL.Image): RGBA image to remove the alpha from.
+    """
 
     if len(img.split()) == 3:
         return img
@@ -114,7 +123,24 @@ def StripAlphaFromImage(img):
 
 def MolToImage(mol, max_size=(1000, 1000), kekulize=True, options=None,
                canvas=None, **kwargs):
-    '''Wrapper for RDKit's MolToImage. If mol == None, an arrow is drawn'''
+    """Wrapper for RDKit's ``MolToImage``.
+
+    Args:
+        mol (Chem.Mol or str): Molecule or arrow to draw.
+        max_size (2-tuple of (int, int), optional): Maximum image size to
+            return. (default: {(1000, 1000)})
+        kekulize (bool, optional): Whether to kekulize the molecule.
+            (default: {True})
+        options (None or ??, optional): RDKit drawing options. If None, will use
+            defaults. (default: {None})
+        canvas (None or Draw.Canvas, optional): Canvas to draw image onto.
+            (default: {None})
+        **kwargs: Additional optional arugments passed to RDKit's
+            ``MolToImage``.
+
+    Returns:
+        PIL.Image: Drawn molecule.
+    """
 
     if not options:
         options = defaultDrawOptions()
@@ -132,7 +158,7 @@ def MolToImage(mol, max_size=(1000, 1000), kekulize=True, options=None,
             canvas.flush()
         else:
             canvas.save()
-        return img        
+        return img
     elif mol == '<-':  # retro arrow or error
         subImgSize = (100, 100)
         (a, b) = subImgSize
@@ -156,8 +182,19 @@ def MolToImage(mol, max_size=(1000, 1000), kekulize=True, options=None,
 
 
 def TrimImgByWhite(img, padding=0):
-    '''This function takes a PIL image, img, and crops it to the minimum rectangle 
-    based on its whiteness/transparency. 5 pixel padding used automatically.'''
+    """Crops an image to the minimum possible size.
+
+    This function takes a PIL image, img, and crops it to the minimum rectangle
+    based on its whiteness/transparency. 5 pixel padding used automatically.
+
+    Args:
+        img (PIL.Image): Image to crop.
+        padding (int, optional): Amount of padding to use around image
+            (in addition to the 5 pixel padding always used). (default: {0})
+
+    Returns:
+        PIL.Image: Trimmed image.
+    """
 
     # Convert to array
     as_array = np.array(img)  # N x N x (r,g,b,a)
@@ -185,9 +222,18 @@ def TrimImgByWhite(img, padding=0):
 
 
 def StitchPILsHorizontally(imgs):
-    '''This function takes a list of PIL images and concatenates
+    """Combines images into a single horizontal image.
+
+    This function takes a list of PIL images and concatenates
     them onto a new image horizontally, with each one
-    vertically centered.'''
+    vertically centered.
+
+    Args:
+        imgs (list of PIL.Image): Images to stitch together.
+
+    Returns:
+        PIL.Image: Single, horizontally-stitched image.
+    """
 
     # Create blank image (def: transparent white)
     heights = [img.size[1] for img in imgs]
@@ -206,11 +252,17 @@ def StitchPILsHorizontally(imgs):
 
 
 def CheckAtomForGeneralization(atom):
-    '''Given an RDKit atom, this function determines if that atom's SMART 
+    """Determines if an atom's SMART representation is from generalization.
+
+    Given an RDKit atom, this function determines if that atom's SMART
     representation was likely a result of generalization. This assumes that
-    the transform string was generated using explicit Hs with aliphatic 
-    carbons as C, aromatic carbons as c, and non-carbons as #N where N is the 
-    atomic number of the generalized species.'''
+    the transform string was generated using explicit Hs with aliphatic
+    carbons as C, aromatic carbons as c, and non-carbons as #N where N is the
+    atomic number of the generalized species.
+
+    Args:
+        atom (Chem.Atom): Atom to check SMART representation of.
+    """
 
     smarts = atom.GetSmarts()
 
@@ -237,10 +289,26 @@ def CheckAtomForGeneralization(atom):
 
 
 def ReactionToImage(rxn, dummyAtoms=False, kekulize=True, options=None, **kwargs):
-    '''Modification of RDKit's ReactionToImage to allow for each molecule 
+    """Draws a reaction.
+
+    Modification of RDKit's ReactionToImage to allow for each molecule
     to have a different drawn size. rxn is an RDKit reaction object
 
-    warning: this function adds hydrogens as it sees fit'''
+    Warning: This function adds hydrogens as it sees fit.
+
+    Args:
+        rxn (Chem.Reaction): Reaction to draw.
+        dummyAtoms (bool, optional): Whether to check for generalization.
+            (default: {False})
+        kekulize (bool, optional): Whether to kekulize the molecule.
+            (default: {True})
+        options (None or ??, optional): RDKit drawing options. If None, will use
+            defaults. (default: {None})
+        **kwargs: Additional optional arugments. Used for ``retro``.
+
+    Returns:
+        PIL.Image: Drawing of the reaction.
+    """
     # Extract mols from reaction
     mols = []
     for i in range(rxn.GetNumReactantTemplates()):
@@ -272,8 +340,25 @@ def ReactionToImage(rxn, dummyAtoms=False, kekulize=True, options=None, **kwargs
 
 def ReactionStringToImage(rxn_string, strip=True, update=True, options=None,
         retro=False, **kwargs):
-    '''This function takes a SMILES rxn_string as input, not an 
-    RDKit reaction object, and draws it.'''
+    """Draws a reaction from a SMILES string.
+
+    This function takes a SMILES rxn_string as input, not an
+    RDKit reaction object, and draws it.
+
+    Args:
+        rxn_string (str): SMILES string of reaction.
+        strip (bool, optional): Whether to strip the atoms. (default: {True})
+        update (bool, optional): Whether to update the property cache of the
+            molecules. (default: {True})
+        options (None or ??, optional): RDKit drawing options. If None, will use
+            defaults. (default: {None})
+        retro (bool, optional): Whether the reaction is in the retrosynthetic
+            direction. (default: {False})
+        **kwargs: Unused.
+
+    Returns:
+        PIL.Image: Drawing of the reaction.
+    """
 
     reactants, agents, products = [mols_from_smiles_list(x) for x in
                                    [mols.split('.') for mols in rxn_string.split('>')]]
@@ -302,10 +387,23 @@ def ReactionStringToImage(rxn_string, strip=True, update=True, options=None,
 
 
 def TransformStringToImage(transform, retro=True, **kwargs):
-    '''Wrapper function meant to take a SMARTS transform and return a PIL image
+    """Draws a SMARTS transform.
+
+    Wrapper function meant to take a SMARTS transform and return a PIL image
     of that transform.
 
-    TODO: Need to improve generalization visually! Right now it still shows'''
+    TODO: Need to improve generalization visually! Right now it still shows
+
+    Args:
+        transform (str): SMARTS string of transform.
+        retro (bool, optional): Whether the reaction is in the retrosynthetic
+            direction. (default: {True})
+        **kwargs: Additional optional arguments passed through to
+            ``ReactionToImage``.
+
+    Returns:
+        PIL.Image: Drawing of the transform.
+    """
 
     options = defaultDrawOptions()
     options.dotsPerAngstrom = 40
@@ -322,8 +420,20 @@ def TransformStringToImage(transform, retro=True, **kwargs):
 
 
 def MolsSmilesToImage(smiles, options=None, **kwargs):
-    '''This function takes a SMILES string of one or more molecules
-    and generates a combined image for that molecule set.'''
+    """Draws molecule(s) from SMILES.
+
+    This function takes a SMILES string of one or more molecules
+    and generates a combined image for that molecule set.
+
+    Args:
+        smiles (str): SMILES string of molecule(s) to draw.
+        options (None or ??, optional): RDKit drawing options. If None, will use
+            defaults. (default: {None})
+        **kwargs: Unused.
+
+    Returns:
+        PIL.Image: Drawing of the molecule(s).
+    """
 
     # Generate mols
     mols = mols_from_smiles_list(smiles.split('.'))

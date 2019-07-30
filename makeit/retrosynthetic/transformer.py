@@ -3,7 +3,7 @@ from __future__ import print_function
 import makeit.global_config as gc
 import os, sys
 import makeit.utilities.io.pickle as pickle
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 
 USE_STEREOCHEMISTRY = True
 import rdkit.Chem as Chem
@@ -28,28 +28,58 @@ retro_transformer_loc = 'retro_transformer'
 
 
 class RetroTransformer(TemplateTransformer):
-    """
-    The Transformer class defines an object which can be used to perform
-    one-step retrosyntheses for a given molecule.
+    """Defines an object to perform one-step retrosyntheses for a molecule.
+
+    Attributes:
+        mincount (int): Minimum number of precedents for an achiral template for
+            inclusion in the template library. Only used when retrotransformers
+            need to be initialized.
+        mincount_chiral (int): Minimum number of precedents for a chiral
+            template for inclusion in the template library. Only used when
+            retrotransformers need to be initialized. Chiral templates are
+            necessarily more specific, so we generally use a lower threshold
+            than achiral templates.
+        templates (list): Templates to use for transformation.
+        celery (bool): Whether or not Celery is being used.
+        TEMPLATE_DB (None or MongoDB): Database to load templates from.
+        lookup_only (bool): Whether to only lookup templates in the database
+            (instead of loading the entire database).
+        precursor_prioritizers (dict): Mapping of precursor prioritizer names to
+            objects.
+        template_prioritizers (dict):Mapping of template prioritizer names to
+            objects.
+        precursor_prioritizer (None or str): Specifies which precursor
+            prioritizer to use.
+        template_prioritizer (None or str): Specifies which template prioritizer
+            to use.
+        num_templates (int): Number of templates loaded.
+        fast_filter (FastFilterScorer or None): Fast filter for evaluation.
     """
 
-    def __init__(self, celery=False, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'], 
-        mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'], 
-        TEMPLATE_DB=None):
-        """Initialize
-        
-        Keyword Arguments:
-            celery {bool} -- Whether or not Celery is being used (default: {False})
-            mincount {number} -- Minimum number of precedents for an achiral template
-                for inclusion in the template library. Only used when retrotransformers
-                need to be initialized (default: {25})
-            mincount_chiral {number} -- Minimum number of precedents for a chiral template
-                for inclusion in the template library. Only used when retrotransformers
-                need to be initialized. Chiral templates are necessarily more specific,
-                so we generally use a lower threshold than achiral templates (default: {10})
-            TEMPLATE_DB {None or MongoDB} -- Database to load templates from (default: {None})
+    def __init__(self, celery=False, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
+        mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
+        TEMPLATE_DB=None, lookup_only=False):
+        """Initializes RetroTransformer.
+
+        Args:
+            celery (bool, optional): Whether or not Celery is being used.
+                (default: {False})
+            mincount (int, optional): Minimum number of precedents for an
+                achiral template for inclusion in the template library. Only
+                used when retrotransformers need to be initialized.
+                (default: {25})
+            mincount_chiral (int, optional): Minimum number of precedents
+                for a chiral template for inclusion in the template library.
+                Only used when retrotransformers need to be initialized. Chiral
+                templates are necessarily more specific, so we generally use a
+                lower threshold than achiral templates. (default: {10})
+            TEMPLATE_DB (None or MongoDB, optional): Database to load
+                templates from. (default: {None})
+            lookup_only (bool, optional): Whether to only lookup templates in
+                the database (instead of loading the entire database).
+                (default: {False})
         """
-        
+
         self.mincount = mincount
         if mincount_chiral == -1:
             self.mincount_chiral = mincount
@@ -58,6 +88,7 @@ class RetroTransformer(TemplateTransformer):
         self.templates = []
         self.celery = celery
         self.TEMPLATE_DB = TEMPLATE_DB
+        self.lookup_only = lookup_only
         self.precursor_prioritizers = {}
         self.template_prioritizers = {}
         self.precursor_prioritizer = None
@@ -70,22 +101,24 @@ class RetroTransformer(TemplateTransformer):
         super(RetroTransformer, self).__init__()
 
     def load(self, chiral=True, refs=False, rxns=True, efgs=False, rxn_ex=False):
-        """Load templates to finish initializing the transformer
-        
-        Keyword Arguments:
-            TEMPLATE_DB {None or MongoDB} -- MongoDB to load from (default: {None})
-            chiral {bool} -- Whether to pay close attention to chirality (default: {False})
-            refs {bool} -- Whether to also save references (Reaxys instance IDs)
-                when loading templates (default: {False})
-            rxns {bool} -- Whether to actually load reaction SMARTS into RDKit
-                reaction objects (default: {True})
-            efgs {bool} -- Whether to load statistics about DFG popularity [old]
-                (default: {False})
-            rxn_ex {bool} -- Whether to also save a reaction example with
-                each template as it is loaded (default: {False})
+        """Loads templates to finish initializing the transformer.
+
+        Args:
+            TEMPLATE_DB (None or MongoDB, optional): MongoDB to load from.
+                (default: {None})
+            chiral (bool, optional): Whether to pay close attention to
+                chirality. (default: {False})
+            refs (bool, optional): Whether to also save references
+                (Reaxys instance IDs) when loading templates. (default: {False})
+            rxns (bool, optional): Whether to actually load reaction SMARTS
+                into RDKit reaction objects. (default: {True})
+            efgs (bool, optional): Whether to load statistics about DFG
+                popularity. [old] (default: {False})
+            rxn_ex (bool, optional): Whether to also save a reaction example
+                with each template as it is loaded. (default: {False})
         """
 
-        self.chiral = chiral 
+        self.chiral = chiral
 
         MyLogger.print_and_log('Loading retro-synthetic transformer, including all templates with more than {} hits ({} for chiral reactions)'.format(
             self.mincount, self.mincount_chiral), retro_transformer_loc)
@@ -107,11 +140,13 @@ class RetroTransformer(TemplateTransformer):
             )
 
         try:
-            self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
-        except IOError:
+            MyLogger.print_and_log('trying to read from db', retro_transformer_loc)
             self.load_from_database(True, chiral=chiral, rxns=True, refs=True, efgs=True, rxn_ex=True)
-            self.dump_to_file(True, file_path, chiral=chiral)
+        except errors.ServerSelectionTimeoutError:
+            MyLogger.print_and_log('reading from file', retro_transformer_loc)
             self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+            # self.dump_to_file(True, file_path, chiral=chiral)
+            # self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
         finally:
             self.reorder()
 
@@ -119,27 +154,31 @@ class RetroTransformer(TemplateTransformer):
             self.num_templates), retro_transformer_loc)
 
     def load_fast_filter(self):
-        # NOTE: Keras backend must be Theano for fast filter to work
+        """Initializes and loads FastFilterScorer.
+
+        NOTE: Keras backend must be Theano for fast filter to work.
+        """
         self.fast_filter = FastFilterScorer()
         # self.fast_filter.set_keras_backend('theano')
         self.fast_filter.load(model_path=gc.FAST_FILTER_MODEL['trained_model_path'])
 
     def get_outcomes(self, smiles, mincount, prioritizers, **kwargs):
-        """Performs a one-step retrosynthesis given a SMILES string of a
-        target molecule by applying each transformation template
-        sequentially.
-        
-        Arguments:
-            smiles {string} -- product SMILES string to find precursors for
-            mincount {int} -- Minimum template popularity
-            prioritizers {2-tuple of (string, string)} -- tuple defining the
-                precursor_prioritizer and template_prioritizer to use for 
-                expansion, each as a string
-            **kwargs -- Additional kwargs to pass through to prioritizers or to
-                handle deprecated options            
-        
+        """Performs a one-step retrosynthesis given a SMILES string.
+
+        Applies each transformation template sequentially to given target
+        molecule to perform retrosynthesis.
+
+        Args:
+            smiles (str): Product SMILES string to find precursors for.
+            mincount (int): Minimum template popularity.
+            prioritizers (2-tuple of (str, str)): Tuple defining the
+                precursor_prioritizer and template_prioritizer to use for
+                expansion, each as a string.
+            **kwargs: Additional kwargs to pass through to prioritizers or to
+                handle deprecated options.
+
         Returns:
-             RetroResult -- special object for a retrosynthetic expansion result,
+             RetroResult: Special object for a retrosynthetic expansion result,
                 defined by ./results.py
         """
         apply_fast_filter = kwargs.pop('apply_fast_filter', True)
@@ -180,14 +219,25 @@ class RetroTransformer(TemplateTransformer):
         return result
 
     def apply_one_template_by_idx(self, _id, smiles, template_idx, calculate_next_probs=True, **kwargs):
-        '''Takes a SMILES and applies the template with index template_idx. Returns
-        results including the template relevance probabilities of all resulting precursors when
-        calculate_next_probs is True
+        """Takes a SMILES and applies the template with given index.
 
-        _id just gets carrie dthrough
+        This is useful in the MCTS code.
 
-        This is useful in the MCTS code.'''
+        Args:
+            _id (int): Not used; passed through to output.
+            smiles (str): SMILES of molecule to apply template to.
+            template_idx (int): Index of template to be used.
+            calculate_next_probs (bool, optional): Whether to calculate template
+                relevance probabilities for precursors (default: {True})
+            **kwargs: Additional optional arguments.
 
+        Returns:
+            list of 5-tuples of (int, str, int, list, float): Result of
+                applying given template to the molecule including the template
+                relevance probabilities of all resulting precursors when
+                calculate_next_probs is True.
+        """
+        # QUESTION: Why are these not just optional named arguments?
         apply_fast_filter = kwargs.pop('apply_fast_filter', True)
         filter_threshold = kwargs.pop('filter_threshold', 0.75)
         template_count = kwargs.pop('template_count', 100)
@@ -233,9 +283,9 @@ class RetroTransformer(TemplateTransformer):
                         # Save to dict
                         seen_reactants[reactant_smi] = (reactant_smi, probs[:truncate_to], indeces[:truncate_to], value)
                     reactants.append(seen_reactants[reactant_smi])
-                
+
                 all_outcomes.append((_id, smiles, template_idx, reactants, filter_score))
-            
+
             else:
                 all_outcomes.append((_id, smiles, template_idx, smiles_list, filter_score))
 
@@ -245,21 +295,24 @@ class RetroTransformer(TemplateTransformer):
         return all_outcomes
 
     def apply_one_template_smilesonly(self, react_mol, smiles, template, **kwargs):
-        """Takes a mol object and applies a single template
-                
-        Arguments:
-            react_mol {rdchiralReactants} -- Initialized reactant object using
-                RDChiral helper package; is the target compound to find 
-                precursors for
-            smiles {string} -- Product SMILES (no atom mapping)
-            template {dict} -- Template to be applied, containing an initialized
-                rdchiralReaction object as its 'rxn' field
-            smiles_list_only -- boolean for whether we only care about the
-                list of reactant smiles strings
-            **kwargs -- Additional kwargs to accept deprecated options
-        
-        Returns:
-            yields results in the form of smiles_lists
+        """Takes a rdchiralReactants object and applies a single template.
+
+        Only yields SMILES of precursors.
+
+        Args:
+            react_mol (rdchiralReactants): Initialized reactant object using
+                RDChiral helper package; is the target compound to find
+                precursors for.
+            smiles (str): Product SMILES (no atom mapping).
+            template (dict): Template to be applied, containing an initialized
+                rdchiralReaction object as its 'rxn' field.
+            smiles_list_only (bool): Whether we only care about the list of
+                reactant smiles strings.
+            **kwargs: Additional kwargs to accept deprecated options.
+
+        Yields:
+            list of str: Results of applying template in the form of a list
+                of SMILES strings.
         """
         if template is not None:
             try:
@@ -287,22 +340,22 @@ class RetroTransformer(TemplateTransformer):
                 pass
 
     def apply_one_template(self, react_mol, smiles, template, **kwargs):
-        """Takes a mol object and applies a single template
-                
+        """Takes a rdchiralReactants object and applies a single template.
+
         Arguments:
-            react_mol {rdchiralReactants} -- Initialized reactant object using
-                RDChiral helper package; is the target compound to find 
-                precursors for
-            smiles {string} -- Product SMILES (no atom mapping)
-            template {dict} -- Template to be applied, containing an initialized
-                rdchiralReaction object as its 'rxn' field
-            smiles_list_only -- boolean for whether we only care about the
-                list of reactant smiles strings
-            **kwargs -- Additional kwargs to accept deprecated options
-        
+            react_mol (rdchiralReactants): Initialized reactant object using
+                RDChiral helper package; is the target compound to find
+                precursors for.
+            smiles (str): Product SMILES (no atom mapping).
+            template (dict): Template to be applied, containing an initialized
+                rdchiralReaction object as its 'rxn' field.
+            smiles_list_only (bool): Whether we only care about the list of
+                reactant smiles strings.
+            **kwargs: Additional kwargs to accept deprecated options.
+
         Returns:
-            list -- list of RetroPrecursor objects resulting from applying
-                this one template
+            list: RetroPrecursor objects resulting from applying this one
+                template.
         """
         if template is None:
             return []
@@ -365,14 +418,14 @@ class RetroTransformer(TemplateTransformer):
         return results
 
     def top_templates(self, target, **kwargs):
-        """Generator to return only top templates. 
-                
-        Arguments:
-            target {string} -- SMILES string of target product
-            **kwargs -- additional options to pass template_prioritizer
-        
+        """Generates only top templates.
+
+        Args:
+            target (str): SMILES string of target product.
+            **kwargs: Additional options to pass template_prioritizer.
+
         Yields:
-            dict -- single templates in order of decreasing priority
+            dict: Single templates in order of decreasing priority.
         """
         for template in self.template_prioritizer.get_priority((self.templates, target), **kwargs):
             if not template['chiral'] and template['count'] < self.mincount:
@@ -408,5 +461,3 @@ if __name__ == '__main__':
     #test with one template
     outcomes = t.apply_one_template_by_idx(1, 'CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1', 109659)
     print(outcomes)
-
-

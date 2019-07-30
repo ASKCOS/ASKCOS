@@ -1,13 +1,13 @@
-'''
+"""
 The role of a treebuilder coordinator is to take a target compound
 and build up the retrosynthetic tree by sending individual chemicals
 to workers, which each apply the full set of templates. The coordinator
 will keep track of the dictionary and ensure unique IDs in addition
 to keeping track of the chemical prices using the Pricer module.
 
-The coordinator, finally, returns a set of buyable trees obtained 
+The coordinator, finally, returns a set of buyable trees obtained
 from an IDDFS.
-'''
+"""
 
 from __future__ import absolute_import, unicode_literals, print_function
 from django.conf import settings
@@ -62,20 +62,68 @@ def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritiz
                       min_chemical_history_dict={
                           'as_reactant': 1e9, 'as_product': 1e9, 'logic': None},
                       apply_fast_filter=False, filter_threshold=0.8):
-    '''Get a set of buyable trees for a target compound.
-
-    mincount = minimum template popularity
-    max_branching = maximum number of precursor sets to return, prioritized
-        using heuristic chemical scoring function
-    max_depth = maximum depth to build the tree out to
-    max_ppg = maximum price to consider something buyable
-    max_time = time for expansion
-    reporting_freq = interval (s) for reporting status
-    known_bad_reactions = list of reactant smiles for reactions which we
-         already know not to work, so we shouldn't propose them
+    """Get a set of buyable trees for a target compound.
 
     This function updates its state to provide information about the current
-    status of the expansion. Search "on_message task progress" for examples'''
+    status of the expansion. Search "on_message task progress" for examples.
+
+    Args:
+    smiles (str): SMILES string of the target molecule.
+    template_prioritization (str): Keyword for which prioritization method for
+        the templates should be used. Keywords can be found in global_config.
+    precursor_prioritizer (str): Keyword for which prioritization method for the
+        precursors should be used. Keywords can be found in global_config.
+    mincount (int, optional): Minimum template popularity. (default: {0})
+    max_branching (int, optional): Maximum number of precursor sets to return,
+        prioritized using heuristic chemical scoring function. (default: {20})
+    max_depth (int, optional): Maximum depth to build the tree out to.
+        (default: {3})
+    max_ppg (float, optional): Maximum price to consider something buyable.
+        (default: {1e8})
+    max_time (int, optional): Time (in seconds) for expansion. (default: {60})
+    max_trees (int, optional): Maximum number of buyable trees to return. Does
+        not affect expansion time. (default: {25})
+    reporting_freq (int, optional): Interval (in seconds) for reporting status.
+        (default: {5})
+    known_bad_reactions (list, optional): Reactant smiles for reactions which we
+         already know not to work, so we shouldn't propose them. (default: {[]})
+    return_d1_if_no_trees (bool, optional): Unused (default: {False})
+    chiral (bool, optional): Whether or not to pay close attention to chirality.
+        When False, even achiral templates can lead to accidental inversion of
+        chirality in non-reacting parts of the molecule. It is highly
+        recommended to keep this as True. (default: {True})
+    template_count (int, optional): Maximum number of templates to apply at each
+        expansion. (default: {1e9})
+    forbidden_molecules (list, optional): Molecules to forbid during expansion,
+        represented as a list of SMILES strings. Each string must be
+        canonicalized without atom mapping. Forbidden molecules will not be
+        allowed as intermediates or leaf nodes. (default: {[]})
+    precursor_score_mode (str, optional): Mode to use for precursor scoring when
+        using the SCScore prioritizer and multiple reactant fragments must be
+        scored together. (default: {gc.max})
+    max_cum_template_prob (float, optional): Maximum cumulative template
+        probability (i.e., relevance score), used as part of the relevance
+        template_prioritizer. (default: {1})
+    max_natom_dict (defaultdict, optional): Dictionary defining a potential
+        chemical property stopping criterion based on the number of atoms of
+        C, N, O, and H in a molecule. The 'logic' keyword of the dict refers to
+        how that maximum number of atom information is combined with the
+        requirement that chemicals be cheaper than max_ppg.
+        (default: {defaultdict(lambda: 1e9, {'logic': None})})
+    min_chemical_history_dict (dict, optional): Dictionary defining a potential
+        chemical stopping criterion based on the number of times a molecule has
+        been seen previously. Always uses logical OR.
+        (default: {{'as_reactant':1e9, 'as_product':1e9,'logic':None}})
+    apply_fast_filter (bool, optional): Whether to apply the fast filter.
+        (default: {False})
+    filter_threshold (float, optional): Threshold to use for the fast filter.
+        (default: {0.8})
+
+    Returns:
+        tree_status ((int, int, dict)): Result of tree_status().
+        trees (list of dict): List of dictionaries, where each dictionary
+            defines a synthetic route.
+    """
 
     print('Treebuilder coordinator was asked to expand {}'.format(smiles))
     print('Treebuilder coordinator: mincount {}, max_depth {}, max_branching {}, max_ppg {}, max_time {}, max_trees {}'.format(
@@ -94,14 +142,17 @@ def get_buyable_paths(self, smiles, template_prioritization, precursor_prioritiz
 
 @shared_task
 def get_template_options():
+    """Returns the available options for template prioritizers."""
     return [gc.popularity, gc.relevance, gc.natural]
 
 
 @shared_task
 def get_precursor_options():
+    """Returns the available options for precursor prioritizers."""
     return [gc.heuristic, gc.scscore, gc.natural]
 
 
 @shared_task
 def get_precursor_score_options():
+    """Returns the available options for precursor scoring modes."""
     retunr[gc.max, gc.mean, gc.geometric, gc.pow8]
