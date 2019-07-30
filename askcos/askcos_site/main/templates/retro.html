@@ -156,7 +156,7 @@ function liberalSettings() {
                 {% if not forloop.last %} + {% endif %}{% endfor %}
                 <a href="{% url 'context_rxnsmiles_target2' precursor.smiles target.smiles %}">&rarr; ?</a>
                 <br>
-                <a><img src="" data-async-load="{% url 'draw_smiles' precursor.smiles %}" alt="{{ precursor.smiles }}" onclick="toggle_visibility('expand{{ precursor.rank }}');"></a>
+                <a><img src="" data-async-load="{% url 'draw_highlight' smiles=precursor.mapped_smiles reacting_atoms=precursor.reacting_atoms bonds='false' %}" alt="{{ precursor.smiles }}" onclick="toggle_visibility('expand{{ precursor.rank }}');"></a>
                 
                 <div id='expand{{ precursor.rank }}' style='display:none'>  
                     {% if precursor.tforms %}
