@@ -104,6 +104,51 @@ transform: translate(-50%, -50%) !important;
   visibility: visible;
 }
 
+.ul-card {
+  list-style: none;
+  border: none;
+  padding: 0;
+}
+
+.card-list-alternating li:nth-child(odd){
+    /*box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    transition: 0.3s;
+    border-radius: 5px;
+    margin: 5px;
+    padding: 5px;
+    border: 1px solid lightgray;*/
+    background: white;
+}
+
+.card-list-alternating li:nth-child(even){
+    /*box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    transition: 0.3s;
+    border-radius: 5px;
+    margin: 5px;
+    padding: 5px;
+    border: 1px solid lightgray;*/
+    background: GhostWhite;
+}
+
+.card-first {
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    transition: 0.3s;
+    border-radius: 5px; /* 5px rounded corners */
+    margin: 5px;
+    padding: 5px;
+    border: 1px solid lightgray;
+}
+
+.card-rest {
+    width: 90%;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    transition: 0.3s;
+    border-radius: 5px; /* 5px rounded corners */
+    margin: 5px auto;
+    padding: 5px;
+    border: 1px solid lightgray;
+}
+
 .grid-wrapper {
   display: grid;
   grid-template-rows: auto;

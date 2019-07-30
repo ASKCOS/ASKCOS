@@ -414,53 +414,113 @@
                 </div>
             </div>
         </template>
-        <template v-for="res in results[selected.smiles]">
-            <div v-show="!allowCluster || res.show" class="card">
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-xs-6">
-                            <img v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" style="max-width: 100%"/>
+        <template v-if="allowCluster">
+        <ul class="card-list-alternating ul-card">
+            <template v-for="cluster in clusteredResults[selected.smiles]">
+                <li>
+                    <template v-for="(res, index) in cluster">
+                        <template v-if="res.show || index==0">
+                            <div v-bind:class="{'card-first': index==0, 'card-rest': index!=0}">
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <div class="col-xs-6">
+                                        <img v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" style="max-width: 100%"/>
+                                    </div>
+                                    <div class="col-xs-6">
+                                        <table class="table table-condensed table-bordered">
+                                            <tbody>
+                                                <tr>
+                                                    <td>Rank</td>
+                                                    <td>#%% res.rank %%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Score</td>
+                                                    <td>%% res.score.toFixed(3) %%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td># Examples</td>
+                                                    <td>%% res.num_examples %%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Template score</td>
+                                                    <td>%% res.template_score.toFixed(3) %%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Plausibility</td>
+                                                    <td>%% res.plausibility.toFixed(3) %%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Reaction cluster</td>
+                                                    <td>%% res.group_id %%</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-12 mx-auto">
+                                        <button v-show="!res.inViz" class="addRes btn btn-success" :data-rank="res.rank" @click="addFromResults(selected, res)"><i class="fas fa-plus"></i></button>
+                                        <button v-show="res.inViz" class="remRes btn btn-danger" :data-rank="res.rank" @click="remFromResults(selected, res)"><i class="fas fa-minus"></i></button>
+                                        <button class="btn btn-danger" :data-rank="res.rank" @click="openClusterPopoutModal(selected, res)"><i class="fa fa-th-large"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </template>
+                    </template>
+                </li>
+            </template>
+        </ul>
+        </template>
+        <template v-else>
+            <template v-for="res in results[selected.smiles]">
+                <div class="card">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-xs-6">
+                                <img v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" style="max-width: 100%"/>
+                            </div>
+                            <div class="col-xs-6">
+                                <table class="table table-condensed table-bordered">
+                                    <tbody>
+                                        <tr>
+                                            <td>Rank</td>
+                                            <td>#%% res.rank %%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Score</td>
+                                            <td>%% res.score.toFixed(3) %%</td>
+                                        </tr>
+                                        <tr>
+                                            <td># Examples</td>
+                                            <td>%% res.num_examples %%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Template score</td>
+                                            <td>%% res.template_score.toFixed(3) %%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Plausibility</td>
+                                            <td>%% res.plausibility.toFixed(3) %%</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Reaction cluster</td>
+                                            <td>%% res.group_id %%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div class="col-xs-6">
-                            <table class="table table-condensed table-bordered">
-                                <tbody>
-                                    <tr>
-                                        <td>Rank</td>
-                                        <td>#%% res.rank %%</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Score</td>
-                                        <td>%% res.score.toFixed(3) %%</td>
-                                    </tr>
-                                    <tr>
-                                        <td># Examples</td>
-                                        <td>%% res.num_examples %%</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Template score</td>
-                                        <td>%% res.template_score.toFixed(3) %%</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Plausibility</td>
-                                        <td>%% res.plausibility.toFixed(3) %%</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Reaction cluster</td>
-                                        <td>%% res.group_id %%</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-xs-12 mx-auto">
-                            <button v-show="!res.inViz" class="addRes btn btn-success" :data-rank="res.rank" @click="addFromResults(selected, res)"><i class="fas fa-plus"></i></button>
-                            <button v-show="res.inViz" class="remRes btn btn-danger" :data-rank="res.rank" @click="remFromResults(selected, res)"><i class="fas fa-minus"></i></button>
-                            <button class="btn btn-danger" :data-rank="res.rank" @click="openClusterPopoutModal(selected, res)"><i class="fa fa-th-large"></i></button>
+                        <div class="row">
+                            <div class="col-xs-12 mx-auto">
+                                <button v-show="!res.inViz" class="addRes btn btn-success" :data-rank="res.rank" @click="addFromResults(selected, res)"><i class="fas fa-plus"></i></button>
+                                <button v-show="res.inViz" class="remRes btn btn-danger" :data-rank="res.rank" @click="remFromResults(selected, res)"><i class="fas fa-minus"></i></button>
+                                <button class="btn btn-danger" :data-rank="res.rank" @click="openClusterPopoutModal(selected, res)"><i class="fa fa-th-large"></i></button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </template>
         </template>
     </div>
 </div>
