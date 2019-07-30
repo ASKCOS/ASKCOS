@@ -58,9 +58,13 @@ def draw_smiles(request, smiles):
     '''
     Returns a png response for a target smiles
     '''
-    from makeit.utilities.io.draw import MolsSmilesToImage
-    response = HttpResponse(content_type='image/jpeg')
-    MolsSmilesToImage(str(smiles)).save(response, 'png', quality=70)
+    from makeit.utilities.io.draw import MolsSmilesToImage, MakeBackgroundTransparent
+    isTransparent = request.GET.get('transparent', 'False')
+    response = HttpResponse(content_type='image/png')
+    if isTransparent.lower() in ['true', 't', 'yes', 'y', '1']:
+        MakeBackgroundTransparent(MolsSmilesToImage(str(smiles))).save(response, 'png', quality=70)
+    else:
+        MolsSmilesToImage(str(smiles)).save(response, 'png', quality=70)
     return response
 
 
