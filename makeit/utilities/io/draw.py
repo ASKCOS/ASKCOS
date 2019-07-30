@@ -121,6 +121,25 @@ def StripAlphaFromImage(img):
     return Image.merge('RGB', img.split()[:3])
 
 
+def MakeBackgroundTransparent(img):
+    """Returns an RGBA image from an RGBA PIL image.
+
+    Args:
+        img (PIL.Image): RGBA/RGB image to alpha channel.
+    """
+    img = img.convert("RGBA")
+    data = img.getdata()
+
+    newData = []
+    for item in data:
+        if item[0] == 255 and item[1] == 255 and item[2] == 255:
+            newData.append((255, 255, 255, 0))
+        else:
+            newData.append(item)
+    img.putdata(newData)
+    return img
+
+
 def MolToImage(mol, max_size=(1000, 1000), kekulize=True, options=None,
                canvas=None, **kwargs):
     """Wrapper for RDKit's ``MolToImage``.
