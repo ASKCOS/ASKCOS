@@ -10,3 +10,4 @@ from .users import *
 from .context import *
 from .score import *
 from .status import *
+from .results import *

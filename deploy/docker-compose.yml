@@ -1,4 +1,4 @@
-version: '2'
+version: '2.2'
 services:
   nginx:
     image: nginx:latest
@@ -7,13 +7,44 @@ services:
     volumes:
       - './nginx.conf:/etc/nginx/nginx.conf'
       - './uwsgi_params:/etc/nginx/uwsgi_params'
+      - './askcos.ssl.cert:/etc/ssl/certs/askcos.ssl.cert'
+      - './askcos.ssl.key:/etc/ssl/private/askcos.ssl.key'
       - 'staticdata:/static'
+      - 'docdata:/documentation'
     ports:
       - '80:80'
+      - '443:443'
+
+  mysql:
+    image: mysql:5.7
+    hostname: mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: askcos_db
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - 'mysql_data:/var/lib/mysql'
+    expose:
+      - '3306'
+
+  mongo:
+    image: mongo
+    hostname: mongo
+    restart: always
+    env_file:
+      - .env
+
+  mongoseed:
+    build: ./mongo
+    env_file:
+      - .env
+    depends_on:
+      - mongo
 
   app:
-    image: askcos
+    image: mefortunato/askcos:0.4.0
     hostname: app
+    restart: always
     env_file:
       - .env
       - customization
@@ -22,87 +53,118 @@ services:
       - '8000'
     volumes:
       - 'staticdata:/usr/local/ASKCOS/askcos/askcos_site/static'
+      - 'docdata:/usr/local/ASKCOS/docs/_build/html'
     depends_on:
       - redis
       - rabbit
+      - mysql
+      - mongo
 
   te_coordinator:
-    image: askcos
+    image: mefortunato/askcos:0.4.0
+    restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q te_coordinator -n te_coordinator@${HOSTNAME}"
+    command: bash -c "celery -A askcos_site worker -c 2 -Q te_coordinator -n te_coordinator@%h"
     depends_on:
       - redis
       - rabbit
 
   sc_coordinator:
-    image: askcos
+    image: mefortunato/askcos:0.4.0
+    restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q sc_coordinator -n sc_coordinator@${HOSTNAME}"
+    command: bash -c "celery -A askcos_site worker -c 2 -Q sc_coordinator -n sc_coordinator@%h"
     depends_on:
       - redis
       - rabbit
+      - mysql
+      - mongo
 
   ft_worker:
-    image: askcos
+    image: mefortunato/askcos:0.4.0
+    restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q ft_worker -n ft_worker@${HOSTNAME}"
+    command: bash -c "celery -A askcos_site worker -c 2 -Q ft_worker -n ft_worker@%h"
     depends_on:
       - redis
       - rabbit
+      - mysql
+      - mongo
 
   cr_coordinator:
-    image: askcos
+    image: mefortunato/askcos:0.4.0
+    restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q cr_coordinator -n cr_coordinator@${HOSTNAME}"
+    command: bash -c "celery -A askcos_site worker -c 2 -Q cr_coordinator -n cr_coordinator@%h"
     depends_on:
       - redis
       - rabbit
+      - mysql
+      - mongo
 
   cr_network_worker:
-    image: askcos
+    image: mefortunato/askcos:0.4.0
+    restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q cr_network_worker -n cr_network_worker@${HOSTNAME}"
+    command: bash -c "celery -A askcos_site worker -c 2 -Q cr_network_worker -n cr_network_worker@%h"
     depends_on:
       - redis
       - rabbit
+      - mysql
+      - mongo
 
   tb_coordinator_mcts:
-    image: askcos
+    image: mefortunato/askcos:0.4.0
+    restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q tb_coordinator_mcts -n tb_coordinator_mcts@${HOSTNAME}"
+    command: bash -c "celery -A askcos_site worker -c 2 -Q tb_coordinator_mcts -n tb_coordinator_mcts@%h"
     depends_on:
       - redis
       - rabbit
+      - mysql
+      - mongo
 
   tb_c_worker:
-    image: askcos
+    image: mefortunato/askcos:0.4.0
+    restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 10 -Q tb_c_worker -n tb_c_worker@${HOSTNAME}"
+    command: bash -c "celery -A askcos_site worker -c 10 -Q tb_c_worker -n tb_c_worker@%h"
     depends_on:
       - redis
       - rabbit
+      - mysql
+      - mongo
 
   redis:
     image: redis
     hostname: redis
+    env_file:
+      - .env
+    restart: always
     expose:
-      - '6379'
+      - '${REDIS_PORT}'
     volumes:
       - 'redisdata:/data'
+    command: redis-server --port ${REDIS_PORT}
 
   rabbit:
     image: rabbitmq
     hostname: rabbit
+    env_file:
+      - .env
+    restart: always
     expose:
-      - '5672'
+      - '${RABBITMQ_NODE_PORT}'
 
 volumes:
   redisdata:
+  mysql_data:
   staticdata:
+  docdata:

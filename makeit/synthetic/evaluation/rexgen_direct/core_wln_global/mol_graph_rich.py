@@ -147,7 +147,8 @@ atom_fdim = len(atom_features(atom))
 bond_fdim = len(bond_features(bond))
 
 if __name__ == "__main__":
-    np.set_printoptions(threshold='nan')
+    import sys
+    np.set_printoptions(threshold=sys.maxsize)
     a,b,c,d,e,f = smiles2graph_list(["c1cccnc1",'c1nccc2n1ccc2'])
     print(a)
     print(b)
