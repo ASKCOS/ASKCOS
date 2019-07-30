@@ -32,10 +32,9 @@ function addReactions(reactions, sourceNode, nodes, edges, reactionLimit) {
         if (added >= reactionLimit) {
             break;
         }
-        if (!app.allowCluster || r.show) {
-            addReaction(r, sourceNode, nodes, edges)
-            added += 1
-        }
+        addReaction(r, sourceNode, nodes, edges)
+        r.show = true
+        added += 1
     }
 }
 
@@ -392,7 +391,7 @@ var app = new Vue({
                             network.on('selectNode', this.showInfo);
                             network.on('deselectNode', this.clearSelection);
                             this.$set(this.results, this.target, json['precursors']);
-                            this.initClusterShowCard(this.target);
+                            this.initClusterShowCard(this.target); // must be called immediately after adding results
                             addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit);
                             this.getTemplateNumExamples(json['precursors']);
                             hideLoader();
@@ -488,7 +487,7 @@ var app = new Vue({
                     if (reactions.length==0) {
                         alert('No precursors found!')
                     }
-                    this.initClusterShowCard(smi);
+                    this.initClusterShowCard(smi); // must be called immediately after adding results
                     addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit);
                     this.getTemplateNumExamples(reactions);
                     this.selected = node;
@@ -925,7 +924,7 @@ var app = new Vue({
         initClusterShowCard: function(selected) {
             var visited_groups = new Set();
             for (precursor of this.results[selected]) {
-                if (precursor.group_id in visited_groups) {
+                if (visited_groups.has(precursor.group_id)) {
                     this.$set(precursor, 'show', false);
                 } else {
                     this.$set(precursor, 'show', true);
