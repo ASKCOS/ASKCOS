@@ -5,13 +5,23 @@ from makeit.utilities.io.logger import MyLogger
 parsing_loc = 'parsing'
 
 def canonicalize_smiles(smiles):
+    """Returns canonicalized SMILES string.
+
+    Args:
+        smiles (str): SMILES string to canonicalize.
+    """
     #rdkit defaults canonicalize to true
     return Chem.MolToSmiles(Chem.MolFromSmiles(smiles))
 
 def parse_molecule_to_smiles(target):
-    '''
-    Parse a molecular type (smiles, rdkit mol or mol file) into smiles format)
-    '''
+    """Parses a molecular type (smiles, rdkit mol or mol file) to smiles format).
+
+    Args:
+        target (str or Chem.Mol): SMILES string, filename, or Chem.Mol to parse.
+
+    Returns:
+        str or None: SMILES string of target, or None if parsing fails.
+    """
     try:
         mol = Chem.MolFromSmiles(target)
         if mol:
@@ -31,6 +41,12 @@ def parse_molecule_to_smiles(target):
                 MyLogger.print_and_log('Unable to parse target molecule format. Parsing Only available for: Smiles, RDKIT molecule and mol files. Returning "None"', parsing_loc, level = 1)
     return None
 def check_smiles(chemical, chemicals):
+    """Checks recorded SMILES for a chemical against the SMILES from its name.
+
+    Args:
+        chemical (pymongo.collection): Chemical to check the SMILES of.
+        chemicals (pymongo.collection): Database of recorded chemicals.
+    """
     is_checked = False
     try:
         is_checked = chemical['checked']
@@ -45,8 +61,8 @@ def check_smiles(chemical, chemicals):
         trivial_name = chemical['IDE_CN']
     except KeyError:
         return
-    smiles_from_name = None    
-    
+    smiles_from_name = None
+
     #Short cut on not fully interpreted chemicals
     if trivial_name[0]=='<':
         #don't bother, skips anyway: is faster.
@@ -57,16 +73,16 @@ def check_smiles(chemical, chemicals):
     try:
         smiles_from_name = urllib2.urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(trivial_name)).read()
     except Exception as e:
-        pass 
+        pass
 
-    try:   
+    try:
         recorded_can_smiles = Chem.MolToSmiles(Chem.MolFromSmiles(recorded_smiles))
         can_smiles_from_name = Chem.MolToSmiles(Chem.MolFromSmiles(smiles_from_name))
     except Exception as e:
         #don't bother, skips anyway: is faster.
         #chemicals.update({'_id':chemical['_id']},{'$set':{'checked':True}})
         return
-    
+
     if(recorded_can_smiles != can_smiles_from_name):
         print('Chemical "{}" with reaxys id {}:'.format(trivial_name.replace('%20',' '), chemical['_id']))
         print('Recorded smiles: {}'.format(recorded_can_smiles))
@@ -84,7 +100,7 @@ def check_smiles(chemical, chemicals):
                 while not change:
                     change = raw_input('Do you want to manually enter a smiles string? (Y)es or (N)o\t')
                     if change == 'y' or change == 'Y':
-                        new_smiles = raw_input('Pleas type the desired smiles:\t')
+                        new_smiles = raw_input('Please type the desired smiles:\t')
                         chemicals.update({'_id':chemical['_id']},{'$set':{'SMILES_new':new_smiles, 'checked':True}})
                         print('Smiles have been changed to: {}'.format(new_smiles))
                     elif change == 'n' or change == 'N':
@@ -93,30 +109,38 @@ def check_smiles(chemical, chemicals):
                     else:
                         print('Please answer with one of the given options.')
                         change = None
-                        
+
             else:
                 print('Please answer with one of the given options.')
-                ans = None       
+                ans = None
     chemicals.update({'_id':chemical['_id']},{'$set':{'checked':True}})
 
 def parse_list_to_smiles(mol_list):
-    '''
-    Parse a format of reactants (list of smiles, rdkit mol or mol files; or single smiles, rdkit mol or mol file)
-    into single smiles format.
-    '''
+    """Parses reactants into SMILES string.
+
+    Format of reactants: list of smiles, rdkit mol, or mol files; or
+    single smiles, rdkit mol, or mol file.
+
+    Args:
+        mol_list (str, Chem.Mol, or list of str or Chem.Mol): Reactants to be
+            parsed into SMILES strings.
+
+    Returns:
+        str or None: SMILES string of reactants or None if parsing fails.
+    """
     isList = False
     if mol_list.__class__.__name__ == 'list':
         isList = True
-    
+
     smiles = ''
     if isList:
         for mol in mol_list:
+            # QUESTION: Won't this raise an exception if mol cannot be parsed?
             if smiles:
                 smiles += '.' + parse_molecule_to_smiles(mol)
             else:
                 smiles += parse_molecule_to_smiles(mol)
     else:
         smiles = parse_molecule_to_smiles(mol_list)
-    
+
     return smiles
-    
