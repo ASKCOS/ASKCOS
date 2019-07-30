@@ -100,8 +100,6 @@ class RetroPrecursor:
 
 <<<<<<< makeit/retrosynthetic/results.py
     def __init__(self, smiles_list=[], mapped_smiles =[], reacting_atoms=[], template_id=-1, template_score=1, num_examples=0, necessary_reagent='', plausibility=1.0):
-=======
-    def __init__(self, smiles_list=[], template_id=-1, template_score=1, num_examples=0, necessary_reagent='', plausibility=1.0):
         """Initializes RetroPrecursor.
 
         Args:
