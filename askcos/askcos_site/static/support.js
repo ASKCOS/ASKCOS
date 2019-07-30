@@ -7,7 +7,7 @@ function hidePopup() {
 }
 
 function submitSupport() {
-  var mailtoString = "mailto:mlpds_support@mit.edu"
+  var mailtoString = "mailto:incoming+mlpds-mit-askcos-askcos-12564933-issue-@incoming.gitlab.com, mlpds_support@mit.edu"
   mailtoString += "?subject="+document.querySelector('#support-module').value
   mailtoString += "|"+document.querySelector('#support-category').value
   if (document.querySelector('#support-shared').checked) {
@@ -18,7 +18,7 @@ function submitSupport() {
   }
   mailtoString += "| "+document.querySelector('#support-subject').value
   mailtoString += "&body=Please add your comments here. Please don't modify the beginning of the subject line; we use this for internal purposes"
-  window.location = mailtoString;
+  window.open(mailtoString, '_blank')
 }
 
 document.querySelector('#support-anchor').onclick = showPopup;

@@ -51,7 +51,7 @@ def xrn_lst_to_name_lst(xrn_lst):
 
 def resolve_smiles(smiles):
     mol = Chem.MolFromSmiles(smiles)
-    allow_resolve = os.environ.get('ALLOW_SMILES_RESOLVER') == 'True'
+    allow_resolve = os.environ.get('ALLOW_SMILES_RESOLVER') in ['True', 'true', 'TRUE', 1, '1', 'yes', 'Yes']
     if not allow_resolve and not mol:
         return None
     if not mol:
@@ -59,7 +59,7 @@ def resolve_smiles(smiles):
         new_smiles = []
         for smiles in smiles.split(' and '):
             try:
-                smiles = urlopen('https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(smiles)).read()
+                smiles = urlopen('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{}/property/IsomericSMILES/txt'.format(smiles)).read()
             except HTTPError:
                 return None
             mol = Chem.MolFromSmiles(smiles)

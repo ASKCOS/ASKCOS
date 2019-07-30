@@ -12,7 +12,7 @@ def index(request, err=None):
 def modules(request, err=None):
     '''list of modules
     '''
-    
+
     return render(request, 'modules.html', {'err': err})
 
 #@login_required

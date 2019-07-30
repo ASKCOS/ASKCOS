@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+
+{% block title %}Tree Builder Graph Visualization{% endblock %}
+
+{% block extrahead %}
+<script src="{% static 'js/browser-compat.js' %}"></script>
+<script src="{% static 'js/vue.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/loader.css' %}" type="text/css">
+<link rel="stylesheet" href="{% static 'css/fontawesome.min.css' %}" type="text/css">
+<link rel="stylesheet" href="{% static 'css/vis.min.css' %}" type="text/css">
+<script src="{% static 'js/vis.min.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/tree-graph.css' %}" type="text/css">
+{% endblock %}
+
+{% block page_title %}Tree Builder Graph Visualization{% endblock %}
+
+{% block page_body %}
+
+<div id="app" data-id="{{ id }}" class="container-fluid">
+  <div class="row">
+    <div id="settings" class="col-md-12"></div>
+  </div>
+  <div class="row">
+    <div id="left-pane" class="col-md-6" style="border-right: solid 1px #eee"></div>
+    <div id="right-pane" class="col-md-6 text-center" style="position: sticky; top: 75px">
+      <template v-if="selected">
+          <template v-if="selected.type=='chemical'">
+            <div class="text-center">
+              <div><b>Smiles: </b>%% selected.smiles %%</div>
+              <div><b>Price ($/g): </b>%% selected.ppg %%</div>
+              <div style="margin-bottom: 10px">
+                  <img v-bind:src="selected.image" style="max-width: 100%"/>
+              </div>
+              <div><b>As reactant: </b>%% selected.as_reactant %%</div>
+              <div><b>As product: </b>%% selected.as_product %%</div>
+              <div><a :href="'/retro_interactive_mcts/target='+encodeURIComponent(selected.smiles)" target="_blank">Synthesize this with new tree builder job</a></div>
+            </div>
+          </template>
+          <template v-if="selected.type=='reaction'">
+              <div class="text-center">
+                  <div><b>Smiles: </b>%% selected.smiles %%</div>
+                  <div style="margin-bottom: 10px">
+                      <img :src="'/draw/reaction/'+encodeURIComponent(selected.smiles)" style="max-width: 100%" />
+                  </div>
+                  <div><b>Supporting templates:</b>
+                    <ul>
+                        <li v-for="id in selected.tforms">
+                            <a v-bind:href="'/template/target='+id" target="_blank">%% id %%</a>
+                        </li>
+                    </ul>
+                </div>
+                  <div><a :href="'/context/smiles='+encodeURIComponent(selected.smiles)" target="_blank">Evaluate reaction</a></div>
+                </div>
+          </template>
+      </template>
+      <template v-else>
+          Click on a chemical or reaction on the left to view more details.
+      </template>
+    </div>
+  </div>
+  <button class="btn btn-danger blacklist" @click="blacklist">Blacklist</button>
+</div>
+<div class="loader"></div>
+
+<script src="{% static 'js/tree-graph.js' %}"></script>
+
+{% endblock %}
