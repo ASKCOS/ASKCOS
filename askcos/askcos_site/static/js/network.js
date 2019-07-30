@@ -22,20 +22,6 @@ function hideLoader() {
     loader.style.display = "none";
 }
 
-function groupPrecursors(precursors) {
-    var grouped = {}
-    for (precursor of precursors) {
-        if (grouped[precursor.group_id]) {
-            precursor.show = false
-            grouped[precursor.group_id].push(precursor)
-        }
-        else {
-            grouped[precursor.group_id] = new Array(precursor)
-        }
-    }
-    return grouped
-}
-
 function addReactions(reactions, sourceNode, nodes, edges, reactionLimit) {
     var reactionSorting = "retroscore";
     reactions.sort(function(a, b) {
@@ -405,7 +391,8 @@ var app = new Vue({
                             initializeNetwork(this.data);
                             network.on('selectNode', this.showInfo);
                             network.on('deselectNode', this.clearSelection);
-                            this.results[this.target] = json['precursors'];
+                            this.$set(this.results, this.target, json['precursors']);
+                            this.initClusterShowCard(this.target);
                             addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit);
                             this.getTemplateNumExamples(json['precursors']);
                             hideLoader();
@@ -497,10 +484,11 @@ var app = new Vue({
                 .then(resp => resp.json())
                 .then(json => {
                     var reactions = json['precursors'];
-                    this.results[smi] = reactions;
+                    this.$set(this.results, smi, reactions);
                     if (reactions.length==0) {
                         alert('No precursors found!')
                     }
+                    this.initClusterShowCard(smi);
                     addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit);
                     this.getTemplateNumExamples(reactions);
                     this.selected = node;
@@ -933,6 +921,29 @@ var app = new Vue({
             }
             tour.init();
             tour.restart();
+        },
+        initClusterShowCard: function(selected) {
+            var visited_groups = new Set();
+            for (precursor of this.results[selected]) {
+                if (precursor.group_id in visited_groups) {
+                    this.$set(precursor, 'show', false);
+                } else {
+                    this.$set(precursor, 'show', true);
+                    visited_groups.add(precursor.group_id);
+                }
+            }
+        },
+        groupPrecursors: function(precursors) {
+            var grouped = {}
+            for (precursor of precursors) {
+                if (grouped[precursor.group_id]) {
+                    grouped[precursor.group_id].push(precursor)
+                }
+                else {
+                    grouped[precursor.group_id] = new Array(precursor)
+                }
+            }
+            return grouped
         }
     },
     computed: {
@@ -941,7 +952,7 @@ var app = new Vue({
             var res = {};
             var x;
             for (x in this.results) {
-                res[x] = groupPrecursors(this.results[x]);
+                res[x] = this.groupPrecursors(this.results[x]);
             }
             return res;
         },
