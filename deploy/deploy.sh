@@ -42,6 +42,7 @@ echo "##########################"
 echo "starting database services"
 echo "##########################"
 docker-compose up -d mysql mongo redis rabbit
+sleep 1
 
 if [ "$SKIP_SEED" = false ]; then
   echo ""
