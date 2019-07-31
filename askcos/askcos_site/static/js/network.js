@@ -732,7 +732,7 @@ var app = new Vue({
             }
         },
         openClusterPopoutModal: function(selected, res) {
-            if(selected == null) {
+            if(selected == undefined) {
                 alert('No target molecule selected. Please select a molecule in the tree.')
                 return
             }
@@ -743,15 +743,21 @@ var app = new Vue({
                 network.unselectAll();
             }
             */
-            this.clusterPopoutModalData = {}
-            this.clusterPopoutModalData['selected'] = selected
-            this.clusterPopoutModalData['selectedSmiles'] = selected.smiles
-            this.clusterPopoutModalData['res'] = res
-            this.clusterPopoutModalData['group_id'] = res.group_id
-            this.showClusterPopoutModal = true
+            this.$set(this.clusterPopoutModalData, 'selected', selected);
+            this.$set(this.clusterPopoutModalData, 'selectedSmiles', selected.smiles);
+            this.$set(this.clusterPopoutModalData, 'res', res);
+            this.$set(this.clusterPopoutModalData, 'group_id', res.group_id);
+            this.showClusterPopoutModal = true;
+        },
+        closeClusterPopoutModal: function() {
+            this.showClusterPopoutModal = false;
+            this.clusterPopoutModalData['selected'] = undefined;
+            this.clusterPopoutModalData['selectedSmiles'] = undefined;
+            this.clusterPopoutModalData['res'] = undefined;
+            this.clusterPopoutModalData['group_id'] = undefined;
         },
         openClusterEditModal: function(selected, group_id) {
-            if(selected == null) {
+            if(selected == undefined) {
                 alert('No target molecule selected. Please select a molecule in the tree.')
                 return
             }
@@ -765,14 +771,16 @@ var app = new Vue({
             if(group_id == undefined) {
                 group_id = 0
             }
-            this.clusterEditModalData['selected'] = selected
-            this.clusterEditModalData['selectedSmiles'] = selected.smiles
-            this.clusterEditModalData['group_id'] = group_id
-            this.showClusterEditModal = true
+            this.$set(this.clusterEditModalData, 'selected', selected);
+            this.$set(this.clusterEditModalData, 'selectedSmiles', selected.smiles);
+            this.$set(this.clusterEditModalData, 'group_id', group_id);
+            this.showClusterEditModal = true;
         },
         closeClusterEditModal: function() {
             this.showClusterEditModal = false;
-            this.clusterEditModalData = {};
+            this.clusterEditModalData['selected'] = undefined;
+            this.clusterEditModalData['selectedSmiles'] = undefined;
+            this.clusterEditModalData['group_id'] = undefined;
         },
         clusteredit_dragstart_handler: function(precursor, event) {
             event.target.style.opacity = '0.4';
@@ -977,7 +985,14 @@ var app = new Vue({
             }
         },
         isModalOpen: function() {
-            return app.showSettingsModal || app.showDownloadModal || app.showLoadModal || app.showClusterPopoutModal || app.showClusterEditModal || app.showAddNewPrecursorModal
+            var res = false;
+            res = res || this.showSettingsModal;
+            res = res || this.showDownloadModal;
+            res = res || this.showLoadModal;
+            res = res || this.showClusterPopoutModal;
+            res = res || this.showClusterEditModal;
+            res = res || this.showAddNewPrecursorModal;
+            return res;
         },
         startTour: function() {
             if (this.target) {

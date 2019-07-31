@@ -188,7 +188,7 @@
     </div>
 </modal>
 
-<modal v-if="showClusterPopoutModal" @close="showClusterPopoutModal = false; clusterPopoutModalData = {};">
+<modal v-if="showClusterPopoutModal" @close="closeClusterPopoutModal();">
     <div class="mx-auto" slot="header">
         <h3>Group #%% clusterPopoutModalData['group_id'] %% <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); clusterPopoutModalData = {};">Edit groups</button> </h3>
     </div>
