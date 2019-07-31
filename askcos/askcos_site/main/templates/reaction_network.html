@@ -190,7 +190,21 @@
                                 <template v-if="selected.type=='chemical'">
                                     <div class="details-top">
                                         <div class="text-center">
-                                            <div><b>Smiles: </b>%% selected.smiles %%</div>
+                                            <div 
+                                              id="selected-smiles"
+                                              class="customtooltip"
+                                              @click="copySelectedSmiles"
+                                            >
+                                                 <i class="far fa-copy"></i>
+                                                <b>Smiles: </b>
+                                                %% selected.smiles %%
+                                                <span 
+                                                  id="copy-tooltip"
+                                                  class="customtooltiptext"
+                                                >
+                                                    Click to copy!
+                                                </span>
+                                            </div>
                                             <div><b>Price ($/g): </b>%% selected.ppg %%</div>
                                             <div style="margin-bottom: 10px">
                                                 <img v-bind:src="selected.image" style="max-width: 100%"/>
@@ -272,7 +286,21 @@
                                     <div class="details-top">
                                         <div class="text-left">
                                             <div class="text-center">
-                                                <b>Reaction Smiles: </b>%% selected.reactionSmiles %%
+                                                <div 
+                                                id="selected-smiles"
+                                                class="customtooltip"
+                                                @click="copySelectedSmiles"
+                                                >
+                                                    <i class="far fa-copy"></i>
+                                                    <b>Smiles: </b>
+                                                    %% selected.reactionSmiles %%
+                                                    <span 
+                                                    id="copy-tooltip"
+                                                    class="customtooltiptext"
+                                                    >
+                                                        Click to copy!
+                                                    </span>
+                                                </div>
                                                 <img v-bind:src="'/draw/reaction/'+encodeURIComponent(selected.reactionSmiles)" style="max-width: 100%"/>
                                             </div>
                                             <div class="text-center" style="margin: 10px 0">

@@ -58,6 +58,46 @@ transform: translate(-50%, -50%) !important;
   box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
 }
 
+.customtooltip {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.customtooltip:hover {
+  color: #1157a7;
+}
+
+.customtooltip .customtooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 150%;
+  left: 50%;
+  margin-left: -60px;
+}
+
+.customtooltip .customtooltiptext::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: black transparent transparent transparent;
+}
+
+.customtooltip:hover .customtooltiptext {
+  visibility: visible;
+}
+
 .loader {
     display: none;
     z-index: 999;
