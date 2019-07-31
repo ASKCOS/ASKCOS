@@ -3,6 +3,15 @@ container.classList.remove('container')
 container.classList.add('container-fluid')
 container.style.width=null;
 
+function copyToClipboard(text) {
+    var dummy = document.createElement("textarea");
+    document.body.appendChild(dummy);
+    dummy.value = text;
+    dummy.select();
+    document.execCommand("copy");
+    document.body.removeChild(dummy);
+}
+
 function showLoader() {
     var loader = document.getElementsByClassName("loader")[0];
     loader.style.display = "block";
@@ -570,6 +579,17 @@ var app = new Vue({
         },
         clearSelection: function() {
             this.selected = null;
+        },
+        copySelectedSmiles: function() {
+            var copyTooltip = document.querySelector('#copy-tooltip')
+            if (this.selected.type == 'chemical') {
+                copyToClipboard(this.selected.smiles)
+            }
+            else {
+                copyToClipboard(this.selected.reactionSmiles)
+            }
+            copyTooltip.innerHTML = 'Copied!'
+            setTimeout(() => {copyTooltip.innerHTML = "Click to copy!"}, 2000)
         },
         collapseNode: function() {
             var selected = network.getSelectedNodes();
