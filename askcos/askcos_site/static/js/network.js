@@ -3,6 +3,24 @@ container.classList.remove('container')
 container.classList.add('container-fluid')
 container.style.width=null;
 
+// check whether the set on which the  
+// method is invoked is the subset of  
+// otherset or not 
+function subSet(s, otherSet) {
+    if(s.size > otherSet.size) {
+        return false;
+    } else {
+        for(var elem of s) {
+            // if any of the element of
+            // this is not present in the
+            // otherset then return false
+            if(!otherSet.has(elem))
+                return false;
+        }
+        return true;
+    }
+};
+
 function copyToClipboard(text) {
     var dummy = document.createElement("textarea");
     document.body.appendChild(dummy);
@@ -301,7 +319,7 @@ var app = new Vue({
             }).join('&');
             return url+queryString;
         },
-        resolveTarget: function(name) {
+        resolveChemName: function(name) {
             if (this.allowResolve) {
                 var url = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/'+encodeURIComponent(name)+'/property/IsomericSMILES/txt'
                 console.log(url)
@@ -347,12 +365,12 @@ var app = new Vue({
         },
         changeTarget: function() {
             showLoader();
-            this.validatesmiles(this.target)
+            this.validatesmiles(this.target, !this.allowResolve)
             .then(isvalidsmiles => {
                 if (isvalidsmiles) {
                     return this.target
                 } else {
-                    return this.resolveTarget(this.target)
+                    return this.resolveChemName(this.target)
                 }
             })
             .then(x => {
@@ -873,7 +891,7 @@ var app = new Vue({
             var r = {
                 'show': isshow,
                 'smiles': smiles,
-                'smiles_split': smiles,
+                'smiles_split': smiles.split('.'),
                 'group_id': gid,
                 'score': 0,
                 'plausibility': 1,
@@ -888,28 +906,75 @@ var app = new Vue({
         // if group_id == undefined, add to a new group
         openAddNewPrecursorModal: function(selected, group_id) {
             this.showAddNewPrecursorModal = true;
-            this.addNewPrecursorModal = {};
-            this.addNewPrecursorModal['selected'] = selected;
-            this.addNewPrecursorModal['group_id'] = group_id.toString();
-            this.addNewPrecursorModal['newprecursorsmiles'] = '';
+            this.$set(this.addNewPrecursorModal, 'selected', selected);
+            this.$set(this.addNewPrecursorModal, 'group_id', group_id.toString());
+            this.$set(this.addNewPrecursorModal, 'newprecursorsmiles', '');
+            this.$set(this.addNewPrecursorModal, 'nodupcheck', false);
         },
         closeAddNewPrecursorModal: function() {
             this.showAddNewPrecursorModal = false;
-            this.addNewPrecursorModal = {};
+            this.addNewPrecursorModal['selected'] = '';
+            this.addNewPrecursorModal['group_id'] = '';
+            this.addNewPrecursorModal['newprecursorsmiles'] = '';
+            this.addNewPrecursorModal['nodupcheck'] = false;
         },
-        addNewPrecursorModalSubmit: function() {
+        checkDuplicatePrecursor: function(selected, p) {
+            var p_splited = new Set(p.split("."));
+            for (s of this.results[selected]) {
+                var s_set = new Set(s['smiles_split']);
+                if (subSet(s_set, p_splited) || subSet(p_splited, s_set)) {
+                    return s;
+                }
+            }
+            return undefined;
+        },
+        addNewPrecursorModalSubmit: async function() {
             var gid;
             if (this.addNewPrecursorModal['group_id'] == "undefined") {
                 gid = undefined;
             } else {
                 gid = Number(this.addNewPrecursorModal['group_id']);
             }
-            this.addNewPrecursorModal['newprecursorsmiles'] = this.resolveChemName(this.addNewPrecursorModal['newprecursorsmiles']);
-            this.clusterEditModalAddPrecursor(
-                this.addNewPrecursorModal['selected'],
-                this.addNewPrecursorModal['newprecursorsmiles'],
-                gid);
-            this.$forceUpdate();
+            try {
+                isvalid = await this.validatesmiles(
+                    this.addNewPrecursorModal['newprecursorsmiles'],
+                    !this.allowResolve
+                );
+                if (!isvalid) {
+                    this.addNewPrecursorModal['newprecursorsmiles'] =
+                        await this.resolveChemName(
+                            this.addNewPrecursorModal['newprecursorsmiles']
+                        );
+                }
+            } catch(error) {
+                var error_msg = 'unknown error';
+                if ('message' in error) {
+                    error_msg = error.name+':'+error.message;
+                } else if (typeof(error) == 'string') {
+                    error_msg = error;
+                }
+                alert('There was an error fetching precursors for this target with the supplied settings: '+error_msg);
+                return
+            }
+            if (this.addNewPrecursorModal['newprecursorsmiles'] == undefined) {
+                alert('There was an error during adding the precursor.');
+            } else {
+                if (!this.addNewPrecursorModal['nodupcheck']) {
+                    var s = this.checkDuplicatePrecursor(
+                        this.addNewPrecursorModal['selected'],
+                        this.addNewPrecursorModal['newprecursorsmiles']
+                    );
+                    if (s != undefined) {
+                        alert('There may be a duplicated precursor: rank: '+s.rank+' cluster: '+s.group_id+'. If you still want to proceed, please select "No duplicate check" option.');
+                        return
+                    }
+                }
+                this.clusterEditModalAddPrecursor(
+                    this.addNewPrecursorModal['selected'],
+                    this.addNewPrecursorModal['newprecursorsmiles'],
+                    gid);
+                this.$forceUpdate();
+            }
         },
         isModalOpen: function() {
             return app.showSettingsModal || app.showDownloadModal || app.showLoadModal || app.showClusterPopoutModal || app.showClusterEditModal || app.showAddNewPrecursorModal

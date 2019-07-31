@@ -338,8 +338,8 @@
                 <div class="form-group">
                     Precursor: <input id="precursor" type="text" class="form-control text-center" v-model="addNewPrecursorModal['newprecursorsmiles']">
                     <input id="precursorsubmit" type="submit" value="Submit" class="btn btn-default" />
-                    <span @click="toggleResolver" style="cursor: pointer;">
-                        <i class="fas fa-server"></i>
+                    <span @click="toggleResolver" style="cursor: pointer;" class="nonselectable">
+                        External resolver: <i class="fas fa-server"></i>
                         <span v-if="allowResolve" title="Connection to NIH name resolver is ON, structures may be sent to an external service. This can be turned off in the settings menu, or by clicking this icon.">&#10003;</span>
                         <span v-else title="Connection to NIH name resolver is OFF, structures will NOT be sent to an external service. Target query must be a SMILES string. This can be turned on in the settings menu, or by clicking this icon.">&#10005;</span>
                     </span>
@@ -354,6 +354,12 @@
                     <option value="undefined">New group</option>
                     <option v-for="idx in clusteredResultsIndex[addNewPrecursorModal['selected']]" :value="idx.toString()">%% idx %%</option>
                 </select>
+            </div>
+        </div>
+        <div class="form-inline mb-10">
+            <div class="form-group">
+                <input type="checkbox" id="nodupcheck" v-model="addNewPrecursorModal['nodupcheck']">
+                <label class="nonselectable" style="font-weight: normal;" for="nodupcheck"><p>No duplicate check</p></label>
             </div>
         </div>
     </div>
