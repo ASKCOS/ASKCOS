@@ -90,7 +90,7 @@
 
 <div id="network" class="mx-auto mt-2"></div>
 
-<modal v-if="showSettingsModal" @close="showSettingsModal = false">
+<modal style="z-index: 9999" v-if="showSettingsModal" @close="showSettingsModal = false">
     <div class="mx-auto" slot="header">
         <h3>Settings</h3>
     </div>
@@ -99,12 +99,6 @@
             <div>
                 <input type="checkbox" ref="allowResolve" v-model="allowResolve" {{ allowResolve }}/>
                 Allow queries to be sent to NIH name -> smiles resolver?
-            </div>
-        </div>
-        <div class="form-inline mb-10">
-            <div>
-                <input type="checkbox" ref="allowCluster" v-model="allowCluster" {{ allowCluster }}/>
-                Show similar presursors in one group?
             </div>
         </div>
         <div class="form-inline mb-10">
@@ -149,6 +143,38 @@
             <div class="form-group">
                 Min. plausibility:
                 <input style="width: 100px" type="number" v-model.number="minPlausibility" class="form-control text-center">
+            </div>
+        </div>
+        <hr>
+        Clustering settings: <br>
+        <div class="form-inline mb-10">
+            <div>
+                <input type="checkbox" ref="allowCluster" v-model="allowCluster" {{ allowCluster }}/>
+                Show similar presursors in one group?
+            </div>
+        </div>
+        <div class="form-inline mb-10">
+            <div>
+                Feature:
+                <select v-model="clusterOptions.feature" class="form-control">
+                    <option value="original">original</option>
+                    <option value="outcomes">outcomes</option>
+                    <option value="all">all</option>
+                </select>
+                Method:
+                <select v-model="clusterOptions.cluster_method" class="form-control">
+                    <option value="kmeans">kmeans</option>
+                    <option value="hdbscan">hdbscan</option>
+                </select>
+                <br>
+                Fingerprint:
+                <select v-model="clusterOptions.fingerprint" class="form-control">
+                    <option value="morgan">Morgan</option>
+                </select>
+                Length:
+                <input style="width: 50px" type="number" v-model.number="clusterOptions.fpBits" class="form-control">
+                Radius:
+                <input style="width: 50px" type="number" v-model.number="clusterOptions.fpRadius" class="form-control">
             </div>
         </div>
     </div>
@@ -239,13 +265,13 @@
 
 <modal v-if="showClusterEditModal" @close="closeClusterEditModal();">
     <div class="mx-auto" slot="header">
-        <h3>Editing <button class="btn btn-danger" @click="clusterEditModalDecGroupID();"><i class="fas fa-minus"></i></button> Group #%% clusterEditModalData['group_id'] %% <button class="btn btn-danger" @click="clusterEditModalIncGroupID();"><i class="fas fa-plus"></i></button>   <button class="btn btn-danger" @click="openAddNewPrecursorModal(clusterEditModalData['selectedSmiles'], clusterEditModalData['group_id']);">Add precursor</button></h3>
+        <h3>Editing <button class="btn btn-danger" @click="clusterEditModalDecGroupID();"><i class="fas fa-minus"></i></button> Group #%% clusterEditModalData['group_id'] %% <button class="btn btn-danger" @click="clusterEditModalIncGroupID();"><i class="fas fa-plus"></i></button>   <button class="btn btn-danger" @click="openAddNewPrecursorModal(clusterEditModalData['selectedSmiles'], clusterEditModalData['group_id']);">Add precursor</button>   <button class="btn btn-danger" @click="requestClusterId(clusterEditModalData['selectedSmiles']);">Re-cluster</button>   <button class="btn btn-danger" @click="openModal('settings');">Cluster Settings</button></h3>
     </div>
     <div slot="body" class="text-left popout-scroll">
         <div class="scroll-list-x">
             <div class="grid-wrapper-onerow">
         <template v-for="res in results[clusterEditModalData['selectedSmiles']]">
-            <div v-if="res.group_id == clusterEditModalData['group_id']" class="card" style="position: relative;" v-on:dragstart="clusteredit_dragstart_handler(res, $event)" v-on:dragend="clusteredit_dragend_handler($event);" draggable="true" :key="clusterEditModalData['group_id']">
+            <div v-if="res.group_id == clusterEditModalData['group_id']" class="card" style="position: relative;" v-on:dragstart="clusteredit_dragstart_handler(res, $event)" v-on:dragend="clusteredit_dragend_handler($event);" draggable="true">
                 <div class="container-fluid">
                     <div class="row">
                         <div class="col-xs-12">

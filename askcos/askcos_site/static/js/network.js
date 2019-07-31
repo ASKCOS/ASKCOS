@@ -290,6 +290,7 @@ var app = new Vue({
         clusterPopoutModalData: {},
         clusterEditModalData: {},
         addNewPrecursorModal: {},
+        clusterOptions: {feature: 'original', fingerprint:'morgan', fpRadius: 1, fpBits: 512, cluster_method: 'kmeans'},
         selected: null,
         reactionLimit: 5,
         templatePrioritization: "Relevance",
@@ -717,10 +718,12 @@ var app = new Vue({
             }
         },
         openModal: function(modalName) {
+            /*
             this.clearSelection();
             if (network) {
                 network.unselectAll();
             }
+            */
             if (modalName == "settings") {
                 this.showSettingsModal = true
             }
@@ -1023,6 +1026,55 @@ var app = new Vue({
                 }
             }
             return grouped
+        },
+        requestClusterId: function(selected) {
+            var all_smiles = [];
+            var i;
+            for (i = 0; i < this.results[selected].length; i++) {
+                all_smiles.push(this.results[selected][i].smiles);
+            }
+            var url = '/api/cluster/?';
+            var params = {
+                original:       selected,
+                outcomes:       all_smiles.join(';'),
+                feature:        this.clusterOptions.feature,
+                fp_name:        this.clusterOptions.fingerprint,
+                fpradius:       this.clusterOptions.fpRadius,
+                fpnbits:        this.clusterOptions.fpBits,
+                cluster_method: this.clusterOptions.cluster_method,
+            };
+            var queryString = Object.keys(params).map((key) => {
+                return encodeURIComponent(key) + '=' + encodeURIComponent(params[key])
+            }).join('&');
+            
+            fetch(url+queryString)
+            .then(resp => {
+                if (!resp.ok) {
+                    throw resp.status;
+                }
+                return resp;
+            })
+            .then(resp => resp.json())
+            .then(resp_json => {
+                if ('error' in resp_json) {
+                    throw resp_json['error'];
+                } else {
+                    var group_ids = resp_json['group_id'];
+                    var i;
+                    for (i = 0; i < this.results[selected].length; i++) {
+                        this.results[selected][i].group_id = group_ids[i];
+                    }
+                }
+            })
+            .catch((error) => {
+                var error_msg = 'unknown error'
+                if ('message' in error) {
+                    error_msg = error.name+':'+error.message
+                } else if (typeof(error) == 'string') {
+                    error_msg = error
+                }
+                alert('There was an error fetching precursors for this target with the supplied settings: '+error_msg)
+            })
         }
     },
     computed: {
