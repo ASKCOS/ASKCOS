@@ -222,7 +222,7 @@
 
 <modal v-if="showClusterPopoutModal" @close="closeClusterPopoutModal();">
     <div class="mx-auto" slot="header">
-        <h3>Cluster #%% clusterPopoutModalData['group_id'] %% <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); clusterPopoutModalData = {};">Edit clusters</button> <button class="btn btn-danger" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button> </h3>
+        <h3>Viewing <button class="btn btn-danger" @click="clusterPopoutModalDecGroupID();"><i class="fas fa-less-than"></i></button> Cluster #%% clusterPopoutModalData['group_id'] %% <button class="btn btn-danger" @click="clusterPopoutModalIncGroupID();"><i class="fas fa-greater-than"></i></button><button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); clusterPopoutModalData = {};">Edit clusters</button> <button class="btn btn-danger" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button> </h3>
     </div>
     <div slot="body" class="text-left">
         <div class="scroll-list">
@@ -384,7 +384,7 @@
                 Group:
                 <select v-model="addNewPrecursorModal['group_id']" class="form-control">
                     <option value="undefined">New cluster</option>
-                    <option v-for="idx in clusteredResultsIndex[addNewPrecursorModal['selected']]" :value="idx.toString()">%% idx %%</option>
+                    <option v-for="idx in clusteredResultsIndex[addNewPrecursorModal['selectedSmiles']]" :value="idx.toString()">%% idx %%</option>
                 </select>
             </div>
         </div>

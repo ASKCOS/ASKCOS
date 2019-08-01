@@ -774,6 +774,24 @@ var app = new Vue({
             this.clusterPopoutModalData['res'] = undefined;
             this.clusterPopoutModalData['group_id'] = undefined;
         },
+        clusterPopoutModalIncGroupID: function() {
+            var all_ids = this.clusteredResultsIndex[this.clusterPopoutModalData['selectedSmiles']];
+            var idx = all_ids.indexOf(this.clusterPopoutModalData['group_id']);
+            if (idx == all_ids.length-1) {
+            } else {
+                this.clusterPopoutModalData['group_id'] = all_ids[idx+1];
+            }
+            this.$forceUpdate();
+        },
+        clusterPopoutModalDecGroupID: function() {
+            var all_ids = this.clusteredResultsIndex[this.clusterPopoutModalData['selectedSmiles']];
+            var idx = all_ids.indexOf(this.clusterPopoutModalData['group_id']);
+            if (idx == 0) {
+            } else {
+                this.clusterPopoutModalData['group_id'] = all_ids[idx-1];
+            }
+            this.$forceUpdate();
+        },
         openClusterEditModal: function(selected, group_id) {
             if(selected == undefined) {
                 alert('No target molecule selected. Please select a molecule in the tree.')
@@ -893,14 +911,14 @@ var app = new Vue({
             this.detectClusterDeletion(this.clusterEditModalData['selectedSmiles'], old_gid);
         },
         // gid == undefined is to add a new cluster
-        clusterEditModalAddPrecursor: function(selected, smiles, gid) {
+        clusterEditModalAddPrecursor: function(selectedSmiles, smiles, gid) {
             var isshow = false;
-            if (this.results[selected] == undefined) {
-                this.results[selected] = [];
+            if (this.results[selectedSmiles] == undefined) {
+                this.results[selectedSmiles] = [];
                 gid = 0;
                 isshow = true;
             }
-            var all_ids = this.clusteredResultsIndex[selected];
+            var all_ids = this.clusteredResultsIndex[selectedSmiles];
             if (gid == undefined) {
                 isshow = true;
                 if (all_ids.length == 0) {
@@ -910,7 +928,7 @@ var app = new Vue({
                 }
             }
             var rank = 0;
-            for (let i of this.results[selected]) {
+            for (let i of this.results[selectedSmiles]) {
                 rank = Math.max(rank, i.rank);
             }
             rank += 1;
@@ -927,26 +945,26 @@ var app = new Vue({
                 'template_score': undefined,
                 'templates': undefined,
             };
-            this.results[selected].push(r);
+            this.results[selectedSmiles].push(r);
         },
         // if group_id == undefined, add to a new group
-        openAddNewPrecursorModal: function(selected, group_id) {
+        openAddNewPrecursorModal: function(selectedSmiles, group_id) {
             this.showAddNewPrecursorModal = true;
-            this.$set(this.addNewPrecursorModal, 'selected', selected == undefined ? this.selected.smiles : selected);
+            this.$set(this.addNewPrecursorModal, 'selectedSmiles', selectedSmiles == undefined ? this.selected.smiles : selectedSmiles);
             this.$set(this.addNewPrecursorModal, 'group_id', group_id == undefined ? 'undefined' : group_id.toString());
             this.$set(this.addNewPrecursorModal, 'newprecursorsmiles', '');
             this.$set(this.addNewPrecursorModal, 'nodupcheck', false);
         },
         closeAddNewPrecursorModal: function() {
             this.showAddNewPrecursorModal = false;
-            this.addNewPrecursorModal['selected'] = '';
+            this.addNewPrecursorModal['selectedSmiles'] = '';
             this.addNewPrecursorModal['group_id'] = '';
             this.addNewPrecursorModal['newprecursorsmiles'] = '';
             this.addNewPrecursorModal['nodupcheck'] = false;
         },
-        checkDuplicatePrecursor: function(selected, p) {
+        checkDuplicatePrecursor: function(selectedSmiles, p) {
             var p_splited = new Set(p.split("."));
-            for (s of this.results[selected]) {
+            for (s of this.results[selectedSmiles]) {
                 var s_set = new Set(s['smiles_split']);
                 if (subSet(s_set, p_splited) || subSet(p_splited, s_set)) {
                     return s;
@@ -987,7 +1005,7 @@ var app = new Vue({
             } else {
                 if (!this.addNewPrecursorModal['nodupcheck']) {
                     var s = this.checkDuplicatePrecursor(
-                        this.addNewPrecursorModal['selected'],
+                        this.addNewPrecursorModal['selectedSmiles'],
                         this.addNewPrecursorModal['newprecursorsmiles']
                     );
                     if (s != undefined) {
@@ -996,7 +1014,7 @@ var app = new Vue({
                     }
                 }
                 this.clusterEditModalAddPrecursor(
-                    this.addNewPrecursorModal['selected'],
+                    this.addNewPrecursorModal['selectedSmiles'],
                     this.addNewPrecursorModal['newprecursorsmiles'],
                     gid);
                 this.$forceUpdate();
