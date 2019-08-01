@@ -296,6 +296,7 @@ var app = new Vue({
         clusterEditModalData: {},
         addNewPrecursorModal: {},
         clusterOptions: {
+            allowRemovePrecursor: true,
             feature: 'original',
             fingerprint:'morgan',
             fpRadius: 1, fpBits: 512,
