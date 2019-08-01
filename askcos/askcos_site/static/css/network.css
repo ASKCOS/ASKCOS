@@ -111,22 +111,10 @@ transform: translate(-50%, -50%) !important;
 }
 
 .card-list-alternating li:nth-child(odd){
-    /*box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-    transition: 0.3s;
-    border-radius: 5px;
-    margin: 5px;
-    padding: 5px;
-    border: 1px solid lightgray;*/
     background: white;
 }
 
 .card-list-alternating li:nth-child(even){
-    /*box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-    transition: 0.3s;
-    border-radius: 5px;
-    margin: 5px;
-    padding: 5px;
-    border: 1px solid lightgray;*/
     background: GhostWhite;
 }
 
