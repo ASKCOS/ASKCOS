@@ -29,6 +29,21 @@ function subSet(s, otherSet) {
     }
 };
 
+function getCookie(cname) {
+    var name = cname + "=";
+    var cookie_str = document.cookie;
+    if (cookie_str && cookie_str != '') {
+        var cookie_splitted = cookie_str.split(';');
+        for(var i = 0; i <cookie_splitted.length; i++) {
+            var c = cookie_splitted[i].trim();
+            if (c.indexOf(name) == 0) {
+                return decodeURIComponent(c.substring(name.length, c.length));
+            }
+        }
+    }
+  return undefined;
+}
+
 function copyToClipboard(text) {
     var dummy = document.createElement("textarea");
     document.body.appendChild(dummy);
@@ -1105,7 +1120,16 @@ var app = new Vue({
                 return encodeURIComponent(key) + '=' + encodeURIComponent(params[key])
             }).join('&');
             
-            fetch(url+queryString)
+            fetch_param = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: queryString,
+            };
+            
+            fetch(url, fetch_param)
             .then(resp => {
                 if (!resp.ok) {
                     throw resp.status;
