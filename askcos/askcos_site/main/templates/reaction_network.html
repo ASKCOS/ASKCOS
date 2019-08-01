@@ -161,6 +161,12 @@
         </div>
         <div class="form-inline mb-10">
             <div>
+                <input type="checkbox" ref="clusterOptions.allowRemovePrecursor" v-model="clusterOptions.allowRemovePrecursor" {{ clusterOptions.allowRemovePrecursor }}/>
+                Allow to remove precursors?
+            </div>
+        </div>
+        <div class="form-inline mb-10">
+            <div>
                 Feature:
                 <select v-model="clusterOptions.feature" class="form-control">
                     <option value="original">original</option>
@@ -222,7 +228,7 @@
 
 <modal v-if="showClusterPopoutModal" @close="closeClusterPopoutModal();">
     <div class="mx-auto" slot="header">
-        <h3>Viewing <button class="btn btn-danger" @click="clusterPopoutModalDecGroupID();"><i class="fas fa-less-than"></i></button> Cluster #%% clusterPopoutModalData['group_id'] %% <button class="btn btn-danger" @click="clusterPopoutModalIncGroupID();"><i class="fas fa-greater-than"></i></button><button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); clusterPopoutModalData = {};">Edit clusters</button> <button class="btn btn-danger" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button> </h3>
+        <h3>Viewing <button class="btn btn-danger" @click="clusterPopoutModalDecGroupID();"><i class="fas fa-less-than"></i></button> Cluster #%% clusterPopoutModalData['group_id'] %% <button class="btn btn-danger" @click="clusterPopoutModalIncGroupID();"><i class="fas fa-greater-than"></i></button>   &nbsp;&nbsp; <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); clusterPopoutModalData = {};">Edit clusters</button> <button class="btn btn-danger" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button> </h3>
     </div>
     <div slot="body" class="text-left">
         <div class="scroll-list">
@@ -304,7 +310,7 @@
                             <img v-bind:src="'/draw/smiles/'+encodeURIComponent(res.smiles)" style="max-width: 100%; pointer-events: none;" draggable="false" ondragstart="disable_dragstart_handler(event);"/>
                         </div>
                     </div>
-                    <div class="row" style="position: absolute; bottom:0; right:0px;">
+                    <div v-if="clusterOptions.allowRemovePrecursor" class="row" style="position: absolute; bottom:0; right:0px;">
                         <div class="col-xs-2">
                             <button class="btn btn-danger" @click="clusterEditModalDeletePrecursor(clusterEditModalData['selectedSmiles'], res.smiles);"><i class="fas fa-times"></i></button>
                         </div>
