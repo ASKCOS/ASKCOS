@@ -23,21 +23,26 @@ def cluster(request):
 
     Testcase:
         %3B=';'
-        curl -k 'https://localhost/api/cluster/?original=CCOC&outcomes=CCO%3BCC'
+        curl -k 'https://localhost/api/cluster/' -d 'original=CCOC&outcomes=CCO%3BCC'
     '''
     iserr = False
     err_msg = ''
     resp = {}
-    resp['request'] = dict(**request.GET)
+
+    if len(request.POST) == 0:
+        resp['error'] = 'No input data. Need POST request.'
+        return JsonResponse(resp)
+
+    resp['request_POST'] = dict(**request.POST)
 
     # get parameters
-    original = request.GET.get('original', None)
-    outcomes = request.GET.get('outcomes', None)
-    feature  = request.GET.get('feature', 'original')
-    fp_name  = request.GET.get('fingerprint', 'morgan')
-    fpradius = int(request.GET.get('fpradius', 1))
-    fpnbits  = int(request.GET.get('fpnbits', 512))
-    cluster_method = request.GET.get('clustermethod', 'kmeans')
+    original = request.POST.get('original', None)
+    outcomes = request.POST.get('outcomes', None)
+    feature  = request.POST.get('feature', 'original')
+    fp_name  = request.POST.get('fingerprint', 'morgan')
+    fpradius = int(request.POST.get('fpradius', 1))
+    fpnbits  = int(request.POST.get('fpnbits', 512))
+    cluster_method = request.POST.get('clustermethod', 'kmeans')
 
     # error checking
     if original is None:
