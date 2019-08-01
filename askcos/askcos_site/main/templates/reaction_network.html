@@ -155,6 +155,12 @@
         </div>
         <div class="form-inline mb-10">
             <div>
+                <input type="checkbox" ref="clusterOptions.isAlternatingColor" v-model="clusterOptions.isAlternatingColor" {{ clusterOptions.isAlternatingColor }}/>
+                Show alternating color for different reaction clusters?
+            </div>
+        </div>
+        <div class="form-inline mb-10">
+            <div>
                 Feature:
                 <select v-model="clusterOptions.feature" class="form-control">
                     <option value="original">original</option>
@@ -447,7 +453,7 @@
             </div>
         </template>
         <template v-if="allowCluster">
-        <ul class="card-list-alternating ul-card">
+        <ul v-bind:class="{'card-list-alternating':clusterOptions.isAlternatingColor, 'ul-card':true}">
             <template v-for="cluster in clusteredResults[selected.smiles]">
                 <li>
                     <template v-for="(res, index) in cluster">
