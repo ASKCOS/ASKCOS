@@ -3,6 +3,14 @@ container.classList.remove('container')
 container.classList.add('container-fluid')
 container.style.width=null;
 
+function num2str(n, len) {
+    if (len == undefined) {
+        return n == undefined ? 'N/A' : n.toString();
+    } else {
+        return n == undefined ? 'N/A' : n.toFixed(len);
+    }
+}
+
 // check whether the set on which the  
 // method is invoked is the subset of  
 // otherset or not 
@@ -41,18 +49,15 @@ function hideLoader() {
 }
 
 function addReactions(reactions, sourceNode, nodes, edges, reactionLimit) {
-    var reactionSorting = "retroscore";
-    reactions.sort(function(a, b) {
-        return b[reactionSorting] - a[reactionSorting]
-    })
     var added = 0
     for (r of reactions) {
         if (added >= reactionLimit) {
             break;
         }
-        addReaction(r, sourceNode, nodes, edges)
-        r.show = true
-        added += 1
+        if (r.show) {
+            addReaction(r, sourceNode, nodes, edges);
+            added += 1;
+        }
     }
 }
 
@@ -62,11 +67,11 @@ function addReaction(reaction, sourceNode, nodes, edges) {
         id: rId,
         label: '#'+reaction['rank'],
         rank: reaction['rank'],
-        ffScore: reaction['plausibility'].toFixed(3),
-        retroscore: reaction['score'].toFixed(3),
-        templateScore: reaction['template_score'].toFixed(3),
-        numExamples: reaction['num_examples'],
-        templateIds: reaction['templates'],
+        ffScore: num2str(reaction['plausibility'] ,3),
+        retroscore: num2str(reaction['score'], 3),
+        templateScore: num2str(reaction['template_score'], 3),
+        numExamples: num2str(reaction['num_examples']),
+        templateIds: num2str(reaction['templates']),
         reactionSmiles: reaction.smiles+'>>'+sourceNode.smiles,
         type: 'reaction',
         value: 1,
@@ -417,8 +422,8 @@ var app = new Vue({
                             network.on('deselectNode', this.clearSelection);
                             this.$set(this.results, this.target, json['precursors']);
                             this.initClusterShowCard(this.target); // must be called immediately after adding results
-                            addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit);
-                            this.getTemplateNumExamples(json['precursors']);
+                            addReactions(this.results[this.target], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit);
+                            this.getTemplateNumExamples(this.results[this.target]);
                             hideLoader();
                             fetch('/api/price/?smiles='+encodeURIComponent(this.target))
                                 .then(resp => resp.json())
@@ -513,8 +518,8 @@ var app = new Vue({
                         alert('No precursors found!')
                     }
                     this.initClusterShowCard(smi); // must be called immediately after adding results
-                    addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit);
-                    this.getTemplateNumExamples(reactions);
+                    addReactions(this.results[smi], this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit);
+                    this.getTemplateNumExamples(this.results[smi]);
                     this.selected = node;
                     this.reorderResults();
                     hideLoader();
@@ -700,7 +705,11 @@ var app = new Vue({
             if (typeof(results) == 'undefined') {
                 return
             }
-            results.sort((a, b) => b[sortingCategory] - a[sortingCategory])
+            results.sort((a, b) => {
+                var a_ = a[sortingCategory] == undefined ? 0 : a[sortingCategory];
+                var b_ = b[sortingCategory] == undefined ? 0 : b[sortingCategory];
+                return b_ - a_;
+            })
             var prevSelected = this.selected;
             this.selected = undefined;
             this.selected = prevSelected;
@@ -910,21 +919,21 @@ var app = new Vue({
                 'smiles': smiles,
                 'smiles_split': smiles.split('.'),
                 'group_id': gid,
-                'score': 0,
-                'plausibility': 1,
+                'score': undefined,
+                'plausibility': undefined,
                 'rank': rank,
-                'num_examples': 0,
-                'necessary_reagent': '',
-                'template_score': 0,
-                'templates': 0
+                'num_examples': undefined,
+                'necessary_reagent': undefined,
+                'template_score': undefined,
+                'templates': undefined,
             };
             this.results[selected].push(r);
         },
         // if group_id == undefined, add to a new group
         openAddNewPrecursorModal: function(selected, group_id) {
             this.showAddNewPrecursorModal = true;
-            this.$set(this.addNewPrecursorModal, 'selected', selected);
-            this.$set(this.addNewPrecursorModal, 'group_id', group_id.toString());
+            this.$set(this.addNewPrecursorModal, 'selected', selected == undefined ? this.selected.smiles : selected);
+            this.$set(this.addNewPrecursorModal, 'group_id', group_id == undefined ? 'undefined' : group_id.toString());
             this.$set(this.addNewPrecursorModal, 'newprecursorsmiles', '');
             this.$set(this.addNewPrecursorModal, 'nodupcheck', false);
         },
@@ -1011,13 +1020,37 @@ var app = new Vue({
             tour.restart();
         },
         initClusterShowCard: function(selected) {
+            // always sort first
+            var reactionSorting = "score";
+            this.results[selected].sort(function(a, b) {
+                var a_ = a[reactionSorting] == undefined ? 0 : a[reactionSorting];
+                var b_ = b[reactionSorting] == undefined ? 0 : b[reactionSorting];
+                return b_ - a_;
+            })
+            // init show to false
+            // init first reactionLimit clusters/precursors to true
+            var numShow = 0;
             var visited_groups = new Set();
             for (precursor of this.results[selected]) {
-                if (visited_groups.has(precursor.group_id)) {
-                    this.$set(precursor, 'show', false);
-                } else {
-                    this.$set(precursor, 'show', true);
-                    visited_groups.add(precursor.group_id);
+                if (this.allowCluster) {
+                    if (visited_groups.has(precursor.group_id)) {
+                        this.$set(precursor, 'show', false);
+                    } else {
+                        if (numShow < this.reactionLimit) {
+                            this.$set(precursor, 'show', true);
+                            numShow += 1;
+                        } else {
+                            this.$set(precursor, 'show', false);
+                        }
+                        visited_groups.add(precursor.group_id);
+                    }
+                } else { // !allowCluster
+                    if (numShow < this.reactionLimit) {
+                        numShow += 1;
+                        this.$set(precursor, 'show', true);
+                    } else {
+                        this.$set(precursor, 'show', false);
+                    }
                 }
             }
         },

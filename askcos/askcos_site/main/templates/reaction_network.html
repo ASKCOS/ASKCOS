@@ -86,7 +86,7 @@
 <button id="expand-btn" class="btn btn-success" v-on:click="expandNode">Expand node</button>
 <button class="btn btn-danger" v-on:click="deleteNode">Remove reaction node</button>
 <button class="btn btn-danger" v-on:click="deleteChildren">Remove children nodes</button>
-<button class="btn btn-info" v-on:click="collapseNode">Toggle cluster</button>
+<button class="btn btn-info" v-on:click="collapseNode">Collapse children nodes</button>
 
 <div id="network" class="mx-auto mt-2"></div>
 
@@ -150,7 +150,7 @@
         <div class="form-inline mb-10">
             <div>
                 <input type="checkbox" ref="allowCluster" v-model="allowCluster" {{ allowCluster }}/>
-                Show similar presursors in one group?
+                Show similar presursors in one cluster?
             </div>
         </div>
         <div class="form-inline mb-10">
@@ -222,7 +222,7 @@
 
 <modal v-if="showClusterPopoutModal" @close="closeClusterPopoutModal();">
     <div class="mx-auto" slot="header">
-        <h3>Group #%% clusterPopoutModalData['group_id'] %% <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); clusterPopoutModalData = {};">Edit groups</button> </h3>
+        <h3>Cluster #%% clusterPopoutModalData['group_id'] %% <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); clusterPopoutModalData = {};">Edit clusters</button> <button class="btn btn-danger" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button> </h3>
     </div>
     <div slot="body" class="text-left">
         <div class="scroll-list">
@@ -240,11 +240,11 @@
                                     </tr>
                                     <tr>
                                         <td># Examples</td>
-                                        <td>%% res.num_examples %%</td>
+                                        <td>%% num2str(res.num_examples)%%</td>
                                     </tr>
                                     <tr>
                                         <td>Plausibility</td>
-                                        <td>%% res.plausibility.toFixed(3) %%</td>
+                                        <td>%% num2str(res.plausibility, 3) %%</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -271,7 +271,7 @@
 
 <modal v-if="showClusterEditModal" @close="closeClusterEditModal();">
     <div class="mx-auto" slot="header">
-        <h3>Editing <button class="btn btn-danger" @click="clusterEditModalDecGroupID();"><i class="fas fa-minus"></i></button> Group #%% clusterEditModalData['group_id'] %% <button class="btn btn-danger" @click="clusterEditModalIncGroupID();"><i class="fas fa-plus"></i></button>   <button class="btn btn-danger" @click="openAddNewPrecursorModal(clusterEditModalData['selectedSmiles'], clusterEditModalData['group_id']);">Add precursor</button>   <button class="btn btn-danger" @click="requestClusterId(clusterEditModalData['selectedSmiles']);">Re-cluster</button>   <button class="btn btn-danger" @click="openModal('settings');">Cluster Settings</button></h3>
+        <h3>Editing <button class="btn btn-danger" @click="clusterEditModalDecGroupID();"><i class="fas fa-less-than"></i></button> Cluster #%% clusterEditModalData['group_id'] %% <button class="btn btn-danger" @click="clusterEditModalIncGroupID();"><i class="fas fa-greater-than"></i></button>   <button class="btn btn-danger" @click="openAddNewPrecursorModal(clusterEditModalData['selectedSmiles'], clusterEditModalData['group_id']);">Add precursor</button>   <button class="btn btn-danger" @click="requestClusterId(clusterEditModalData['selectedSmiles']);">Re-cluster</button>   <button class="btn btn-danger" @click="openModal('settings');">Cluster Settings</button></h3>
     </div>
     <div slot="body" class="text-left popout-scroll">
         <div class="scroll-list-x">
@@ -289,11 +289,11 @@
                                     </tr>
                                     <tr>
                                         <td># Examples</td>
-                                        <td>%% res.num_examples %%</td>
+                                        <td>%% num2str(res.num_examples) %%</td>
                                     </tr>
                                     <tr>
                                         <td>Plausibility</td>
-                                        <td>%% res.plausibility.toFixed(3) %%</td>
+                                        <td>%% num2str(res.plausibility, 3) %%</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -318,11 +318,11 @@
         <div class="scroll-list-x">
             <div class="grid-wrapper-onerow">
         <template v-for="res in clusteredResults[selected.smiles]">
-            <div class="card" style="position: relative; pointer-events: all" @drop="clusteredit_drop_handler(res[0], $event);" ondragover="clusteredit_dragover_handler(event);" ondragenter="clusteredit_dragenter_handler(event);" ondragleave="clusteredit_dragleave_handler(event);">
+            <div class="card" style="position: relative; pointer-events: all" @drop="clusteredit_drop_handler(res[0], $event);" ondragover="clusteredit_dragover_handler(event);" ondragenter="clusteredit_dragenter_handler(event);" ondragleave="clusteredit_dragleave_handler(event);" @click="clusterEditModalData['group_id'] = res[0].group_id;$forceUpdate();">
                 <div class="container-fluid nopointer">
                     <h3 class="nonselectable nopointer">Reaction cluster %% res[0].group_id %%</h3>
                     <div class="row nopointer">
-                        <div class="col-xs-12 nopointer">
+                        <!--div class="col-xs-12 nopointer">
                             <table class="table table-condensed table-bordered nonselectable nopointer">
                                 <tbody>
                                     <tr>
@@ -331,29 +331,29 @@
                                     </tr>
                                     <tr>
                                         <td># Examples</td>
-                                        <td>%% res[0].num_examples %%</td>
+                                        <td>%% num2str(res[0].num_examples) %%</td>
                                     </tr>
                                     <tr>
                                         <td>Plausibility</td>
-                                        <td>%% res[0].plausibility.toFixed(3) %%</td>
+                                        <td>%% num2str(res[0].plausibility, 3) %%</td>
                                     </tr>
                                 </tbody>
                             </table>
-                        </div>
+                        </div-->
                         <div class="col-xs-10 nopointer">
                             <img v-bind:src="'/draw/smiles/'+encodeURIComponent(res[0].smiles)" style="max-width: 100%; pointer-events: none;" draggable="false" ondragstart="disable_dragstart_handler(event);"/>
                         </div>
-                        <div class="row nopointer" style="position: absolute; bottom:0; right:0px;">
+                        <!--div class="row nopointer" style="position: absolute; bottom:0; right:0px;">
                             <div class="col-xs-2 nopointer">
                                 <button class="btn btn-danger" style="pointer-events: all;" @click="clusterEditModalData['group_id'] = res[0].group_id;$forceUpdate();"><i class="fa fa-th-large nopointer"></i></button>
                             </div>
-                        </div>
+                        </div-->
                     </div>
                 </div>
             </div>
         </template>
         <div class="card" style="position: relative; pointer-events: all" @drop="clusteredit_drop_handler_newcluster($event);" ondragover="clusteredit_dragover_handler(event);" ondragenter="clusteredit_dragenter_handler(event);" ondragleave="clusteredit_dragleave_handler(event);">
-            <button class="btn btn-danger center" @click="openAddNewPrecursorModal(clusterEditModalData['selectedSmiles'], clusterEditModalData['group_id']);"><i class="fas fa-plus-square fa-8x nopointer"></i></button>
+            <button class="btn btn-danger center" @click="openAddNewPrecursorModal();"><i class="fas fa-plus-square fa-8x nopointer"></i></button>
         </div>
             </div>
         </div>
@@ -383,7 +383,7 @@
             <div class="form-group">
                 Group:
                 <select v-model="addNewPrecursorModal['group_id']" class="form-control">
-                    <option value="undefined">New group</option>
+                    <option value="undefined">New cluster</option>
                     <option v-for="idx in clusteredResultsIndex[addNewPrecursorModal['selected']]" :value="idx.toString()">%% idx %%</option>
                 </select>
             </div>
@@ -433,7 +433,7 @@
                                                     <option value="plausibility">Plausibility</option>
                                                 </select>
                                                 Group similar <input type="checkbox" ref="allowCluster" v-model="allowCluster" {{ allowCluster }}/>
-                                                <button class="btn btn-danger"  @click="openClusterEditModal(selected)">Edit groups</button>
+                                                <button class="btn btn-danger"  @click="openClusterEditModal(selected)">Edit groups</button> <button class="btn btn-danger" @click="openAddNewPrecursorModal(clusterEditModalData['selectedSmiles'], undefined);">Add precursor</button>
                                             </div>
                                         </div>
                                     </div>
@@ -448,7 +448,7 @@
                 <div class="form-group">
                 Add top
                 <input type="number" class="form-control text-center" style="width: 50px;" v-model.number="reactionLimit">
-                results to the graph visualization
+                %% allowCluster ? 'clusters' : 'precursors' %% to the graph visualization
                 </div>
             </div>
         </template>
@@ -473,19 +473,19 @@
                                                 </tr>
                                                 <tr>
                                                     <td>Score</td>
-                                                    <td>%% res.score.toFixed(3) %%</td>
+                                                    <td>%% num2str(res.score, 3) %%</td>
                                                 </tr>
                                                 <tr>
                                                     <td># Examples</td>
-                                                    <td>%% res.num_examples %%</td>
+                                                    <td>%% num2str(res.num_examples, 3) %%</td>
                                                 </tr>
                                                 <tr>
                                                     <td>Template score</td>
-                                                    <td>%% res.template_score.toFixed(3) %%</td>
+                                                    <td>%% num2str(res.template_score, 3) %%</td>
                                                 </tr>
                                                 <tr>
                                                     <td>Plausibility</td>
-                                                    <td>%% res.plausibility.toFixed(3) %%</td>
+                                                    <td>%% num2str(res.plausibility, 3) %%</td>
                                                 </tr>
                                                 <tr>
                                                     <td>Reaction cluster</td>
@@ -527,19 +527,19 @@
                                         </tr>
                                         <tr>
                                             <td>Score</td>
-                                            <td>%% res.score.toFixed(3) %%</td>
+                                            <td>%% num2str(res.score, 3) %%</td>
                                         </tr>
                                         <tr>
                                             <td># Examples</td>
-                                            <td>%% res.num_examples %%</td>
+                                            <td>%% num2str(res.num_examples) %%</td>
                                         </tr>
                                         <tr>
                                             <td>Template score</td>
-                                            <td>%% res.template_score.toFixed(3) %%</td>
+                                            <td>%% num2str(res.template_score, 3) %%</td>
                                         </tr>
                                         <tr>
                                             <td>Plausibility</td>
-                                            <td>%% res.plausibility.toFixed(3) %%</td>
+                                            <td>%% num2str(res.plausibility, 3) %%</td>
                                         </tr>
                                         <tr>
                                             <td>Reaction cluster</td>
