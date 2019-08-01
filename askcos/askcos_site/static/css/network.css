@@ -200,12 +200,12 @@ transform: translate(-50%, -50%) !important;
 
 .modal-wrapper {
   display: table-cell;
-  vertical-align: middle;
+  vertical-align: top;
 }
 
 .modal-container {
   width: 75%;
-  margin: 0px auto;
+  margin: 20px auto;
   padding: 20px 30px;
   background-color: #fff;
   border-radius: 2px;
