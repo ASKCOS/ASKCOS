@@ -4,14 +4,6 @@
 
 <html lang="en">
 <head>
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-28798435-4"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'UA-28798435-4');
-    </script>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>{% block title %}ASKCOS{% endblock %}</title>
     <!-- Bootstrap -->
@@ -99,12 +91,13 @@
                     </ul>
                 </li>
 
+                {% if user.is_authenticated %}
                 <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span class="glyphicon glyphicon-cloud"></span> My Results
                     <span class="caret"></span></a>
                     <ul class="dropdown-menu">
                         <li><a href="#" id="savepage">Save this page</a></li>
-                        <li><a href="{% url 'user_saved_results' %}">View saved pages</a></li>
+                        <li><a href="/my-results/">View results</a></li>
                     </ul>
                 </li>
 
@@ -116,6 +109,7 @@
                         <li><a href="{% url 'user_blacklisted_chemicals' %}">View banned chemicals</a></li>
                     </ul>
                 </li>
+                {% endif %}
 
                 <li><a href="/status/"><span class="glyphicon glyphicon-tasks"></span> Server Status</a></li>
 
@@ -128,15 +122,15 @@
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span class="glyphicon glyphicon-cog"></span> Settings
                     <span class="caret"></span></a>
                     <ul class="dropdown-menu">
-                        <li><a href="/registration/password/change/">Change password</a></li>
-                        <li><a href="{% url 'auth_logout' %}">Logout</a></li>
+                        <li><a href="{% url 'password_change' %}">Change password</a></li>
+                        <li><a href="{% url 'logout' %}">Logout</a></li>
                     </ul>
                 </li>
             </ul>
             {% else %}
             <ul class="nav navbar-nav navbar-right">
-                <li><a href="/registration/register/"><span class="glyphicon glyphicon-user"></span> Register</a></li>
-                <li><a href="{% url 'auth_login' %}?next={{ request.path }}"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
+                <li><a href="{% url 'django_registration_register' %}"><span class="glyphicon glyphicon-user"></span> Register</a></li>
+                <li><a href="{% url 'login' %}?next={{ request.path }}"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
             </ul>
             {% endif %}
         </div>
@@ -166,7 +160,7 @@
         <footer class="footer">
             <div class="container">
                 {% block footer %}
-                ASKCOS v0.3.0 Copyright &copy; 2019,
+                ASKCOS v{{ version_number }} Copyright &copy; 2019,
                 Created using <a href="http://www.djangoproject.com/">Django</a>.
                 <!--
                 Secret changelog!
@@ -181,7 +175,8 @@
                 - v0.2.1 was released with new server
                 - v0.2.2 was released with docker deployment
                 - v0.2.3 was released with small bugfixes and feature introduction
-                - v0.3.0 was release with interactive path planner and API
+                - v0.3.0 was released with interactive path planner and API
+                - v0.3.1 was released with asynchronous tree builder jobs
                  -->
                 {% endblock %}
             </div>
@@ -196,7 +191,7 @@
       <label for="support-module">Select Module: </label>
       <select id="support-module" class="form-control">
         <option value="onestep">One-step Retrosynthesis</option>
-        <option value="context">Interactive Path Planning</option>
+        <option value="pathplanner">Interactive Path Planning</option>
         <option value="treebuilder">Tree Builder</option>
         <option value="context">Context Recommendation</option>
         <option value="forward">Forward Prediction</option>

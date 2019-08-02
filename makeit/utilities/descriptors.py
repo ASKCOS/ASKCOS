@@ -6,45 +6,57 @@ import rdkit.Chem.rdPartialCharges as rdPartialCharges
 import rdkit.Chem.rdChemReactions as rdRxns
 from makeit.utilities.atoms import atom_dftb
 from makeit.utilities.io.logger import MyLogger
-import rdkit.Chem as Chem 
+import rdkit.Chem as Chem
 descriptors_loc = 'descriptors'
 
 att_dtype = np.float32
 
 def oneHotVector(val, lst):
-	'''Converts a value to a one-hot vector based on options in lst'''
+	"""Converts a value to a one-hot vector based on options in lst.
+
+	Args:
+		val: Value to be one-hot encoded.
+		lst (list): Options to encode against.
+
+	Returns:
+		list of bool: One-hot vector.
+	"""
 	if val not in lst:
 		val = lst[-1]
 	return list(map(lambda x: x == val, lst))
 
 def rxn_level_descriptors(rxn):
-	'''
-	Given an RDKit reaction, returns a reaction fingerprint as a numpy array
+	"""Returns a reaction fingerprint as a numpy array.
+
 	**for very basic testing**
-	'''
+
+	Args:
+		rxn (rdRxns.ChemicalReaction): Reaction to get fingerprint of.
+	"""
 	settings = rdRxns.ReactionFingerprintParams()
 	return np.array(rdRxns.CreateStructuralFingerprintForReaction(rxn, settings))
 
 # def mol_level_descriptors(mol):
-# 	'''
-# 	Given an RDKit mol, returns a list of molecule-level descriptors 
+# 	"""
+# 	Given an RDKit mol, returns a list of molecule-level descriptors
 # 	and their names
 
 # 	returns: (labels, attributes)
-# 	'''
-	
+# 	"""
+
 # 	labels = [label for (label, f) in Descriptors._descList]
 # 	attributes = [f(mol) for (label, f) in Descriptors._descList]
-	
+
 # 	return (labels, attributes)
 
 def atom_level_descriptors(mol, include = ['functional'], asOneHot = False, ORIGINAL_VERSION = False):
-	'''
+	"""
 	Given an RDKit mol, returns an N_atom-long list of lists,
 	each of which contains atom-level descriptors and their names
 
-	returns: (label, attributes)
-	'''
+	Returns:
+		(labels, attributes)
+	"""
 
 	attributes = [[] for i in mol.GetAtoms()]
 	labels = []
@@ -88,7 +100,7 @@ def atom_level_descriptors(mol, include = ['functional'], asOneHot = False, ORIG
 		for i in range(len(attributes)):
 			if np.isnan(attributes[i][-1]):
 				attributes[i][-1] = 0.0
-	
+
 	if 'structural' in include:
 		[attributes[i].extend(atom_structural(mol.GetAtomWithIdx(i), asOneHot = asOneHot, ORIGINAL_VERSION = ORIGINAL_VERSION)) \
 			for i in range(len(attributes))]
@@ -100,7 +112,7 @@ def atom_level_descriptors(mol, include = ['functional'], asOneHot = False, ORIG
 		except ValueError as e:# often, an invalid element
 			print(e)
 			dftb_atom_atts = [[0 for i in range(18)] for j in range(mol.GetNumAtoms())]
-		except KeyError as e: 
+		except KeyError as e:
 			print(e)
 			dftb_atom_atts = [[0 for i in range(18)] for j in range(mol.GetNumAtoms())]
 		[attributes[i].extend(dftb_atom_atts[i]) for i in range(mol.GetNumAtoms())]
@@ -110,16 +122,16 @@ def atom_level_descriptors(mol, include = ['functional'], asOneHot = False, ORIG
 
 
 def bond_structural(bond, asOneHot = False, extraOne = False):
-	'''
+	"""
 	Returns a numpy array of attributes for an RDKit bond
 	- Bond type as double
 	- If bond is aromatic
 	- If bond is conjugated
 	- If bond is in ring
-	'''
+	"""
 
 	# Redefine oneHotVector function
-	if not asOneHot: 
+	if not asOneHot:
 		oneHotVectorFunc = lambda x: x[0]
 	else:
 		oneHotVectorFunc = oneHotVector
@@ -144,7 +156,7 @@ def bond_structural(bond, asOneHot = False, extraOne = False):
 	return np.array(attributes, dtype = att_dtype)
 
 def atom_structural(atom, asOneHot = False, ORIGINAL_VERSION = False):
-	'''
+	"""
 	Returns a numpy array of attributes for an RDKit atom
 	- atomic number
 	- number of heavy neighbors
@@ -152,9 +164,9 @@ def atom_structural(atom, asOneHot = False, ORIGINAL_VERSION = False):
 	- formal charge
 	- is in a ring
 	- is aromatic
-	'''
+	"""
 	# Redefine oneHotVector function
-	if not asOneHot: 
+	if not asOneHot:
 		oneHotVectorFunc = lambda x: x[0]
 	else:
 		oneHotVectorFunc = oneHotVector
@@ -165,7 +177,7 @@ def atom_structural(atom, asOneHot = False, ORIGINAL_VERSION = False):
 
 	if ORIGINAL_VERSION: # F_atom = 32 mode
 		attributes += oneHotVectorFunc(
-			atom.GetAtomicNum(), 
+			atom.GetAtomicNum(),
 			[5, 6, 7, 8, 9, 15, 16, 17, 35, 53, 999]
 		)
 		attributes += oneHotVectorFunc(
@@ -181,10 +193,10 @@ def atom_structural(atom, asOneHot = False, ORIGINAL_VERSION = False):
 		attributes.append(atom.GetIsAromatic())
 		return np.array(attributes, dtype = att_dtype)
 
-	
+
 	# Add atomic number (todo: finish)
 	attributes += oneHotVectorFunc(
-		atom.GetAtomicNum(), 
+		atom.GetAtomicNum(),
 		[3, 5, 6, 7, 8, 9, 11, 12, 14, 15, 16, 17, 35, 53, 999]
 	)
 	# Add heavy neighbor count
@@ -230,10 +242,10 @@ def edit_vector_lengths():
 	return {'atoms': F_atom, 'bonds': F_bond}
 
 def edits_to_vectors(edits, mol, atom_desc_dict = {}, return_atom_desc_dict = False, ORIGINAL_VERSION = False, include = ['functional', 'structural']):
-	'''
+	"""
 	Given a set of edits (h_lost, h_gain, bond_lost, and bond_gain) from summarize_reaction_outcome,
 	this function returns a set of vectors describing those edits.
-	'''
+	"""
 
 	if not atom_desc_dict:
 		atom_descriptors = atom_level_descriptors(mol, include = include, asOneHot = True, ORIGINAL_VERSION = ORIGINAL_VERSION)[1]
@@ -243,28 +255,28 @@ def edits_to_vectors(edits, mol, atom_desc_dict = {}, return_atom_desc_dict = Fa
 
 	# h_lost, h_gain, bond_lost, bond_gain = edits
 	return (
-		[atom_desc_dict[molAtomMapNumber] for molAtomMapNumber in edits[0]], 
-		[atom_desc_dict[molAtomMapNumber] for molAtomMapNumber in edits[1]], 
+		[atom_desc_dict[str(molAtomMapNumber)] for molAtomMapNumber in edits[0]], 
+		[atom_desc_dict[str(molAtomMapNumber)] for molAtomMapNumber in edits[1]], 
 		[
-		atom_desc_dict[molAtomMapNumber1] + 
-		oneHotVector(bondOrder, [1.0, 1.5, 2.0, 3.0]) + 
+		atom_desc_dict[molAtomMapNumber1] +
+		oneHotVector(bondOrder, [1.0, 1.5, 2.0, 3.0]) +
 		atom_desc_dict[molAtomMapNumber2] \
 			for (molAtomMapNumber1, molAtomMapNumber2, bondOrder) in edits[2]
 		],
 		[
-		atom_desc_dict[molAtomMapNumber1] + 
-		oneHotVector(bondOrder, [1.0, 1.5, 2.0, 3.0]) + 
+		atom_desc_dict[molAtomMapNumber1] +
+		oneHotVector(bondOrder, [1.0, 1.5, 2.0, 3.0]) +
 		atom_desc_dict[molAtomMapNumber2] \
 			for (molAtomMapNumber1, molAtomMapNumber2, bondOrder) in edits[3]
 		]
 	)
 
 def edits_to_tensor(candidate_edits, reactants, atom_desc_dict):
-	
+
     Nc = len(candidate_edits)
     F_atom = edit_vector_lengths()['atoms']
     F_bond = edit_vector_lengths()['bonds']
-    
+
     if Nc == 0:
         MyLogger.print_and_log('No candidate products found at all...?', descriptors_loc, level= 2)
         return None
@@ -286,7 +298,7 @@ def edits_to_tensor(candidate_edits, reactants, atom_desc_dict):
     for c, (candidate_smiles, edits) in enumerate(candidate_edits):
         smiles.append(candidate_smiles)
         edit_h_lost_vec, edit_h_gain_vec, \
-            edit_bond_lost_vec, edit_bond_gain_vec = edits_to_vectors(edits, reactants, 
+            edit_bond_lost_vec, edit_bond_gain_vec = edits_to_vectors(edits, reactants,
                 atom_desc_dict=atom_desc_dict)
 
         for (e, edit_h_lost) in enumerate(edit_h_lost_vec):
@@ -308,9 +320,9 @@ def edits_to_tensor(candidate_edits, reactants, atom_desc_dict):
     x_bond_lost[np.isinf(x_bond_lost)] = 0.0
     x_bond_gain[np.isinf(x_bond_gain)] = 0.0
     return [x_h_lost, x_h_gain, x_bond_lost, x_bond_gain]
-'''
+"""
 def edits_to_tensor(edits, reactants, lenAtom = 43, lenBond = 90, atom_desc_dict = None):
-	
+
 	(edit_h_lost_vec, edit_h_gain_vec, edit_bond_lost_vec, edit_bond_gain_vec) = edits_to_vectors(edits, reactants, atom_desc_dict = atom_desc_dict)
 	x_h_lost = np.zeros((1, 1, len(edit_h_lost_vec), lenAtom))
 	x_h_gain = np.zeros((1, 1, len(edit_h_gain_vec), lenAtom))
@@ -335,6 +347,6 @@ def edits_to_tensor(edits, reactants, lenAtom = 43, lenBond = 90, atom_desc_dict
 	x_h_gain[np.isinf(x_h_gain)] = 0.0
 	x_bond_lost[np.isinf(x_bond_lost)] = 0.0
 	x_bond_gain[np.isinf(x_bond_gain)] = 0.0
-	
+
 	return [x_h_lost, x_h_gain, x_bond_lost, x_bond_gain]
-'''
+"""

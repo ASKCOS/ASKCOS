@@ -5,7 +5,7 @@
 
 {% block page_body %}
 <form method="post" action=".">
-  {% csrf_token %} 
+  {% csrf_token %}
   {{ form.as_p }}
 
   <input type="submit" value="{% trans 'Log in' %}" />
@@ -16,5 +16,5 @@
 {% if email_enabled %}
 <p><a href="{% url 'auth_password_reset' %}">{% trans "Forgot my password" %}</a></p>
 {% endif %}
-<p><a href="{% url 'registration_register' %}">{% trans "Register" %}</a></p>
+<p><a href="{% url 'django_registration_register' %}">{% trans "Register" %}</a></p>
 {% endblock %}

@@ -16,16 +16,32 @@ fast_filter_loc = 'fast_filter'
 
 
 class FastFilterScorer(Scorer):
+    """Fast filter to evaluate likelihood of reactions.
+
+    Attributes:
+        model (keras.engine.training.Model): Model used to evaluate reactions.
+    """
     def __init__(self):
+        """Initializes FastFilterScorer."""
         self.model = None
 
     def set_keras_backend(self, backend):
+        """Sets the Keras backend to a given backend.
+
+        Args:
+            backend (str): Backend to have Keras use.
+        """
         if K.backend() != backend:
             os.environ['KERAS_BACKEND'] = backend
             reload(K)
             assert K.backend() == backend
 
     def load(self, model_path):
+        """Loads model from a file.
+
+        Args:
+            model_path (str): Path to file specifying model.
+        """
         MyLogger.print_and_log('Starting to load fast filter', fast_filter_loc)
         self.model = load_model(model_path, custom_objects={
                                 'Highway_self': Highway_self, 'pos_ct': pos_ct, 'true_pos': true_pos, 'real_pos': real_pos})
@@ -33,6 +49,16 @@ class FastFilterScorer(Scorer):
         MyLogger.print_and_log('Done loading fast filter', fast_filter_loc)
 
     def evaluate(self, reactant_smiles, target, **kwargs):
+        """Evaluates likelihood of given reaction.
+
+        Args:
+            reactant_smiles (str): SMILES string of reactants.
+            target (str): SMILES string of target product.
+            **kwargs: Unused.
+
+        Returns:
+            A list of reaction outcomes.
+        """
         # Strip chirality
         # rmol = Chem.MolFromSmiles(reactant_smiles)
         # pmol = Chem.MolFromSmiles(target)
@@ -60,6 +86,17 @@ class FastFilterScorer(Scorer):
         return all_outcomes
 
     def filter_with_threshold(self, reactant_smiles, target, threshold):
+        """Filters reactions based on a score threshold.
+
+        Args:
+            reactant_smiles (str): SMILES string of reactants.
+            target (str): SMILES string of target product.
+            threshold (float): Value scores must be above to pass filter.
+
+        Returns:
+            2-tuple of (np.ndarray of np.ndarray of np.bool, float): Whether the
+                reaction passed the filer and the score of the reaction.
+        """
         [pfp, rfp] = create_rxn_Morgan2FP_separately(
             reactant_smiles, target, rxnfpsize=2048, pfpsize=2048, useFeatures=False)
         pfp = np.asarray(pfp, dtype='float32')

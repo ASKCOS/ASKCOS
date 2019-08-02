@@ -1,12 +1,20 @@
 import makeit.global_config as gc
-import rdkit.Chem as Chem          
+import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
 from makeit.utilities.io.logger import MyLogger
 reactants_loc = 'util.reactants'
 
 
 def clean_reactant_mapping(reactants):
-    if not reactants: 
+    """Remaps atoms for reactants.
+
+    Args:
+        reactants (Chem.Mol): Reactants to remap.
+
+    Returns:
+        Chem.Mol: Reactants with remapped atoms.
+    """
+    if not reactants:
         MyLogger.print_and_log('Could not parse reactants {}'.format(reactants),reactants_loc)
         raise ValueError('Could not parse reactants')
     if gc.DEBUG: print('Number of reactant atoms: {}'.format(len(reactants.GetAtoms())))

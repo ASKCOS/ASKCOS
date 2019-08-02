@@ -1,9 +1,9 @@
-'''
+"""
 The role of a context_worker is to take in an attempted reaction and return
 a set of conditions to (try to) run the reaction in. Each worker will
 load a pre-trained neural network model. For each request, this worker
 must query the database to get details about the instance.
-'''
+"""
 
 from __future__ import absolute_import, unicode_literals, print_function
 from django.conf import settings
@@ -41,10 +41,11 @@ def configure_worker(options={}, **kwargs):
 
 @shared_task
 def get_n_conditions(*args, **kwargs):
-    '''Retrieve a context recommendation given the reaction to attempt.
+    """Retrieve a context recommendation given the reaction to attempt.
 
-    rxn = [reacants, products], where each is a list of SMILES
-    n = number of contexts to return'''
+    rxn = [reacants, products], Where each is a list of SMILES.
+    n = Number of contexts to return.
+    """
 
     print('Context recommender worker got a request: {}, {}'.format(args, kwargs))
     res = recommender.get_n_conditions(*args, **kwargs)

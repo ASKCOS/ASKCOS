@@ -1,10 +1,10 @@
-'''
-Module meant to work with DFTB+ for calculating atom-level descriptors
-'''
+"""
+Module meant to work with DFTB+ for calculating atom-level descriptors.
+"""
 
 import os
 import subprocess
-import rdkit.Chem as Chem 
+import rdkit.Chem as Chem
 import rdkit.Chem.AllChem as AllChem
 
 dftb_root = os.path.join(os.path.dirname(__file__), 'dftbplus-1.3.0.x86_64-linux')
@@ -52,19 +52,19 @@ ParserOptions {
 
 # Max angular momenta
 L_max = {
-    'Br' : 'd',    
+    'Br' : 'd',
     'Mg' : 'p',
-    'C'  : 'p',    
+    'C'  : 'p',
     'N'  : 'p',
-    'Ca' : 'p',    
+    'Ca' : 'p',
     'Na' : 'p',
-    'Cl' : 'd',    
+    'Cl' : 'd',
     'O'  : 'p',
-    'F'  : 'p',    
+    'F'  : 'p',
     'P'  : 'p',
-    'H'  : 's',    
+    'H'  : 's',
     'S'  : 'd',
-    'I'  : 'd',    
+    'I'  : 'd',
     'Zn' : 'd',
     'K'  : 'p',
 }
@@ -73,7 +73,7 @@ def make_input_files(mol, charge = 0.0):
 
     new_mol = AllChem.AddHs(mol)
     new_mol = replace_invalid_atoms(new_mol)
-    
+
     symbols = list(set([a.GetSymbol() for a in new_mol.GetAtoms()]))
     num_atoms = len(new_mol.GetAtoms())
 
@@ -85,7 +85,7 @@ def make_input_files(mol, charge = 0.0):
             fid.write('{} C\n'.format(num_atoms))
             fid.write('  {}\n'.format(' '.join(symbols)))
             for (i, a) in enumerate(new_mol.GetAtoms()):
-                fid.write('%i\t%i\t%f\t%f\t%f\n' % (i + 1, symbols.index(a.GetSymbol()) + 1, 
+                fid.write('%i\t%i\t%f\t%f\t%f\n' % (i + 1, symbols.index(a.GetSymbol()) + 1,
                     conf.GetAtomPosition(a.GetIdx()).x, conf.GetAtomPosition(a.GetIdx()).y, conf.GetAtomPosition(a.GetIdx()).z))
 
     maxangularmomentum = ''
@@ -105,7 +105,7 @@ def make_input_files(mol, charge = 0.0):
     return new_mol
 
 def read_results(mol, new_mol, energylabel = 'energy', chargelabel = 'dftbCharge', Hchargelabel = 'dftbHCharge'):
-    '''given the results file of a DFTB+ calculation, add charges to mol'''
+    """given the results file of a DFTB+ calculation, add charges to mol"""
 
     # Results "atom num" is 1 + AtomIdx for the RDKit object
 
@@ -139,7 +139,7 @@ def read_results(mol, new_mol, energylabel = 'energy', chargelabel = 'dftbCharge
             # Skip "Net atomic charge" line and header line
             if skip_for_charges < 2:
                 skip_for_charges += 1
-                continue 
+                continue
             line_split = [x for x in line.strip().split(' ') if x]
 
             # Done with charge table?
@@ -167,12 +167,12 @@ def read_results(mol, new_mol, energylabel = 'energy', chargelabel = 'dftbCharge
 
 
 def replace_invalid_atoms(new_mol):
-    '''
+    """
     Because DFTB+ only has parameters for some elements, we need to replace others
-    to trick the solver into working'''
+    to trick the solver into working"""
 
     for a in new_mol.GetAtoms():
-        if a.GetSymbol() in L_max: continue 
+        if a.GetSymbol() in L_max: continue
         if a.GetAtomicNum() in range(21, 31) or a.GetAtomicNum() in range(39, 49): # transition metals
             a.SetAtomicNum(30) # zinc
         elif a.GetAtomicNum() == 3: # lithium
@@ -185,7 +185,7 @@ def replace_invalid_atoms(new_mol):
 
 
 def atom_dftb(mol, v = False, to_file = False):
-    '''Given a molecule, run a DFTB calculation and get descriptors'''
+    """Given a molecule, run a DFTB calculation and get descriptors"""
 
     attributes = [[] for i in range(mol.GetNumAtoms())]
 
@@ -247,7 +247,7 @@ def atom_dftb(mol, v = False, to_file = False):
             a.SetDoubleProp(label + 'Fukui_rad', a.GetDoubleProp('Fukui_rad') * coeff)
             a.SetDoubleProp(label + 'Fukui', a.GetDoubleProp('Fukui') * coeff)
 
-    
+
     cols = [
         #'_GasteigerCharge',
         #'_GasteigerHCharge',
@@ -272,7 +272,7 @@ def atom_dftb(mol, v = False, to_file = False):
     ]
 
     if to_file:
-        with open(os.path.join(os.path.dirname(dftb_root), '{}.dat'.format(smiles)), 'w') as fid: 
+        with open(os.path.join(os.path.dirname(dftb_root), '{}.dat'.format(smiles)), 'w') as fid:
             fid.write('SMILES\t{}\n'.format(smiles))
             fid.write('Energy\t{}\n'.format(mol.GetDoubleProp('energy')))
             fid.write('IP\t{}\n'.format(IP))
@@ -300,7 +300,7 @@ if __name__ == '__main__':
     while True:
         smiles = raw_input('Enter smiles: ')
         mol = Chem.MolFromSmiles(smiles)
-        if not mol: continue 
+        if not mol: continue
 
 
         attributes = atom_dftb(mol, v = False, to_file = False)
