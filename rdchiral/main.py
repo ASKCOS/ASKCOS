@@ -7,7 +7,7 @@ import rdkit.Chem as Chem
 import rdkit.Chem.AllChem as AllChem
 from rdkit.Chem.rdchem import ChiralType, BondType, BondDir
 
-from rdchiral.utils import vprint, PLEVEL
+from rdchiral.utils import vprint, PLEVEL, atoms_are_different
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 from rdchiral.chiral import template_atom_could_have_been_tetra, copy_chirality,\
     atom_chirality_matches
@@ -75,7 +75,7 @@ def rdchiralRunText(reaction_smarts, reactant_smiles, **kwargs):
     reactants = rdchiralReactants(reactant_smiles)
     return rdchiralRun(rxn, reactants, **kwargs)
 
-def rdchiralRun(rxn, reactants, keep_isotopes=False, combine_enantiomers=True):
+def rdchiralRun(rxn, reactants, keep_isotopes=False, combine_enantiomers=True, return_mapped=False):
     '''
     rxn = rdchiralReaction (rdkit reaction + auxilliary information)
     reactants = rdchiralReactants (rdkit mol + auxilliary information)
@@ -101,6 +101,8 @@ def rdchiralRun(rxn, reactants, keep_isotopes=False, combine_enantiomers=True):
     # Initialize, now that there is at least one outcome
 
     final_outcomes = set()
+    mapped_outcomes = {}
+
     # We need to keep track of what map numbers 
     # (i.e., isotopes) correspond to which atoms
     # note: all reactant atoms must be mapped, so this is safe
@@ -447,6 +449,11 @@ def rdchiralRun(rxn, reactants, keep_isotopes=False, combine_enantiomers=True):
                     print('Uh oh, looks like bond direction is only specified for half of this bond?')
 
         ###############################################################################
+        #Keep track of the reacting atoms for later use in grouping
+        atoms_diff = {x:atoms_are_different(atoms_r[x],atoms_p[x]) for x in atoms_rt}
+        #make tuple of changed atoms
+        atoms_changed = tuple([x for x in atoms_diff.keys() if atoms_diff[x] == True])
+        mapped_outcome = Chem.MolToSmiles(outcome, True)
 
         if not keep_isotopes:
             [a.SetIsotope(0) for a in outcome.GetAtoms()]
@@ -476,6 +483,7 @@ def rdchiralRun(rxn, reactants, keep_isotopes=False, combine_enantiomers=True):
             continue
 
         final_outcomes.add(smiles_new)
+        mapped_outcomes[smiles_new] = (mapped_outcome, atoms_changed)
 
     ###############################################################################
     # One last fix for consolidating multiple stereospecified products...
@@ -483,18 +491,25 @@ def rdchiralRun(rxn, reactants, keep_isotopes=False, combine_enantiomers=True):
         final_outcomes = combine_enantiomers_into_racemic(final_outcomes)
     ###############################################################################
 
-    return list(final_outcomes)
+    if return_mapped:
+        return list(final_outcomes), mapped_outcomes
+    else:
+        return list(final_outcomes)
 
 
 if __name__ == '__main__':
+    # Directly use SMILES/SMARTS
     reaction_smarts = '[C:1][OH:2]>>[C:1][O:2][C]'
-    reactant_smiles = 'CC(=O)OCCCO'
+    reactant_smiles = 'OCC(=O)OCCCO'
     outcomes = rdchiralRunText(reaction_smarts, reactant_smiles)
     print(outcomes)
 
-    PLEVEL = 5
-    reaction_smarts = '[#7:1]-[C:2](=[O;D1;H0:3])-[CH;@;D3;+0:4]1-[CH2;D2;+0:5]-[CH;@;D3;+0:9](-[C:7](-[#8:6])=[O;D1;H0:8])-[NH;D2;+0:10]-[CH;@;D3;+0:11]-1-[c:12]>>[#7:1]-[C:2](=[O;D1;H0:3])-[CH;D2;+0:4]=[CH2;D1;+0:5].[#8:6]-[C:7](=[O;D1;H0:8])-[CH2;D2;+0:9]/[N;H0;D2;+0:10]=[CH;D2;+0:11]/[c:12]'
-    reactant_smiles = 'CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1'
-    outcomes = rdchiralRunText(reaction_smarts, reactant_smiles)
+    # Pre-initialize
+    rxn = rdchiralReaction(reaction_smarts)
+    reactants = rdchiralReactants(reactant_smiles)
+    outcomes = rdchiralRun(rxn, reactants)
     print(outcomes)
-    print('### IF NO OUTCOMES WERE GENERATED, POSSIBLY HAVE INCOMPATIBLE VERSION OF RDKIT')
+
+    # Get list of atoms that changed as well
+    outcomes, mapped_outcomes = rdchiralRun(rxn, reactants, return_mapped=True)
+    print(outcomes, mapped_outcomes)

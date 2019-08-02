@@ -72,6 +72,8 @@ class RetroResult:
                 'template_score': float(precursor.template_score),
                 'necessary_reagent': precursor.necessary_reagent,
                 'plausibility': precursor.plausibility,
+                'reacting_atoms':  precursor.reacting_atoms,
+                'mapped_smiles' : precursor.mapped_smiles
             })
             if i + 1 == n:
                 break
@@ -87,6 +89,10 @@ class RetroPrecursor:
         retroscore (float): Prioritization score of this precursor.
         num_examples (int): Number of the precursor's templates appear.
         smiles_list (list of str): SMILES strings of the precursor.
+        mapped_smiles (list of str, optional): SMILES string that are mapped
+                by rdchiral using isotopes.
+        reacting_atoms (list of int, optional): List of the changing atoms
+                that correspond to the isotope mapping in mapped_smiles.
         template_ids (set of str): IDs of the templates used to find this
             precursor.
         template_score (float): Maximum prioritization score of the templates
@@ -96,12 +102,17 @@ class RetroPrecursor:
         plausibility (float): Plausibility assigned to successful reaction.
     """
 
-    def __init__(self, smiles_list=[], template_id=-1, template_score=1, num_examples=0, necessary_reagent='', plausibility=1.0):
+    def __init__(self, smiles_list=[], mapped_smiles =[], reacting_atoms=[], template_id=-1, template_score=1, num_examples=0, necessary_reagent='', plausibility=1.0):
         """Initializes RetroPrecursor.
 
         Args:
             smiles_list (list of str, optional): SMILES strings of the
                 precursor. (default: {[]})
+            mapped_smiles (list of str, optional): SMILES string that are mapped
+                by rdchiral using isotopes. (default: {[]})
+            reacting_atoms (list of int, optional): List of the changing atoms
+                that correspond to the isotope mapping in mapped_smiles.
+                (default: {[]})
             template_id (int or str, optional): IDs of the templates used to
                 find this precursor. (default: {-1})
             template_score (float, optional): Maximum prioritization score of
@@ -116,6 +127,8 @@ class RetroPrecursor:
         self.retroscore = 0
         self.num_examples = num_examples
         self.smiles_list = smiles_list
+        self.mapped_smiles = mapped_smiles
+        self.reacting_atoms = reacting_atoms
         self.template_ids = set([template_id])
         self.template_score = template_score
         self.necessary_reagent = necessary_reagent
