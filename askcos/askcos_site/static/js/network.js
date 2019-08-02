@@ -1055,7 +1055,7 @@ var app = new Vue({
         },
         initClusterShowCard: function(selected) {
             // always sort first
-            var reactionSorting = "score";
+            var reactionSorting = this.sortingCategory;
             this.results[selected].sort(function(a, b) {
                 var a_ = a[reactionSorting] == undefined ? 0 : a[reactionSorting];
                 var b_ = b[reactionSorting] == undefined ? 0 : b[reactionSorting];
@@ -1089,16 +1089,17 @@ var app = new Vue({
             }
         },
         groupPrecursors: function(precursors) {
-            var grouped = {}
-            for (precursor of precursors) {
+            var grouped = {};
+            for (let i = 0; i < precursors.length; i++) {
+                var precursor = precursors[i];
                 if (grouped[precursor.group_id]) {
-                    grouped[precursor.group_id].push(precursor)
+                    grouped[precursor.group_id].push(precursor);
                 }
                 else {
-                    grouped[precursor.group_id] = new Array(precursor)
+                    grouped[precursor.group_id] = new Array(precursor);
                 }
             }
-            return grouped
+            return grouped;
         },
         requestClusterId: function(selected) {
             var all_smiles = [];
