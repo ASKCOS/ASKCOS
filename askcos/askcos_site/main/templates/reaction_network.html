@@ -233,13 +233,6 @@
         <button class="btn btn-light" @click="clusterPopoutModalDecGroupID();"><i class="fas fa-less-than"></i></button>
         Cluster #%% clusterPopoutModalData['group_id']+1 %%
         <button class="btn btn-light" @click="clusterPopoutModalIncGroupID();"><i class="fas fa-greater-than"></i></button>
-        &nbsp;&nbsp;
-        <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); closeClusterPopoutModal();">Edit clusters</button>
-        <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button>
-        Score: <input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showScore"/>
-        # Examples: <input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showNumExample"/>
-        Template score: <input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showTemplateScore"/>
-        Plausibility: <input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showPlausibility"/>
         </h3>
     </div>
     <div slot="body" class="text-left">
@@ -297,6 +290,14 @@
             </div>
         </div>
     </div>
+    <div class="mx-auto" slot="footer">
+        <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button>
+        <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); closeClusterPopoutModal();">Edit clusters</button>
+        &nbsp;<input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showScore"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck">Score</label>
+        &nbsp;<input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showNumExample"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck"># Examples</label>
+        &nbsp;<input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showTemplateScore"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck">Template score</label>
+        &nbsp;<input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showPlausibility"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck">Plausibility</label>
+    </div>
 </modal>
 
 <modal v-if="showClusterEditModal" @close="closeClusterEditModal();">
@@ -306,13 +307,6 @@
         <button class="btn btn-light" @click="clusterEditModalDecGroupID();"><i class="fas fa-less-than"></i></button>
         Cluster #%% clusterEditModalData['group_id']+1 %%
         <button class="btn btn-light" @click="clusterEditModalIncGroupID();"><i class="fas fa-greater-than"></i></button>
-        <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterEditModalData['selectedSmiles'], clusterEditModalData['group_id']);">Add precursor</button>
-        <button class="btn btn-danger" @click="requestClusterId(clusterEditModalData['selectedSmiles']);">Re-cluster</button>
-        <button class="btn btn-light" @click="openModal('settings');">Cluster Settings</button>
-        Score: <input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showScore"/>
-        # Examples: <input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showNumExample"/>
-        Template score: <input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showTemplateScore"/>
-        Plausibility: <input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showPlausibility"/>
         </h3>
     </div>
     <div slot="body" class="text-left popout-scroll">
@@ -411,6 +405,15 @@
         </div>
             </div>
         </div>
+    </div>
+    <div class="mx-auto" slot="footer">
+        <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterEditModalData['selectedSmiles'], clusterEditModalData['group_id']);">Add precursor</button>
+        <button class="btn btn-danger" @click="requestClusterId(clusterEditModalData['selectedSmiles']);">Re-cluster</button>
+        <button class="btn btn-light" @click="openModal('settings');">Cluster Settings</button>
+        &nbsp;<input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showScore"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck">Score</label>
+        &nbsp;<input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showNumExample"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck"># Examples</label>
+        &nbsp;<input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showTemplateScore"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck">Template score</label>
+        &nbsp;<input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showPlausibility"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck">Plausibility</label>
     </div>
 </modal>
 
