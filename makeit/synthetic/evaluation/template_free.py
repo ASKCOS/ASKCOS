@@ -14,13 +14,35 @@ template_free_scorer_loc = 'template_free_scorer'
 
 
 class TemplateFreeNeuralNetScorer(Scorer):
+    """Template-free neural net evaluator.
 
+    Attributes:
+        model (makeit.synthetic.evaluation.rexgen_direct.predict.TFFP):
+            Template-free forward predictor.
+    """
     def __init__(self, **kwargs):
+        """Initializes TemplateFreeNeuralNetScorer.
+
+        Args:
+            **kwargs: Unused.
+        """
         from makeit.synthetic.evaluation.rexgen_direct.predict import TFFP
-        self.model = TFFP() 
+        self.model = TFFP()
 
     def evaluate(self, reactants_smiles, contexts=[(20,'','','','','')], **kwargs):
-        '''Evaluation does not use context, but left as dummy pos var'''
+        """Evaluates possible reaction outcomes for given reactants.
+
+        Evaluation does not use context, but left as dummy pos var.
+
+        Args:
+            reactants_smiles (list of str??): SMILES string of reactants.
+            contexts (list, optional): Unused.
+                (default: {[(20,'','','','','')]})
+            **kwargs: Additional optional parameters.
+
+        Returns:
+            list: Predicted reaction outcomes.
+        """
 
         all_outcomes = []
         for (T1, slvt1, rgt1, cat1, t1, y1) in contexts:
@@ -31,7 +53,7 @@ class TemplateFreeNeuralNetScorer(Scorer):
                 this_reactants_smiles += '.' + rgt1
             if cat1:
                 this_reactants_smiles += '.' + cat1
-            outcomes = self.model.predict(this_reactants_smiles, 
+            outcomes = self.model.predict(this_reactants_smiles,
                 top_n=kwargs.get('top_n', 1e10))
             if not outcomes:
                 all_outcomes.append([{
@@ -41,18 +63,18 @@ class TemplateFreeNeuralNetScorer(Scorer):
                     'prob': 0,
                     }])
                 continue
-             
+
             outcomes_to_ret = {}
             reactants_smiles_split = this_reactants_smiles.split('.')
             for outcome in outcomes:
                 smiles_list = set(outcome['smiles'].split('.'))
-                
+
                 # Canonicalize
                 smiles_canonical = set()
                 for smi in smiles_list:
                     mol = Chem.MolFromSmiles(smi)
                     if not mol:
-                        MyLogger.print_and_log('Template free evaluator could not reparse product {}'.format('.'.join(smiles_list)), 
+                        MyLogger.print_and_log('Template free evaluator could not reparse product {}'.format('.'.join(smiles_list)),
                         template_free_scorer_loc, 1)
                         continue
                     smiles_canonical.add(Chem.MolToSmiles(mol))
@@ -94,7 +116,7 @@ class TemplateFreeNeuralNetScorer(Scorer):
             all_outcomes.append(outcomes)
         # Return in lists as if we received a list of contexts
         return all_outcomes
-                
+
 
 if __name__ == '__main__':
     import sys

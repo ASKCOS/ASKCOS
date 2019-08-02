@@ -1,6 +1,5 @@
 from django.http import JsonResponse
 from makeit import global_config as gc
-from askcos_site.main.globals import RetroTransformer
 from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors as get_top_precursors_c
 
 TIMEOUT = 30
@@ -9,6 +8,7 @@ TIMEOUT_ALL = 60
 def singlestep(request):
     resp = {}
     resp['request'] = dict(**request.GET)
+    run_async = request.GET.get('async', False)
     target = request.GET.get('target')
     template_prioritization = request.GET.get('template_prioritization', gc.relevance)
     precursor_prioritization = request.GET.get('precursor_prioritization', gc.relevanceheuristic)
@@ -31,19 +31,24 @@ def singlestep(request):
         max_branching=max_branching,
         max_cum_prob=max_cum_prob
     )
-    
+
+    if run_async:
+        resp['id'] = res.id
+        resp['state'] = res.state
+        return JsonResponse(resp)
+
     if template_prioritization == gc.relevance:
         timeout = TIMEOUT
     else:
         timeout = TIMEOUT_ALL
-    
+
     try:
         (smiles, precursors) = res.get(timeout)
     except:
         resp['error'] = 'API request timed out (limit {}s)'.format(timeout)
         res.revoke()
         return JsonResponse(resp)
-    
+
     resp['precursors'] = precursors
     for precursor in precursors:
         precursor['templates'] = precursor.pop('tforms')

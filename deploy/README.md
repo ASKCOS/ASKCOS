@@ -10,46 +10,32 @@
 
 #### Backing up user data
 
-If you are upgrading the deployment from a previous version, you may want to retain user accounts and user-saved data. These are stored in an sqlite db at `askcos/db.sqlite3` and a user\_saves directory at `makeit/data/user_saves`, _in the running app container service_. The name of the running app service can be found using `docker-compose ps`; it should be called `deploy_app_1` Follow these steps to backup and restore user data:
-
-__if the old version was < 0.2.3:__
+If you currently have a running instance, and need to completely remove and/or upgrade the application but would like to backup user data, we have prepared a bash script. From the deploy/ folder, execute the following command:
 
 ```bash
-$ docker cp deploy_app_1:/home/askcos/ASKCOS/askcos/db.sqlite3 .
-$ docker cp deploy_app_1:/home/askcos/ASKCOS/makeit/data/user_saves .
-# deploy new version
-$ docker cp db.sqlite3 deploy_app_1:/usr/local/ASKCOS/askcos/db.sqlite3
-$ docker cp user_saves deploy_app_1:/usr/local/ASKCOS/makeit/data/
+$ bash backup.sh
 ```
 
-__if the old version was >= 0.2.3:__
+This will create a new directory deploy/backup/&lt;some long string of numbers&gt;/ with the backed-up data. The long string of numbers will be the year+month+date+time you performed the backup.
+
+If you have already backed-up user data using the above instructions, and deployed a fresh ASKCOS instance, execute the following command from the deploy folder:
 
 ```bash
-$ docker cp deploy_app_1:/usr/local/ASKCOS/askcos/db.sqlite3 .
-$ docker cp deploy_app_1:/usr/local/ASKCOS/makeit/data/user_saves .
-# deploy new version
-$ docker cp db.sqlite3 deploy_app_1:/usr/local/ASKCOS/askcos/db.sqlite3
-$ docker cp user_saves deploy_app_1:/usr/local/ASKCOS/makeit/data/
+$ bash restore.sh
 ```
 
-#### Updating static files
+This will use the most recent backup to restore user data.
+
+#### Updating
 
 The static files (css/js) are stored in a volume, independent from the container services. When upgrading to a new version, it is important to ensure this volume gets recreated as well. The best way to do this is use `docker-compose down -v` (note the `-v` flag for volumes), followed by `docker-compose up -d`. docker-compose is intelligent enough to recreate container services with `up -d` when they have changed, but it is important to bring down the whole stack to make sure the volume gets recreated.
 
 ```bash
-# only do this if you've already backed up user data!
 $ docker-compose down -v
+$ docker pull mefortunato/askcos:latest
+$ docker tag mefortunato/askcos:latest askcos
 $ docker-compose up -d
-```
-
-However, if you are certain the celery worker images have not changed and would prefer to not bring these services down and then back up (to minimize application downtime), you can stop and remove the `app` and `nginx` services, delete the `deploy_staticdata` volume, then recreate the `app` and `nginx` services (which will recreate the volume with the correct static files) using the following:
-
-```bash
-# only do this if you've already backed up user data!
-$ docker-compose stop app nginx
-$ docker-compose rm app nginx
-$ docker volume prune
-$ docker-compose up -d app nginx
+$ bash restore.sh
 ```
 
 ### Pulling the image from DockerHub

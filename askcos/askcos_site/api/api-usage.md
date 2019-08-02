@@ -7,7 +7,7 @@ from pprint import pprint
 
 
 ```python
-HOST = 'http://<your-askcos-ip>'
+HOST = 'https://<your-askcos-ip>'
 ```
 
 # ASKCOS Web API
@@ -31,6 +31,8 @@ API endpoints exist for the following services (described in more depth below):
 ## Making requests
 
 GET requests can be made passing in required and optional parameters (service-specific parameters are described below for each endpoint). In many cases, you will be providing SMILES strings, which often may not play well with HTTP. You should always escape your parameters. In the examples below, the `requests` python package allows you to provide the parameters as a dictionary of key-value pairs and takes care of the url escaping for you. If you create your own url queries, please remember to escape your SMILES strings.
+
+The API now sits at a server that expects communication using HTTPS. By default, a randomly generated self-signed certificate is used, which is considered insecure (despite being much more secure than not using HTTPS at all). The `requests` Python package, by default, will not allow you to use HTTPS to communicate with a server that doesn't have a valid certificate, however this behavior can be overriden by passing `verify=False` to the get request, as shown in the examples below.
 
 Internally, the code behind the API will be converting any SMILES string you provide to a canonicalized SMILES string. Therefore, the results returned by the API may include a slightly modified string than the result parameters you provided. Keep note of this if using SMILES string searching to parse through results.
 
@@ -61,49 +63,53 @@ params = {
     # modified for this example
     'num_results': 3 # default is 100
 }
-resp = requests.get(HOST+'/api/retro/', params=params)
+resp = requests.get(HOST+'/api/retro/', params=params, verify=False)
 pprint(resp.json())
 ```
 
-    {u'precursors': [{u'necessary_reagent': u'',
-                      u'num_examples': 1223,
-                      u'plausibility': 0.998188316822052,
-                      u'rank': 1,
-                      u'score': -0.005976811431568982,
-                      u'smiles': u'CN(C)CCCl.OC(c1ccccc1)c1ccccc1',
-                      u'smiles_split': [u'CN(C)CCCl', u'OC(c1ccccc1)c1ccccc1'],
-                      u'template_score': 0.33462658524513245,
-                      u'templates': [u'59c5118c05581eb9f5753c93',
-                                     u'59c5118c05581eb9f5753c9d']},
-                     {u'necessary_reagent': u'',
-                      u'num_examples': 915,
-                      u'plausibility': 0.9775225520133972,
-                      u'rank': 2,
-                      u'score': -0.011262814101429644,
-                      u'smiles': u'CN(C)CCO.OC(c1ccccc1)c1ccccc1',
-                      u'smiles_split': [u'CN(C)CCO', u'OC(c1ccccc1)c1ccccc1'],
-                      u'template_score': 0.1775755137205124,
-                      u'templates': [u'59c5118d05581eb9f5753db4',
-                                     u'59c511de05581eb9f5758a9b',
-                                     u'59c5122205581eb9f575c32d']},
-                     {u'necessary_reagent': u'',
-                      u'num_examples': 230,
-                      u'plausibility': 0.9893513321876526,
-                      u'rank': 3,
-                      u'score': -0.013463378679132122,
-                      u'smiles': u'CN(C)CCO.ClC(c1ccccc1)c1ccccc1',
-                      u'smiles_split': [u'CN(C)CCO', u'ClC(c1ccccc1)c1ccccc1'],
-                      u'template_score': 0.1485511213541031,
-                      u'templates': [u'59c5118e05581eb9f5753df3']}],
-     u'request': {u'apply_fast_filter': [u'True'],
-                  u'filter_threshold': [u'0.75'],
-                  u'max_cum_prob': [u'0.995'],
-                  u'mincount': [u'0'],
-                  u'num_results': [u'3'],
-                  u'num_templates': [u'100'],
-                  u'precursor_prioritization': [u'RelevanceHeuristic'],
-                  u'target': [u'CN(C)CCOC(c1ccccc1)c1ccccc1'],
-                  u'template_prioritization': [u'Relevance']}}
+    /usr/local/lib/python3.5/dist-packages/urllib3/connectionpool.py:847: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+      InsecureRequestWarning)
+
+
+    {'precursors': [{'necessary_reagent': '',
+                     'num_examples': 1223,
+                     'plausibility': 0.998188316822052,
+                     'rank': 1,
+                     'score': -0.005976811431568982,
+                     'smiles': 'CN(C)CCCl.OC(c1ccccc1)c1ccccc1',
+                     'smiles_split': ['CN(C)CCCl', 'OC(c1ccccc1)c1ccccc1'],
+                     'template_score': 0.33462658524513245,
+                     'templates': ['59c5118c05581eb9f5753c93',
+                                   '59c5118c05581eb9f5753c9d']},
+                    {'necessary_reagent': '',
+                     'num_examples': 915,
+                     'plausibility': 0.9775225520133972,
+                     'rank': 2,
+                     'score': -0.011262814101429644,
+                     'smiles': 'CN(C)CCO.OC(c1ccccc1)c1ccccc1',
+                     'smiles_split': ['CN(C)CCO', 'OC(c1ccccc1)c1ccccc1'],
+                     'template_score': 0.1775755137205124,
+                     'templates': ['59c5118d05581eb9f5753db4',
+                                   '59c511de05581eb9f5758a9b',
+                                   '59c5122205581eb9f575c32d']},
+                    {'necessary_reagent': '',
+                     'num_examples': 230,
+                     'plausibility': 0.9893513321876526,
+                     'rank': 3,
+                     'score': -0.013463378679132122,
+                     'smiles': 'CN(C)CCO.ClC(c1ccccc1)c1ccccc1',
+                     'smiles_split': ['CN(C)CCO', 'ClC(c1ccccc1)c1ccccc1'],
+                     'template_score': 0.1485511213541031,
+                     'templates': ['59c5118e05581eb9f5753df3']}],
+     'request': {'apply_fast_filter': ['True'],
+                 'filter_threshold': ['0.75'],
+                 'max_cum_prob': ['0.995'],
+                 'mincount': ['0'],
+                 'num_results': ['3'],
+                 'num_templates': ['100'],
+                 'precursor_prioritization': ['RelevanceHeuristic'],
+                 'target': ['CN(C)CCOC(c1ccccc1)c1ccccc1'],
+                 'template_prioritization': ['Relevance']}}
 
 
 ## /api/context/
@@ -115,35 +121,46 @@ params = {
     'reactants': 'CN(C)CCCl.OC(c1ccccc1)c1ccccc1', #required
     'products': 'CN(C)CCOC(c1ccccc1)c1ccccc1', #required
     
-    'num_results': 5 # default is 10
+    'num_results': 5, # default is 10
+    'return_scores': 'true' # default is false
 }
-resp = requests.get(HOST+'/api/context/', params=params)
+resp = requests.get(HOST+'/api/context/', params=params, verify=False)
 pprint(resp.json())
 ```
 
-    {u'contexts': [{u'catalyst': u'',
-                    u'reagent': u'Cc1ccccc1.[H][N-][H].[Na+]',
-                    u'solvent': u'',
-                    u'temperature': 94.47986602783203},
-                   {u'catalyst': u'',
-                    u'reagent': u'c1ccccc1.[H][N-][H].[Na+]',
-                    u'solvent': u'',
-                    u'temperature': 101.66519927978516},
-                   {u'catalyst': u'',
-                    u'reagent': u'Cc1ccccc1C.[H][N-][H].[Na+]',
-                    u'solvent': u'',
-                    u'temperature': 124.40973663330078},
-                   {u'catalyst': u'',
-                    u'reagent': u'',
-                    u'solvent': u'Cc1ccccc1',
-                    u'temperature': 109.34732818603516},
-                   {u'catalyst': u'',
-                    u'reagent': u'',
-                    u'solvent': u'c1ccccc1',
-                    u'temperature': 102.02490997314453}],
-     u'request': {u'num_results': [u'5'],
-                  u'products': [u'CN(C)CCOC(c1ccccc1)c1ccccc1'],
-                  u'reactants': [u'CN(C)CCCl.OC(c1ccccc1)c1ccccc1']}}
+    /usr/local/lib/python3.5/dist-packages/urllib3/connectionpool.py:847: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+      InsecureRequestWarning)
+
+
+    {'contexts': [{'catalyst': '',
+                   'reagent': 'Cc1ccccc1.[H][N-][H].[Na+]',
+                   'score': 0.3389343023300171,
+                   'solvent': '',
+                   'temperature': 94.4798812866211},
+                  {'catalyst': '',
+                   'reagent': 'c1ccccc1.[H][N-][H].[Na+]',
+                   'score': 0.12604430317878723,
+                   'solvent': '',
+                   'temperature': 101.66520690917969},
+                  {'catalyst': '',
+                   'reagent': 'Cc1ccccc1C.[H][N-][H].[Na+]',
+                   'score': 0.10769638419151306,
+                   'solvent': '',
+                   'temperature': 124.40973663330078},
+                  {'catalyst': '',
+                   'reagent': '',
+                   'score': 0.004865644965320826,
+                   'solvent': 'Cc1ccccc1',
+                   'temperature': 109.34728240966797},
+                  {'catalyst': '',
+                   'reagent': '',
+                   'score': 0.004308402072638273,
+                   'solvent': 'c1ccccc1',
+                   'temperature': 102.02490234375}],
+     'request': {'num_results': ['5'],
+                 'products': ['CN(C)CCOC(c1ccccc1)c1ccccc1'],
+                 'reactants': ['CN(C)CCCl.OC(c1ccccc1)c1ccccc1'],
+                 'return_scores': ['true']}}
 
 
 ## /api/forward/
@@ -160,34 +177,38 @@ params = {
     
     'num_results': 5 # default is 100
 }
-resp = requests.get(HOST+'/api/forward/?', params=params)
+resp = requests.get(HOST+'/api/forward/?', params=params, verify=False)
 pprint(resp.json())
 ```
 
-    {u'outcomes': [{u'prob': 0.9115045729462279,
-                    u'rank': 1,
-                    u'score': -63.30739974975586,
-                    u'smiles': u'CN(C)CCOC(c1ccccc1)c1ccccc1'},
-                   {u'prob': 0.08476252957902111,
-                    u'rank': 2,
-                    u'score': -65.68751525878906,
-                    u'smiles': u'c1ccc(Cc2ccccc2)cc1'},
-                   {u'prob': 0.001807120522928764,
-                    u'rank': 3,
-                    u'score': -69.53076171875,
-                    u'smiles': u'CN(C)CCC(c1ccccc1)c1ccccc1'},
-                   {u'prob': 0.0007843034232317958,
-                    u'rank': 4,
-                    u'score': -70.3654556274414,
-                    u'smiles': u'CN(C)CCC(O)(c1ccccc1)c1ccccc1'},
-                   {u'prob': 0.00048256904206722353,
-                    u'rank': 5,
-                    u'score': -70.85112762451172,
-                    u'smiles': u'CCN(C)C'}],
-     u'request': {u'num_results': [u'5'],
-                  u'reactants': [u'CN(C)CCCl.OC(c1ccccc1)c1ccccc1'],
-                  u'reagents': [u''],
-                  u'solvent': [u'']}}
+    /usr/local/lib/python3.5/dist-packages/urllib3/connectionpool.py:847: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+      InsecureRequestWarning)
+
+
+    {'outcomes': [{'prob': 0.9115045620575345,
+                   'rank': 1,
+                   'score': -63.30739974975586,
+                   'smiles': 'CN(C)CCOC(c1ccccc1)c1ccccc1'},
+                  {'prob': 0.08476252470830846,
+                   'rank': 2,
+                   'score': -65.68264284833658,
+                   'smiles': 'c1ccc(Cc2ccccc2)cc1'},
+                  {'prob': 0.0018071342418599589,
+                   'rank': 3,
+                   'score': -69.53075408935547,
+                   'smiles': 'CN(C)CCC(c1ccccc1)c1ccccc1'},
+                  {'prob': 0.0007843034582285129,
+                   'rank': 4,
+                   'score': -70.3654556274414,
+                   'smiles': 'CN(C)CCC(O)(c1ccccc1)c1ccccc1'},
+                  {'prob': 0.00048256904120668755,
+                   'rank': 5,
+                   'score': -70.85112762451172,
+                   'smiles': 'CCN(C)C'}],
+     'request': {'num_results': ['5'],
+                 'reactants': ['CN(C)CCCl.OC(c1ccccc1)c1ccccc1'],
+                 'reagents': [''],
+                 'solvent': ['']}}
 
 
 ## /api/treebuilder/
@@ -217,55 +238,87 @@ params = {
     
     'return_first': 'true' # default is false
 }
-resp = requests.get(HOST+'/api/treebuilder/', params=params)
+resp = requests.get(HOST+'/api/treebuilder/', params=params, verify=False)
 pprint(resp.json())
 ```
 
-    {u'request': {u'chemical_popularity_logic': [u'none'],
-                  u'chemical_property_logic': [u'none'],
-                  u'expansion_time': [u'60'],
-                  u'filter_threshold': [u'0.75'],
-                  u'max_branching': [u'25'],
-                  u'max_chemprop_c': [u'0'],
-                  u'max_chemprop_h': [u'0'],
-                  u'max_chemprop_n': [u'0'],
-                  u'max_chemprop_o': [u'0'],
-                  u'max_cum_prob': [u'0.995'],
-                  u'max_depth': [u'4'],
-                  u'max_ppg': [u'10'],
-                  u'min_chempop_products': [u'5'],
-                  u'min_chempop_reactants': [u'5'],
-                  u'return_first': [u'true'],
-                  u'smiles': [u'CN(C)CCOC(c1ccccc1)c1ccccc1'],
-                  u'template_count': [u'100']},
-     u'trees': [{u'as_product': 44,
-                 u'as_reactant': 59,
-                 u'children': [{u'children': [{u'as_product': 102,
-                                               u'as_reactant': 2438,
-                                               u'children': [],
-                                               u'id': 1,
-                                               u'is_chemical': True,
-                                               u'ppg': 1.0,
-                                               u'smiles': u'BrC(c1ccccc1)c1ccccc1'},
-                                              {u'as_product': 383,
-                                               u'as_reactant': 3643,
-                                               u'children': [],
-                                               u'id': 2,
-                                               u'is_chemical': True,
-                                               u'ppg': 1.0,
-                                               u'smiles': u'CN(C)CCO'}],
-                                u'id': 3,
-                                u'is_reaction': True,
-                                u'necessary_reagent': u'',
-                                u'num_examples': 185,
-                                u'plausibility': 0.9988686442375183,
-                                u'smiles': u'BrC(c1ccccc1)c1ccccc1.CN(C)CCO>>CN(C)CCOC(c1ccccc1)c1ccccc1',
-                                u'template_score': 0.07315371185541153,
-                                u'tforms': [u'59c5118d05581eb9f5753dbf']}],
-                 u'id': 4,
-                 u'is_chemical': True,
-                 u'ppg': 1.0,
-                 u'smiles': u'CN(C)CCOC(c1ccccc1)c1ccccc1'}]}
+    /usr/local/lib/python3.5/dist-packages/urllib3/connectionpool.py:847: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+      InsecureRequestWarning)
+
+
+    {'request': {'chemical_popularity_logic': ['none'],
+                 'chemical_property_logic': ['none'],
+                 'expansion_time': ['60'],
+                 'filter_threshold': ['0.75'],
+                 'max_branching': ['25'],
+                 'max_chemprop_c': ['0'],
+                 'max_chemprop_h': ['0'],
+                 'max_chemprop_n': ['0'],
+                 'max_chemprop_o': ['0'],
+                 'max_cum_prob': ['0.995'],
+                 'max_depth': ['4'],
+                 'max_ppg': ['10'],
+                 'min_chempop_products': ['5'],
+                 'min_chempop_reactants': ['5'],
+                 'return_first': ['true'],
+                 'smiles': ['CN(C)CCOC(c1ccccc1)c1ccccc1'],
+                 'template_count': ['100']},
+     'trees': [{'as_product': 44,
+                'as_reactant': 59,
+                'children': [{'children': [{'as_product': 172,
+                                            'as_reactant': 4651,
+                                            'children': [],
+                                            'id': 1,
+                                            'is_chemical': True,
+                                            'ppg': 1.0,
+                                            'smiles': 'CN(C)CCCl'},
+                                           {'as_product': 2004,
+                                            'as_reactant': 5783,
+                                            'children': [],
+                                            'id': 2,
+                                            'is_chemical': True,
+                                            'ppg': 1.0,
+                                            'smiles': 'OC(c1ccccc1)c1ccccc1'}],
+                              'id': 3,
+                              'is_reaction': True,
+                              'necessary_reagent': '',
+                              'num_examples': 607,
+                              'plausibility': 0.998188316822052,
+                              'smiles': 'CN(C)CCCl.OC(c1ccccc1)c1ccccc1>>CN(C)CCOC(c1ccccc1)c1ccccc1',
+                              'template_score': 0.33462631702423096,
+                              'tforms': ['59c5118c05581eb9f5753c93']}],
+                'id': 4,
+                'is_chemical': True,
+                'ppg': 1.0,
+                'smiles': 'CN(C)CCOC(c1ccccc1)c1ccccc1'},
+               {'as_product': 44,
+                'as_reactant': 59,
+                'children': [{'children': [{'as_product': 383,
+                                            'as_reactant': 3643,
+                                            'children': [],
+                                            'id': 5,
+                                            'is_chemical': True,
+                                            'ppg': 1.0,
+                                            'smiles': 'CN(C)CCO'},
+                                           {'as_product': 2004,
+                                            'as_reactant': 5783,
+                                            'children': [],
+                                            'id': 2,
+                                            'is_chemical': True,
+                                            'ppg': 1.0,
+                                            'smiles': 'OC(c1ccccc1)c1ccccc1'}],
+                              'id': 6,
+                              'is_reaction': True,
+                              'necessary_reagent': '',
+                              'num_examples': 266,
+                              'plausibility': 0.9775225520133972,
+                              'smiles': 'CN(C)CCO.OC(c1ccccc1)c1ccccc1>>CN(C)CCOC(c1ccccc1)c1ccccc1',
+                              'template_score': 0.177575021982193,
+                              'tforms': ['59c5118d05581eb9f5753db4']}],
+                'id': 4,
+                'is_chemical': True,
+                'ppg': 1.0,
+                'smiles': 'CN(C)CCOC(c1ccccc1)c1ccccc1'}]}
 
 
 ## /api/template/
@@ -276,33 +329,34 @@ Given a template `id` (these are returned with `/api/retro/` precursors) look up
 params = {
     'id': '59c5300605581eb9f584df3d' # required
 }
-resp = requests.get(HOST+'/api/template/', params=params)
+resp = requests.get(HOST+'/api/template/', params=params, verify=False)
 pprint(resp.json())
 ```
 
-    {u'request': {u'id': [u'59c5300605581eb9f584df3d']},
-     u'template': {u'_id': u'59c5300605581eb9f584df3d',
-                   u'chiral': False,
-                   u'count': 13,
-                   u'dimer_only': False,
-                   u'explicit_H': False,
-                   u'incompatible_groups': [],
-                   u'intra_only': True,
-                   u'necessary_reagent': u'',
-                   u'reaction_smarts': u'[#7:5]-[C:4](=[O;D1;H0:6])-[c:3]:[c;H0;D3;+0:1](:[#7;a:2])-[N;H0;D3;+0:9](-[C:10])-[c:8]:[#7;a:7]>>Cl-[c;H0;D3;+0:1](:[#7;a:2]):[c:3]-[C:4](-[#7:5])=[O;D1;H0:6].[#7;a:7]:[c:8]-[NH;D2;+0:9]-[C:10]',
-                   u'references': [u'4544223',
-                                   u'5028471',
-                                   u'5028471',
-                                   u'5028471',
-                                   u'5028471',
-                                   u'5029289',
-                                   u'8592467',
-                                   u'8593425',
-                                   u'8593425',
-                                   u'23062042',
-                                   u'23062042',
-                                   u'24072327',
-                                   u'38773479']}}
+    {'request': {'id': ['59c5300605581eb9f584df3d']},
+     'template': {'_id': '59c5300605581eb9f584df3d',
+                  'count': 13,
+                  'dimer_only': False,
+                  'intra_only': True,
+                  'necessary_reagent': '',
+                  'reaction_smarts': '[#7:5]-[C:4](=[O;D1;H0:6])-[c:3]:[c;H0;D3;+0:1](:[#7;a:2])-[N;H0;D3;+0:9](-[C:10])-[c:8]:[#7;a:7]>>Cl-[c;H0;D3;+0:1](:[#7;a:2]):[c:3]-[C:4](-[#7:5])=[O;D1;H0:6].[#7;a:7]:[c:8]-[NH;D2;+0:9]-[C:10]',
+                  'references': ['4544223',
+                                 '5028471',
+                                 '5028471',
+                                 '5028471',
+                                 '5028471',
+                                 '5029289',
+                                 '8592467',
+                                 '8593425',
+                                 '8593425',
+                                 '23062042',
+                                 '23062042',
+                                 '24072327',
+                                 '38773479']}}
+
+
+    /usr/local/lib/python3.5/dist-packages/urllib3/connectionpool.py:847: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+      InsecureRequestWarning)
 
 
 ## /api/fast-filter/
@@ -314,13 +368,17 @@ params = {
     'reactants': 'CN(C)CCCl.OC(c1ccccc1)c1ccccc1', # required
     'products': 'CN(C)CCOC(c1ccccc1)c1ccccc1' # required
 }
-resp = requests.get(HOST+'/api/fast-filter/', params=params)
+resp = requests.get(HOST+'/api/fast-filter/', params=params, verify=False)
 pprint(resp.json())
 ```
 
-    {u'request': {u'products': [u'CN(C)CCOC(c1ccccc1)c1ccccc1'],
-                  u'reactants': [u'CN(C)CCCl.OC(c1ccccc1)c1ccccc1']},
-     u'score': 0.998188316822052}
+    /usr/local/lib/python3.5/dist-packages/urllib3/connectionpool.py:847: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+      InsecureRequestWarning)
+
+
+    {'request': {'products': ['CN(C)CCOC(c1ccccc1)c1ccccc1'],
+                 'reactants': ['CN(C)CCCl.OC(c1ccccc1)c1ccccc1']},
+     'score': 0.998188316822052}
 
 
 ## /api/scscore/
@@ -331,12 +389,15 @@ Given a `smiles` string of a molecule, return the Synthetic Complexity `score`.
 params = {
     'smiles': 'OC(c1ccccc1)c1ccccc1' # required
 }
-resp = requests.get(HOST+'/api/scscore/', params=params)
+resp = requests.get(HOST+'/api/scscore/', params=params, verify=False)
 pprint(resp.json())
 ```
 
-    {u'request': {u'smiles': [u'OC(c1ccccc1)c1ccccc1']},
-     u'score': 1.5127569539402126}
+    {'request': {'smiles': ['OC(c1ccccc1)c1ccccc1']}, 'score': 1.5127569539402126}
+
+
+    /usr/local/lib/python3.5/dist-packages/urllib3/connectionpool.py:847: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+      InsecureRequestWarning)
 
 
 ## /api/price/
@@ -347,11 +408,15 @@ Given a `smiles` string of a molecule, return the `price` (resolved to integer p
 params = {
     'smiles': 'OC(c1ccccc1)c1ccccc1' # required
 }
-resp = requests.get(HOST+'/api/price/', params=params)
+resp = requests.get(HOST+'/api/price/', params=params, verify=False)
 pprint(resp.json())
 ```
 
-    {u'price': 1.0, u'request': {u'smiles': [u'OC(c1ccccc1)c1ccccc1']}}
+    /usr/local/lib/python3.5/dist-packages/urllib3/connectionpool.py:847: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+      InsecureRequestWarning)
+
+
+    {'price': 1.0, 'request': {'smiles': ['OC(c1ccccc1)c1ccccc1']}}
 
 
 ## /api/celery/
@@ -359,15 +424,40 @@ Query the status of celery workers on the server. For each queue, the `active` a
 
 
 ```python
-resp = requests.get(HOST+'/api/celery/')
+resp = requests.get(HOST+'/api/celery/', verify=False)
 pprint(resp.json())
 ```
 
-    {u'queues': {u'cr_coordinator': {u'active': 0, u'available': 2},
-                 u'cr_network_worker': {u'active': 0, u'available': 2},
-                 u'ft_worker': {u'active': 0, u'available': 2},
-                 u'sc_coordinator': {u'active': 0, u'available': 2},
-                 u'tb_c_worker': {u'active': 7, u'available': 3},
-                 u'tb_coordinator_mcts': {u'active': 0, u'available': 2},
-                 u'te_coordinator': {u'active': 0, u'available': 2}}}
+    /usr/local/lib/python3.5/dist-packages/urllib3/connectionpool.py:847: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
+      InsecureRequestWarning)
+
+
+    {'queues': [{'available': 2,
+                 'busy': 0,
+                 'name': 'Context Recommender Coordinator',
+                 'queue': 'cr_coordinator'},
+                {'available': 2,
+                 'busy': 0,
+                 'name': 'Context Recommender Worker',
+                 'queue': 'cr_network_worker'},
+                {'available': 2,
+                 'busy': 0,
+                 'name': 'Forward Predictor Scoring Coordinator',
+                 'queue': 'sc_coordinator'},
+                {'available': 2,
+                 'busy': 0,
+                 'name': 'Forward Predictor Worker',
+                 'queue': 'ft_worker'},
+                {'available': 10,
+                 'busy': 0,
+                 'name': 'One-Step/Tree Builder Retrosynthesis Worker',
+                 'queue': 'tb_c_worker'},
+                {'available': 2,
+                 'busy': 0,
+                 'name': 'Tree Builder Coordinator',
+                 'queue': 'tb_coordinator_mcts'},
+                {'available': 2,
+                 'busy': 0,
+                 'name': 'Tree Evaluation Coordinator',
+                 'queue': 'te_coordinator'}]}
 

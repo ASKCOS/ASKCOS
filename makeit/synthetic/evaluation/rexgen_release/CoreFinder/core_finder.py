@@ -15,7 +15,7 @@ class CoreFinder(object):
         hidden_size = self.hidden_size
         batch_size = self.batch_size
         depth = self.depth
-        
+
         self.graph = tf.Graph()
         with self.graph.as_default():
             input_atom = tf.placeholder(tf.float32, [batch_size, None, adim])
@@ -74,7 +74,7 @@ class CoreFinder(object):
             feed_map = {x:y for x,y in zip(self.leaf_nodes, leaf_values)}
             cur_topk = self.session.run(self.topk, feed_dict=feed_map)
             cur_dim = cur_validity.shape[1]
-            
+
             for i in range(batch_size):
                 res = []
                 for j in range(num_core):
@@ -89,7 +89,7 @@ class CoreFinder(object):
 
 if __name__ == "__main__":
     import sys
-    cf = CoreFinder(core_size=10, hidden_size=300, depth=3)
+    cf = CoreFinder(batch_size=10, hidden_size=300, depth=3)
     cf.load_model("uspto-300-3")
     data = []
     for line in sys.stdin:
@@ -99,4 +99,3 @@ if __name__ == "__main__":
     rcores = cf.predict(data, 10)
     for core in rcores:
         print(core)
-
