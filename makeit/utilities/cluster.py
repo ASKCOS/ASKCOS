@@ -18,9 +18,11 @@ def group_results(original, outcomes, **kwargs):
                                         presenting in original, outcomes or both.
     fingerprint:    function object,    f(smiles_string:str) -> list of integer bits
     cluster_method: string,             cluster method: hdbscan, kmeans
+    score:          array of int,       score of each precursor, if present, cluster indices
+                                        are sorted according to the max score in each cluster
 
     Return:
-                    list of integer,    cluster indices for outcomes
+                    list of integer,    cluster indices for outcomes, 0-based
     '''
     fp_generator = kwargs.get(
         'fingerprint',
@@ -28,6 +30,7 @@ def group_results(original, outcomes, **kwargs):
         )
     cluster_method = kwargs.get('cluster_method', 'kmeans')
     feature = kwargs.get('feature', 'original')
+    score = kwargs.get('score', None)
 
     # calc fingerprint
     original_fp = np.array(fp_generator(original))
@@ -66,4 +69,24 @@ def group_results(original, outcomes, **kwargs):
         raise Exception('Fatal error: cluster_method={} is not recognized.'.format(cluster_method))
 
     res = [int(i) for i in res]
+
+    if score is not None:
+        if len(score) != len(res):
+            raise Exception('Fatal error: length of score ({}) and smiles ({}) are different.'.format(len(score), len(outcomes)))
+        max_score_per_cluster = {}
+        print('res: \n', res)
+        for iprecursor, precursor_score in enumerate(score):
+            precursor_gid = res[iprecursor]
+            if max_score_per_cluster.get(precursor_gid) is None:
+                max_score_per_cluster[precursor_gid] = precursor_score
+            else:
+                max_score_per_cluster[precursor_gid] = max(max_score_per_cluster[precursor_gid], precursor_score)
+        max_score_per_cluster_sorted = sorted(max_score_per_cluster.items(), key=lambda x: x[1], reverse=True)
+        idx_order = [i[0] for i in max_score_per_cluster_sorted]
+        idx_order_remap = dict((v,k) for k,v in enumerate(idx_order))
+        print('max_score_per_cluster_sorted: ', max_score_per_cluster_sorted)
+        print('idx_order: ', idx_order)
+        print('idx_order_remap: ', idx_order_remap)
+        res = [idx_order_remap[i] for i in res]
+
     return res, feature, cluster_method

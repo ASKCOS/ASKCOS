@@ -17,6 +17,8 @@ def cluster(request):
     fpradius:       int,                default is 1
     fpnbits:        int,                default is 512
     clustermethod:  string,             cluster method: 'hdbscan', 'kmeans'
+    score:          array of int,       score of each precursor, if present, cluster indices
+                                        are sorted according to the max score in each cluster
 
     Return:
                     list of integer,    cluster indices for outcomes
@@ -43,6 +45,7 @@ def cluster(request):
     fpradius = int(request.POST.get('fpradius', 1))
     fpnbits  = int(request.POST.get('fpnbits', 512))
     cluster_method = request.POST.get('clustermethod', 'kmeans')
+    score = request.POST.get('score', None)
 
     # error checking
     if original is None:
@@ -69,6 +72,11 @@ def cluster(request):
         iserr = True
         err_msg += 'Error: unrecognized clustermethod name. '
 
+    if score is not None:
+        if len(score) != len(idx):
+            iserr = True
+            err_msg += 'Error: number of score and smiles strings are different.'
+
     if iserr:
         resp['error'] = err_msg
         return JsonResponse(resp)
@@ -78,8 +86,10 @@ def cluster(request):
         outcomes,
         feature=feature,
         fingerprint=fp_generator,
-        cluster_method=cluster_method
+        cluster_method=cluster_method,
+        score=score
         )
+
     resp['group_id'] = idx
     resp['feature'] = feature
     resp['clustermethod'] = cluster_method
