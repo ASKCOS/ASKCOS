@@ -1,4 +1,3 @@
-
 # ASKCOS:
 Software package for the prediction of feasible synthetic routes towards a desired compound and associated tasks related to synthesis planning. Originally developed under the DARPA Make-It program and now being developed under the [MLPDS Consortium](http://mlpds.mit.edu).
 
@@ -51,7 +50,7 @@ $ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.3.1
 $ docker tag registry.gitlab.com/mlpds_mit/askcos/askcos:0.3.1 mefortunato/askcos:0.3.1
 $ cd askcos/deploy
 $ git checkout v0.3.1
-$ bash deploy
+$ bash deploy.sh
 ```
 
 __NOTE:__ The git clone command pulls enough to deploy the application (but not all the data files hosted using git large file store). To acquire the complete source code repository including large data files (if you want to rebuild a custom image, for example), please install git lfs and pull the rest of the repository.
