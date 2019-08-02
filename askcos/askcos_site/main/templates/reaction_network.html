@@ -228,7 +228,7 @@
 
 <modal v-if="showClusterPopoutModal" @close="closeClusterPopoutModal();">
     <div class="mx-auto" slot="header">
-        <h3>Viewing <button class="btn btn-light" @click="clusterPopoutModalDecGroupID();"><i class="fas fa-less-than"></i></button> Cluster #%% clusterPopoutModalData['group_id'] %% <button class="btn btn-light" @click="clusterPopoutModalIncGroupID();"><i class="fas fa-greater-than"></i></button>   &nbsp;&nbsp; <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); clusterPopoutModalData = {};">Edit clusters</button> <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button> </h3>
+        <h3>Viewing <button class="btn btn-light" @click="clusterPopoutModalDecGroupID();"><i class="fas fa-less-than"></i></button> Cluster #%% clusterPopoutModalData['group_id']+1 %% <button class="btn btn-light" @click="clusterPopoutModalIncGroupID();"><i class="fas fa-greater-than"></i></button>   &nbsp;&nbsp; <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); clusterPopoutModalData = {};">Edit clusters</button> <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button> </h3>
     </div>
     <div slot="body" class="text-left">
         <div class="scroll-list">
@@ -277,7 +277,7 @@
 
 <modal v-if="showClusterEditModal" @close="closeClusterEditModal();">
     <div class="mx-auto" slot="header">
-        <h3>Editing <button class="btn btn-light" @click="clusterEditModalDecGroupID();"><i class="fas fa-less-than"></i></button> Cluster #%% clusterEditModalData['group_id'] %% <button class="btn btn-light" @click="clusterEditModalIncGroupID();"><i class="fas fa-greater-than"></i></button>   <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterEditModalData['selectedSmiles'], clusterEditModalData['group_id']);">Add precursor</button>   <button class="btn btn-danger" @click="requestClusterId(clusterEditModalData['selectedSmiles']);">Re-cluster</button>   <button class="btn btn-light" @click="openModal('settings');">Cluster Settings</button></h3>
+        <h3>Editing <button class="btn btn-light" @click="clusterEditModalDecGroupID();"><i class="fas fa-less-than"></i></button> Cluster #%% clusterEditModalData['group_id']+1 %% <button class="btn btn-light" @click="clusterEditModalIncGroupID();"><i class="fas fa-greater-than"></i></button>   <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterEditModalData['selectedSmiles'], clusterEditModalData['group_id']);">Add precursor</button>   <button class="btn btn-danger" @click="requestClusterId(clusterEditModalData['selectedSmiles']);">Re-cluster</button>   <button class="btn btn-light" @click="openModal('settings');">Cluster Settings</button></h3>
     </div>
     <div slot="body" class="text-left popout-scroll">
         <div class="scroll-list-x">
@@ -326,7 +326,7 @@
         <template v-for="res in clusteredResults[selected.smiles]">
             <div class="card" style="position: relative; pointer-events: all" @drop="clusteredit_drop_handler(res[0], $event);" ondragover="clusteredit_dragover_handler(event);" ondragenter="clusteredit_dragenter_handler(event);" ondragleave="clusteredit_dragleave_handler(event);" @click="clusterEditModalData['group_id'] = res[0].group_id;$forceUpdate();">
                 <div class="container-fluid nopointer">
-                    <h3 class="nonselectable nopointer">Reaction cluster %% res[0].group_id %%</h3>
+                    <h3 class="nonselectable nopointer">Reaction cluster %% res[0].group_id+1 %%</h3>
                     <div class="row nopointer">
                         <!--div class="col-xs-12 nopointer">
                             <table class="table table-condensed table-bordered nonselectable nopointer">
@@ -390,7 +390,7 @@
                 Group:
                 <select v-model="addNewPrecursorModal['group_id']" class="form-control">
                     <option value="undefined">New cluster</option>
-                    <option v-for="idx in clusteredResultsIndex[addNewPrecursorModal['selectedSmiles']]" :value="idx.toString()">%% idx %%</option>
+                    <option v-for="idx in clusteredResultsIndex[addNewPrecursorModal['selectedSmiles']]" :value="idx.toString()">%% idx+1 %%</option>
                 </select>
             </div>
         </div>
@@ -495,7 +495,7 @@
                                                 </tr>
                                                 <tr>
                                                     <td>Reaction cluster</td>
-                                                    <td>%% res.group_id %%</td>
+                                                    <td>%% res.group_id+1 %%</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -549,7 +549,7 @@
                                         </tr>
                                         <tr>
                                             <td>Reaction cluster</td>
-                                            <td>%% res.group_id %%</td>
+                                            <td>%% res.group_id+1 %%</td>
                                         </tr>
                                     </tbody>
                                 </table>
