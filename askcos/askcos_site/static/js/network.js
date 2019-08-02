@@ -288,6 +288,10 @@ Vue.component('modal', {
 var app = new Vue({
     el: '#app',
     data: {
+        window: {
+            width: 0,
+            height: 0,
+        },
         target: '',
         network: {},
         data: {
@@ -347,7 +351,18 @@ var app = new Vue({
     beforeMount: function() {
         this.allowResolve = this.$el.querySelector('[ref="allowResolve"]').checked;
     },
+    created: function() {
+        window.addEventListener('resize', this.handleResize);
+        this.handleResize();
+    },
+    destroyed: function() {
+        window.removeEventListener('resize', this.handleResize);
+    },
     methods: {
+        handleResize: function() {
+            this.window.width = window.innerWidth;
+            this.window.height = window.innerHeight;
+        },
         requestUrl: function(smiles) {
             var url = '/api/retro/?';
             var params = {

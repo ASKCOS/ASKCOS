@@ -293,6 +293,7 @@
     <div class="mx-auto" slot="footer">
         <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button>
         <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); closeClusterPopoutModal();">Edit clusters</button>
+        <template v-if="window.width < 950"><br></template>
         &nbsp;<input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showScore"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck">Score</label>
         &nbsp;<input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showNumExample"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck"># Examples</label>
         &nbsp;<input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showTemplateScore"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck">Template score</label>
@@ -410,6 +411,7 @@
         <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterEditModalData['selectedSmiles'], clusterEditModalData['group_id']);">Add precursor</button>
         <button class="btn btn-danger" @click="requestClusterId(clusterEditModalData['selectedSmiles']);">Re-cluster</button>
         <button class="btn btn-light" @click="openModal('settings');">Cluster Settings</button>
+        <template v-if="window.width < 1100"><br></template>
         &nbsp;<input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showScore"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck">Score</label>
         &nbsp;<input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showNumExample"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck"># Examples</label>
         &nbsp;<input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showTemplateScore"/><label class="nonselectable" style="font-weight: normal;" for="nodupcheck">Template score</label>
