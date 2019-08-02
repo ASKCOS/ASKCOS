@@ -1119,9 +1119,15 @@ var app = new Vue({
         },
         requestClusterId: function(selected) {
             var all_smiles = [];
+            var all_scores = [];
             var i;
             for (i = 0; i < this.results[selected].length; i++) {
                 all_smiles.push(this.results[selected][i].smiles);
+                var s = this.results[selected][i].score;
+                if (s == undefined) {
+                    s = 0;
+                }
+                all_scores.push(s);
             }
             var url = '/api/cluster/?';
             var params = {
@@ -1132,6 +1138,7 @@ var app = new Vue({
                 fpradius:       this.clusterOptions.fpRadius,
                 fpnbits:        this.clusterOptions.fpBits,
                 cluster_method: this.clusterOptions.cluster_method,
+                score:          all_scores,
             };
             var queryString = Object.keys(params).map((key) => {
                 return encodeURIComponent(key) + '=' + encodeURIComponent(params[key])
@@ -1167,12 +1174,14 @@ var app = new Vue({
             })
             .catch((error) => {
                 var error_msg = 'unknown error'
-                if ('message' in error) {
-                    error_msg = error.name+':'+error.message
+                if (typeof(error) == 'number') {
+                    error_msg = 'Error code: ' + error;
                 } else if (typeof(error) == 'string') {
-                    error_msg = error
+                    error_msg = error;
+                } else if ('message' in error) {
+                    error_msg = error.name+':'+error.message;
                 }
-                alert('There was an error fetching precursors for this target with the supplied settings: '+error_msg)
+                alert('There was an error fetching cluster results for this target with the supplied settings: '+error_msg)
             })
         }
     },
