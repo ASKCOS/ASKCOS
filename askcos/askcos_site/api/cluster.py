@@ -17,7 +17,8 @@ def cluster(request):
     fpradius:       int,                default is 1
     fpnbits:        int,                default is 512
     clustermethod:  string,             cluster method: 'hdbscan', 'kmeans'
-    score:          array of int,       score of each precursor, if present, cluster indices
+    score:          string,             integers separated by commas or None
+                                        score of each precursor, if present, cluster indices
                                         are sorted according to the max score in each cluster
 
     Return:
@@ -73,9 +74,12 @@ def cluster(request):
         err_msg += 'Error: unrecognized clustermethod name. '
 
     if score is not None:
-        if len(score) != len(idx):
+        # convert string to list
+        score_list_string = score.split(',')
+        score = [float(i) for i in score_list_string]
+        if len(score) != len(outcomes):
             iserr = True
-            err_msg += 'Error: number of score and smiles strings are different.'
+            err_msg += 'Error: number of score and smiles strings are different.'.format(len(score), len(outcomes))
 
     if iserr:
         resp['error'] = err_msg
