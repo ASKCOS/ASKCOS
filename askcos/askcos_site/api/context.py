@@ -22,7 +22,10 @@ def neural_network(request):
     else:
         return_scores = False
     res = network_get_n_conditions.delay(rxn, n, singleSlvt, with_smiles, return_scores)
-    contexts = res.get(60)
+    if return_scores:
+        contexts, scores = res.get(60)
+    else:
+        contexts = res.get(60)
     json_contexts = []
     for context in contexts:
         c = {
@@ -32,5 +35,8 @@ def neural_network(request):
             'catalyst': context[3]
         }
         json_contexts.append(c)
+    if return_scores:
+        for c, s in zip(json_contexts, scores):
+            c['score'] = s
     resp['contexts'] = json_contexts
     return JsonResponse(resp)

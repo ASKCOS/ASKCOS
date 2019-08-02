@@ -16,7 +16,14 @@ historian_loc = 'chemhistorian'
 
 
 def tup_to_dict(info=[0, 0, [], []], refs=False):
-    '''Takes a historical entry as a tuple and returns a labeled dict'''
+    """Returns a labeled dict from a given historical entry as a tuple.
+
+    Args:
+        info ((int, int, list, list), optional): Entry to convert into dict.
+            (default: {[0, 0, [], []]})
+        refs (bool, optional): Whether to include references or only counts.
+            (default: {False})
+    """
     return {
         'as_reactant': info[0],
         'as_product': info[1],
@@ -26,13 +33,23 @@ def tup_to_dict(info=[0, 0, [], []], refs=False):
 
 
 class ChemHistorian:
-    '''
-    The Historian class is used to look up chemicals to see how often they have
-    been seen in Reaxys
-    '''
+    """Looks up chemicals to see how often they have been seen in Reaxys.
+
+    Attributes:
+        CHEMICAL_DB (MongoDB): Database of chemicals.
+        REACTION_DB (MongoDB): Database of reactions.
+        CHEMICAL_HISTORY_DB (MongoDB): Database of chemical history.
+        occurrences (defaultdict):
+    """
 
     def __init__(self, by_xrn=False, REACTIONS=None, CHEMICALS=None):
+        """Initializes ChemHistorian.
 
+        Args:
+            by_xrn (bool, optional): ?? (default: {False})
+            REACTIONS (None or MongoDB): ?? (default: {None})
+            CHEMICALS (None or MongoDB): ?? (default: {None})
+        """
         self.CHEMICAL_DB = CHEMICALS
         self.REACTION_DB = REACTIONS
 
@@ -41,9 +58,7 @@ class ChemHistorian:
         self._compressed = False
 
     def load_databases(self):
-        '''
-        Load the pricing data from the online database
-        '''
+        """Loads the history data from the online database."""
         db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
                                 'id'], connect=gc.MONGO['connect'])
         db = db_client[gc.REACTIONS['database']]
@@ -52,9 +67,16 @@ class ChemHistorian:
         self.CHEMICAL_DB = db[gc.CHEMICALS['collection']]
 
     def dump_to_file(self, file_path=gc.historian_data, refs=False, compressed=False):
-        '''
-        Write the data from the online datbases to a local file
-        '''
+        """Writes the data from the online datbases to a local file.
+
+        Args:
+            file_path (str, optional): Path to the output file.
+                (default: {gc.historian_data})
+            refs (bool, optional): Whether to include the references or just
+                the counts. (default: {False})
+            compressed (bool, optional): Whether the data is compressed.
+                (default: {False})
+        """
 
         if not refs:
             file_path += '_no_refs'
@@ -70,9 +92,19 @@ class ChemHistorian:
                 "Saved to {}".format(file_path), historian_loc, level=1)
 
     def load_from_file(self, file_path=gc.historian_data, refs=False, compressed=False):
-        '''
-        Load the data for the pricer from a locally stored file instead of from the online database.
-        '''
+        """Loads the data for the pricer from a locally stored file.
+
+        Args:
+            file_path (str, optional): Path to the input file.
+                (default: {gc.historian_data})
+            refs (bool, optional): Whether to include the references or just
+                the counts. (default: {False})
+            compressed (bool, optional): Whether the data is compressed.
+                (default: {False})
+
+        Raises:
+            ValueError: If file does not exist.
+        """
 
         MyLogger.print_and_log('Loading chemhistorian from file...', historian_loc)
 
@@ -91,6 +123,7 @@ class ChemHistorian:
             raise ValueError('File does not exist!')
 
     def upload_to_db(self):
+        """Uploads the data to the online database."""
         db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
                                 'id'], connect=gc.MONGO['connect'])
         self.CHEMICAL_HISTORY_DB = db_client[gc.CHEMICAL_HISTORY['database']][gc.CHEMICAL_HISTORY['collection']]
@@ -100,7 +133,7 @@ class ChemHistorian:
         ctr = 0
         for (i, (smi, info)) in tqdm(enumerate(self.occurrences.items())):
             doc = tup_to_dict(info, refs=True)
-            doc['smiles'] = smi 
+            doc['smiles'] = smi
             docs.append(doc)
             ctr += 1
             if ctr >= 500:
@@ -139,9 +172,16 @@ class ChemHistorian:
         # the reference list solved that problem
 
     def load(self, online=True, CHEMICAL_DB=None, REACTION_DB=None, refs=True):
-        '''
-        Loads the object from a MongoDB collection
-        '''
+        """Loads the object from a MongoDB collection.
+
+        Args:
+            online (bool, optional): Whether to load from the online database or
+                a local file. (default: {True})
+            CHEMICAL_DB (None or ??, optional): ??
+            REACTION_DB (None or ??, optional): ??
+            refs (bool, optional): Whether to include references.
+                (default: {True})
+        """
         MyLogger.print_and_log(
             'Loading historian.', historian_loc)
 
@@ -194,11 +234,27 @@ class ChemHistorian:
         MyLogger.print_and_log('Historian is fully loaded.', historian_loc)
 
     def lookup_smiles(self, smiles, alreadyCanonical=False, isomericSmiles=True, refs=False):
-        '''
-        Looks up a price by SMILES. Tries it as-entered and then 
-        re-canonicalizes it in RDKit unless the user specifies that
-        the string is definitely already canonical.
-        '''
+        """Looks up number of occurances by SMILES.
+
+        Tries it as-entered and then re-canonicalizes it in RDKit unless the
+        user specifies that the string is definitely already canonical.
+
+        Args:
+            smiles (str): SMILES string of molecule to look up.
+            alreadyCanonical (bool, optional): Whether to SMILES string has
+                already been canonicalized. (default: {False})
+            isomericSmiles (bool, optional): Whether the SMILES string is
+                isomeric. Must be true, since function is only intended for
+                isomeric. (default: {True})
+            refs (bool, optional): Whether to include references.
+                (default: {False})
+
+        Returns:
+            dict: Labeled dictionaty from tup_to_dict().
+
+        Raises:
+            ValueError: If isomericSmiles is False.
+        """
 
         if not isomericSmiles:
             raise ValueError('Not intended to be used for non-isomeric!')
@@ -220,7 +276,7 @@ class ChemHistorian:
         return tup_to_dict(info, refs=refs)
 
     def compress_keys(self):
-        '''Convert keys to hashed values to save space'''
+        """Converts keys to hashed values to save space."""
         new_occurrences = {}
         for k in self.occurrences.keys():
             k_compressed = int(hashlib.md5(k.encode('utf-8')).hexdigest(), 16)

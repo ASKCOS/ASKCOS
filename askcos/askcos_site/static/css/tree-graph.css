@@ -1,0 +1,26 @@
+.tree-graph {
+  margin: 10px auto;
+  width: 600px;
+  height: 400px;
+  border: 1px solid lightgray;
+}
+
+.vis-label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+a {
+  cursor: pointer
+}
+
+table {
+  border: none !important;
+}
+
+.blacklist {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+}

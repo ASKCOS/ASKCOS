@@ -13,31 +13,60 @@ evaluator_loc = 'evaluator'
 
 
 class Evaluator():
-    '''
-    The evaluator object uses any type of scorer with at least the 'get_scored_outcomes' method and any type of transformer
-    with at least a 'get_outcomes' method.
-    The outcomes are scored the results of the scoring can be returned in several ways.
-    This is the major object that should be used in the synthetic evaluation direction
+    """Evaluates forward synthetic reactions.
 
+    The evaluator object uses any type of scorer with at least the
+    'get_scored_outcomes' method and any type of transformer with at least a
+    'get_outcomes' method.
+    The outcomes are scored and the results of the scoring can be returned in
+    several ways.
+    This is the major object that should be used in the synthetic evaluation
+    direction.
 
+    Attributes:
+        celery (bool): Whether to use Celery workers.
+        scorers (dict of {str: model}): Scorers used to evaluate the reactions.
+    """
 
-    reactants, target, context, transformer, scorer
-
-            self.target_smiles = parse_molecule_to_smiles(target)
-        self.reactants = Chem.MolFromSmiles(parse_list_to_smiles(reactants))
-        self.reactants = clean_reactant_mapping(self.reactants)
-        self.transformer = transformer
-        self.scorer = scorer
-        self.context = context
-    '''
+    # reactants, target, context, transformer, scorer
+    #
+    #         self.target_smiles = parse_molecule_to_smiles(target)
+    #     self.reactants = Chem.MolFromSmiles(parse_list_to_smiles(reactants))
+    #     self.reactants = clean_reactant_mapping(self.reactants)
+    #     self.transformer = transformer
+    #     self.scorer = scorer
+    #     self.context = context
 
     def __init__(self, celery=False):
+        """Initializes Evaluator.
 
+        Args:
+            celery (bool, optional): Whether to use Celery workers.
+        """
         self.celery = celery
         self.scorers = {}
 
     def evaluate(self, reactant_smiles, target, contexts, forward_scorer='Template_Free',
                  worker_no=0, top_n=100, return_all_outcomes=False, chiral=False, **kwargs):
+        """??
+
+        Args:
+            reactant_smiles (str): SMILES string of reactants.
+            target (str): SMILES string of target molecule.
+            contexts (list of 6-tuples of (int, str, str, str, str, str)):
+                Reaction conditions to evaluate under.
+            forward_scorer (str, optional): Specifies scorer to be used for
+                forward direction. (default: {'Template_Free'})
+            worker_no (int, optional): Number of workers to use for
+                template-based scorer. (default: {0})
+            top_n (int, optional): Maximum number of outcomes to evaluate for
+                each product?? (default: {100})
+            return_all_outcomes (bool, optional): ?? (default: {False})
+            chiral (bool, optional): Whether to pay attention to chirality??
+                (default: {False})
+            **kwargs: Additional optional arguments. Used for mincount and
+                passed to evaluate of scorer.
+        """
         with allow_join_result():
             target = Chem.MolToSmiles(Chem.MolFromSmiles(target), chiral)
 
@@ -62,7 +91,7 @@ class Evaluator():
                     evaluation_result = {'context': contexts[i]}
                     if return_all_outcomes:
                         evaluation_result['outcomes'] = outcomes[:top_n]
-                    
+
                     notadict = type(outcomes[0]['outcome']) != dict
 
                     evaluation_result['top_product'] = {
@@ -91,7 +120,7 @@ class Evaluator():
                         MyLogger.print_and_log(
                             'Target not found in outcomes! Returning 0 as score.', evaluator_loc, level=2)
                         MyLogger.print_and_log(
-                            'The expected outcome of {} was {} ({})'.format(reactant_smiles, evaluation_result['top_product']['smiles'], 
+                            'The expected outcome of {} was {} ({})'.format(reactant_smiles, evaluation_result['top_product']['smiles'],
                                 evaluation_result['top_product']['prob']), evaluator_loc, level=2)
                         evaluation_result['target'] = {
                             'smiles': target,
@@ -102,11 +131,11 @@ class Evaluator():
                             'prob': 0.0,
                         }
                     evaluation_results.append(evaluation_result)
-                
+
             return evaluation_results
 
     def get_scorers(self, mincount, worker_no=0):
-
+        """Loads the scorers used for evaulation."""
         self.scorers[gc.fastfilter] = load_fastfilter()
         self.scorers[gc.templatebased] = load_templatebased(
             mincount=mincount, celery=self.celery, worker_no=worker_no)
@@ -117,12 +146,12 @@ if __name__ == '__main__':
     MyLogger.initialize_logFile()
     evaluator = Evaluator(celery=False)
 
-    import sys 
+    import sys
     if len(sys.argv) > 1:
         react = str(sys.argv[1])
     else:
         react = 'CCCCO.CCCCBr'
-    
-    res = evaluator.evaluate(react, 'O=C1CCCCCCCO1', [(20,'','','','','')], forward_scorer=gc.templatefree, 
+
+    res = evaluator.evaluate(react, 'O=C1CCCCCCCO1', [(20,'','','','','')], forward_scorer=gc.templatefree,
         return_all_outcomes=True)
     print(res)

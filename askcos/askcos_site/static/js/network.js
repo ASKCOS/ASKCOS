@@ -1,4 +1,6 @@
 var container = document.getElementsByClassName('container')[0];
+container.classList.remove('container')
+container.classList.add('container-fluid')
 container.style.width=null;
 
 function showLoader() {
@@ -238,7 +240,8 @@ var app = new Vue({
         numTemplates: 1000,
         maxCumProb: 0.999,
         minPlausibility: 0.01,
-        sortingCategory: "score"
+        sortingCategory: "score",
+        networkHierarchical: false
     },
     beforeMount: function() {
         this.allowResolve = this.$el.querySelector('[ref="allowResolve"]').checked;
@@ -261,7 +264,7 @@ var app = new Vue({
         },
         resolveTarget: function() {
             if (this.allowResolve) {
-                var url = 'https://cactus.nci.nih.gov/chemical/structure/'+encodeURIComponent(this.target)+'/smiles'
+                var url = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/'+encodeURIComponent(this.target)+'/property/IsomericSMILES/txt'
                 console.log(url)
                 fetch(url)
                     .then(resp => {
@@ -336,6 +339,21 @@ var app = new Vue({
                     hideLoader();
                     alert('There was an error fetching precursors for this target with the supplied settings')
                 })
+        },
+        toggleHierarchical: function() {
+          if (typeof(network) == 'undefined') {
+            return
+          }
+          if (this.networkHierarchical) {
+            network.setOptions({'layout': {'hierarchical': false}})
+            document.querySelector('#hierarchical-button').innerHTML = 'G'
+            this.networkHierarchical = false;
+          }
+          else {
+            network.setOptions({'layout': {'hierarchical': {sortMethod: 'directed'}}})
+            document.querySelector('#hierarchical-button').innerHTML = 'H'
+            this.networkHierarchical = true;
+          }
         },
         expandNode: function() {
             if (this.isModalOpen() || typeof(network) == "undefined") {
@@ -501,6 +519,7 @@ var app = new Vue({
             this.data.nodes.remove(this.data.nodes.getIds());
             this.data.edges.remove(this.data.edges.getIds());
             this.selected = null;
+            document.querySelector('#hierarchical-button').innerHTML = 'G';
         },
         clearSelection: function() {
             this.selected = null;
@@ -621,7 +640,7 @@ var tour = new Tour({
         {
             element: "#target",
             title: "Start with a target compound",
-            content: "You can start the retrosynthetic planning with a target compound and typing it's SMILES formatted string here. If the name resolver is enabled (see server icon to the right; click icon to toggle), you can also enter a chemical name. The name will be resolved using a third-party server (NIH CACTUS). For this tutorial we're going to explore an example reaction for <a href='https://en.wikipedia.org/wiki/Fluconazole' target='_blank'>Fluconazole</a>. Press 'Next' to continue!",
+            content: "You can start the retrosynthetic planning with a target compound and typing it's SMILES formatted string here. If the name resolver is enabled (see server icon to the right; click icon to toggle), you can also enter a chemical name. The name will be resolved using a third-party server (PubChem). For this tutorial we're going to explore an example reaction for <a href='https://en.wikipedia.org/wiki/Fluconazole' target='_blank'>Fluconazole</a>. Press 'Next' to continue!",
             placement: "bottom",
             onNext: function() {
                 app.target = 'OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F'

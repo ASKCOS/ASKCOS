@@ -8,13 +8,26 @@ heuristic_precursor_prioritizer_loc = 'relevanceheuristic_precursor_prioritizer'
 
 
 class RelevanceHeuristicPrecursorPrioritizer(Prioritizer):
+    """A precursor Prioritizer that uses a heuristic and template relevance.
 
+    Attributes:
+        pricer (Pricer or None): Used to look up chemical prices.
+    """
     def __init__(self):
-       
+        """Initializes RelevanceHeuristicPrecursorPrioritizer."""
         self.pricer = None
         self._loaded = False
 
     def get_priority(self, retroPrecursor, **kwargs):
+        """Gets priority of given precursor based on heuristic and relevance.
+
+        Args:
+            retroPrecursor (RetroPrecursor): Precursor to calculate priority of.
+            **kwargs: Unused.
+
+        Returns:
+            float: Priority score of precursor.
+        """
         if not self._loaded:
             self.load_model()
 
@@ -44,6 +57,7 @@ class RelevanceHeuristicPrecursorPrioritizer(Prioritizer):
         return sco / retroPrecursor.template_score
 
     def load_model(self):
+        """Loads the Pricer used in the heuristic priority scoring."""
         self.pricer = Pricer()
         self.pricer.load()
         self._loaded = True

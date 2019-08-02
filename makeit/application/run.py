@@ -14,13 +14,18 @@ makeit_loc = 'makeit'
 
 
 class MAKEIT:
-    '''
-    Main application for running the make-it program.
-    Proposes potential synthetic routes to a desired target compound in two steps:
-     - Building a retro synthetic tree and extracting buyable routes
-     - Evaluation the likelihood of succes of each of the reactions in the found buyable routes
-     - Returns all (or some) of the likely synthetic routes
-    '''
+    """Main application for running the make-it program.
+
+    Proposes potential synthetic routes to a desired target compound in two
+    steps:
+
+    - Building a retro synthetic tree and extracting buyable routes
+    - Evaluation the likelihood of succes of each of the reactions in the found
+      buyable routes
+
+    Returns:
+        All (or some) of the likely synthetic routes.
+    """
 
     def __init__(self, target_product, expansion_time, max_depth, max_branching, max_trees, retro_mincount, retro_mincount_chiral,
                  synth_mincount, rank_threshold_inclusion, prob_threshold_inclusion, max_total_contexts, template_count,

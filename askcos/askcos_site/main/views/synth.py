@@ -1,6 +1,6 @@
 from django.shortcuts import render, HttpResponse, redirect
 from django.template.loader import render_to_string
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.conf import settings
@@ -8,7 +8,7 @@ import django.contrib.auth.views
 from pymongo.message import bson
 from bson.objectid import ObjectId
 import time
-import numpy as np 
+import numpy as np
 import json
 import os
 
@@ -22,25 +22,25 @@ from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
 from makeit.utilities.contexts import clean_context
 
 #@login_required
-def synth_interactive(request, reactants='', reagents='', solvent='default', 
+def synth_interactive(request, reactants='', reagents='', solvent='default',
         temperature='20', mincount='25', product=None, forward_scorer='Template_Free'):
     '''Builds an interactive forward synthesis page'''
 
-    context = {} 
+    context = {}
     context['footnote'] = PREDICTOR_FOOTNOTE
     context['solvent_choices'] = sorted(solvent_choices, key = lambda x: x['name'])
     context['reactants'] = reactants
 
-    if product is None:    
+    if product is None:
         context['reagents'] = reagents
         context['solventselected'] = solvent
         # auto-select new solvent if possible
-        matched = False 
+        matched = False
         if '.' in solvent:
             solvent = solvent.split('.')[0]
         for solvent_choice in solvent_choices:
             if solvent == solvent_choice['smiles'] or solvent == solvent_choice['name']:
-                matched = True 
+                matched = True
                 context['solventselected'] = solvent_choice['name']
         if not matched and solvent:
             context['warn'] = 'Could not pre-populate solvent field: no Abraham params found for {}'.format(solvent)
@@ -64,7 +64,7 @@ def synth_interactive(request, reactants='', reagents='', solvent='default',
                 context['solventselected'] = slvt['name']
                 break
         context['reagents'] = rgt1
-        context['temperature'] = T1 
+        context['temperature'] = T1
 
     context['forward_scorer'] = 'Template_Free'
     context['mincount'] = mincount if mincount != '' else settings.SYNTH_TRANSFORMS['mincount']
@@ -121,7 +121,7 @@ def ajax_start_synth(request):
         print('reset default solvent')
 
     res = evaluate.delay(reactants, '',
-        contexts=[clean_context((temperature, solvent, reagents, '', -1, -1))], 
+        contexts=[clean_context((temperature, solvent, reagents, '', -1, -1))],
         forward_scorer=forward_scorer, top_n=maxreturn, return_all_outcomes=True)
     outcomes = res.get(300)[0]['outcomes']
 
@@ -131,15 +131,14 @@ def ajax_start_synth(request):
 
     if outcomes:
 
-        data['html'] = render_to_string('synth_outcomes_only.html', 
+        data['html'] = render_to_string('synth_outcomes_only.html',
             {'outcomes': outcomes})
     else:
         data['html'] = 'No outcomes found? That is weird...'
-    
+
     # Save in session in case used wants to print
-    request.session['last_synth_interactive'] = {'reactants': reactants, 
+    request.session['last_synth_interactive'] = {'reactants': reactants,
         'temperature': temperature, 'reagents': reagents, 'solvent': solvent,
         'mincount': mincount, 'outcomes': outcomes, 'forward_scorer': forward_scorer}
 
     return JsonResponse(data)
-

@@ -50,7 +50,7 @@ function liberalSettings() {
 <form method="post" id="smiles_form" action="{% url 'retro_home' %}">
 <table class="table table-borderless table-nonfluid">
     <tr>
-        <th>Target compound:</td>
+        <th>Target compound:</th>
         <td>
             <input id="id_smiles" maxlength="400" name="smiles" type="text" value="{{ form.smiles }}"><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('id_smiles')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a>
         </td>
@@ -157,8 +157,8 @@ function liberalSettings() {
                 <a href="{% url 'context_rxnsmiles_target2' precursor.smiles target.smiles %}">&rarr; ?</a>
                 <br>
                 <a><img src="" data-async-load="{% url 'draw_smiles' precursor.smiles %}" alt="{{ precursor.smiles }}" onclick="toggle_visibility('expand{{ precursor.rank }}');"></a>
-                
-                <div id='expand{{ precursor.rank }}' style='display:none'>  
+
+                <div id='expand{{ precursor.rank }}' style='display:none'>
                     {% if precursor.tforms %}
                     <font class="smiles"><b>Based on retrosynthetic transform template(s):</b></font><br>
                     {% for tform in precursor.tforms %}
@@ -171,7 +171,7 @@ function liberalSettings() {
                     <font class="smiles"><b>Based on Reaxys reaction ID: <a href="{% url 'rxid_target' precursor.rxid %}">{{ precursor.rxid }}</a></b></font>
                     {% endif %}
                 </div>
-                
+
             </td>
             <td>{{ precursor.score|floatformat:3 }}</td>
             <td>{{ precursor.num_examples }}</td>
