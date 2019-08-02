@@ -307,8 +307,24 @@ var app = new Vue({
         showAddNewPrecursorModal: false,
         downloadName: "network.json",
         modalData: {},
-        clusterPopoutModalData: {},
-        clusterEditModalData: {},
+        clusterPopoutModalData: {
+            optionsDisplay : {
+                showScore: false,
+                showNumExample: true,
+                showTemplateScore: false,
+                showPlausibility: true,
+                showClusterId: false,
+            },
+        },
+        clusterEditModalData: {
+            optionsDisplay : {
+                showScore: false,
+                showNumExample: false,
+                showTemplateScore: false,
+                showPlausibility: false,
+                showClusterId: false,
+            },
+        },
         addNewPrecursorModal: {},
         clusterOptions: {
             allowRemovePrecursor: true,
