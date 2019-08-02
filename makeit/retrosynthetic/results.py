@@ -80,8 +80,9 @@ class RetroResult:
             if i + 1 == n:
                 break
         precurors_list_merged_smiles = [x['smiles'] for x in top]
+        score_list = [x['score'] for x in top]
         clusterid, feature, cluster_method = group_results(
-            self.target_smiles, precurors_list_merged_smiles)
+            self.target_smiles, precurors_list_merged_smiles, score=score_list)
         for (i, precursor) in enumerate(top):
             precursor['group_id'] = clusterid[i]
         return top
