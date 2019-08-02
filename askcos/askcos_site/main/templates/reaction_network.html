@@ -228,7 +228,19 @@
 
 <modal v-if="showClusterPopoutModal" @close="closeClusterPopoutModal();">
     <div class="mx-auto" slot="header">
-        <h3>Viewing <button class="btn btn-light" @click="clusterPopoutModalDecGroupID();"><i class="fas fa-less-than"></i></button> Cluster #%% clusterPopoutModalData['group_id']+1 %% <button class="btn btn-light" @click="clusterPopoutModalIncGroupID();"><i class="fas fa-greater-than"></i></button>   &nbsp;&nbsp; <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); closeClusterPopoutModal();">Edit clusters</button> <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button> </h3>
+        <h3>
+        Viewing
+        <button class="btn btn-light" @click="clusterPopoutModalDecGroupID();"><i class="fas fa-less-than"></i></button>
+        Cluster #%% clusterPopoutModalData['group_id']+1 %%
+        <button class="btn btn-light" @click="clusterPopoutModalIncGroupID();"><i class="fas fa-greater-than"></i></button>
+        &nbsp;&nbsp;
+        <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); closeClusterPopoutModal();">Edit clusters</button>
+        <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button>
+        Score: <input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showScore"/>
+        # Examples: <input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showNumExample"/>
+        Template score: <input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showTemplateScore"/>
+        Plausibility: <input type="checkbox" v-model="clusterPopoutModalData.optionsDisplay.showPlausibility"/>
+        </h3>
     </div>
     <div slot="body" class="text-left">
         <div class="scroll-list">
@@ -244,13 +256,25 @@
                                         <td>Rank</td>
                                         <td>#%% res.rank %%</td>
                                     </tr>
-                                    <tr>
+                                    <tr v-if="clusterPopoutModalData.optionsDisplay.showScore">
+                                        <td>Score</td>
+                                        <td>%% num2str(res.score, 3) %%</td>
+                                    </tr>
+                                    <tr v-if="clusterPopoutModalData.optionsDisplay.showNumExample">
                                         <td># Examples</td>
                                         <td>%% num2str(res.num_examples)%%</td>
                                     </tr>
-                                    <tr>
+                                    <tr v-if="clusterPopoutModalData.optionsDisplay.showTemplateScore">
+                                        <td>Template score</td>
+                                        <td>%% num2str(res.template_score, 3) %%</td>
+                                    </tr>
+                                    <tr v-if="clusterPopoutModalData.optionsDisplay.showPlausibility">
                                         <td>Plausibility</td>
                                         <td>%% num2str(res.plausibility, 3) %%</td>
+                                    </tr>
+                                    <tr v-if="clusterPopoutModalData.optionsDisplay.showClusterId">
+                                        <td>Reaction cluster</td>
+                                        <td>%% res.group_id+1 %%</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -277,7 +301,19 @@
 
 <modal v-if="showClusterEditModal" @close="closeClusterEditModal();">
     <div class="mx-auto" slot="header">
-        <h3>Editing <button class="btn btn-light" @click="clusterEditModalDecGroupID();"><i class="fas fa-less-than"></i></button> Cluster #%% clusterEditModalData['group_id']+1 %% <button class="btn btn-light" @click="clusterEditModalIncGroupID();"><i class="fas fa-greater-than"></i></button>   <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterEditModalData['selectedSmiles'], clusterEditModalData['group_id']);">Add precursor</button>   <button class="btn btn-danger" @click="requestClusterId(clusterEditModalData['selectedSmiles']);">Re-cluster</button>   <button class="btn btn-light" @click="openModal('settings');">Cluster Settings</button></h3>
+        <h3>
+        Editing 
+        <button class="btn btn-light" @click="clusterEditModalDecGroupID();"><i class="fas fa-less-than"></i></button>
+        Cluster #%% clusterEditModalData['group_id']+1 %%
+        <button class="btn btn-light" @click="clusterEditModalIncGroupID();"><i class="fas fa-greater-than"></i></button>
+        <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterEditModalData['selectedSmiles'], clusterEditModalData['group_id']);">Add precursor</button>
+        <button class="btn btn-danger" @click="requestClusterId(clusterEditModalData['selectedSmiles']);">Re-cluster</button>
+        <button class="btn btn-light" @click="openModal('settings');">Cluster Settings</button>
+        Score: <input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showScore"/>
+        # Examples: <input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showNumExample"/>
+        Template score: <input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showTemplateScore"/>
+        Plausibility: <input type="checkbox" v-model="clusterEditModalData.optionsDisplay.showPlausibility"/>
+        </h3>
     </div>
     <div slot="body" class="text-left popout-scroll">
         <div class="scroll-list-x">
@@ -293,13 +329,25 @@
                                         <td>Rank</td>
                                         <td>#%% res.rank %%</td>
                                     </tr>
-                                    <tr>
-                                        <td># Examples</td>
-                                        <td>%% num2str(res.num_examples) %%</td>
+                                    <tr v-if="clusterEditModalData.optionsDisplay.showScore">
+                                        <td>Score</td>
+                                        <td>%% num2str(res.score, 3) %%</td>
                                     </tr>
-                                    <tr>
+                                    <tr v-if="clusterEditModalData.optionsDisplay.showNumExample">
+                                        <td># Examples</td>
+                                        <td>%% num2str(res.num_examples)%%</td>
+                                    </tr>
+                                    <tr v-if="clusterEditModalData.optionsDisplay.showTemplateScore">
+                                        <td>Template score</td>
+                                        <td>%% num2str(res.template_score, 3) %%</td>
+                                    </tr>
+                                    <tr v-if="clusterEditModalData.optionsDisplay.showPlausibility">
                                         <td>Plausibility</td>
                                         <td>%% num2str(res.plausibility, 3) %%</td>
+                                    </tr>
+                                    <tr v-if="clusterEditModalData.optionsDisplay.showClusterId">
+                                        <td>Reaction cluster</td>
+                                        <td>%% res.group_id+1 %%</td>
                                     </tr>
                                 </tbody>
                             </table>
