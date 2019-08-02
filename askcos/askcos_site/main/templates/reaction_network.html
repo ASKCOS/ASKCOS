@@ -228,7 +228,7 @@
 
 <modal v-if="showClusterPopoutModal" @close="closeClusterPopoutModal();">
     <div class="mx-auto" slot="header">
-        <h3>Viewing <button class="btn btn-light" @click="clusterPopoutModalDecGroupID();"><i class="fas fa-less-than"></i></button> Cluster #%% clusterPopoutModalData['group_id']+1 %% <button class="btn btn-light" @click="clusterPopoutModalIncGroupID();"><i class="fas fa-greater-than"></i></button>   &nbsp;&nbsp; <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); clusterPopoutModalData = {};">Edit clusters</button> <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button> </h3>
+        <h3>Viewing <button class="btn btn-light" @click="clusterPopoutModalDecGroupID();"><i class="fas fa-less-than"></i></button> Cluster #%% clusterPopoutModalData['group_id']+1 %% <button class="btn btn-light" @click="clusterPopoutModalIncGroupID();"><i class="fas fa-greater-than"></i></button>   &nbsp;&nbsp; <button class="btn btn-danger"  @click="showClusterPopoutModal = false; openClusterEditModal(clusterPopoutModalData['selected'], clusterPopoutModalData['group_id']); closeClusterPopoutModal();">Edit clusters</button> <button class="btn btn-success" @click="openAddNewPrecursorModal(clusterPopoutModalData['selectedSmiles'], clusterPopoutModalData['group_id']);">Add precursor</button> </h3>
     </div>
     <div slot="body" class="text-left">
         <div class="scroll-list">
