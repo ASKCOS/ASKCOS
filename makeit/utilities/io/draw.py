@@ -3,11 +3,73 @@ import numpy as np
 import rdkit.Chem as Chem
 import rdkit.Chem.AllChem as AllChem
 import rdkit.Chem.Draw as Draw
+from rdkit.Chem import rdDepictor
+from rdkit.Chem.Draw import rdMolDraw2D
+from rdkit import Geometry
 from PIL import Image, ImageOps
 from collections import defaultdict
 # from rdkit.Chem.Draw.cairoCanvas import Canvas
 import os
 import re
+
+
+def get_scaled_drawer(mol):
+    #Draw all molecules with same proportions
+    dpa = 26
+    rdDepictor.Compute2DCoords(mol)
+    conf = mol.GetConformer()
+    xs = [conf.GetAtomPosition(i).x for i in range(mol.GetNumAtoms())]
+    ys = [conf.GetAtomPosition(i).y for i in range(mol.GetNumAtoms())]
+    point_min = Geometry.rdGeometry.Point2D()
+    point_max = Geometry.rdGeometry.Point2D()
+    point_min.x = min(xs) - 1
+    point_min.y = min(ys) - 1
+    point_max.x = max(xs) + 1
+    point_max.y = max(ys) + 1
+    w = int(dpa * (point_max.x - point_min.x))
+    h = int(dpa * (point_max.y - point_min.y))
+    drawer = rdMolDraw2D.MolDraw2DSVG(w,h)
+    drawer.SetScale(w, h, point_min, point_max)
+    return drawer
+
+def MolsSmilesToImageHighlight(smiles, options=None, **kwargs):
+    '''This function takes a SMILES string of one or more molecules
+    and generates a combined image for that molecule set.'''
+    mol = Chem.MolFromSmiles(str(smiles))
+    d2 = get_scaled_drawer(mol)
+    dopts = d2.drawOptions()
+    reacting_atoms = kwargs.get('reacting_atoms', [])
+    bonds = kwargs.get('bonds', False)
+    clear_map = kwargs.get('clear_map', True)
+
+    #Will only draw the highlighted atoms if they are mapped by isotope from rdchiral otherwise
+    #the reacting_atoms will not match the atom index and draw the highlight in the incorrect location
+    try:
+        isotope_idx_map = {a.GetIsotope():a.GetIdx() for a in mol.GetAtoms()}
+        highlightAtoms = [isotope_idx_map[x] for x in reacting_atoms]
+        #TODO add options for colors?
+        highlightAtomColors = {x:(0,1,0) for x in highlightAtoms}
+        if bonds:
+            #TODO some edits have multiple atoms changing in one tuple
+            highlightBonds = [mol.GetBondBetweenAtoms(x[0],x[1]).GetIdx() for x in reacting_atoms]
+        else:
+            highlightBonds = []
+    except:
+        highlightAtoms = []
+        highlightBonds = []
+        highlightAtomColors = []
+        
+    if clear_map:
+        [a.SetIsotope(0) for a in mol.GetAtoms()]
+    m2=Draw.PrepareMolForDrawing(mol)
+    d2.DrawMolecule(m2,highlightAtoms=highlightAtoms, \
+        highlightBonds=highlightBonds, highlightAtomColors=highlightAtomColors)
+    d2.FinishDrawing()
+    txt = d2.GetDrawingText()
+    
+    return txt
+ 
+
 """
 Many of these functions are taken from RDKit.
 """
