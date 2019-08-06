@@ -81,7 +81,7 @@ def cluster(request):
         resp['error'] = err_msg
         return JsonResponse(resp)
 
-    idx, feature, cluster_method = group_results(
+    idx = group_results(
         original,
         outcomes,
         feature=feature,

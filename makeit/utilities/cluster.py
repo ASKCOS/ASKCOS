@@ -35,6 +35,9 @@ def group_results(original, outcomes, **kwargs):
     feature = kwargs.get('feature', 'original')
     scores = kwargs.get('scores')
 
+    if not outcomes:
+        return []
+
     # calc fingerprint
     original_fp = np.array(fp_generator(original))
     outcomes_fp = np.array([fp_generator(i) for i in outcomes])
@@ -86,4 +89,4 @@ def group_results(original, outcomes, **kwargs):
         order_mapping = {new_order[n][0]: n for n in range(len(new_order))}
         res = [order_mapping[n] for n in res]
     
-    return res, feature, cluster_method
+    return res
