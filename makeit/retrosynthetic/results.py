@@ -88,7 +88,7 @@ class RetroResult:
         precurors_list_merged_smiles = [x['smiles'] for x in top]
         if cluster:
             scores = [x['score'] for x in top]
-            clusterid, feature, cluster_method = group_results(
+            clusterid = group_results(
                 self.target_smiles, precurors_list_merged_smiles,
                 cluster_method=cluster_method,
                 feature=cluster_feature,
