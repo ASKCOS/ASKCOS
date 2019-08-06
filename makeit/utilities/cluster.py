@@ -9,28 +9,31 @@ import sklearn.cluster as cluster
 
 def group_results(original, outcomes, **kwargs):
     '''Cluster the similar transformed outcomes together
-    Input:
-    original:       string,             smiles string
-    outcomes:       list of string,     smiles strings of outcomes
+    
+    Args:
+        original (str): SMILES string of original target molecule
+        outcomes (list of str): List containing SMILES strings of outcomes to be clustered
+        feature (str, optional): Only use features disappearing from 'original', appearing in 'outcomes' or a combination of 'all'. (default: {'original'})
+        cluster_method (str, optional): Method to use for clustering ['kmeans', 'hbdscan'] (default: {'kmeans'})
+        fp_type (str, optional): Type of fingerprinting method to use. (default: {'morgan'})
+        fp_length (int, optional): Fixed-length folding of fingerprint. (default: {512})
+        fp_radius (int, optional): Radius to use for fingerprint. (default: {1})
+        scores (list or float, optional): Listof precursor outcome scores to number clusters i.e. - cluster 1 contains precursor outcome with best score. (default: {None})
 
-    Optional Input:
-    feature:        string,             'original', 'outcomes', 'all'. Only use features
-                                        presenting in original, outcomes or both.
-    fingerprint:    function object,    f(smiles_string:str) -> list of integer bits
-    cluster_method: string,             cluster method: hdbscan, kmeans
-    score:          list of float,      score of each precursor, if present, cluster indices
-                                        are sorted according to the max score in each cluster
-
-    Return:
-                    list of integer,    cluster indices for outcomes, 0-based
+    Returns:
+        list of int: Cluster indices for outcomes, 0-based
     '''
-    fp_generator = kwargs.get(
-        'fingerprint',
-        lambda x: AllChem.GetMorganFingerprintAsBitVect(Chem.MolFromSmiles(x), 1, nBits=512)
-        )
+    fp_type = kwargs.get('fp_type', 'morgan')
+    fp_length = kwargs.get('fp_length', 512)
+    fp_radius = kwargs.get('fp_radius', 1)
+    if fp_type == 'morgan':
+        fp_generator = lambda x: AllChem.GetMorganFingerprintAsBitVect(Chem.MolFromSmiles(x), fp_radius, nBits=fp_length)
+    else:
+        raise Exception('Fatal error: fingerprint type {} is not supported.'.format(fingerprint))
+    
     cluster_method = kwargs.get('cluster_method', 'kmeans')
     feature = kwargs.get('feature', 'original')
-    score = kwargs.get('score', None)
+    scores = kwargs.get('scores')
 
     # calc fingerprint
     original_fp = np.array(fp_generator(original))
@@ -70,19 +73,17 @@ def group_results(original, outcomes, **kwargs):
 
     res = [int(i) for i in res]
 
-    if score is not None:
-        if len(score) != len(res):
-            raise Exception('Fatal error: length of score ({}) and smiles ({}) are different.'.format(len(score), len(outcomes)))
-        max_score_per_cluster = {}
-        for iprecursor, precursor_score in enumerate(score):
-            precursor_gid = res[iprecursor]
-            if max_score_per_cluster.get(precursor_gid) is None:
-                max_score_per_cluster[precursor_gid] = precursor_score
-            else:
-                max_score_per_cluster[precursor_gid] = max(max_score_per_cluster[precursor_gid], precursor_score)
-        max_score_per_cluster_sorted = sorted(max_score_per_cluster.items(), key=lambda x: x[1], reverse=True)
-        idx_order = [i[0] for i in max_score_per_cluster_sorted]
-        idx_order_remap = dict((v,k) for k,v in enumerate(idx_order))
-        res = [idx_order_remap[i] for i in res]
-
+    if scores:
+        if len(scores) != len(res):
+            raise Exception('Fatal error: length of score ({}) and smiles ({}) are different.'.format(len(scores), len(res)))
+        best_cluster_score = {}
+        for cluster_id, score in zip(res, scores):
+            best_cluster_score[cluster_id] = max(
+                best_cluster_score.get(cluster_id, -float('inf')),
+                score
+            )
+        new_order = list(sorted(best_cluster_score.items(), key=lambda x: -x[1]))
+        order_mapping = {new_order[n][0]: n for n in range(len(new_order))}
+        res = [order_mapping[n] for n in res]
+    
     return res, feature, cluster_method

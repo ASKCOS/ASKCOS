@@ -8,7 +8,7 @@ def cluster(request):
     Method:     GET
     API parameters:
     original:       string,             smiles string
-    outcomes:       string,             smiles strings of outcomes, separated by semicolon
+    outcomes:       string,             smiles strings of outcomes, separated by comma
 
     Optional Input:
     feature:        string,             'original', 'outcomes', 'all'. Only use features
@@ -17,9 +17,7 @@ def cluster(request):
     fpradius:       int,                default is 1
     fpnbits:        int,                default is 512
     clustermethod:  string,             cluster method: 'hdbscan', 'kmeans'
-    score:          string,             integers separated by commas or None
-                                        score of each precursor, if present, cluster indices
-                                        are sorted according to the max score in each cluster
+    scores:         string              scores of precursors, separated by comma
 
     Return:
                     list of integer,    cluster indices for outcomes
@@ -46,7 +44,7 @@ def cluster(request):
     fpradius = int(request.POST.get('fpradius', 1))
     fpnbits  = int(request.POST.get('fpnbits', 512))
     cluster_method = request.POST.get('clustermethod', 'kmeans')
-    score = request.POST.get('score', None)
+    scores = request.POST.get('scores', None)
 
     # error checking
     if original is None:
@@ -57,15 +55,16 @@ def cluster(request):
         iserr = True
         err_msg += 'Error: outcomes is empty. '
     else:
-        outcomes = outcomes.split(';')
+        outcomes = outcomes.split(',')
+
+    if scores is not None:
+        scores = list(map(float, scores.split(',')))
 
     if feature not in ['original', 'outcomes', 'all']:
         iserr = True
         err_msg += 'Error: unrecognized feature name. '
 
-    if 'morgan' == fp_name:
-        fp_generator = lambda x: AllChem.GetMorganFingerprintAsBitVect(Chem.MolFromSmiles(x), fpradius, nBits=fpnbits)
-    else:
+    if fp_name != 'morgan':
         iserr = True
         err_msg += 'Error: unrecognized fingerprint name. '
 
@@ -73,11 +72,8 @@ def cluster(request):
         iserr = True
         err_msg += 'Error: unrecognized clustermethod name. '
 
-    if score is not None:
-        # convert string to list
-        score_list_string = score.split(',')
-        score = [float(i) for i in score_list_string]
-        if len(score) != len(outcomes):
+    if scores is not None:
+        if len(scores) != len(outcomes):
             iserr = True
             err_msg += 'Error: number of score and smiles strings are different.'.format(len(score), len(outcomes))
 
@@ -89,9 +85,11 @@ def cluster(request):
         original,
         outcomes,
         feature=feature,
-        fingerprint=fp_generator,
+        fp_type=fp_name,
+        fp_length=fpnbits,
+        fp_radius=fpradius,
         cluster_method=cluster_method,
-        score=score
+        scores=scores
         )
 
     resp['group_id'] = idx
