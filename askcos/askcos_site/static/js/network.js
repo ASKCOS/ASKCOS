@@ -372,6 +372,11 @@ var app = new Vue({
                 num_templates: this.numTemplates,
                 max_cum_prob: this.maxCumProb,
                 filter_threshold: this.minPlausibility,
+                cluster_method: this.clusterOptions.cluster_method,
+                cluster_feature: this.clusterOptions.feature,
+                cluster_fp_type: this.clusterOptions.fingerprint,
+                cluster_fp_length: this.clusterOptions.fpBits,
+                cluster_fp_radius: this.clusterOptions.fpRadius
             }
             var queryString = Object.keys(params).map((key) => {
                 return encodeURIComponent(key) + '=' + encodeURIComponent(params[key])
@@ -1147,13 +1152,13 @@ var app = new Vue({
             var url = '/api/cluster/?';
             var params = {
                 original:       selected,
-                outcomes:       all_smiles.join(';'),
+                outcomes:       all_smiles,
                 feature:        this.clusterOptions.feature,
                 fp_name:        this.clusterOptions.fingerprint,
                 fpradius:       this.clusterOptions.fpRadius,
                 fpnbits:        this.clusterOptions.fpBits,
                 cluster_method: this.clusterOptions.cluster_method,
-                score:          all_scores,
+                scores:          all_scores,
             };
             var queryString = Object.keys(params).map((key) => {
                 return encodeURIComponent(key) + '=' + encodeURIComponent(params[key])

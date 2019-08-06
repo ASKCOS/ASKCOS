@@ -50,13 +50,19 @@ class RetroResult:
         if self.precursors[index].template_score < precursor.template_score:
             self.precursors[index].template_score = precursor.template_score
 
-    def return_top(self, n=50):
+    def return_top(self, n=50, cluster=True, cluster_method='kmeans', cluster_feature='original', cluster_fp_type='morgan', cluster_fp_length=512, cluster_fp_radius=1):
         """Returns the top n precursors as a list of dictionaries.
 
         Output is sorted by descending score.
 
         Args:
             n (int, optional) Number of precursors to return. (default: {50})
+            cluster (bool, optional): Whether to cluster results. (default: {True}). This is passed along to RetroResult.return_top()
+            cluster_method (str, optional): Clustering method to use ['kmeans', 'hdbscan']. (default: {'kmeans'})
+            cluster_feature (str, optional): Features to use for clustering ['original', 'outcomes', 'all']. 'Original' means features that disappear from original target. 'Outcomes' means new features that appear in predicted precursor outcomes. 'All' means the logical 'or' of both. (default: {'original'})
+            cluster_fp_type (str, optional): Type of fingerprint to use. Curretnly only 'morgan' is supported. (default: {'morgan'})
+            cluster_fp_length (int, optional): Fixed-length folding to use for fingerprint generation. (default: {512})
+            cluster_fp_radius (int, optional): Radius to use for fingerprint generation. (default: {1})
         """
         top = []
         for (i, precursor) in enumerate(sorted(self.precursors,
@@ -80,9 +86,17 @@ class RetroResult:
             if i + 1 == n:
                 break
         precurors_list_merged_smiles = [x['smiles'] for x in top]
-        score_list = [x['score'] for x in top]
-        clusterid, feature, cluster_method = group_results(
-            self.target_smiles, precurors_list_merged_smiles, score=score_list)
+        if cluster:
+            scores = [x['score'] for x in top]
+            clusterid, feature, cluster_method = group_results(
+                self.target_smiles, precurors_list_merged_smiles,
+                cluster_method=cluster_method,
+                feature=cluster_feature,
+                fp_type=cluster_fp_type,
+                fp_length=cluster_fp_length,
+                fp_radius=cluster_fp_radius,
+                scores=scores
+            )
         for (i, precursor) in enumerate(top):
             precursor['group_id'] = clusterid[i]
         return top

@@ -47,8 +47,7 @@ def configure_worker(options={}, **kwargs):
 
 
 @shared_task
-def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=0,
-                       max_branching=20, template_count=10000, mode=gc.max, max_cum_prob=1, apply_fast_filter=False, filter_threshold=0.8):
+def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=0, max_branching=20, template_count=10000, mode=gc.max, max_cum_prob=1, apply_fast_filter=False, filter_threshold=0.8, cluster=True, cluster_method='kmeans', cluster_feature='original', cluster_fp_type='morgan', cluster_fp_length=512, cluster_fp_radius=1):
     """Get the precursors for a chemical defined by its SMILES.
 
     Args:
@@ -72,6 +71,12 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
             filter precursors. (default: {False})
         filter_threshold (float, optional): Threshold to use for fast filter.
             (default: {0.8})
+        cluster (bool, optional): Whether to cluster results. (default: {True}). This is passed along to RetroResult.return_top()
+        cluster_method (str, optional): Clustering method to use ['kmeans', 'hdbscan']. (default: {'kmeans'})
+        cluster_feature (str, optional): Features to use for clustering ['original', 'outcomes', 'all']. 'Original' means features that disappear from original target. 'Outcomes' means new features that appear in predicted precursor outcomes. 'All' means the logical 'or' of both. (default: {'original'})
+        cluster_fp_type (str, optional): Type of fingerprint to use. Curretnly only 'morgan' is supported. (default: {'morgan'})
+        cluster_fp_length (int, optional): Fixed-length folding to use for fingerprint generation. (default: {512})
+        cluster_fp_radius (int, optional): Radius to use for fingerprint generation. (default: {1})
 
     Returns:
         2-tuple of (str, list of dict): SMILES string of input and top
@@ -90,7 +95,15 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
 
     # print(result)
 
-    precursors = result.return_top(n=max_branching)
+    precursors = result.return_top(
+        n=max_branching, 
+        cluster=cluster,
+        cluster_method=cluster_method,
+        cluster_feature=cluster_feature,
+        cluster_fp_type=cluster_fp_type,
+        cluster_fp_length=cluster_fp_length,
+        cluster_fp_radius=cluster_fp_radius
+    )
     return (smiles, precursors)
 
 @shared_task
