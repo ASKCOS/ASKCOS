@@ -3,6 +3,7 @@ from makeit.utilities.buyable.pricer import Pricer
 from multiprocessing import Process, Manager, Queue, Pool
 from celery.result import allow_join_result
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 # from makeit.mcts.cost import Reset, score_max_depth, MinCost, BuyablePathwayCount
 # from makeit.mcts.misc import get_feature_vec, save_sparse_tree
@@ -992,11 +993,33 @@ class MCTS:
                 Args:
                     tids (list of int): Template IDs to get info about.
             """
-            return {
-                'tforms': [str(self.retroTransformer.templates[tid]['_id']) for tid in tids],
-                'num_examples': int(sum([self.retroTransformer.templates[tid]['count'] for tid in tids])),
-                'necessary_reagent': self.retroTransformer.templates[tids[0]]['necessary_reagent'],
-            }
+            if self.retroTransformer.load_all or not self.retroTransformer.use_db:
+                return {
+                    'tforms': [str(self.retroTransformer.templates[tid]['_id']) for tid in tids],
+                    'num_examples': int(sum([self.retroTransformer.templates[tid]['count'] for tid in tids])),
+                    'necessary_reagent': self.retroTransformer.templates[tids[0]]['necessary_reagent'],
+                }
+            else:
+                db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
+                                        'id'], connect=gc.MONGO['connect'])
+
+                db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
+                collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
+                TEMPLATE_DB = db_client[db_name][collection]
+                tforms = []
+                num_examples = 0
+                necessary_reagent = None
+                for tid in tids:
+                    template = TEMPLATE_DB.find_one({'_id': ObjectId(self.retroTransformer.templates[tid][0])})
+                    tforms.append(str(template.get('_id', -1)))
+                    num_examples += template.get('count', 1)
+                    if necessary_reagent is None:
+                        necessary_reagent = template.get('necessary_reagent', '')
+                return {
+                    'tforms': tforms,
+                    'num_examples': int(num_examples),
+                    'necessary_reagent': necessary_reagent,
+                }
 
         seen_rxnsmiles = {}
         self.current_index = 1
@@ -1271,7 +1294,7 @@ class MCTS:
         self.max_natom_dict = max_natom_dict
         self.max_ppg = max_ppg
         self.sort_trees_by = sort_trees_by
-
+        MyLogger.print_and_log('Active pathway #: {}'.format(num_active_pathways), treebuilder_loc)
 
         if min_chemical_history_dict['logic'] not in [None, 'none'] and \
                 self.chemhistorian is None:
