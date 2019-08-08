@@ -88,7 +88,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             context['err'] = 'Could not parse!'
             return render(request, 'retro.html', context)
 
-        if smiles is not None and not is_banned(request, smiles):
+    if smiles is not None and not is_banned(request, smiles):
 
         # OLD: ALWAYS CHIRAL NOW
         # if 'retro_lit' in request.POST: return redirect('retro_lit_target', smiles=smiles)
