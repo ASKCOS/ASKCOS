@@ -12,6 +12,11 @@ import os
 import makeit.utilities.io.pickle as pickle
 import tensorflow as tf
 import math
+from bson.objectid import ObjectId
+from rdchiral.initialization import rdchiralReaction, rdchiralReactants
+from pymongo import MongoClient
+
+
 
 relevance_template_prioritizer_loc = 'relevance_template_prioritizer'
 
@@ -45,6 +50,74 @@ def linearND(input_, output_size, scope, reuse=False, init_bias=0.0):
     res = tf.reshape(res, target_shape)
     res.set_shape(shape[:-1] + [output_size])
     return res
+
+def doc_to_template(document, chiral):
+    """Returns a template given a document from the database or file.
+
+    Args:
+        document (dict): Document of template from database or file.
+        chiral (bool): Whether to pay attention to chirality.
+
+    Returns:
+        dict: Retrosynthetic template.
+    """
+    if 'reaction_smarts' not in document:
+        return
+    reaction_smarts = str(document['reaction_smarts'])
+    if not reaction_smarts:
+        return
+
+    # different thresholds for chiral and non chiral reactions
+    chiral_rxn = False
+    for c in reaction_smarts:
+        if c in ('@', '/', '\\'):
+            chiral_rxn = True
+            break
+
+    # Define dictionary
+    template = {
+        'name':                 document['name'] if 'name' in document else '',
+        'reaction_smarts':      reaction_smarts,
+        'incompatible_groups':  document['incompatible_groups'] if 'incompatible_groups' in document else [],
+        'reference':            document['reference'] if 'reference' in document else '',
+        'references':           document['references'] if 'references' in document else [],
+        'rxn_example':          document['rxn_example'] if 'rxn_example' in document else '',
+        'explicit_H':           document['explicit_H'] if 'explicit_H' in document else False,
+        '_id':                  document['_id'] if '_id' in document else -1,
+        'product_smiles':       document['product_smiles'] if 'product_smiles' in document else [],
+        'necessary_reagent':    document['necessary_reagent'] if 'necessary_reagent' in document else '',
+        'efgs':                 document['efgs'] if 'efgs' in document else None,
+        'intra_only':           document['intra_only'] if 'intra_only' in document else False,
+        'dimer_only':           document['dimer_only'] if 'dimer_only' in document else False,
+    }
+    template['chiral'] = chiral_rxn
+
+    # Frequency/popularity score
+    template['count'] = document.get('count', 1)
+
+    # Define reaction in RDKit and validate
+    try:
+        # Force reactants and products to be one pseudo-molecule (bookkeeping)
+        reaction_smarts_one = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
+
+        if chiral:
+            rxn = rdchiralReaction(str(reaction_smarts_one))
+            template['rxn'] = rxn
+        else:
+            rxn = AllChem.ReactionFromSmarts(
+                str(reaction_smarts_one))
+            if rxn.Validate()[1] == 0:
+                template['rxn'] = rxn
+            else:
+                template['rxn'] = None
+
+    except Exception as e:
+        if gc.DEBUG:
+            MyLogger.print_and_log('Couldnt load : {}: {}'.format(
+                reaction_smarts_one, e), relevance_template_prioritizer_loc, level=1)
+        template['rxn'] = None
+        template['rxn_f'] = None
+    return template
 
 class RelevanceTemplatePrioritizer(Prioritizer):
     """A template Prioritizer based on template relevance.
@@ -178,10 +251,33 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         probs, top_ids = self.get_topk_from_smi(smi=target, k = min(template_count, len(templates)))
         top_templates = []
         cum_score = 0
-        for i, id in enumerate(top_ids):
-            templates[id]['score'] = probs[i]
-            top_templates.append(templates[id])
-            cum_score += probs[i]
+        mincount = kwargs.get('mincount', 25)
+        mincount_chiral = kwargs.get('mincount_chiral', 10)
+        chiral = kwargs.get('chiral', True)
+        use_db = kwargs.get('use_db', True)
+        load_all = kwargs.get('load_all', gc.PRELOAD_TEMPLATES)
+        template_cache = kwargs.get('template_cache', None)
+        if not load_all and use_db:
+            db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
+                                    'id'], connect=gc.MONGO['connect'])
+
+            db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
+            collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
+            TEMPLATE_DB = db_client[db_name][collection]
+        for id, prob in zip(top_ids, probs):
+            if load_all:
+                template = templates[id]
+            elif use_db:
+                if template_cache is not None:
+                    template = template_cache[ObjectId(templates[id][0])]
+                else:
+                    document = TEMPLATE_DB.find_one({'_id': ObjectId(templates[id][0])})
+                    template = doc_to_template(document, chiral)
+            else:
+                template = doc_to_template(templates[id], chiral)
+            template['score'] = prob
+            top_templates.append(template)
+            cum_score += prob
             #End loop if max cumulative score is exceeded
             if cum_score >= max_cum_prob:
                 break
