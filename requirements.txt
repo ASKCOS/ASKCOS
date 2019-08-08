@@ -20,3 +20,4 @@ theano
 tqdm
 uWSGI
 sphinx
+cachetools

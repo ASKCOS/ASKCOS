@@ -35,6 +35,6 @@ class MyLogger:
         print(outstr)
         file.write(outstr)
         file.write('\n')
-
+        file.close()
         if level == 3:
             quit()
