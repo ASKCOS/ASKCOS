@@ -65,6 +65,9 @@ def template_target(request, id, return_refs_only=False):
     context['template']['id'] = id
     reference_ids = transform['references']
 
+    if return_refs_only:
+        return list(sorted(set(int(_id.split('-')[0]) for _id in reference_ids)))[:500]
+
     references = []
     rx_docs = {}; xrn_to_smiles = {}
     context['total_references'] = len(reference_ids)
@@ -127,8 +130,6 @@ def template_target(request, id, return_refs_only=False):
     #     context['references'] = []
     #     context['cannot_view_any'] = True
     #
-    #     if return_refs_only:
-    #         return list(sorted(set(int(_id.split('-')[0]) for _id in reference_ids)))[:500]
 
     #from makeit.retro.conditions import average_template_list
     #context['suggested_conditions'] = average_template_list(INSTANCE_DB, CHEMICAL_DB, reference_ids)
