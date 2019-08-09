@@ -18,7 +18,7 @@ from ..globals import RetroTransformer, RETRO_FOOTNOTE, \
 
 from ..utils import ajax_error_wrapper, resolve_smiles
 from .price import price_smiles_func
-from .users import can_control_robot
+from .users import can_control_robot, can_avoid_banned_chemicals
 from ..forms import SmilesInputForm
 from ..models import BlacklistedReactions, BlacklistedChemicals
 
@@ -39,6 +39,13 @@ BANNED_SMILES = [
     ) 
     for smi in BANNED_SMILES
 ]
+
+def is_banned(request, smiles):
+    if can_avoid_banned_chemicals(request):
+        return False
+    if smiles in BANNED_SMILES:
+        return True
+    return False
 
 #@login_required
 def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
@@ -81,7 +88,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             context['err'] = 'Could not parse!'
             return render(request, 'retro.html', context)
 
-    if smiles is not None and smiles not in BANNED_SMILES:
+    if smiles is not None and not is_banned(request, smiles):
 
         # OLD: ALWAYS CHIRAL NOW
         # if 'retro_lit' in request.POST: return redirect('retro_lit_target', smiles=smiles)
