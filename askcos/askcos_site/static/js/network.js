@@ -1102,7 +1102,7 @@ var app = new Vue({
                 }
             }
             if (isHighlight && mapped_smiles != undefined && reacting_atoms != undefined) {
-                var res = '/draw/highlight/smiles='+encodeURIComponent(mapped_smiles)+'&reacting_atoms='+encodeURIComponent(reacting_atoms)+'&bonds=0'
+                var res = '/draw/highlight/smiles='+encodeURIComponent(mapped_smiles)+'&reacting_atoms='+encodeURIComponent('['+reacting_atoms.toString()+']')+'&bonds=0'
             } else {
                 if (smiles == undefined) {
                     console.log('Error: cannot plot precursor='+precursor)
