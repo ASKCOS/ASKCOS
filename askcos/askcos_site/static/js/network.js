@@ -141,7 +141,7 @@ function addReaction(reaction, sourceNode, nodes, edges) {
             nodes.add({
                 id: nId,
                 smiles: mysmi,
-                image: window.location.origin+getMolDrawEndPoint(mysmi),
+                image: window.location.origin+app.getMolDrawEndPoint(mysmi),
                 shape: "image",
                 borderWidth: 2,
                 type: 'chemical',
@@ -458,7 +458,7 @@ var app = new Vue({
                                 {
                                     id: 0,
                                     smiles: this.target,
-                                    image: window.location.origin+getMolDrawEndPoint(this.target),
+                                    image: window.location.origin+this.getMolDrawEndPoint(this.target),
                                     shape: "image",
                                     borderWidth: 3,
                                     type: 'chemical',
@@ -875,7 +875,7 @@ var app = new Vue({
             event.target.style.opacity = '0.4';
             event.dataTransfer.setData('text/plain', precursor.smiles);
             var img = new Image();
-            img.src = getMolDrawEndPoint(precursor.smiles);
+            img.src = this.getMolDrawEndPoint(precursor.smiles);
             // set opacity does not work..
             event.dataTransfer.setDragImage(img, 10, 10);
             event.dataTransfer.effectAllowed = 'all';
