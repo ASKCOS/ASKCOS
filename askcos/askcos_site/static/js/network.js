@@ -339,6 +339,7 @@ var app = new Vue({
             isAlternatingColor: true,
         },
         selected: null,
+        isHighlightAtom: true,
         reactionLimit: 5,
         templatePrioritization: "Relevance",
         precursorScoring: "RelevanceHeuristic",
@@ -1071,6 +1072,48 @@ var app = new Vue({
                     gid);
                 this.$forceUpdate();
             }
+        },
+        getMolDrawEndPoint: function(precursor, isHighlight, isTransparent) {
+            //  precursor can be
+            //      1) a smiles string,
+            //      2) a dict has properties "reacting_atoms" and "mapped_smiles"
+            //      3) a dict has property "smiles"
+            //  isTransparent is false by default
+            //  isHighlight is set to this.isHighlight by default, but can be overidden
+            if (isHighlight == undefined) {
+                isHighlight = this.isHighlightAtom;
+            }
+            if (isTransparent == undefined) {
+                isTransparent = false;
+            }
+            var smiles;
+            var mapped_smiles;
+            var reacting_atoms;
+            if (typeof(precursor) == "string") {
+                smiles = precursor;
+                isHighlight = false;
+            } else if (typeof(precursor) == "object") {
+                if (precursor.mapped_smiles != undefined && precursor.reacting_atoms != undefined) {
+                    mapped_smiles = precursor.mapped_smiles;
+                    reacting_atoms = precursor.reacting_atoms;
+                }
+                if (precursor.smiles != undefined) {
+                    smiles = precursor.smiles;
+                }
+            }
+            if (isHighlight && mapped_smiles != undefined && reacting_atoms != undefined) {
+                var res = '/draw/highlight/smiles='+encodeURIComponent(mapped_smiles)+'&reacting_atoms='+encodeURIComponent(reacting_atoms)+'&bonds=0'
+            } else {
+                if (smiles == undefined) {
+                    console.log('Error: cannot plot precursor='+precursor)
+                    return ''
+                }
+                var res = '/draw/smiles/' + encodeURIComponent(smiles);
+            }
+            if (isTransparent) {
+                res += '?transparent=1';
+            }
+            return res;
         },
         isModalOpen: function() {
             var res = false;
