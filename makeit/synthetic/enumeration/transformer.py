@@ -37,7 +37,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
 
     """
 
-    def __init__(self, mincount=gc.SYNTH_TRANSFORMS['mincount'], celery=False):
+    def __init__(self, mincount=gc.SYNTH_TRANSFORMS['mincount'], celery=False, lookup_only=False):
         """Initializes ForwardTransformer.
 
         ??VV??
@@ -57,6 +57,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
         self.id_to_index = {}
         self.celery = celery
         self.template_prioritizers = {}
+        self.lookup_only = lookup_only
 
         super(ForwardTransformer, self).__init__()
 
