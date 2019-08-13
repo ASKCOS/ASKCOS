@@ -365,7 +365,7 @@ def ajax_start_retro_mcts_celery(request):
 
     smiles = request.GET.get('smiles', None)
     
-    if smiles in BANNED_SMILES:
+    if is_banned(request, smiles):
         data['html_trees'] = 'ASKCOS does not provide results for compounds on restricted lists such as the CWC and DEA schedules'
         return JsonResponse(data)
     
