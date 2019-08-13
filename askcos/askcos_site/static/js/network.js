@@ -669,6 +669,18 @@ var app = new Vue({
             dlAnchorElem.setAttribute("download", this.downloadName);
             dlAnchorElem.click();
         },
+        hasUndefinedGroupid: function() {
+            // check if this.results has group_id
+            for (s in this.results) {
+                var precursors = this.results[s];
+                for (i of precursors) {
+                    if (i.group_id == undefined) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        },
         load: function() {
             var file = document.getElementById("loadNetwork").files[0];
             var reader = new FileReader();
@@ -679,6 +691,16 @@ var app = new Vue({
                 app.data.nodes = new vis.DataSet(data.nodes);
                 app.data.edges = new vis.DataSet(data.edges);
                 app.results = data.results;
+                if (app.hasUndefinedGroupid()) {
+                    let res = confirm('The uploaded json file does not have reaction cluster information for some precursors. Select "OK" to re-cluster all of them. This will erase existing reaction cluster information. Select "Cancel" to skip, however, reaction cluster function may not work correctly until you re-cluster manually.');
+                    if (res) {
+                        for (s in app.results) {
+                            app.requestClusterId(s);
+                        }
+                    } else {
+                        app.allowCluster = false;
+                    }
+                }
                 network = initializeNetwork(app.data)
                 network.on('selectNode', app.showInfo);
                 network.on('deselectNode', app.clearSelection);
@@ -1231,7 +1253,7 @@ var app = new Vue({
                     var group_ids = resp_json['group_id'];
                     var i;
                     for (i = 0; i < this.results[selected].length; i++) {
-                        this.results[selected][i].group_id = group_ids[i];
+                        this.$set(this.results[selected][i], 'group_id', group_ids[i]);
                     }
                 }
             })
