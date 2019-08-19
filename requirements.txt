@@ -8,6 +8,7 @@ keras
 mysqlclient
 matplotlib
 numpy
+pandas
 pillow
 pycairo
 pymongo
