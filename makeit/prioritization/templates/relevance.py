@@ -20,36 +20,17 @@ from pymongo import MongoClient
 
 relevance_template_prioritizer_loc = 'relevance_template_prioritizer'
 
-def linearND(input_, output_size, scope, reuse=False, init_bias=0.0):
-    """??
+def top1(y_true, y_pred, k=1):
+    return tf.keras.metrics.sparse_top_k_categorical_accuracy(y_true, y_pred, k=k)
+def top10(y_true, y_pred, k=10):
+    return tf.keras.metrics.sparse_top_k_categorical_accuracy(y_true, y_pred, k=k)
+def top50(y_true, y_pred, k=50):
+    return tf.keras.metrics.sparse_top_k_categorical_accuracy(y_true, y_pred, k=k)
+def top100(y_true, y_pred, k=100):
+    return tf.keras.metrics.sparse_top_k_categorical_accuracy(y_true, y_pred, k=k)
 
-    Args:
-        input_ ():
-        output_size ():
-        scope ():
-        reuse (bool, optional) (default: {False})
-        init_bias (float, optional) (default: {0.0})
-
-    Returns:
-        ??
-    """
-    shape = input_.get_shape().as_list()
-    ndim = len(shape)
-    stddev = min(1.0 / math.sqrt(shape[-1]), 0.1)
-    with tf.variable_scope(scope, reuse=reuse):
-        W = tf.get_variable("Matrix", [shape[-1], output_size], tf.float32, tf.random_normal_initializer(stddev=stddev))
-    X_shape = tf.gather(tf.shape(input_), list(range(ndim-1)))
-    target_shape = tf.concat([X_shape, [output_size]], 0)
-    exp_input = tf.reshape(input_, [-1, shape[-1]])
-    if init_bias is None:
-        res = tf.matmul(exp_input, W)
-    else:
-        with tf.variable_scope(scope, reuse=reuse):
-            b = tf.get_variable("bias", [output_size], initializer=tf.constant_initializer(init_bias))
-        res = tf.matmul(exp_input, W) + b
-    res = tf.reshape(res, target_shape)
-    res.set_shape(shape[:-1] + [output_size])
-    return res
+def loss(labels, logits):
+    return tf.keras.losses.sparse_categorical_crossentropy(labels, logits, from_logits=True)
 
 def doc_to_template(document, chiral):
     """Returns a template given a document from the database or file.
@@ -140,7 +121,7 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         coord (tensorflow.python.training.coordinator.Coordinator):
     """
 
-    def __init__(self, retro=True, use_tf=True):
+    def __init__(self, retro=True):
         self.retro = retro
         self.FP_len = 2048
         self.FP_rad = 2
@@ -150,65 +131,24 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         self.batch_size = 1
         self.NK = 100
 
-        if use_tf:
-            def load_model(depth=5, hidden_size=300, output_size=gc.Relevance_Prioritization['output_size']):
-                config = tf.ConfigProto()
-                config.gpu_options.allow_growth = True
-                self.session = tf.Session(config=config)
-                self.input_mol = tf.placeholder(tf.float32, [self.batch_size, self.FP_len])
-                self.mol_hiddens = tf.nn.relu(linearND(self.input_mol, hidden_size, scope="encoder0", reuse=tf.AUTO_REUSE))
-                for d in range(1, depth):
-                    self.mol_hiddens = tf.nn.relu(linearND(self.mol_hiddens, hidden_size, scope="encoder%i"%d, reuse=tf.AUTO_REUSE))
+    def load_model(self, model_path=gc.Relevance_Prioritization['trained_model_path']):
+        self.model = tf.keras.models.load_model(
+            model_path,
+            custom_objects = {
+                'loss': loss,
+                'top1': top1,
+                'top10': top10,
+                'top50': top50,
+                'top100': top100
+            }
+        )
 
-                self.score = linearND(self.mol_hiddens, output_size, scope="output", reuse=tf.AUTO_REUSE)
-                _, self.topk = tf.nn.top_k(self.score, k=self.NK)
-
-                tf.global_variables_initializer().run(session=self.session)
-                from functools import reduce
-                size_func = lambda v: reduce(lambda x, y: x*y, v.get_shape().as_list())
-                n = sum(size_func(v) for v in tf.trainable_variables())
-                print("Model size: %dK" % (n/1000,))
-
-                self.coord = tf.train.Coordinator()
-                with open(gc.Relevance_Prioritization['trained_model_path_{}'.format(self.retro)], 'rb') as fid:
-                    variables = pickle.load(fid)
-                for i, v in enumerate(tf.trainable_variables()):
-                    assign_op = tf.assign(v, variables[i])
-                    self.session.run(assign_op)
-                    del assign_op
-                print('Loaded tf model from numpy arrays')
-
-        else:
-            def load_model():
-                with open(gc.Relevance_Prioritization['trained_model_path_{}'.format(self.retro)], 'rb') as fid:
-                    self.vars = pickle.load(fid)
-                if gc.DEBUG:
-                    MyLogger.print_and_log('Loaded relevance based template prioritization model from {}'.format(
-                    gc.Relevance_Prioritization['trained_model_path_{}'.format(self.retro)]), relevance_template_prioritizer_loc)
-                return self
-        self.load_model = load_model
-
-
-        if use_tf:
-            def get_topk_from_mol(mol, k=100):
-                fp = self.mol_to_fp(mol).astype(np.float32).reshape((1, self.FP_len))
-                cur_scores, = self.session.run([self.score], feed_dict={
-                    self.input_mol: fp,
-                })
-                indices = cur_scores[0,:].argsort()[-k:][::-1].tolist()
-                cur_scores.sort()
-                probs = softmax(cur_scores[0,:])
-                return probs[-k:][::-1].tolist(), indices
-
-        else:
-            def get_topk_from_mol(mol, k=100):
-                fp = self.mol_to_fp(mol).astype(np.float32)
-                cur_scores = self.apply(fp)
-                indices = cur_scores.argsort()[-k:][::-1].tolist()
-                cur_scores.sort()
-                probs = softmax(cur_scores)
-                return probs[-k:][::-1].tolist(), indices
-        self.get_topk_from_mol = get_topk_from_mol
+    def get_topk_from_mol(self, mol, k=100):
+        fp = self.mol_to_fp(mol).astype(np.float32)
+        cur_scores = self.model.predict(fp.reshape(1, -1)).reshape(-1)
+        indices = np.argsort(-cur_scores)[:k]
+        scores = softmax(cur_scores[indices])
+        return scores, indices
 
     def mol_to_fp(self, mol):
         """Returns fingerprint of molecule.
@@ -222,8 +162,11 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         """
         if mol is None:
             return np.zeros((self.FP_len,), dtype=np.float32)
-        return np.array(AllChem.GetMorganFingerprintAsBitVect(mol, self.FP_rad, nBits=self.FP_len,
-                                                              useChirality=True), dtype=np.float32)
+        return np.array(
+            AllChem.GetMorganFingerprintAsBitVect(
+                mol, self.FP_rad, nBits=self.FP_len, useChirality=True
+            ), dtype=np.float32
+        )
 
     def smi_to_fp(self, smi):
         """Returns fingerprint of molecule from given SMILES string.
@@ -316,7 +259,7 @@ def softmax(x):
     return e_x / e_x.sum()
 
 if __name__ == '__main__':
-    model = RelevanceTemplatePrioritizer(use_tf=True)
+    model = RelevanceTemplatePrioritizer()
     model.load_model()
     smis = ['CCCOCCC', 'CCCNc1ccccc1']
     for smi in smis:

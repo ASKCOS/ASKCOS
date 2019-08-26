@@ -325,7 +325,7 @@ class TemplateTransformer(object):
             self.id_to_index = {template['_id']: i for i,
                 template in enumerate(self.templates)}
         else:
-            self.templates = sorted(self.templates, key=lambda z: z[1], reverse=True)
+            self.templates = sorted(self.templates, key=lambda z: z[1])
 
     def lookup_id(self, template_id):
         """Find the reaction SMARTS for this template_id.
@@ -405,7 +405,7 @@ class TemplateTransformer(object):
 
         # Look for all templates in collection
         to_retrieve = ['_id', 'reaction_smarts',
-                       'necessary_reagent', 'count', 'intra_only', 'dimer_only']
+                       'necessary_reagent', 'count', 'intra_only', 'dimer_only', 'template_id']
         if refs:
             to_retrieve.append('references')
         if efgs:
@@ -418,7 +418,7 @@ class TemplateTransformer(object):
                 if template is not None:
                     self.templates.append(template)
             else:
-                self.templates.append((document.get('_id', -1), document.get('count', 1)))
+                self.templates.append((document.get('_id', -1), document.get('template_id', -1)))
         self.reorder()
 
     def get_outcomes(self, *args, **kwargs):
