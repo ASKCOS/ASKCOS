@@ -154,19 +154,19 @@ transform: translate(-50%, -50%) !important;
 }
 
 .loader {
-    display: none;
-    z-index: 999;
-    position: absolute;
-    top: 50%;
-    margin-top: -75px;
-    left: 50%;
-    margin-left: -75px;
-    border: 16px solid #f3f3f3; /* Light grey */
-    border-top: 16px solid #3498db; /* Blue */
-    border-radius: 50%;
-    width: 150px;
-    height: 150px;
-    animation: spin 2s linear infinite;
+  display: none;
+  z-index: 9999;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -150px;
+  margin-left: -150px;
+  border: 32px solid #f3f3f3; /* Light grey */
+  border-top: 32px solid #3498db; /* Blue */
+  border-radius: 50%;
+  width: 300px;
+  height: 300px;
+  animation: spin 2s linear infinite;
 }
 
 @keyframes spin {
