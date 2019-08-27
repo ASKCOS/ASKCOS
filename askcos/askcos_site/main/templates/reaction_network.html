@@ -84,7 +84,7 @@
     <button class="btn btn-info" v-on:click="collapseNode" title="Collapse children node">
         <i class="fas fa-compress-arrows-alt"></i>
     </button>
-    |
+    <span style="margin:0 5px">|</span>
     <button class="btn btn-default" @click="clear" title="Clear reactions"><i class="fas fa-times"></i></button>
     <button id="settings-btn" class="btn btn-default" @click="openModal('settings')" title="Settings"><i class="fas fa-cog"></i></button>
     <button @click="toggleHierarchical" id="hierarchical-button" class="btn btn-default">G</button>
@@ -518,9 +518,18 @@
                                             </h2>
                                             <div class="form-inline">
                                                 <div class="form-inline">
-                                                    Group similar <input type="checkbox" ref="allowCluster" v-model="allowCluster" {{ allowCluster }}/>
+                                                    Group similar 
+                                                    <input 
+                                                      type="checkbox"
+                                                      ref="allowCluster"
+                                                      v-model="allowCluster" 
+                                                      @change="resetSortingCategory"
+                                                      {{ allowCluster }}/>
                                                 </div>
-                                                <div class="form-inline">
+                                                <div 
+                                                  v-if="!allowCluster"
+                                                  class="form-inline"
+                                                >
                                                     Reorder by:
                                                     <select class="form-control" @change="reorderResults" v-model="sortingCategory">
                                                         <option value="score">Score</option>
@@ -552,7 +561,7 @@
             <template v-for="cluster in clusteredResults[selected.smiles]">
                 <li>
                     <template v-for="(res, index) in cluster">
-                        <template v-if="res.show || index==0">
+                        <template v-if="res.show">
                             <div v-bind:class="{'card-first': index==0, 'card-rest': index!=0}">
                             <div class="container-fluid">
                                 <div class="row">
@@ -648,7 +657,7 @@
                             <div class="col-xs-12 mx-auto">
                                 <button v-show="!res.inViz" class="addRes btn btn-success" :data-rank="res.rank" @click="addFromResults(selected, res)"><i class="fas fa-plus"></i></button>
                                 <button v-show="res.inViz" class="remRes btn btn-danger" :data-rank="res.rank" @click="remFromResults(selected, res)"><i class="fas fa-minus"></i></button>
-                                <button class="btn btn-danger" :data-rank="res.rank" @click="openClusterPopoutModal(selected, res)"><i class="fa fa-th-large"></i></button>
+                                <button class="btn btn-default" :data-rank="res.rank" @click="openClusterPopoutModal(selected, res)"><i class="fa fa-th-large"></i></button>
                             </div>
                         </div>
                     </div>
