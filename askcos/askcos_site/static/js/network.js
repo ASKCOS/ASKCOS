@@ -788,6 +788,10 @@ var app = new Vue({
                 }
             }
         },
+        resetSortingCategory: function() {
+            this.sortingCategory = 'score'
+            this.reorderResults()
+        },
         reorderResults: function() {
             var sortingCategory = this.sortingCategory;
             if (this.selected.type != 'chemical') {
@@ -1221,7 +1225,7 @@ var app = new Vue({
                     grouped[precursor.group_id] = new Array(precursor);
                 }
             }
-            return grouped;
+            return Object.values(grouped);
         },
         requestClusterId: function(selected) {
             showLoader();
@@ -1296,12 +1300,22 @@ var app = new Vue({
         }
     },
     computed: {
-        // {'target_smiles0':{0:[{result0}, {result1}, ...], 2:[...]}, ...}
+        // {'target_smiles0':[[{result0}, {result1}, ...], [...]], ...}
         clusteredResults: function() {
             var res = {};
             var x;
             for (x in this.results) {
                 res[x] = this.groupPrecursors(this.results[x]);
+                vueApp = this
+                res[x].sort(function(a, b) {
+                    let maxPropA = Math.max.apply(Math, a.map(function(obj) {
+                        return obj[vueApp.sortingCategory]
+                    }))
+                    let maxPropB = Math.max.apply(Math, b.map(function(obj) {
+                        return obj[vueApp.sortingCategory]
+                    }))
+                    return maxPropB - maxPropA
+                })
             }
             return res;
         },
