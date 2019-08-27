@@ -6,7 +6,7 @@ django-extensions
 django-registration
 h5py
 hdbscan
-keras
+keras==2.2.4
 mysqlclient
 matplotlib
 numpy>=1.16.0

@@ -42,7 +42,7 @@ services:
       - mongo
 
   app:
-    image: mefortunato/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
     hostname: app
     restart: always
     env_file:
@@ -61,7 +61,7 @@ services:
       - mongo
 
   te_coordinator:
-    image: mefortunato/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
     restart: always
     env_file:
       - .env
@@ -71,7 +71,7 @@ services:
       - rabbit
 
   sc_coordinator:
-    image: mefortunato/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
     restart: always
     env_file:
       - .env
@@ -83,7 +83,7 @@ services:
       - mongo
 
   ft_worker:
-    image: mefortunato/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
     restart: always
     env_file:
       - .env
@@ -95,7 +95,7 @@ services:
       - mongo
 
   cr_coordinator:
-    image: mefortunato/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
     restart: always
     env_file:
       - .env
@@ -107,7 +107,7 @@ services:
       - mongo
 
   cr_network_worker:
-    image: mefortunato/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
     restart: always
     env_file:
       - .env
@@ -119,7 +119,7 @@ services:
       - mongo
 
   tb_coordinator_mcts:
-    image: mefortunato/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
     restart: always
     env_file:
       - .env
@@ -131,7 +131,7 @@ services:
       - mongo
 
   tb_c_worker:
-    image: mefortunato/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
     restart: always
     env_file:
       - .env
