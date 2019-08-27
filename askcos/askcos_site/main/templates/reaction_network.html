@@ -20,6 +20,7 @@
 {% block page_body %}
         <div id="app">
             <main>
+                <div class="loader"></div>
                 <div class="container-fluid">
                     <div class="row">
                         <div class="col-md-7 text-center left-pane">
@@ -77,7 +78,6 @@
                 <span v-if="allowResolve" title="Connection to NIH name resolver is ON, structures may be sent to an external service. This can be turned off in the settings menu, or by clicking this icon.">&#10003;</span>
                 <span v-else title="Connection to NIH name resolver is OFF, structures will NOT be sent to an external service. Target query must be a SMILES string. This can be turned on in the settings menu, or by clicking this icon.">&#10005;</span>
             </span>
-            <div class="loader"></div>
         </div>
 
     </form>
@@ -440,7 +440,6 @@
                         <span v-if="allowResolve" title="Connection to NIH name resolver is ON, structures may be sent to an external service. This can be turned off in the settings menu, or by clicking this icon.">&#10003;</span>
                         <span v-else title="Connection to NIH name resolver is OFF, structures will NOT be sent to an external service. Target query must be a SMILES string. This can be turned on in the settings menu, or by clicking this icon.">&#10005;</span>
                     </span>
-                    <div class="loader"></div>
                 </div>
             </form>
         </div>

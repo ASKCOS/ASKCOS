@@ -1203,6 +1203,7 @@ var app = new Vue({
             return grouped;
         },
         requestClusterId: function(selected) {
+            showLoader();
             var all_smiles = [];
             var all_scores = [];
             var i;
@@ -1248,6 +1249,7 @@ var app = new Vue({
             .then(resp => resp.json())
             .then(resp_json => {
                 if ('error' in resp_json) {
+                    hideLoader()
                     throw resp_json['error'];
                 } else {
                     var group_ids = resp_json['group_id'];
@@ -1255,9 +1257,11 @@ var app = new Vue({
                     for (i = 0; i < this.results[selected].length; i++) {
                         this.$set(this.results[selected][i], 'group_id', group_ids[i]);
                     }
+                    hideLoader()
                 }
             })
             .catch((error) => {
+                hideLoader()
                 var error_msg = 'unknown error'
                 if (typeof(error) == 'number') {
                     error_msg = 'Error code: ' + error;
