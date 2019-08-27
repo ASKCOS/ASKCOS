@@ -86,7 +86,7 @@ function addReaction(reaction, sourceNode, nodes, edges) {
         retroscore: num2str(reaction['score'], 3),
         templateScore: num2str(reaction['template_score'], 3),
         numExamples: num2str(reaction['num_examples']),
-        templateIds: num2str(reaction['templates']),
+        templateIds: reaction['templates'],
         reactionSmiles: reaction.smiles+'>>'+sourceNode.smiles,
         type: 'reaction',
         value: 1,
@@ -598,6 +598,24 @@ var app = new Vue({
                 }
             }
         },
+        deleteChoice: function() {
+            var selected = network.getSelectedNodes();
+            for (n in selected) {
+                var nodeId = selected[n];
+                if (this.data.nodes.get(nodeId).type=='chemical') {
+                    let res = confirm('This will delete all children nodes of the currently selected node. Continue?')
+                    if (res) {
+                        this.deleteChildren()
+                    }
+                }
+                else {
+                    let res = confirm('This will delete the currently selected node and all children node. Continue?')
+                    if (res) {
+                        this.deleteNode()
+                    }
+                }
+            }
+        },
         deleteNode: function() {
             if (this.isModalOpen() || typeof(network) == "undefined") {
                 return
@@ -979,11 +997,14 @@ var app = new Vue({
             this.$forceUpdate();
         },
         clusterEditModalDeletePrecursor: function(selected, smiles) {
-            var r = this.results[selected];
-            var idx = r.findIndex(function(e){return e.smiles==smiles;});
-            var old_gid = r[idx].group_id;
-            r.splice(idx, 1);
-            this.detectClusterDeletion(this.clusterEditModalData['selectedSmiles'], old_gid);
+            let res = confirm('This will remove the precursor completely and cannot be undone! Continue?')
+            if (res) {
+                var r = this.results[selected];
+                var idx = r.findIndex(function(e){return e.smiles==smiles;});
+                var old_gid = r[idx].group_id;
+                r.splice(idx, 1);
+                this.detectClusterDeletion(this.clusterEditModalData['selectedSmiles'], old_gid);
+            }
         },
         // gid == undefined is to add a new cluster
         clusterEditModalAddPrecursor: function(selectedSmiles, smiles, gid) {
@@ -1157,11 +1178,11 @@ var app = new Vue({
         initClusterShowCard: function(selected) {
             // always sort first
             var reactionSorting = this.sortingCategory;
-            this.results[selected].sort(function(a, b) {
-                var a_ = a[reactionSorting] == undefined ? 0 : a[reactionSorting];
-                var b_ = b[reactionSorting] == undefined ? 0 : b[reactionSorting];
-                return b_ - a_;
-            })
+            // this.results[selected].sort(function(a, b) {
+            //     var a_ = a[reactionSorting] == undefined ? 0 : a[reactionSorting];
+            //     var b_ = b[reactionSorting] == undefined ? 0 : b[reactionSorting];
+            //     return b_ - a_;
+            // })
             // init show to false
             // init first reactionLimit clusters/precursors to true
             var numShow = 0;
