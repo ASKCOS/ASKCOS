@@ -416,8 +416,6 @@ class RetroTransformer(TemplateTransformer):
                          if 'old_molAtomMapNumber' in a.GetPropsAsDict()]
                         smiles_list.extend(Chem.MolToSmiles(
                             x, isomericSmiles=USE_STEREOCHEMISTRY).split('.'))
-                    #cannot have mapped outcomes when not using rdchiral
-                    mapped_outcomes = {x:(None,None) for x in smiles_list}
                 except Exception as e:
                     print(e) # fail quietly
                     continue
@@ -433,7 +431,9 @@ class RetroTransformer(TemplateTransformer):
                 continue
 
             #Mapped outcomes is {clean_smiles: (mapped_smiles, reacting atoms)}
-            reacting_atoms = mapped_outcomes.get('.'.join(smiles_list))
+            reacting_atoms = mapped_outcomes.get(
+                '.'.join(smiles_list), ('.'.join(smiles_list), (-1,))
+            )
 
             precursor = RetroPrecursor(
                 smiles_list=sorted(smiles_list),
