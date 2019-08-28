@@ -76,7 +76,7 @@ def group_results(original, outcomes, **kwargs):
 
     res = [int(i) for i in res]
 
-    if scores:
+    if scores is not None:
         if len(scores) != len(res):
             raise Exception('Fatal error: length of score ({}) and smiles ({}) are different.'.format(len(scores), len(res)))
         best_cluster_score = {}
@@ -85,8 +85,10 @@ def group_results(original, outcomes, **kwargs):
                 best_cluster_score.get(cluster_id, -float('inf')),
                 score
             )
+        print('best_cluster_score: ', best_cluster_score)
         new_order = list(sorted(best_cluster_score.items(), key=lambda x: -x[1]))
         order_mapping = {new_order[n][0]: n for n in range(len(new_order))}
+        print('order_mapping: ', order_mapping)
         res = [order_mapping[n] for n in res]
     
     return res
