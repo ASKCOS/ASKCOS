@@ -4,8 +4,6 @@ SKIP_SEED=false
 SKIP_SSL=false
 SKIP_MIGRATION=false
 
-RANDOM_STRING=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1`
-
 while [[ $# -gt 0 ]]
 do
 key="$1"
@@ -49,7 +47,10 @@ if [ "$SKIP_SEED" = false ]; then
   echo "###############################"
   echo "seeding mongo database"
   echo "###############################"
-  docker-compose up mongoseed
+  cd mongo
+  docker run -it --rm --network deploy_default --env-file ../.env -v ${PWD}:/init mongo bash /init/init.sh
+  cd ../
+
 fi
 
 if [ "$SKIP_SSL" = false ]; then
@@ -57,7 +58,7 @@ if [ "$SKIP_SSL" = false ]; then
   echo "###############################"
   echo "creating SSL certificates"
   echo "###############################"
-  openssl req   -new   -newkey rsa:4096   -days 3650   -nodes   -x509   -subj "/C=US/ST=MA/L=BOS/O=askcos/CN=askcos.$RANDOM_STRING.com"   -keyout askcos.ssl.key -out askcos.ssl.cert
+  openssl req   -new   -newkey rsa:4096   -days 3650   -nodes   -x509   -subj "/C=US/ST=MA/L=BOS/O=askcos/CN=askcos.$RANDOM.com"   -keyout askcos.ssl.key -out askcos.ssl.cert
 fi
 
 echo ""
