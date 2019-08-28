@@ -47,7 +47,10 @@ if [ "$SKIP_SEED" = false ]; then
   echo "###############################"
   echo "seeding mongo database"
   echo "###############################"
-  docker-compose up mongoseed
+  cd mongo
+  docker run -it --rm --network deploy_default --env-file ../.env -v ${PWD}:/init mongo bash /init/init.sh
+  cd ../
+
 fi
 
 if [ "$SKIP_SSL" = false ]; then
