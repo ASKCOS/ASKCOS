@@ -148,7 +148,7 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         cur_scores = self.model.predict(fp.reshape(1, -1)).reshape(-1)
         indices = np.argsort(-cur_scores)[:k]
         scores = softmax(cur_scores[indices])
-        return scores, indices
+        return scores.tolist(), indices.tolist()
 
     def mol_to_fp(self, mol):
         """Returns fingerprint of molecule.

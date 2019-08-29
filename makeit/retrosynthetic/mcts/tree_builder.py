@@ -162,7 +162,7 @@ class MCTS:
         # NOTE: VERY IMPORTANT TO NOT USE TENSORFLOW!! OTHERWISE FORKED PROCESSES HANG
         # THIS SHOULD BE ABLE TO BE FIXED
         from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
-        template_prioritizer = RelevanceTemplatePrioritizer(use_tf=False)
+        template_prioritizer = RelevanceTemplatePrioritizer()
         template_prioritizer.load_model()
         self.template_prioritizer = template_prioritizer
 
@@ -236,7 +236,7 @@ class MCTS:
                     #     self.private_worker_queue = request.get(timeout=10)
 
                     ## CWC TEST: don't reserve
-                    res = tb_c_worker.apply_one_template_by_idx.delay(1, 'CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1', 109659)
+                    res = tb_c_worker.apply_one_template_by_idx.delay(1, 'CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1', 1)
                     res.get(20)
                 except Exception as e:
                     res.revoke()
