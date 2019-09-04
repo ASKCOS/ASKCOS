@@ -132,16 +132,7 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         self.NK = 100
 
     def load_model(self, model_path=gc.Relevance_Prioritization['trained_model_path']):
-        self.model = tf.keras.models.load_model(
-            model_path,
-            custom_objects = {
-                'loss': loss,
-                'top1': top1,
-                'top10': top10,
-                'top50': top50,
-                'top100': top100
-            }
-        )
+        self.model = tf.keras.models.load_model(model_path)
 
     def get_topk_from_mol(self, mol, k=100):
         fp = self.mol_to_fp(mol).astype(np.float32)
