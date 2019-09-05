@@ -10,6 +10,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from ..utils import ajax_error_wrapper, resolve_smiles
 from ..forms import DrawingInputForm
 
+import re
 
 @ajax_error_wrapper
 def ajax_smiles_to_image(request):
@@ -58,9 +59,13 @@ def draw_smiles(request, smiles):
     '''
     Returns a png response for a target smiles
     '''
-    from makeit.utilities.io.draw import MolsSmilesToImage
-    response = HttpResponse(content_type='image/jpeg')
-    MolsSmilesToImage(str(smiles)).save(response, 'png', quality=70)
+    from makeit.utilities.io.draw import MolsSmilesToImage, MakeBackgroundTransparent
+    isTransparent = request.GET.get('transparent', 'False')
+    response = HttpResponse(content_type='image/png')
+    if isTransparent.lower() in ['true', 't', 'yes', 'y', '1']:
+        MakeBackgroundTransparent(MolsSmilesToImage(str(smiles))).save(response, 'png', quality=70)
+    else:
+        MolsSmilesToImage(str(smiles)).save(response, 'png', quality=70)
     return response
 
 
@@ -95,6 +100,12 @@ def draw_smiles_highlight(request, smiles, reacting_atoms, bonds='False'):
     #TODO has to be a better way to evaluate string to true or false
     bonds = bonds.lower() in ['true', '1', 't', 'y', 'yes']
     res = MolsSmilesToImageHighlight(smiles, reacting_atoms=reacting_atoms, bonds=bonds, clear_map=True)
+    IsTransparent = request.GET.get('transparent', 'False')
+    if IsTransparent.lower() in ['true', '1', 't', 'y', 'yes']:
+        # <svg:rect style='opacity:1.0;fill:#FFFFFF;stroke:none' width='300' height='300' x='0' y='0'> </svg:rect>
+        # replace #FFFFFF with none
+        res = re.sub(r"(.*)<svg:rect(.*)style='([^']*)'(.*)>(.*)</svg:rect>(.*)",
+               r"\1<svg:rect\2style='opacity:0.0;fill:none;stroke:none'\4>\5</svg:rect>\6", res)
     response = HttpResponse(res, content_type='image/svg+xml')
   
     return response
