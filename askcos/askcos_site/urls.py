@@ -134,6 +134,7 @@ urlpatterns += [
     re_path(r'^api/price/$', api.price.price, name='price_api'),
     re_path(r'^api/celery/$', api.status.celery_status, name='celery_api'),
     re_path(r'^api/validate-chem-name/$', api.validate_chem_name.validate_chem_name, name='validate_chem_name_api'),
+    re_path(r'^api/cluster/$', api.cluster.cluster, name='cluster_api'),
 
     # async results
     re_path(r'^api/get-result/$', api.results.get_result, name='get_async_result'),
