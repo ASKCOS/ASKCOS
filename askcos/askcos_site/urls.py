@@ -81,6 +81,7 @@ urlpatterns += [
 
     # Pricing
     re_path(r'^price/$', views.pricing, name='pricing'),
+    re_path(r'^buyables/$', views.buyables, name='buyables'),
     re_path(r'^ajax/price_smiles/$', views.ajax_price_smiles, name='ajax_price_smiles'),
     re_path(r'^price/smiles/(?P<smiles>.+)$', views.price_smiles, name='price_smiles'),
     re_path(r'^price/xrn/(?P<xrn>.+)$', views.price_xrn, name='price_xrn'),
@@ -134,6 +135,11 @@ urlpatterns += [
     re_path(r'^api/price/$', api.price.price, name='price_api'),
     re_path(r'^api/celery/$', api.status.celery_status, name='celery_api'),
     re_path(r'^api/validate-chem-name/$', api.validate_chem_name.validate_chem_name, name='validate_chem_name_api'),
+    re_path(r'^api/buyables/search', api.buyables.buyables, name='all_buyables_api'),
+    re_path(r'^api/buyables/add', api.buyables.add_buyable, name='add_buyables_api'),
+    re_path(r'^api/buyables/upload', api.buyables.upload_buyable, name='upload_buyables_api'),
+    re_path(r'^api/buyables/delete', api.buyables.delete_buyable, name='delete_buyables_api'),
+
     re_path(r'^api/cluster/$', api.cluster.cluster, name='cluster_api'),
 
     # async results

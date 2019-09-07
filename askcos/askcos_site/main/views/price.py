@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.conf import settings
 import json
 
+from askcos_site.main.views.users import can_modify_buyables
 from ..globals import Pricer
 from ..utils import ajax_error_wrapper
 
@@ -40,6 +41,10 @@ def ajax_price_smiles(request):
 
 def pricing(request):
     return render(request, 'pricing.html', {})
+
+
+def buyables(request):
+    return render(request, 'buyables.html', {'can_modify_buyables': can_modify_buyables(request)})
 
 
 def price_xrn(request, xrn):
