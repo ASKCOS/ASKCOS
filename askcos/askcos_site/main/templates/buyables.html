@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% block title %}
+    Buyable Compounds
+{% endblock %}
+{% block extrahead %}
+<script src="{% static 'js/browser-compat.js' %}"></script>
+<script src="{% static 'js/vue.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/loader.css' %}" type="text/css">
+<link rel="stylesheet" href="{% static 'css/fontawesome.min.css' %}" type="text/css">
+<link rel="stylesheet" href="{% static 'css/buyables.css' %}" type="text/css">
+
+{% endblock %}
+{% block page_title %}
+    Buyable Compounds
+{% endblock %}
+{% block page_body %}
+
+<div id="app" class="container-fluid">
+
+<script type="text/x-template" id="modal-template">
+    <transition name="modal">
+        <div class="modal-mask">
+        <div class="modal-wrapper">
+            <div class="modal-container">
+    
+            <div class="modal-header">
+                <slot name="header">
+                default header
+                </slot>
+            </div>
+    
+            <div class="modal-body">
+                <slot name="body">
+                default body
+                </slot>
+            </div>
+    
+            <div class="modal-footer">
+                <slot name="footer">
+                default footer
+                <button class="modal-default-button" @click="$emit('close')">
+                    OK
+                </button>
+                </slot>
+            </div>
+            </div>
+        </div>
+        </div>
+    </transition>
+</script>
+
+    <modal v-if="showAddModal" @close="showAddModal = false">
+        <h3 slot="header">Add a new buyable compound</h3>
+        <form slot="body" v-on:submit.prevent="addBuyable">
+            <div class="form-inline">
+                <label>
+                    SMILES: 
+                    <input class="form-control" type="text" v-model="addBuyableSmiles">
+                </label>
+            </div>
+            <div class="form-inline">
+                <label>
+                    Price per gram: 
+                    <input class="form-control" type="text" v-model="addBuyablePrice">
+                </label>
+            </div>
+            <div class="form-inline">
+                <label>
+                    Source: 
+                    <input class="form-control" type="text" v-model="addBuyableSource">
+                </label>
+            </div>
+        </form>
+        <div slot="footer">
+            <button class="btn btn-success" @click="showAddModal = false;addBuyable()">Add</button>
+            <button class="btn btn-danger" @click="showAddModal = false">Cancel</button>
+        </div>
+    </modal>
+
+    <modal v-if="showUploadModal" @close="showUploadModal = false">
+        <h3 slot="header">Upload a buyable compound file</h3>
+        <form slot="body" v-on:submit.prevent="addBuyable">
+            <div class="form-inline">
+                <label>
+                    File: 
+                    <input class="form-control" type="file" ref="file" id="file" v-on:change="handleFileUpload()" />
+                </label>
+            </div>
+            <div class="form-inline">
+                    <label>
+                        Format: 
+                        <select v-model="uploadFileFormat" class="form-control">
+                            <option value="json">JSON</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                    </label>
+                </div>
+        </form>
+        <div slot="footer">
+            <button class="btn btn-success" @click="showUploadModal = false;handleUploadSubmit()">Upload</button>
+            <button class="btn btn-danger" @click="showUploadModal = false">Cancel</button>
+        </div>
+    </modal>
+
+    <div class="row">
+        <div class="col-12">
+            <i>
+                The chemicals and prices stored in our database are taken from Reaxys and are originally from eMolecules, LabNetwork, or Sigma Aldrich. All compounds with an average price per gram listed at $100 or lower were included. Please note that prices in the database are unfortunately rounded to the nearest integer. That is, the cheapest compounds are still listed as $1/g.
+            </i>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 text-center">
+            <form v-on:submit.prevent="search" autocomplete="off">
+                <div class="form-inline">
+                    <label>Search: </label>
+                </div>
+                <div class="form-inline">
+                    <label style="margin: 5px">
+                        Smiles: 
+                        <input class='form-control' type="text" id="searchSmiles" v-model="searchSmilesQuery"/> 
+                    </label>
+                </div>
+                <div class="form-inline">
+                    <label style="margin: 5px">
+                        Source: 
+                        <input class='form-control' type="text" id="searchSource" v-model="searchSourceQuery"/> 
+                        </label>
+                </div>
+                <div class="form-inline">
+                    <button type="submit" class='form-control' style="margin: 0 5px">Submit</button>
+                </div>
+                <div class="form-inline">
+                    <label style="margin: 0 5px">
+                        Require exact SMILES match: 
+                        <input class="form-control" type='checkbox' v-model="searchExact">
+                    </label>
+                    <label style="margin: 0 5px">
+                        Limit results: 
+                        <input class="form-control" type='number' v-model="searchLimit" min="1" max="1000" step="1" value="100">
+                    </label>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% if can_modify_buyables %}
+    <div class="row">
+        <div class="col-12">
+            <button class="btn btn-success">
+                <i @click="showAddModal = true" class="fas fa-plus"></i>
+            </button>
+            <button class="btn btn-info">
+                <i @click="showUploadModal = true" class="fas fa-file-upload"></i>
+            </button>
+        </div>
+    </div>
+    {% endif %}
+    <div class="row">
+        <div class="col-12">
+            <table class="table table-hover" style="table-layout: fixed">
+                <thead>
+                    <tr>
+                        <th>Smiles</th>
+                        <th class="text-center">Price ($/g)</th>
+                        <th class="text-center">Source</th>
+                        {% if can_modify_buyables %}
+                        <th></th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <template v-for="doc in buyables">
+                        <tr>
+                            <td class="text-center">
+                                <img
+                                  :src="'/draw/smiles/'+encodeURIComponent(doc.smiles)" :title="doc.smiles"
+                                  style="max-width: 100%"
+                                >
+                            </td>
+                            <td class="text-center">%% doc['ppg'] %%</td>
+                            <td class="text-center">%% doc['source'] %% </td>
+                            {% if can_modify_buyables %}
+                            <td class="text-center">
+                                <i @click="deleteBuyable(doc._id)" class="fas fa-trash-alt"></i>
+                            </td>
+                            {% endif %}
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="loader"></div>
+</div>
+
+<script src="{% static 'js/buyables.js' %}"></script>
+
+{% endblock %}
