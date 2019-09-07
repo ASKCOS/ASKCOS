@@ -10,6 +10,7 @@ keras==2.2.4
 mysqlclient
 matplotlib
 numpy>=1.16.0
+pandas
 pillow
 pycairo
 pymongo
