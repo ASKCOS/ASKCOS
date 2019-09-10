@@ -1041,6 +1041,7 @@ class MCTS:
             Yields:
                 dict: nested dictionaries defining synthesis trees
             """
+            print(len(self.Reactions.keys()))
             for path in DLS_chem(self.smiles, depth=0, headNode=True):
                 yield chem_dict(chemsmiles_to_id(self.smiles), children=path, **cheminfodict(self.smiles))
 
@@ -1361,6 +1362,18 @@ class MCTS:
         )
 
         return self.return_trees()
+
+    def return_chemical_results(self):
+        results = defaultdict(list)
+        for chemical in self.Chemicals.values():
+            if not chemical.template_idx_results:
+                results[chemical.smiles]
+            for cta in chemical.template_idx_results.values():
+                for res in cta.reactions.values():
+                    reaction = vars(res)
+                    reaction['pathway_count'] = int(reaction['pathway_count'])
+                    results[chemical.smiles].append(reaction)
+        return dict(results)
 
 
 if __name__ == '__main__':
