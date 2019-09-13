@@ -44,7 +44,7 @@ We are in the process of migrating our development space from GitHub to GitLab. 
 ```bash
 $ export DEPLOY_TOKEN_USERNAME=
 $ export DEPLOY_TOKEN_PASSWORD=
-$ git clone https://$DEPLOY_TOKEN_USERNAME:$DEPLOY_TOKEN_PASSWORD@gitlab.com/mlpds_mit/askcos/askcos
+$ git clone https://$DEPLOY_TOKEN_USERNAME:$DEPLOY_TOKEN_PASSWORD@gitlab.com/mlpds_mit/askcos/askcos.git
 $ docker login registry.gitlab.com -u $DEPLOY_TOKEN_USERNAME -p $DEPLOY_TOKEN_PASSWORD
 $ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.3.1
 $ docker tag registry.gitlab.com/mlpds_mit/askcos/askcos:0.3.1 mefortunato/askcos:0.3.1
