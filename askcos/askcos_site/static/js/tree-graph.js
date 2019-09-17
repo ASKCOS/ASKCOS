@@ -47,6 +47,25 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function colorOf(child) {
+  if (child['ppg']) {
+    if (child['as_reactant'] || child['as_product']) {
+      return "#1B5E20" // green
+    }
+    else {
+      return '#FFC400' // yellow
+    }
+  }
+  else {
+    if (child['as_reactant'] || child['as_product']) {
+      return  '#E65100' // orange
+    }
+    else {
+      return '#B71C1C' // red
+    }
+  }
+}
+
 function makeNode(child, id) {
   var node = {};
   if (child['is_chemical']) {
@@ -64,15 +83,8 @@ function makeNode(child, id) {
     ${child['as_product']} precedents as product<br>
     ${buyableString}`
     node['borderWidth'] = 2
-    if (node['ppg'] == 0) {
-      node['color'] = {
-        border: "#880000"
-      }
-    }
-    else {
-      node['color'] = {
-        border: "#008800"
-      }
+    node['color'] = {
+      border: colorOf(child)
     }
   }
   else if (child['is_reaction']) {
