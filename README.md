@@ -115,7 +115,7 @@ In this case you'll be presented an interactive prompt to create a superuser wit
 
 ## Important Notes
 
-#### Recommended hardward
+#### Recommended hardware
 
 We recommend running this code on a machine with at least 8 compute cores (16 preferred) and 64 GB RAM (128 GB preferred)
 
