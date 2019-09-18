@@ -4,7 +4,7 @@ Django
 django-extensions
 django-registration
 h5py
-keras
+keras==2.2.4
 mysqlclient
 matplotlib
 numpy
