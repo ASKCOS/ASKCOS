@@ -66,6 +66,7 @@ echo "#################################"
 echo "starting web application services"
 echo "#################################"
 docker-compose up -d nginx app
+docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py collectstatic --noinput"
 
 echo ""
 echo "#######################"
