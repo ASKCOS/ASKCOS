@@ -33,6 +33,8 @@ services:
     restart: always
     env_file:
       - .env
+    volumes:
+      - 'mongo_data:/data/db'
 
   mongoseed:
     build: ./mongo
@@ -166,5 +168,6 @@ services:
 volumes:
   redisdata:
   mysql_data:
+  mongo_data:
   staticdata:
   docdata:
