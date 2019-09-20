@@ -63,6 +63,43 @@ function hideLoader() {
     loader.style.display = "none";
 }
 
+function ctaToNode(cta, id) {
+    if (cta.is_reaction) {
+        return {
+            id: id,
+            graphId: cta.id,
+            plausibility: cta.plausibility,
+            numExamples: cta.num_examples,
+            reactionSmiles: cta.smiles,
+            templateIds: cta.tforms,
+            templateScore: cta.template_score,
+            retroscore: cta.template_score,
+            type: 'reaction',
+        }
+    }
+    else {
+        let node = {
+            id: id,
+            graphId: cta.id,
+            asProduct: cta.as_product,
+            asReactant: cta.as_reactant,
+            type: 'chemical',
+            ppg: cta.ppg,
+            smiles: cta.smiles,
+            image: "/draw/smiles/"+encodeURIComponent(cta.smiles),
+            shape: 'image',
+            borderWidth: 2
+        }
+        if (node.ppg == 0) {
+            node.color = {border: '#880000'}
+        }
+        else {
+            node.color = {border: '#008800'}
+        }
+        return node
+    }
+}
+
 function addReactions(reactions, sourceNode, nodes, edges, reactionLimit) {
     var added = 0
     for (r of reactions) {
@@ -230,7 +267,7 @@ function cleanUpEdges(nodes, edges) {
 
 var network;
 
-function initializeNetwork(data) {
+function initializeNetwork(data, hierarchical) {
     var container = document.getElementById('network');
     var options = {
         nodes: {
@@ -247,8 +284,24 @@ function initializeNetwork(data) {
         },
         interaction: {
             multiselect: true
-        }
+        },
     };
+    if (hierarchical) {
+        options.layout = {
+          hierarchical: {
+            levelSeparation: 150,
+            nodeSpacing: 175,
+          }
+        }
+        options.physics = {
+            stabilization: false,
+            barnesHut: {
+              gravitationalConstant: -80000,
+            //   springConstant: 0.001,
+            //   springLength: 200
+            }
+        }
+    }
     network = new vis.Network(container, data, options);
     network.on("beforeDrawing",  function(ctx) {
         ctx.save();
@@ -336,7 +389,7 @@ var app = new Vue({
             fingerprint:'morgan',
             fpRadius: 1, fpBits: 512,
             cluster_method: 'kmeans',
-            isAlternatingColor: true,
+            isAlternatingColor: false,
         },
         selected: null,
         isHighlightAtom: true,
@@ -355,6 +408,14 @@ var app = new Vue({
     created: function() {
         window.addEventListener('resize', this.handleResize);
         this.handleResize();
+    },
+    mounted: function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        let loadTreeBuilder = urlParams.get('tb')
+        console.log(loadTreeBuilder)
+        if (loadTreeBuilder) {
+            this.loadFromTreeBuilder(loadTreeBuilder)
+        }
     },
     destroyed: function() {
         window.removeEventListener('resize', this.handleResize);
@@ -455,19 +516,7 @@ var app = new Vue({
                             throw json['error']
                         } else {
                             this.data.nodes = new vis.DataSet([
-                                {
-                                    id: 0,
-                                    smiles: this.target,
-                                    image: this.getMolDrawEndPoint(this.target),
-                                    shape: "image",
-                                    borderWidth: 3,
-                                    type: 'chemical',
-                                    value: 15,
-                                    mass: 2,
-                                    color: {
-                                        border: '#000088'
-                                    }
-                                }
+                                this.createTargetNode(this.target)
                             ])
                             this.data.edges = new vis.DataSet([]);
                             initializeNetwork(this.data);
@@ -583,19 +632,21 @@ var app = new Vue({
                 })
         },
         getTemplateNumExamples: function(reactions) {
-            console.log(reactions)
             for (reaction of reactions) {
                 for (templateId of reaction['templates']) {
-                    if (typeof(this.templateNumExamples[templateId]) == 'undefined') {
-                        fetch('/api/template/?id='+templateId)
-                        .then(resp => resp.json())
-                        .then(json => {
-                            var id = json["request"]["id"][0];
-                            var count = json["template"]["count"];
-                            this.templateNumExamples[id] = count;
-                        })
-                    }
+                    this.apiTemplateCount(templateId);
                 }
+            }
+        },
+        apiTemplateCount: function(templateId) {
+            if (typeof(this.templateNumExamples[templateId]) == 'undefined') {
+                fetch('/api/template/?id='+templateId)
+                .then(resp => resp.json())
+                .then(json => {
+                    var id = json["request"]["id"][0];
+                    var count = json["template"]["count"];
+                    this.templateNumExamples[id] = count;
+                })
             }
         },
         deleteChoice: function() {
@@ -1297,6 +1348,125 @@ var app = new Vue({
                 }
                 alert('There was an error fetching cluster results for this target with the supplied settings: '+error_msg)
             })
+        },
+        createTargetNode: function(target) {
+            return {
+                id: 0,
+                smiles: target,
+                image: this.getMolDrawEndPoint(target),
+                shape: "image",
+                borderWidth: 3,
+                type: 'chemical',
+                value: 15,
+                mass: 2,
+                color: {
+                    border: '#000088'
+                }
+            }
+        },
+        addResultsFromTreeBuilder: function(graph, target) {
+            this.target = target
+            this.data.nodes = new vis.DataSet([])
+            this.data.nodes.add(this.createTargetNode(target))
+            this.data.edges = new vis.DataSet([]);
+            for (smiles in graph) {
+              if (!this.results[smiles]) {
+                this.results[smiles] = new Array()
+              }
+              let rank = 1
+              graph[smiles].sort((a, b) => b.template_score - a.template_score)
+              for (chemical of graph[smiles]) {
+                this.results[smiles].push({
+                  rank: rank,
+                  smiles_split: chemical.reactant_smiles,
+                  smiles: chemical.reactant_smiles.join('.'),
+                  plausibility: chemical.plausibility,
+                  visit_count: chemical.visit_count,
+                  price: chemical.price,
+                  estimate_price: chemical.estimate_price,
+                  template_score: chemical.template_score,
+                  score: chemical.template_score
+                })
+                rank += 1
+              }
+            }
+        },
+        addPathsFromTreeBuilder: function(trees) {
+            for (tree of trees) {
+                this.walkTree(tree, 0)
+              }
+            initializeNetwork(this.data, true);
+            network.on('selectNode', this.showInfo);
+            network.on('deselectNode', this.clearSelection);
+            this.toggleHierarchical()
+        },
+        walkTree: function(obj, parent) {
+            var node = undefined
+            for (graphNode of this.data.nodes.get()) {
+                if (graphNode.graphId == obj.id) {
+                    let graphParent = parentOf(graphNode.id, this.data.nodes, this.data.edges)
+                    if (graphParent == -1) {
+                        node = graphNode
+                    } else {
+                        graphParent = this.data.nodes.get(graphParent)
+                        if ((graphParent.graphId == parent.graphId) && (graphParent.id == parent.id)) {
+                            node = graphNode
+                            break
+                        }
+                    }
+                }
+                if (graphNode.id == 0 && graphNode.smiles == obj.smiles) {
+                    node = graphNode
+                    continue
+                }
+            }
+            if (!node) {
+                node = ctaToNode(obj, this.data.nodes.length)
+                if (node.type == 'reaction') {
+                    for (templateId of node.templateIds) {
+                        this.apiTemplateCount(templateId)
+                    }
+                    smi_split = node.reactionSmiles.split('>>')
+                    for (reaction of this.results[smi_split[1]]) {
+                        if (reaction.smiles == smi_split[0]) {
+                            node.rank = reaction.rank
+                            node.label = '#'+node.rank
+                            reaction.inViz = true
+                            break
+                        }
+                    }
+                }
+                this.data.nodes.add(node)
+                if (parent != 0) {
+                    this.data.edges.add({
+                        from: parent.id,
+                        to: node.id,
+                        length: 0
+                    })
+                }
+            }
+            for (child of obj.children) {
+                this.walkTree(child, node)
+            }
+        },
+        loadFromTreeBuilder: function(objectId) {
+            this.allowCluster = false
+            showLoader()
+            fetch('/api/get-result/?id='+objectId)
+            .then(resp => resp.json())
+            .then(json => {
+              if (json.error) {
+                  alert(json.error)
+              }
+              var result = json['result'];
+              var target = result['settings']['smiles'];
+              var stats = result['result']['status'];
+              var trees = result['result']['paths'];
+              var graph = result['result']['graph'];
+              this.addResultsFromTreeBuilder(graph, target)
+              this.addPathsFromTreeBuilder(trees)
+            })
+            .finally(() => hideLoader())
         }
     },
     computed: {
@@ -1331,7 +1501,7 @@ var app = new Vue({
                 res[x] = Array.from(ids).sort(function(a, b){return a-b});
             }
             return res;
-        },
+        }
     },
     delimiters: ['%%', '%%'],
 });
