@@ -20,7 +20,7 @@ import makeit.global_config as gc
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'notsosecret'
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', False)
+DEBUG = os.getenv('DJANGO_DEBUG', False)
 
 ALLOWED_HOSTS = ['0.0.0.0', 'askcos.mit.edu', 'askcos4.mit.edu']
 if os.environ.get('CURRENT_HOST'):
