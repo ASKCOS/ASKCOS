@@ -23,8 +23,8 @@ function hideNetwork(n) {
 }
 
 function hideAllNetworks() {
-  for (var networkDiv of document.querySelectorAll('.tree-graph')) {
-    networkDiv.style.display = 'none';
+  for (var n=0; n<document.querySelectorAll('.tree-graph').length; n++) {
+    hideNetwork(n)
   }
 }
 
@@ -38,8 +38,8 @@ function showNetwork(n) {
 }
 
 function showAllNetworks() {
-  for (var networkDiv of document.querySelectorAll('.tree-graph')) {
-    networkDiv.style.display = '';
+  for (var n=0; n<document.querySelectorAll('.tree-graph').length; n++) {
+    showNetwork(n)
   }
 }
 
