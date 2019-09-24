@@ -36,13 +36,6 @@ services:
     volumes:
       - 'mongo_data:/data/db'
 
-  mongoseed:
-    build: ./mongo
-    env_file:
-      - .env
-    depends_on:
-      - mongo
-
   app:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
     hostname: app
