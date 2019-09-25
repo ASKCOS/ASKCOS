@@ -118,7 +118,7 @@ services:
     restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q tb_coordinator_mcts -n tb_coordinator_mcts@%h"
+    command: bash -c "celery -A askcos_site worker -c 1 -Q tb_coordinator_mcts -n tb_coordinator_mcts@%h --pool=gevent --without-heartbeat"
     depends_on:
       - redis
       - rabbit

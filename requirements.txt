@@ -4,6 +4,7 @@ Cython
 Django
 django-extensions
 django-registration
+gevent
 h5py
 hdbscan
 keras==2.2.4
