@@ -1,34 +1,30 @@
 from __future__ import absolute_import, unicode_literals, print_function
 from kombu import Exchange, Queue
 
-TASK_SERIALIZER = 'json'
-RESULT_SERIALIZER = 'json'
-ACCEPT_CONTENT = ['json']
-TIMEZONE = 'US/Eastern'
-ENABLE_UTC = True
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TIMEZONE = 'US/Eastern'
+CELERY_ENABLE_UTC = True
 
-RESULT_EXPIRES = 1800 # only keep results for 30 minutes max
 CELERY_TASK_RESULT_EXPIRES = 1800 # 30 min
-CELERY_RESULT_PERSEISTENT = False
+CELERY_RESULT_PERSISTENT = False
 
-# Custom task queues - necessary to get priority for tree expansion! (RabbitMQ assumed)
-TASK_QUEUES = [
+CELERY_TASK_QUEUES = [
     Queue('tb_c_worker', Exchange('tb_c_worker'), routing_key='tb_c_worker', queue_arguments={'x-max-priority':20}),
     Queue('tb_worker', Exchange('tb_worker'), routing_key='tb_worker', queue_arguments={'x-max-priority': 20}),
 
 ]
-CELERY_QUEUES = TASK_QUEUES
 
-BROKER_POOL_LIMIT = None
+
+CELERY_BROKER_HEARTBEAT = 0
 
 # global max priority setting
-task_acks_late = True
-CELERY_ACKS_LATE = True
+CELERY_TASK_ACKS_LATE = True
 CELERYD_PREFETCH_MULTIPLIER = 1
-worker_prefetch_multiplier = 1
 
 # Task routes (to make sure workers are task-specific)
-TASK_ROUTES = {
+CELERY_TASK_ROUTES = {
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.get_top_precursors': {'queue': 'tb_c_worker'},
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.fast_filter_check': {'queue': 'tb_c_worker'},
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.apply_one_template_by_idx': {'queue': 'tb_c_worker'},
@@ -44,4 +40,3 @@ TASK_ROUTES = {
     'askcos_site.askcos_celery.contextrecommender.cr_network_worker.*': {'queue':'cr_network_worker'},
     'askcos_site.askcos_celery.contextrecommender.cr_coordinator.*':{'queue':'cr_coordinator'},
 }
-CELERY_ROUTES = TASK_ROUTES
