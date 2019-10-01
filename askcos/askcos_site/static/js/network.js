@@ -591,6 +591,11 @@ var app = new Vue({
               return
             }
             var nodeId = selected[0];
+            if (nodeId.startsWith('cluster')) {
+                alert('Cannot expand collpased node! To toggle collpased state, click collapse toggle button again with collapsed cluster selected.')
+                hideLoader();
+                return
+            }
             var node = this.data.nodes.get(nodeId)
             if (node.type != 'chemical') {
                 alert('Cannot expand reaction; try expanding with a chemical node selected');
