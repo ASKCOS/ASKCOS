@@ -19,9 +19,8 @@ services:
     image: mysql:5.7
     hostname: mysql
     restart: always
-    environment:
-      MYSQL_DATABASE: askcos_db
-      MYSQL_ROOT_PASSWORD: root
+    env_file:
+      - .env
     volumes:
       - 'mysql_data:/var/lib/mysql'
     expose:
