@@ -37,7 +37,9 @@ def get_result(request):
     try:
         result = SavedResults.objects.get(user=request.user, result_id=id_)
     except:
-        resp['status'] = -1
+        resp['success'] = False
+        resp['error'] = 'No result found!'
+        result = None
     if result and result.result_state == 'completed':
         result_doc = results_collection.find_one({'_id': id_})
         resp['result'] = result_doc

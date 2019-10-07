@@ -23,8 +23,8 @@ function hideNetwork(n) {
 }
 
 function hideAllNetworks() {
-  for (var networkDiv of document.querySelectorAll('.tree-graph')) {
-    networkDiv.style.display = 'none';
+  for (var n=0; n<document.querySelectorAll('.tree-graph').length; n++) {
+    hideNetwork(n)
   }
 }
 
@@ -38,13 +38,32 @@ function showNetwork(n) {
 }
 
 function showAllNetworks() {
-  for (var networkDiv of document.querySelectorAll('.tree-graph')) {
-    networkDiv.style.display = '';
+  for (var n=0; n<document.querySelectorAll('.tree-graph').length; n++) {
+    showNetwork(n)
   }
 }
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function colorOf(child) {
+  if (child['ppg']) {
+    if (child['as_reactant'] || child['as_product']) {
+      return "#1B5E20" // green
+    }
+    else {
+      return '#FFC400' // yellow
+    }
+  }
+  else {
+    if (child['as_reactant'] || child['as_product']) {
+      return  '#E65100' // orange
+    }
+    else {
+      return '#B71C1C' // red
+    }
+  }
 }
 
 function makeNode(child, id) {
@@ -64,15 +83,8 @@ function makeNode(child, id) {
     ${child['as_product']} precedents as product<br>
     ${buyableString}`
     node['borderWidth'] = 2
-    if (node['ppg'] == 0) {
-      node['color'] = {
-        border: "#880000"
-      }
-    }
-    else {
-      node['color'] = {
-        border: "#008800"
-      }
+    node['color'] = {
+      border: colorOf(child)
     }
   }
   else if (child['is_reaction']) {
@@ -220,8 +232,8 @@ var app = new Vue({
           .then(resp => resp.json())
           .then(json => {
             var result = json['result'];
-            var stats = result['result'][0];
-            var trees = result['result'][1];
+            var stats = result['result']['status'];
+            var trees = result['result']['paths'];
             this.numChemicals = stats[0];
             this.numReactions = stats[1];
             this.trees = trees;

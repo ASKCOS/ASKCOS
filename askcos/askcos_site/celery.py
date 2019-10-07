@@ -24,6 +24,7 @@ app = Celery('askcos_site', broker='amqp://{}:{}'.format(RABBIT_HOST, RABBIT_POR
         'askcos_site.askcos_celery.treeevaluator.forward_trans_worker',
         'askcos_site.askcos_celery.treeevaluator.scoring_coordinator',
         'askcos_site.askcos_celery.treeevaluator.tree_evaluation_coordinator',
+        'askcos_site.askcos_celery.siteselectivity.sites_worker',
     ]
 )
 
@@ -31,7 +32,7 @@ app = Celery('askcos_site', broker='amqp://{}:{}'.format(RABBIT_HOST, RABBIT_POR
 # the configuration object to child processes.
 # - namespace='CELERY' means all celery-related configuration keys
 #   should have a `CELERY_` prefix.
-app.config_from_object('django.conf:settings',)# namespace='CELERY')
+app.config_from_object('django.conf:settings', namespace='CELERY')
 app.conf.task_queue_max_priority = 20 # necessary for new tb_worker queues to be priority
 
 if __name__ == '__main__':

@@ -1,0 +1,20 @@
+<table class="table table-nonfluid table_outcomes">
+<tr>
+	<th>Reactant</th>
+	<th><center>Sites</center></th>
+</tr>
+{% for res in results %}
+<tr>
+	<td>
+		<center>
+			<img src="" data-async-load="{% url 'draw_highlight' smiles=res.task reacting_atoms='[]' bonds='false'%}" alt="{{res.task}}"><br>	
+		</center>
+	</td>
+	<td>
+		<center>
+			<img src="" data-async-load="{% url 'draw_highlight' smiles=res.smiles reacting_atoms=res.atom_scores bonds='false'%}" alt="{{ res.smiles }}"><br>
+		</center>
+	</td>
+</tr>
+{% endfor %}
+</table>

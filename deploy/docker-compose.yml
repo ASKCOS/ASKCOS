@@ -19,9 +19,8 @@ services:
     image: mysql:5.7
     hostname: mysql
     restart: always
-    environment:
-      MYSQL_DATABASE: askcos_db
-      MYSQL_ROOT_PASSWORD: root
+    env_file:
+      - .env
     volumes:
       - 'mysql_data:/var/lib/mysql'
     expose:
@@ -33,16 +32,11 @@ services:
     restart: always
     env_file:
       - .env
-
-  mongoseed:
-    build: ./mongo
-    env_file:
-      - .env
-    depends_on:
-      - mongo
+    volumes:
+      - 'mongo_data:/data/db'
 
   app:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
     hostname: app
     restart: always
     env_file:
@@ -61,7 +55,7 @@ services:
       - mongo
 
   te_coordinator:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
     restart: always
     env_file:
       - .env
@@ -71,7 +65,7 @@ services:
       - rabbit
 
   sc_coordinator:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
     restart: always
     env_file:
       - .env
@@ -83,7 +77,7 @@ services:
       - mongo
 
   ft_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
     restart: always
     env_file:
       - .env
@@ -95,7 +89,7 @@ services:
       - mongo
 
   cr_coordinator:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
     restart: always
     env_file:
       - .env
@@ -107,7 +101,7 @@ services:
       - mongo
 
   cr_network_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
     restart: always
     env_file:
       - .env
@@ -119,11 +113,11 @@ services:
       - mongo
 
   tb_coordinator_mcts:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
     restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q tb_coordinator_mcts -n tb_coordinator_mcts@%h"
+    command: bash -c "celery -A askcos_site worker -c 1 -Q tb_coordinator_mcts -n tb_coordinator_mcts@%h --pool=gevent --without-heartbeat"
     depends_on:
       - redis
       - rabbit
@@ -131,11 +125,23 @@ services:
       - mongo
 
   tb_c_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:release-0-4-0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
     restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 10 -Q tb_c_worker -n tb_c_worker@%h"
+    command: bash -c "celery -A askcos_site worker -c 12 -Q tb_c_worker -n tb_c_worker@%h"
+    depends_on:
+      - redis
+      - rabbit
+      - mysql
+      - mongo
+
+  sites_worker:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    restart: always
+    env_file:
+      - .env
+    command: bash -c "celery -A askcos_site worker -c 1 -Q sites_worker --pool=gevent -n sites_worker@%h"
     depends_on:
       - redis
       - rabbit
@@ -166,5 +172,6 @@ services:
 volumes:
   redisdata:
   mysql_data:
+  mongo_data:
   staticdata:
   docdata:

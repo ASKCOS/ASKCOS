@@ -21,6 +21,13 @@ def singlestep(request):
         apply_fast_filter = True
     filter_threshold = float(request.GET.get('filter_threshold', 0.75))
     max_branching = int(request.GET.get('num_results', 100))
+    cluster = request.GET.get('cluster', 'True') in ['True', 'true']
+    cluster_method = request.GET.get('cluster_method', 'kmeans')
+    cluster_feature = request.GET.get('cluster_feature', 'original')
+    cluster_fp_type = request.GET.get('cluster_fp_type', 'morgan')
+    cluster_fp_length = int(request.GET.get('cluster_fp_length', 512))
+    cluster_fp_radius = int(request.GET.get('cluster_fp_radius', 1))
+
     res = get_top_precursors_c.delay(
         target,
         template_prioritization,
@@ -29,7 +36,13 @@ def singlestep(request):
         apply_fast_filter=apply_fast_filter,
         filter_threshold=filter_threshold,
         max_branching=max_branching,
-        max_cum_prob=max_cum_prob
+        max_cum_prob=max_cum_prob,
+        cluster=cluster,
+        cluster_method=cluster_method,
+        cluster_feature=cluster_feature,
+        cluster_fp_type=cluster_fp_type,
+        cluster_fp_length=cluster_fp_length,
+        cluster_fp_radius=cluster_fp_radius
     )
 
     if run_async:

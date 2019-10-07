@@ -66,12 +66,14 @@ echo "#################################"
 echo "starting web application services"
 echo "#################################"
 docker-compose up -d nginx app
+docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py collectstatic --noinput"
 
 echo ""
 echo "#######################"
 echo "starting celery workers"
 echo "#######################"
-docker-compose up -d te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker tb_coordinator_mcts tb_c_worker
+docker-compose up -d te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker tb_coordinator_mcts tb_c_worker sites_worker
+docker-compose up -d --scale tb_coordinator_mcts=2
 
 if [ "$SKIP_MIGRATION" = false ]; then
   echo ""

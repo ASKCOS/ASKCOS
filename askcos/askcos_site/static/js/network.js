@@ -3,6 +3,47 @@ container.classList.remove('container')
 container.classList.add('container-fluid')
 container.style.width=null;
 
+function num2str(n, len) {
+    if (len == undefined) {
+        return n == undefined || isNaN(n) ? 'N/A' : n.toString();
+    } else {
+        return n == undefined || isNaN(n) ? 'N/A' : n.toFixed(len);
+    }
+}
+
+// check whether the set on which the  
+// method is invoked is the subset of  
+// otherset or not 
+function subSet(s, otherSet) {
+    if(s.size > otherSet.size) {
+        return false;
+    } else {
+        for(var elem of s) {
+            // if any of the element of
+            // this is not present in the
+            // otherset then return false
+            if(!otherSet.has(elem))
+                return false;
+        }
+        return true;
+    }
+};
+
+function getCookie(cname) {
+    var name = cname + "=";
+    var cookie_str = document.cookie;
+    if (cookie_str && cookie_str != '') {
+        var cookie_splitted = cookie_str.split(';');
+        for(var i = 0; i <cookie_splitted.length; i++) {
+            var c = cookie_splitted[i].trim();
+            if (c.indexOf(name) == 0) {
+                return decodeURIComponent(c.substring(name.length, c.length));
+            }
+        }
+    }
+  return undefined;
+}
+
 function copyToClipboard(text) {
     var dummy = document.createElement("textarea");
     document.body.appendChild(dummy);
@@ -22,17 +63,53 @@ function hideLoader() {
     loader.style.display = "none";
 }
 
+function ctaToNode(cta, id) {
+    if (cta.is_reaction) {
+        return {
+            id: id,
+            graphId: cta.id,
+            plausibility: cta.plausibility,
+            numExamples: cta.num_examples,
+            reactionSmiles: cta.smiles,
+            templateIds: cta.tforms,
+            templateScore: cta.template_score,
+            retroscore: cta.template_score,
+            type: 'reaction',
+        }
+    }
+    else {
+        let node = {
+            id: id,
+            graphId: cta.id,
+            asProduct: cta.as_product,
+            asReactant: cta.as_reactant,
+            type: 'chemical',
+            ppg: cta.ppg,
+            smiles: cta.smiles,
+            image: "/draw/smiles/"+encodeURIComponent(cta.smiles),
+            shape: 'image',
+            borderWidth: 2
+        }
+        if (node.ppg == 0) {
+            node.color = {border: '#880000'}
+        }
+        else {
+            node.color = {border: '#008800'}
+        }
+        return node
+    }
+}
+
 function addReactions(reactions, sourceNode, nodes, edges, reactionLimit) {
-    var reactionSorting = "retroscore";
-    reactions.sort(function(a, b) {
-        return b[reactionSorting] - a[reactionSorting]
-    })
-    for (n in reactions) {
-        console.log(n)
-        if (n >= reactionLimit) {
+    var added = 0
+    for (r of reactions) {
+        if (added >= reactionLimit) {
             break;
         }
-        addReaction(reactions[n], sourceNode, nodes, edges)
+        if (r.show) {
+            addReaction(r, sourceNode, nodes, edges);
+            added += 1;
+        }
     }
 }
 
@@ -42,10 +119,10 @@ function addReaction(reaction, sourceNode, nodes, edges) {
         id: rId,
         label: '#'+reaction['rank'],
         rank: reaction['rank'],
-        ffScore: reaction['plausibility'].toFixed(3),
-        retroscore: reaction['score'].toFixed(3),
-        templateScore: reaction['template_score'].toFixed(3),
-        numExamples: reaction['num_examples'],
+        ffScore: num2str(reaction['plausibility'] ,3),
+        retroscore: num2str(reaction['score'], 3),
+        templateScore: num2str(reaction['template_score'], 3),
+        numExamples: num2str(reaction['num_examples']),
         templateIds: reaction['templates'],
         reactionSmiles: reaction.smiles+'>>'+sourceNode.smiles,
         type: 'reaction',
@@ -101,7 +178,7 @@ function addReaction(reaction, sourceNode, nodes, edges) {
             nodes.add({
                 id: nId,
                 smiles: mysmi,
-                image: window.location.origin+"/draw/smiles/"+encodeURIComponent(mysmi),
+                image: app.getMolDrawEndPoint(mysmi),
                 shape: "image",
                 borderWidth: 2,
                 type: 'chemical',
@@ -190,7 +267,7 @@ function cleanUpEdges(nodes, edges) {
 
 var network;
 
-function initializeNetwork(data) {
+function initializeNetwork(data, hierarchical) {
     var container = document.getElementById('network');
     var options = {
         nodes: {
@@ -207,8 +284,24 @@ function initializeNetwork(data) {
         },
         interaction: {
             multiselect: true
-        }
+        },
     };
+    if (hierarchical) {
+        options.layout = {
+          hierarchical: {
+            levelSeparation: 150,
+            nodeSpacing: 175,
+          }
+        }
+        options.physics = {
+            stabilization: false,
+            barnesHut: {
+              gravitationalConstant: -80000,
+            //   springConstant: 0.001,
+            //   springLength: 200
+            }
+        }
+    }
     network = new vis.Network(container, data, options);
     network.on("beforeDrawing",  function(ctx) {
         ctx.save();
@@ -220,6 +313,27 @@ function initializeNetwork(data) {
     return network
 }
 
+/* DnD */
+function disable_dragstart_handler(e) {
+    e.preventDefault();
+}
+
+function clusteredit_dragover_handler(event) {
+    event.preventDefault(); // important
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = 'move'; // important
+}
+
+function clusteredit_dragenter_handler(event) {
+    event.preventDefault(); // important
+    event.stopPropagation();
+    event.target.classList.add('dragover');
+}
+
+function clusteredit_dragleave_handler(event) {
+    event.target.classList.remove('dragover');
+}
+
 Vue.component('modal', {
     template: '#modal-template'
 })
@@ -227,6 +341,10 @@ Vue.component('modal', {
 var app = new Vue({
     el: '#app',
     data: {
+        window: {
+            width: 0,
+            height: 0,
+        },
         target: '',
         network: {},
         data: {
@@ -236,13 +354,45 @@ var app = new Vue({
         results: {},
         templateNumExamples: {},
         nodeStructure: {},
+        allowCluster: true,
         allowResolve: false,
         showSettingsModal: false,
         showLoadModal: false,
         showDownloadModal: false,
+        showClusterPopoutModal: false,
+        showClusterEditModal: false,
+        showAddNewPrecursorModal: false,
         downloadName: "network.json",
         modalData: {},
+        clusterPopoutModalData: {
+            optionsDisplay : {
+                showScore: false,
+                showNumExample: true,
+                showTemplateScore: false,
+                showPlausibility: true,
+                showClusterId: false,
+            },
+        },
+        clusterEditModalData: {
+            optionsDisplay : {
+                showScore: false,
+                showNumExample: false,
+                showTemplateScore: false,
+                showPlausibility: false,
+                showClusterId: false,
+            },
+        },
+        addNewPrecursorModal: {},
+        clusterOptions: {
+            allowRemovePrecursor: true,
+            feature: 'original',
+            fingerprint:'morgan',
+            fpRadius: 1, fpBits: 512,
+            cluster_method: 'kmeans',
+            isAlternatingColor: false,
+        },
         selected: null,
+        isHighlightAtom: true,
         reactionLimit: 5,
         templatePrioritization: "Relevance",
         precursorScoring: "RelevanceHeuristic",
@@ -255,7 +405,26 @@ var app = new Vue({
     beforeMount: function() {
         this.allowResolve = this.$el.querySelector('[ref="allowResolve"]').checked;
     },
+    created: function() {
+        window.addEventListener('resize', this.handleResize);
+        this.handleResize();
+    },
+    mounted: function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        let loadTreeBuilder = urlParams.get('tb')
+        console.log(loadTreeBuilder)
+        if (loadTreeBuilder) {
+            this.loadFromTreeBuilder(loadTreeBuilder)
+        }
+    },
+    destroyed: function() {
+        window.removeEventListener('resize', this.handleResize);
+    },
     methods: {
+        handleResize: function() {
+            this.window.width = window.innerWidth;
+            this.window.height = window.innerHeight;
+        },
         requestUrl: function(smiles) {
             var url = '/api/retro/?';
             var params = {
@@ -265,13 +434,18 @@ var app = new Vue({
                 num_templates: this.numTemplates,
                 max_cum_prob: this.maxCumProb,
                 filter_threshold: this.minPlausibility,
+                cluster_method: this.clusterOptions.cluster_method,
+                cluster_feature: this.clusterOptions.feature,
+                cluster_fp_type: this.clusterOptions.fingerprint,
+                cluster_fp_length: this.clusterOptions.fpBits,
+                cluster_fp_radius: this.clusterOptions.fpRadius
             }
             var queryString = Object.keys(params).map((key) => {
                 return encodeURIComponent(key) + '=' + encodeURIComponent(params[key])
             }).join('&');
             return url+queryString;
         },
-        resolveTarget: function(name) {
+        resolveChemName: function(name) {
             if (this.allowResolve) {
                 var url = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/'+encodeURIComponent(name)+'/property/IsomericSMILES/txt'
                 console.log(url)
@@ -317,12 +491,12 @@ var app = new Vue({
         },
         changeTarget: function() {
             showLoader();
-            this.validatesmiles(this.target)
+            this.validatesmiles(this.target, !this.allowResolve)
             .then(isvalidsmiles => {
                 if (isvalidsmiles) {
                     return this.target
                 } else {
-                    return this.resolveTarget(this.target)
+                    return this.resolveChemName(this.target)
                 }
             })
             .then(x => {
@@ -342,27 +516,16 @@ var app = new Vue({
                             throw json['error']
                         } else {
                             this.data.nodes = new vis.DataSet([
-                                {
-                                    id: 0,
-                                    smiles: this.target,
-                                    image: window.location.origin+"/draw/smiles/"+encodeURIComponent(this.target),
-                                    shape: "image",
-                                    borderWidth: 3,
-                                    type: 'chemical',
-                                    value: 15,
-                                    mass: 2,
-                                    color: {
-                                        border: '#000088'
-                                    }
-                                }
+                                this.createTargetNode(this.target)
                             ])
                             this.data.edges = new vis.DataSet([]);
                             initializeNetwork(this.data);
                             network.on('selectNode', this.showInfo);
                             network.on('deselectNode', this.clearSelection);
-                            this.results[this.target] = json['precursors'];
-                            addReactions(json['precursors'], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit);
-                            this.getTemplateNumExamples(json['precursors']);
+                            this.$set(this.results, this.target, json['precursors']);
+                            this.initClusterShowCard(this.target); // must be called immediately after adding results
+                            addReactions(this.results[this.target], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit);
+                            this.getTemplateNumExamples(this.results[this.target]);
                             hideLoader();
                             fetch('/api/price/?smiles='+encodeURIComponent(this.target))
                                 .then(resp => resp.json())
@@ -428,6 +591,11 @@ var app = new Vue({
               return
             }
             var nodeId = selected[0];
+            if (nodeId.startsWith('cluster')) {
+                alert('Cannot expand collpased node! To toggle collpased state, click collapse toggle button again with collapsed cluster selected.')
+                hideLoader();
+                return
+            }
             var node = this.data.nodes.get(nodeId)
             if (node.type != 'chemical') {
                 alert('Cannot expand reaction; try expanding with a chemical node selected');
@@ -452,12 +620,13 @@ var app = new Vue({
                 .then(resp => resp.json())
                 .then(json => {
                     var reactions = json['precursors'];
-                    this.results[smi] = reactions;
+                    this.$set(this.results, smi, reactions);
                     if (reactions.length==0) {
                         alert('No precursors found!')
                     }
-                    addReactions(reactions, this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit);
-                    this.getTemplateNumExamples(reactions);
+                    this.initClusterShowCard(smi); // must be called immediately after adding results
+                    addReactions(this.results[smi], this.data.nodes.get(nodeId), this.data.nodes, this.data.edges, this.reactionLimit);
+                    this.getTemplateNumExamples(this.results[smi]);
                     this.selected = node;
                     this.reorderResults();
                     hideLoader();
@@ -468,17 +637,37 @@ var app = new Vue({
                 })
         },
         getTemplateNumExamples: function(reactions) {
-            console.log(reactions)
             for (reaction of reactions) {
                 for (templateId of reaction['templates']) {
-                    if (typeof(this.templateNumExamples[templateId]) == 'undefined') {
-                        fetch('/api/template/?id='+templateId)
-                        .then(resp => resp.json())
-                        .then(json => {
-                            var id = json["request"]["id"][0];
-                            var count = json["template"]["count"];
-                            this.templateNumExamples[id] = count;
-                        })
+                    this.apiTemplateCount(templateId);
+                }
+            }
+        },
+        apiTemplateCount: function(templateId) {
+            if (typeof(this.templateNumExamples[templateId]) == 'undefined') {
+                fetch('/api/template/?id='+templateId)
+                .then(resp => resp.json())
+                .then(json => {
+                    var id = json["request"]["id"][0];
+                    var count = json["template"]["count"];
+                    this.templateNumExamples[id] = count;
+                })
+            }
+        },
+        deleteChoice: function() {
+            var selected = network.getSelectedNodes();
+            for (n in selected) {
+                var nodeId = selected[n];
+                if (this.data.nodes.get(nodeId).type=='chemical') {
+                    let res = confirm('This will delete all children nodes of the currently selected node. Continue?')
+                    if (res) {
+                        this.deleteChildren()
+                    }
+                }
+                else {
+                    let res = confirm('This will delete the currently selected node and all children node. Continue?')
+                    if (res) {
+                        this.deleteNode()
                     }
                 }
             }
@@ -554,6 +743,18 @@ var app = new Vue({
             dlAnchorElem.setAttribute("download", this.downloadName);
             dlAnchorElem.click();
         },
+        hasUndefinedGroupid: function() {
+            // check if this.results has group_id
+            for (s in this.results) {
+                var precursors = this.results[s];
+                for (i of precursors) {
+                    if (i.group_id == undefined) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        },
         load: function() {
             var file = document.getElementById("loadNetwork").files[0];
             var reader = new FileReader();
@@ -564,6 +765,16 @@ var app = new Vue({
                 app.data.nodes = new vis.DataSet(data.nodes);
                 app.data.edges = new vis.DataSet(data.edges);
                 app.results = data.results;
+                if (app.hasUndefinedGroupid()) {
+                    let res = confirm('The uploaded json file does not have reaction cluster information for some precursors. Select "OK" to re-cluster all of them. This will erase existing reaction cluster information. Select "Cancel" to skip, however, reaction cluster function may not work correctly until you re-cluster manually.');
+                    if (res) {
+                        for (s in app.results) {
+                            app.requestClusterId(s);
+                        }
+                    } else {
+                        app.allowCluster = false;
+                    }
+                }
                 network = initializeNetwork(app.data)
                 network.on('selectNode', app.showInfo);
                 network.on('deselectNode', app.clearSelection);
@@ -633,6 +844,10 @@ var app = new Vue({
                 }
             }
         },
+        resetSortingCategory: function() {
+            this.sortingCategory = 'score'
+            this.reorderResults()
+        },
         reorderResults: function() {
             var sortingCategory = this.sortingCategory;
             if (this.selected.type != 'chemical') {
@@ -643,7 +858,11 @@ var app = new Vue({
             if (typeof(results) == 'undefined') {
                 return
             }
-            results.sort((a, b) => b[sortingCategory] - a[sortingCategory])
+            results.sort((a, b) => {
+                var a_ = a[sortingCategory] == undefined ? 0 : a[sortingCategory];
+                var b_ = b[sortingCategory] == undefined ? 0 : b[sortingCategory];
+                return b_ - a_;
+            })
             var prevSelected = this.selected;
             this.selected = undefined;
             this.selected = prevSelected;
@@ -667,10 +886,12 @@ var app = new Vue({
             }
         },
         openModal: function(modalName) {
+            /*
             this.clearSelection();
             if (network) {
                 network.unselectAll();
             }
+            */
             if (modalName == "settings") {
                 this.showSettingsModal = true
             }
@@ -681,8 +902,331 @@ var app = new Vue({
                 this.showLoadModal = true
             }
         },
+        openClusterPopoutModal: function(selected, res) {
+            if(selected == undefined) {
+                alert('No target molecule selected. Please select a molecule in the tree.')
+                return
+            }
+            /*
+             * cannot deselect
+            this.clearSelection();
+            if (network) {
+                network.unselectAll();
+            }
+            */
+            this.$set(this.clusterPopoutModalData, 'selected', selected);
+            this.$set(this.clusterPopoutModalData, 'selectedSmiles', selected.smiles);
+            this.$set(this.clusterPopoutModalData, 'res', res);
+            this.$set(this.clusterPopoutModalData, 'group_id', res.group_id);
+            this.showClusterPopoutModal = true;
+        },
+        closeClusterPopoutModal: function() {
+            this.showClusterPopoutModal = false;
+            this.clusterPopoutModalData['selected'] = undefined;
+            this.clusterPopoutModalData['selectedSmiles'] = undefined;
+            this.clusterPopoutModalData['res'] = undefined;
+            this.clusterPopoutModalData['group_id'] = undefined;
+        },
+        clusterPopoutModalIncGroupID: function() {
+            var all_ids = this.clusteredResultsIndex[this.clusterPopoutModalData['selectedSmiles']];
+            var idx = all_ids.indexOf(this.clusterPopoutModalData['group_id']);
+            if (idx == all_ids.length-1) {
+            } else {
+                this.clusterPopoutModalData['group_id'] = all_ids[idx+1];
+            }
+            this.$forceUpdate();
+        },
+        clusterPopoutModalDecGroupID: function() {
+            var all_ids = this.clusteredResultsIndex[this.clusterPopoutModalData['selectedSmiles']];
+            var idx = all_ids.indexOf(this.clusterPopoutModalData['group_id']);
+            if (idx == 0) {
+            } else {
+                this.clusterPopoutModalData['group_id'] = all_ids[idx-1];
+            }
+            this.$forceUpdate();
+        },
+        openClusterEditModal: function(selected, group_id) {
+            if(selected == undefined) {
+                alert('No target molecule selected. Please select a molecule in the tree.')
+                return
+            }
+            /*
+             * cannot deselect
+            this.clearSelection();
+            if (network) {
+                network.unselectAll();
+            }
+            */
+            if(group_id == undefined) {
+                group_id = 0
+            }
+            this.$set(this.clusterEditModalData, 'selected', selected);
+            this.$set(this.clusterEditModalData, 'selectedSmiles', selected.smiles);
+            this.$set(this.clusterEditModalData, 'group_id', group_id);
+            this.showClusterEditModal = true;
+        },
+        closeClusterEditModal: function() {
+            this.showClusterEditModal = false;
+            this.clusterEditModalData['selected'] = undefined;
+            this.clusterEditModalData['selectedSmiles'] = undefined;
+            this.clusterEditModalData['group_id'] = undefined;
+        },
+        clusteredit_dragstart_handler: function(precursor, event) {
+            event.target.style.opacity = '0.4';
+            event.dataTransfer.setData('text/plain', precursor.smiles);
+            var img = new Image();
+            img.src = this.getMolDrawEndPoint(precursor.smiles);
+            // set opacity does not work..
+            event.dataTransfer.setDragImage(img, 10, 10);
+            event.dataTransfer.effectAllowed = 'all';
+            // disable all buttons on dragging
+            var buttons = document.querySelectorAll("button");
+            buttons.forEach(function(e){e.style.pointerEvents = "none";});
+        },
+        clusteredit_dragend_handler: function(event) {
+            event.target.style.opacity = '1';
+            // enable all buttons
+            var buttons = document.querySelectorAll("button");
+            buttons.forEach(function(e){e.style.pointerEvents = "all";});
+        },
+        clusteredit_drop_handler: function(target, event) {
+            event.preventDefault(); // important
+            var s = event.dataTransfer.getData('text/plain'); // precursor.simles
+            var r = this.results[this.clusterEditModalData['selectedSmiles']];
+            // find precursor
+            var old_gid;
+            for (let x of r) {
+                if (x.smiles == s) {
+                    old_gid = x.group_id;
+                    x.group_id = target.group_id;
+                    break
+                }
+            }
+            this.clusteredit_dragend_handler(event);
+            clusteredit_dragleave_handler(event);
+            this.detectClusterDeletion(this.clusterEditModalData['selectedSmiles'], old_gid);
+        },
+        clusteredit_drop_handler_newcluster: function(event) {
+            event.preventDefault(); // important
+            var s = event.dataTransfer.getData('text/plain'); // precursor.simles
+            var r = this.results[this.clusterEditModalData['selectedSmiles']];
+            var all_ids = this.clusteredResultsIndex[this.clusterEditModalData['selectedSmiles']];
+            var new_gid = all_ids[all_ids.length-1]+1;
+            var old_gid;
+            for (let x of r) {
+                if (x.smiles == s) {
+                    old_gid = x.group_id;
+                    x.group_id = new_gid;
+                    break
+                }
+            }
+            
+            this.clusteredit_dragend_handler(event);
+            clusteredit_dragleave_handler(event);
+            this.detectClusterDeletion(this.clusterEditModalData['selectedSmiles'], old_gid);
+        },
+        detectClusterDeletion: function(selected, old_gid) {
+            var all_ids = this.clusteredResultsIndex[selected];
+            if (all_ids.indexOf(old_gid) == -1) {
+                if (all_ids.length > 0) {
+                    var idx = all_ids.findIndex(function(e){return e>old_gid});
+                    if (idx == -1) idx = all_ids.length-1;
+                    this.clusterEditModalData['group_id'] = all_ids[idx];
+                } else {
+                    this.clusterEditModalData['group_id'] = 0;
+                }
+                this.$forceUpdate();
+            }
+        },
+        clusterEditModalIncGroupID: function() {
+            var all_ids = this.clusteredResultsIndex[this.clusterEditModalData['selectedSmiles']];
+            var idx = all_ids.indexOf(this.clusterEditModalData['group_id']);
+            if (idx == all_ids.length-1) {
+            } else {
+                this.clusterEditModalData['group_id'] = all_ids[idx+1];
+            }
+            this.$forceUpdate();
+        },
+        clusterEditModalDecGroupID: function() {
+            var all_ids = this.clusteredResultsIndex[this.clusterEditModalData['selectedSmiles']];
+            var idx = all_ids.indexOf(this.clusterEditModalData['group_id']);
+            if (idx == 0) {
+            } else {
+                this.clusterEditModalData['group_id'] = all_ids[idx-1];
+            }
+            this.$forceUpdate();
+        },
+        clusterEditModalDeletePrecursor: function(selected, smiles) {
+            let res = confirm('This will remove the precursor completely and cannot be undone! Continue?')
+            if (res) {
+                var r = this.results[selected];
+                var idx = r.findIndex(function(e){return e.smiles==smiles;});
+                var old_gid = r[idx].group_id;
+                r.splice(idx, 1);
+                this.detectClusterDeletion(this.clusterEditModalData['selectedSmiles'], old_gid);
+            }
+        },
+        // gid == undefined is to add a new cluster
+        clusterEditModalAddPrecursor: function(selectedSmiles, smiles, gid) {
+            var isshow = false;
+            if (this.results[selectedSmiles] == undefined) {
+                this.results[selectedSmiles] = [];
+                gid = 0;
+                isshow = true;
+            }
+            var all_ids = this.clusteredResultsIndex[selectedSmiles];
+            if (gid == undefined) {
+                isshow = true;
+                if (all_ids.length == 0) {
+                    gid = 0;
+                } else {
+                    gid = all_ids[all_ids.length-1]+1;
+                }
+            }
+            var rank = 0;
+            for (let i of this.results[selectedSmiles]) {
+                rank = Math.max(rank, i.rank);
+            }
+            rank += 1;
+            var r = {
+                'show': isshow,
+                'smiles': smiles,
+                'smiles_split': smiles.split('.'),
+                'group_id': gid,
+                'score': undefined,
+                'plausibility': undefined,
+                'rank': rank,
+                'num_examples': undefined,
+                'necessary_reagent': undefined,
+                'template_score': undefined,
+                'templates': undefined,
+            };
+            this.results[selectedSmiles].push(r);
+        },
+        // if group_id == undefined, add to a new group
+        openAddNewPrecursorModal: function(selectedSmiles, group_id) {
+            this.showAddNewPrecursorModal = true;
+            this.$set(this.addNewPrecursorModal, 'selectedSmiles', selectedSmiles == undefined ? this.selected.smiles : selectedSmiles);
+            this.$set(this.addNewPrecursorModal, 'group_id', group_id == undefined ? 'undefined' : group_id.toString());
+            this.$set(this.addNewPrecursorModal, 'newprecursorsmiles', '');
+            this.$set(this.addNewPrecursorModal, 'nodupcheck', false);
+        },
+        closeAddNewPrecursorModal: function() {
+            this.showAddNewPrecursorModal = false;
+            this.addNewPrecursorModal['selectedSmiles'] = '';
+            this.addNewPrecursorModal['group_id'] = '';
+            this.addNewPrecursorModal['newprecursorsmiles'] = '';
+            this.addNewPrecursorModal['nodupcheck'] = false;
+        },
+        checkDuplicatePrecursor: function(selectedSmiles, p) {
+            var p_splited = new Set(p.split("."));
+            for (s of this.results[selectedSmiles]) {
+                var s_set = new Set(s['smiles_split']);
+                if (subSet(s_set, p_splited) || subSet(p_splited, s_set)) {
+                    return s;
+                }
+            }
+            return undefined;
+        },
+        addNewPrecursorModalSubmit: async function() {
+            var gid;
+            if (this.addNewPrecursorModal['group_id'] == "undefined") {
+                gid = undefined;
+            } else {
+                gid = Number(this.addNewPrecursorModal['group_id']);
+            }
+            try {
+                isvalid = await this.validatesmiles(
+                    this.addNewPrecursorModal['newprecursorsmiles'],
+                    !this.allowResolve
+                );
+                if (!isvalid) {
+                    this.addNewPrecursorModal['newprecursorsmiles'] =
+                        await this.resolveChemName(
+                            this.addNewPrecursorModal['newprecursorsmiles']
+                        );
+                }
+            } catch(error) {
+                var error_msg = 'unknown error';
+                if ('message' in error) {
+                    error_msg = error.name+':'+error.message;
+                } else if (typeof(error) == 'string') {
+                    error_msg = error;
+                }
+                alert('There was an error fetching precursors for this target with the supplied settings: '+error_msg);
+                return
+            }
+            if (this.addNewPrecursorModal['newprecursorsmiles'] == undefined) {
+                alert('There was an error during adding the precursor.');
+            } else {
+                if (!this.addNewPrecursorModal['nodupcheck']) {
+                    var s = this.checkDuplicatePrecursor(
+                        this.addNewPrecursorModal['selectedSmiles'],
+                        this.addNewPrecursorModal['newprecursorsmiles']
+                    );
+                    if (s != undefined) {
+                        alert('There may be a duplicated precursor: rank: '+s.rank+' cluster: '+s.group_id+'. If you still want to proceed, please select "No duplicate check" option.');
+                        return
+                    }
+                }
+                this.clusterEditModalAddPrecursor(
+                    this.addNewPrecursorModal['selectedSmiles'],
+                    this.addNewPrecursorModal['newprecursorsmiles'],
+                    gid);
+                this.$forceUpdate();
+            }
+        },
+        getMolDrawEndPoint: function(precursor, isHighlight, isTransparent) {
+            //  precursor can be
+            //      1) a smiles string,
+            //      2) a dict has properties "reacting_atoms" and "mapped_smiles"
+            //      3) a dict has property "smiles"
+            //  isTransparent is false by default
+            //  isHighlight is set to this.isHighlight by default, but can be overidden
+            if (isHighlight == undefined) {
+                isHighlight = this.isHighlightAtom;
+            }
+            if (isTransparent == undefined) {
+                isTransparent = false;
+            }
+            var smiles;
+            var mapped_smiles;
+            var reacting_atoms;
+            if (typeof(precursor) == "string") {
+                smiles = precursor;
+                isHighlight = false;
+            } else if (typeof(precursor) == "object") {
+                if (precursor.mapped_smiles != undefined && precursor.reacting_atoms != undefined) {
+                    mapped_smiles = precursor.mapped_smiles;
+                    reacting_atoms = precursor.reacting_atoms;
+                }
+                if (precursor.smiles != undefined) {
+                    smiles = precursor.smiles;
+                }
+            }
+            if (isHighlight && mapped_smiles != undefined && reacting_atoms != undefined) {
+                var res = '/draw/highlight/smiles='+encodeURIComponent(mapped_smiles)+'&reacting_atoms='+encodeURIComponent('['+reacting_atoms.toString()+']')+'&bonds=0'
+            } else {
+                if (smiles == undefined) {
+                    console.log('Error: cannot plot precursor='+precursor)
+                    return ''
+                }
+                var res = '/draw/smiles/' + encodeURIComponent(smiles);
+            }
+            if (isTransparent) {
+                res += '?transparent=1';
+            }
+            return res;
+        },
         isModalOpen: function() {
-            return app.showSettingsModal || app.showDownloadModal || app.showLoadModal
+            var res = false;
+            res = res || this.showSettingsModal;
+            res = res || this.showDownloadModal;
+            res = res || this.showLoadModal;
+            res = res || this.showClusterPopoutModal;
+            res = res || this.showClusterEditModal;
+            res = res || this.showAddNewPrecursorModal;
+            return res;
         },
         startTour: function() {
             if (this.target) {
@@ -690,6 +1234,278 @@ var app = new Vue({
             }
             tour.init();
             tour.restart();
+        },
+        initClusterShowCard: function(selected) {
+            // always sort first
+            var reactionSorting = this.sortingCategory;
+            // this.results[selected].sort(function(a, b) {
+            //     var a_ = a[reactionSorting] == undefined ? 0 : a[reactionSorting];
+            //     var b_ = b[reactionSorting] == undefined ? 0 : b[reactionSorting];
+            //     return b_ - a_;
+            // })
+            // init show to false
+            // init first reactionLimit clusters/precursors to true
+            var numShow = 0;
+            var visited_groups = new Set();
+            for (precursor of this.results[selected]) {
+                if (this.allowCluster) {
+                    if (visited_groups.has(precursor.group_id)) {
+                        this.$set(precursor, 'show', false);
+                    } else {
+                        if (numShow < this.reactionLimit) {
+                            this.$set(precursor, 'show', true);
+                            numShow += 1;
+                        } else {
+                            this.$set(precursor, 'show', false);
+                        }
+                        visited_groups.add(precursor.group_id);
+                    }
+                } else { // !allowCluster
+                    if (numShow < this.reactionLimit) {
+                        numShow += 1;
+                        this.$set(precursor, 'show', true);
+                    } else {
+                        this.$set(precursor, 'show', false);
+                    }
+                }
+            }
+        },
+        groupPrecursors: function(precursors) {
+            var grouped = {};
+            for (let i = 0; i < precursors.length; i++) {
+                var precursor = precursors[i];
+                if (grouped[precursor.group_id]) {
+                    grouped[precursor.group_id].push(precursor);
+                }
+                else {
+                    grouped[precursor.group_id] = new Array(precursor);
+                }
+            }
+            return Object.values(grouped);
+        },
+        requestClusterId: function(selected) {
+            showLoader();
+            var all_smiles = [];
+            var all_scores = [];
+            var i;
+            for (i = 0; i < this.results[selected].length; i++) {
+                all_smiles.push(this.results[selected][i].smiles);
+                var s = this.results[selected][i].score;
+                if (s == undefined) {
+                    s = 0;
+                }
+                all_scores.push(s);
+            }
+            var url = '/api/cluster/?';
+            var params = {
+                original:       selected,
+                outcomes:       all_smiles,
+                feature:        this.clusterOptions.feature,
+                fp_name:        this.clusterOptions.fingerprint,
+                fpradius:       this.clusterOptions.fpRadius,
+                fpnbits:        this.clusterOptions.fpBits,
+                cluster_method: this.clusterOptions.cluster_method,
+                scores:          all_scores,
+            };
+            var queryString = Object.keys(params).map((key) => {
+                return encodeURIComponent(key) + '=' + encodeURIComponent(params[key])
+            }).join('&');
+            
+            fetch_param = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: queryString,
+            };
+            
+            fetch(url, fetch_param)
+            .then(resp => {
+                if (!resp.ok) {
+                    throw resp.status;
+                }
+                return resp;
+            })
+            .then(resp => resp.json())
+            .then(resp_json => {
+                if ('error' in resp_json) {
+                    hideLoader()
+                    throw resp_json['error'];
+                } else {
+                    var group_ids = resp_json['group_id'];
+                    var i;
+                    for (i = 0; i < this.results[selected].length; i++) {
+                        this.$set(this.results[selected][i], 'group_id', group_ids[i]);
+                    }
+                    hideLoader()
+                }
+            })
+            .catch((error) => {
+                hideLoader()
+                var error_msg = 'unknown error'
+                if (typeof(error) == 'number') {
+                    error_msg = 'Error code: ' + error;
+                } else if (typeof(error) == 'string') {
+                    error_msg = error;
+                } else if ('message' in error) {
+                    error_msg = error.name+':'+error.message;
+                }
+                alert('There was an error fetching cluster results for this target with the supplied settings: '+error_msg)
+            })
+        },
+        createTargetNode: function(target) {
+            return {
+                id: 0,
+                smiles: target,
+                image: this.getMolDrawEndPoint(target),
+                shape: "image",
+                borderWidth: 3,
+                type: 'chemical',
+                value: 15,
+                mass: 2,
+                color: {
+                    border: '#000088'
+                }
+            }
+        },
+        addResultsFromTreeBuilder: function(graph, target) {
+            this.target = target
+            this.data.nodes = new vis.DataSet([])
+            this.data.nodes.add(this.createTargetNode(target))
+            this.data.edges = new vis.DataSet([]);
+            for (smiles in graph) {
+              if (!this.results[smiles]) {
+                this.results[smiles] = new Array()
+              }
+              let rank = 1
+              graph[smiles].sort((a, b) => b.template_score - a.template_score)
+              for (chemical of graph[smiles]) {
+                this.results[smiles].push({
+                  rank: rank,
+                  smiles_split: chemical.reactant_smiles,
+                  smiles: chemical.reactant_smiles.join('.'),
+                  plausibility: chemical.plausibility,
+                  visit_count: chemical.visit_count,
+                  price: chemical.price,
+                  estimate_price: chemical.estimate_price,
+                  template_score: chemical.template_score,
+                  score: chemical.template_score
+                })
+                rank += 1
+              }
+            }
+        },
+        addPathsFromTreeBuilder: function(trees) {
+            for (tree of trees) {
+                this.walkTree(tree, 0)
+              }
+            initializeNetwork(this.data, true);
+            network.on('selectNode', this.showInfo);
+            network.on('deselectNode', this.clearSelection);
+            this.toggleHierarchical()
+        },
+        walkTree: function(obj, parent) {
+            var node = undefined
+            for (graphNode of this.data.nodes.get()) {
+                if (graphNode.graphId == obj.id) {
+                    let graphParent = parentOf(graphNode.id, this.data.nodes, this.data.edges)
+                    if (graphParent == -1) {
+                        node = graphNode
+                    } else {
+                        graphParent = this.data.nodes.get(graphParent)
+                        if ((graphParent.graphId == parent.graphId) && (graphParent.id == parent.id)) {
+                            node = graphNode
+                            break
+                        }
+                    }
+                }
+                if (graphNode.id == 0 && graphNode.smiles == obj.smiles) {
+                    node = graphNode
+                    continue
+                }
+            }
+            if (!node) {
+                node = ctaToNode(obj, this.data.nodes.length)
+                if (node.type == 'reaction') {
+                    for (templateId of node.templateIds) {
+                        this.apiTemplateCount(templateId)
+                    }
+                    smi_split = node.reactionSmiles.split('>>')
+                    for (reaction of this.results[smi_split[1]]) {
+                        if (reaction.smiles == smi_split[0]) {
+                            node.rank = reaction.rank
+                            node.label = '#'+node.rank
+                            reaction.inViz = true
+                            break
+                        }
+                    }
+                }
+                this.data.nodes.add(node)
+                if (parent != 0) {
+                    this.data.edges.add({
+                        from: parent.id,
+                        to: node.id,
+                        length: 0
+                    })
+                }
+            }
+            for (child of obj.children) {
+                this.walkTree(child, node)
+            }
+        },
+        loadFromTreeBuilder: function(objectId) {
+            this.allowCluster = false
+            showLoader()
+            fetch('/api/get-result/?id='+objectId)
+            .then(resp => resp.json())
+            .then(json => {
+              if (json.error) {
+                  alert(json.error)
+              }
+              var result = json['result'];
+              var target = result['settings']['smiles'];
+              var stats = result['result']['status'];
+              var trees = result['result']['paths'];
+              var graph = result['result']['graph'];
+              this.addResultsFromTreeBuilder(graph, target)
+              this.addPathsFromTreeBuilder(trees)
+            })
+            .finally(() => hideLoader())
+        }
+    },
+    computed: {
+        // {'target_smiles0':[[{result0}, {result1}, ...], [...]], ...}
+        clusteredResults: function() {
+            var res = {};
+            var x;
+            for (x in this.results) {
+                res[x] = this.groupPrecursors(this.results[x]);
+                vueApp = this
+                res[x].sort(function(a, b) {
+                    let maxPropA = Math.max.apply(Math, a.map(function(obj) {
+                        return obj[vueApp.sortingCategory]
+                    }))
+                    let maxPropB = Math.max.apply(Math, b.map(function(obj) {
+                        return obj[vueApp.sortingCategory]
+                    }))
+                    return maxPropB - maxPropA
+                })
+            }
+            return res;
+        },
+        // {'target_smiles0':[all possible unique group_ids sorted in accending order], ...}
+        clusteredResultsIndex: function() {
+            var res = {};
+            var x;
+            for (x in this.results) {
+                var ids = new Set();
+                for (let i of this.results[x]) {
+                    ids.add(i.group_id);
+                }
+                res[x] = Array.from(ids).sort(function(a, b){return a-b});
+            }
+            return res;
         }
     },
     delimiters: ['%%', '%%'],
@@ -856,7 +1672,11 @@ function closeAll() {
     app.showSettingsModal = false;
     app.showLoadModal = false;
     app.showDownloadModal = false;
+    app.showClusterPopoutModal = false;
+    app.showClusterEditModal = false;
+    app.showAddNewPrecursorModal = false;
 }
 
+/* key binding */
 var keys = vis.keycharm();
 keys.bind("esc", closeAll, 'keyup');
