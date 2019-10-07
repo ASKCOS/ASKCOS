@@ -136,6 +136,18 @@ services:
       - mysql
       - mongo
 
+  sites_worker:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    restart: always
+    env_file:
+      - .env
+    command: bash -c "celery -A askcos_site worker -c 1 -Q sites_worker --pool=gevent -n sites_worker@%h"
+    depends_on:
+      - redis
+      - rabbit
+      - mysql
+      - mongo
+
   redis:
     image: redis
     hostname: redis
