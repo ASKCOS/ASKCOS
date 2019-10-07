@@ -11,3 +11,4 @@ from . import template
 from . import tree_builder
 from . import validate_chem_name
 from . import cluster
+from . import selectivity

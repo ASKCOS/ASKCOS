@@ -14,8 +14,9 @@ import re
 
 
 def get_scaled_drawer(mol):
-    #Draw all molecules with same proportions
-    dpa = 26
+    '''This function takes a rdkit mol object and scales the drawing so that 
+    all of the drawings come out with the same proportions'''
+    dpa = 24
     rdDepictor.Compute2DCoords(mol)
     conf = mol.GetConformer()
     xs = [conf.GetAtomPosition(i).x for i in range(mol.GetNumAtoms())]
@@ -41,14 +42,28 @@ def MolsSmilesToImageHighlight(smiles, options=None, **kwargs):
     reacting_atoms = kwargs.get('reacting_atoms', [])
     bonds = kwargs.get('bonds', False)
     clear_map = kwargs.get('clear_map', True)
+    selectivity = kwargs.get('selectivity', False)
 
-    #Will only draw the highlighted atoms if they are mapped by isotope from rdchiral otherwise
-    #the reacting_atoms will not match the atom index and draw the highlight in the incorrect location
     try:
-        isotope_idx_map = {a.GetIsotope():a.GetIdx() for a in mol.GetAtoms()}
-        highlightAtoms = [isotope_idx_map[x] for x in reacting_atoms]
-        #TODO add options for colors?
-        highlightAtomColors = {x:(0,1,0) for x in highlightAtoms}
+        #Check to see if there are atom scores for site selectivity drawing
+        if len(reacting_atoms) == len(mol.GetAtoms()):
+            highlightAtoms = list(range(mol.GetNumAtoms()))
+            highlightAtomColors = {x:(1,1,1) for x in highlightAtoms}
+            atom_scores = reacting_atoms
+            for i,j in enumerate(mol.GetAtoms()):
+            #cutoff to make the images better
+                if round(atom_scores[i]*100) > 5 and j.GetIsAromatic():
+                    highlightAtomColors[i]=((1-atom_scores[i],1,1-atom_scores[i]))
+                    dopts.atomLabels[i] = '{}%'.format(int(round(atom_scores[i]*100)))
+
+        #Will only draw the highlighted atoms if they are mapped by isotope from rdchiral otherwise
+        #the reacting_atoms will not match the atom index and draw the highlight in the incorrect location
+        else:
+            isotope_idx_map = {a.GetIsotope():a.GetIdx() for a in mol.GetAtoms()}
+            highlightAtoms = [isotope_idx_map[x] for x in reacting_atoms]
+            #TODO add options for colors?
+            highlightAtomColors = {x:(0,1,0) for x in highlightAtoms}
+
         if bonds:
             #TODO some edits have multiple atoms changing in one tuple
             highlightBonds = [mol.GetBondBetweenAtoms(x[0],x[1]).GetIdx() for x in reacting_atoms]

@@ -39,4 +39,5 @@ CELERY_TASK_ROUTES = {
     'askcos_site.askcos_celery.contextrecommender.cr_nn_worker.*': {'queue':'cr_nn_worker'},
     'askcos_site.askcos_celery.contextrecommender.cr_network_worker.*': {'queue':'cr_network_worker'},
     'askcos_site.askcos_celery.contextrecommender.cr_coordinator.*':{'queue':'cr_coordinator'},
+    'askcos_site.askcos_celery.siteselectivity.sites_worker.*':{'queue':'sites_worker'},
 }
