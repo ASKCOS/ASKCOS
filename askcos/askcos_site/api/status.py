@@ -8,7 +8,8 @@ READABLE_NAMES = {
     'sc_coordinator': 'Forward Predictor Scoring Coordinator',
     'tb_c_worker': 'One-Step/Tree Builder Retrosynthesis Worker',
     'tb_coordinator_mcts': 'Tree Builder Coordinator',
-    'te_coordinator': 'Tree Evaluation Coordinator'
+    'te_coordinator': 'Tree Evaluation Coordinator',
+    'sites_worker': 'Site Selectivity Worker'
 }
 
 def celery_status(request):

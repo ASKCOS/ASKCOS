@@ -68,6 +68,10 @@ urlpatterns += [
     re_path(r'^ajax/start_synth/$', views.ajax_start_synth, name='ajax_start_synth'),
     re_path(r'^synth_interactive/download$', views.export_synth_results, name='export_synth_results'),
 
+    # Site Selectivity prediction
+    re_path(r'^site_prediction/$', views.site_prediction, name='site_prediction'),
+    re_path(r'^ajax/get_sites/$', views.ajax_get_sites, name='ajax_get_sites'),
+
     # Template examination (by str(ObjectID))
     re_path(r'^template/target=(?P<id>.+)$', views.template_target, name='template_target'),
     re_path(r'^template/download/target=(?P<id>.+)$', views.template_target_export, name='template_target_export'),
@@ -141,6 +145,7 @@ urlpatterns += [
     re_path(r'^api/buyables/delete', api.buyables.delete_buyable, name='delete_buyables_api'),
 
     re_path(r'^api/cluster/$', api.cluster.cluster, name='cluster_api'),
+    re_path(r'^api/selectivity/$', api.selectivity.selectivity, name='selectivity'),
 
     # async results
     re_path(r'^api/get-result/$', api.results.get_result, name='get_async_result'),
