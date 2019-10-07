@@ -64,6 +64,13 @@
     <p>This module allows you to estimate the probability that a given reaction (defined by reactants and products) will succeed. The program will use a nearest-neighbor reaction condition recommendation model to find a list of possible reaction conditions. Up to ten conditions will be attempted and the most promising one reported back to you. If you already have a good idea of the reaction conditions, it may be more productive to use the Forward Prediction tool and then see if the expected product is ranked highly.</p>
 </div>
 
+<div class="jumbotron">
+    <a href="{% url 'site_prediction' %}"><h1 class="display-3">Aromatic C-H Site Selectivity Prediction</h1></a>
+    <p class="lead">Predict reactive aromatic C-H sites</p>
+    <hr class="my-4">
+    <p>This module allows you to predict the selectivity of 123 aromatic C-H functionalization reactions</p>
+</div>
+
  <div class="jumbotron">
     <a href="{% url 'scscoring' %}"><h1 class="display-3">SCScore Evaluator</h1></a>
     <p class="lead">Analyze a chemical's perceived synthetic complexity</p>

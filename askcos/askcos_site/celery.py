@@ -24,6 +24,7 @@ app = Celery('askcos_site', broker='amqp://{}:{}'.format(RABBIT_HOST, RABBIT_POR
         'askcos_site.askcos_celery.treeevaluator.forward_trans_worker',
         'askcos_site.askcos_celery.treeevaluator.scoring_coordinator',
         'askcos_site.askcos_celery.treeevaluator.tree_evaluation_coordinator',
+        'askcos_site.askcos_celery.siteselectivity.sites_worker',
     ]
 )
 
