@@ -591,7 +591,7 @@ var app = new Vue({
               return
             }
             var nodeId = selected[0];
-            if (nodeId.startsWith('cluster')) {
+            if (typeof(nodeId) == 'string' && nodeId.startsWith('cluster')) {
                 alert('Cannot expand collpased node! To toggle collpased state, click collapse toggle button again with collapsed cluster selected.')
                 hideLoader();
                 return

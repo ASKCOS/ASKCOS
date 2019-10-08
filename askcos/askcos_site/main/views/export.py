@@ -28,9 +28,9 @@ def export_synth_results(request):
     # txt += 'Temperature: %s\r\n' % synth_data['temperature']
     # txt += 'Solvent: %s\r\n' % synth_data['solvent']
     # txt += '\r\n'
-    txt = '%s\t%s\t%s\t%s\r\n' % ('Rank', 'SMILES', 'Probability', 'Score')
+    txt = '%s,%s,%s,%s\r\n' % ('Rank', 'SMILES', 'Probability', 'Score')
     for outcome in synth_data['outcomes']:
-        txt += '%s\t%s\t%s\t%s\r\n' % (outcome['rank'], outcome['outcome']['smiles'], outcome['prob'], outcome['score'])
+        txt += '%s,%s,%s,%s\r\n' % (outcome['rank'], outcome['outcome']['smiles'], outcome['prob'], outcome['score'])
     response = HttpResponse(txt, content_type='text/csv')
     response['Content-Disposition'] = 'attachment;filename=export.csv'
     return response
