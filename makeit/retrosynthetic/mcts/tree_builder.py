@@ -863,7 +863,11 @@ class MCTS:
             self.prepare()
 
             # Define first chemical node (target)
-            probs, indeces = self.template_prioritizer.get_topk_from_smi(self.smiles, k=self.template_count)
+            if self.celery:
+                res = tb_c_worker.template_relevance.delay(self.smiles, self.template_count)
+                probs, indeces = res.get(10)
+            else:
+                probs, indeces = self.template_prioritizer.get_topk_from_smi(self.smiles, k=self.template_count)
             truncate_to = np.argwhere(np.cumsum(probs) >= self.max_cum_template_prob)
             if len(truncate_to):
                 truncate_to = truncate_to[0][0] + 1 # Truncate based on max_cum_prob?

@@ -99,7 +99,7 @@ def initialize_rxn_from_smarts(reaction_smarts):
 
     unmapped = 700
     for rct in rxn.GetReactants():
-        rct.UpdatePropertyCache()
+        rct.UpdatePropertyCache(strict=False)
         Chem.AssignStereochemistry(rct)
         # Fill in atom map numbers
         for a in rct.GetAtoms():

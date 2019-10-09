@@ -42,6 +42,8 @@ def configure_worker(options={}, **kwargs):
     retroTransformer = RetroTransformer(celery=True)
 
     retroTransformer.load(chiral=True)
+    retroTransformer.get_precursor_prioritizers('RelevanceHeuristic')
+    retroTransformer.get_template_prioritizers('Relevance')
     print(retroTransformer.fast_filter.evaluate('CCCCCCO.CCCCBr', 'CCCCCCOCCCC'))
     print('### TREE BUILDER WORKER STARTED UP ###')
 
@@ -107,6 +109,12 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
     return (smiles, precursors)
 
 @shared_task
+def template_relevance(smiles, template_count):
+    global retroTransformer
+    probs, indices = retroTransformer.template_prioritizer.get_topk_from_smi(smiles, k=template_count)
+    return (probs, indices)
+
+@shared_task
 def apply_one_template_by_idx(*args, **kwargs):
     """Wrapper function for ``RetroTransformer.apply_one_template_by_idx``.
 
@@ -114,6 +122,7 @@ def apply_one_template_by_idx(*args, **kwargs):
         list of 5-tuples of (int, str, int, list, float): Result of
             applying given template to the molecule.
     """
+    global retroTransformer
     return retroTransformer.apply_one_template_by_idx(*args, **kwargs)
 
 @shared_task
@@ -127,6 +136,7 @@ def fast_filter_check(*args, **kwargs):
         list: Reaction outcomes.
     """
     print('got request for fast filter')
+    global retroTransformer
     return retroTransformer.fast_filter.evaluate(*args, **kwargs)
 
 
