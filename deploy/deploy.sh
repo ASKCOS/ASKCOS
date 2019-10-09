@@ -3,6 +3,7 @@
 SKIP_SEED=false
 SKIP_SSL=false
 SKIP_MIGRATION=false
+SKIP_HTTPS=false
 
 while [[ $# -gt 0 ]]
 do
@@ -11,6 +12,11 @@ key="$1"
 case $key in
     --skip-seed)
     SKIP_SEED=true
+    shift # past argument
+    ;;
+    --skip-https)
+    SKIP_HTTPS=true
+    SKIP_SSL=true
     shift # past argument
     ;;
     --skip-ssl)
@@ -51,6 +57,20 @@ if [ "$SKIP_SEED" = false ]; then
   docker run -it --rm --network deploy_default --env-file ../.env -v ${PWD}:/init mongo bash /init/init.sh
   cd ../
 
+fi
+
+if [ "$SKIP_HTTPS" = true ]; then
+  echo ""
+  echo "###############################"
+  echo "not using https"
+  echo "###############################"
+  cp nginx.http.conf nginx.conf
+else
+  echo ""
+  echo "###############################"
+  echo "using https"
+  echo "###############################"
+  cp nginx.https.conf nginx.conf
 fi
 
 if [ "$SKIP_SSL" = false ]; then
