@@ -1,5 +1,6 @@
 import makeit.global_config as gc
 import rdkit.Chem as Chem
+from rdkit.Chem import Descriptors
 import json
 import time
 from pymongo import MongoClient
@@ -103,7 +104,8 @@ class TemplateFreeNeuralNetScorer(Scorer):
                             'num_examples': 0,
                         },
                         'score': float(outcome['score']),
-                        'prob': float(outcome['prob'])
+                        'prob': float(outcome['prob']),
+                        'mol_wt': float(Descriptors.MolWt(Chem.MolFromSmiles(smiles)))
                     }
 
             # Renormalize and re-rank
