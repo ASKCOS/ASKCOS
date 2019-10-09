@@ -1045,7 +1045,7 @@ class MCTS:
             for path in DLS_chem(self.smiles, depth=0, headNode=True):
                 yield chem_dict(chemsmiles_to_id(self.smiles), children=path, **cheminfodict(self.smiles))
 
-        def DLS_chem(chem_smi, depth, headNode=False):
+        def DLS_chem(chem_smi, depth, done_children_of_this_chemical = set(), headNode=False):
             """Expands at a fixed depth for the current node ``chem_id``.
 
             Args:
@@ -1053,31 +1053,36 @@ class MCTS:
                 depth (int): Depth node is expanded at.
                 headNode (bool, optional): Unused. (default: {False})
             """
+            if headNode:
+                done_children_of_this_chemical.add(chem_smi)
             C = self.Chemicals[chem_smi]
             if C.terminal:
                 yield []
-
-            if depth > self.max_depth:
-                return
-
-            done_children_of_this_chemical = []
+            # if depth > self.max_depth:
+            #     return            
             for tid, CTA in C.template_idx_results.items():
+                ########??????????????????????????######################
                 if CTA.waiting:
                     continue
                 for rct_smi, R in CTA.reactions.items():
                     if (not R.valid) or R.price == -1:
                         continue
                     rxn_smiles = '.'.join(sorted(R.reactant_smiles)) + '>>' + chem_smi
-                    if rxn_smiles not in done_children_of_this_chemical: # necessary to avoid duplicates
-                        for path in DLS_rxn(chem_smi, tid, rct_smi, depth):
-                            yield [rxn_dict(rxnsmiles_to_id(rxn_smiles), rxn_smiles, children=path,
+                    filter_criterion = any([(not(self.Chemicals[rct].terminal) and rct in done_children_of_this_chemical) for rct in R.reactant_smiles])
+
+                    if filter_criterion or depth>self.max_depth: # necessary to avoid duplicates
+                        # print(done_children_of_this_chemical,R.reactant_smiles)
+                        continue
+                    else:    # done_children_of_this_chemical.append(rxn_smiles)
+                        # done_children_of_this_chemical_new = done_children_of_this_chemical+R.reactant_smiles
+                        for path in DLS_rxn(chem_smi, tid, rct_smi, depth, done_children_of_this_chemical|set(R.reactant_smiles)):
+                            yield [rxn_dict(rxnsmiles_to_id(rxn_smiles), rxn_smiles, children=path, 
                                 plausibility=R.plausibility,
                                 template_score=R.template_score, **tidlisttoinfodict(R.tforms))]
                             # TODO: figure out when to include num_examples
-                        done_children_of_this_chemical.append(rxn_smiles)
+           
 
-
-        def DLS_rxn(chem_smi, template_idx, rct_smi, depth):
+        def DLS_rxn(chem_smi, template_idx, rct_smi, depth, done_children_of_this_chemical):
             """Yields children paths starting from a specific ``rxn_id``.
 
             Args:
@@ -1092,7 +1097,7 @@ class MCTS:
             # rxn_list = []
             # for smi in R.reactant_smiles:
             #     rxn_list.append([chem_dict(smi, children=path, **{}) for path in DLS_chem(smi, depth+1)])
-
+                
             # return [rxns[0] for rxns in itertools.product(rxn_list)]
 
             ###################
@@ -1103,7 +1108,7 @@ class MCTS:
             # Only one reactant? easy!
             if len(R.reactant_smiles) == 1:
                 chem_smi0 = R.reactant_smiles[0]
-                for path in DLS_chem(chem_smi0, depth+1):
+                for path in DLS_chem(chem_smi0, depth+1, done_children_of_this_chemical):
                     yield [
                         chem_dict(chemsmiles_to_id(chem_smi0), children=path, **cheminfodict(chem_smi0))
                     ]
@@ -1113,8 +1118,8 @@ class MCTS:
             elif len(R.reactant_smiles) == 2:
                 chem_smi0 = R.reactant_smiles[0]
                 chem_smi1 = R.reactant_smiles[1]
-                for path0 in DLS_chem(chem_smi0, depth+1):
-                    for path1 in DLS_chem(chem_smi1, depth+1):
+                for path0 in DLS_chem(chem_smi0, depth+1, done_children_of_this_chemical):
+                    for path1 in DLS_chem(chem_smi1, depth+1, done_children_of_this_chemical):
                         yield [
                             chem_dict(chemsmiles_to_id(chem_smi0), children=path0, **cheminfodict(chem_smi0)),
                             chem_dict(chemsmiles_to_id(chem_smi1), children=path1, **cheminfodict(chem_smi1)),
@@ -1125,9 +1130,9 @@ class MCTS:
                 chem_smi0 = R.reactant_smiles[0]
                 chem_smi1 = R.reactant_smiles[1]
                 chem_smi2 = R.reactant_smiles[2]
-                for path0 in DLS_chem(chem_smi0, depth+1):
-                    for path1 in DLS_chem(chem_smi1, depth+1):
-                        for path2 in DLS_chem(chem_smi2, depth+1):
+                for path0 in DLS_chem(chem_smi0, depth+1, done_children_of_this_chemical):
+                    for path1 in DLS_chem(chem_smi1, depth+1, done_children_of_this_chemical):
+                        for path2 in DLS_chem(chem_smi2, depth+1, done_children_of_this_chemical):
                             yield [
                                 chem_dict(chemsmiles_to_id(chem_smi0), children=path0, **cheminfodict(chem_smi0)),
                                 chem_dict(chemsmiles_to_id(chem_smi1), children=path1, **cheminfodict(chem_smi1)),
@@ -1140,10 +1145,10 @@ class MCTS:
                 chem_smi1 = R.reactant_smiles[1]
                 chem_smi2 = R.reactant_smiles[2]
                 chem_smi3 = R.reactant_smiles[3]
-                for path0 in DLS_chem(chem_smi0, depth+1):
-                    for path1 in DLS_chem(chem_smi1, depth+1):
-                        for path2 in DLS_chem(chem_smi2, depth+1):
-                            for path3 in DLS_chem(chem_smi3, depth+1):
+                for path0 in DLS_chem(chem_smi0, depth+1, done_children_of_this_chemical):
+                    for path1 in DLS_chem(chem_smi1, depth+1, done_children_of_this_chemical):
+                        for path2 in DLS_chem(chem_smi2, depth+1, done_children_of_this_chemical):
+                            for path3 in DLS_chem(chem_smi3, depth+1, done_children_of_this_chemical):
                                 yield [
                                     chem_dict(chemsmiles_to_id(chem_smi0), children=path0, **cheminfodict(chem_smi0)),
                                     chem_dict(chemsmiles_to_id(chem_smi1), children=path1, **cheminfodict(chem_smi1)),
