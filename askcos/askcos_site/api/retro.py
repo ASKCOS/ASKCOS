@@ -1,9 +1,11 @@
+from rdkit import Chem
 from django.http import JsonResponse
+from celery.exceptions import TimeoutError
 from makeit import global_config as gc
 from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors as get_top_precursors_c
 
-TIMEOUT = 30
-TIMEOUT_ALL = 60
+TIMEOUT = 60
+TIMEOUT_ALL = 120
 
 def singlestep(request):
     resp = {}
@@ -15,12 +17,19 @@ def singlestep(request):
     mincount = int(request.GET.get('mincount', 0))
     num_templates = int(request.GET.get('num_templates', 100))
     max_cum_prob = float(request.GET.get('max_cum_prob', 0.995))
-    if request.GET.get('apply_fast_filter'):
-        apply_fast_filter = request.GET.get('apply_fast_filter') in ['True', 'true']
-    else:
-        apply_fast_filter = True
+    apply_fast_filter = request.GET.get('apply_fast_filter', 'True') in ['True', 'true']
     filter_threshold = float(request.GET.get('filter_threshold', 0.75))
     max_branching = int(request.GET.get('num_results', 100))
+
+    if not target:
+        resp['error'] = 'Required parameter "target" missing'
+        return JsonResponse(resp, status=400)
+
+    mol = Chem.MolFromSmiles(target)
+    if not mol:
+        resp['error'] = 'Cannot parse target smiles with rdkit'
+        return JsonResponse(resp, status=400)
+    
     cluster = request.GET.get('cluster', 'True') in ['True', 'true']
     cluster_method = request.GET.get('cluster_method', 'kmeans')
     cluster_feature = request.GET.get('cluster_feature', 'original')
@@ -57,10 +66,14 @@ def singlestep(request):
 
     try:
         (smiles, precursors) = res.get(timeout)
-    except:
+    except TimeoutError:
         resp['error'] = 'API request timed out (limit {}s)'.format(timeout)
         res.revoke()
-        return JsonResponse(resp)
+        return JsonResponse(resp, status=408)
+    except Exception as e:
+        resp['error'] = str(e)
+        res.revoke()
+        return JsonResponse(resp, status=400)
 
     resp['precursors'] = precursors
     for precursor in precursors:
