@@ -1252,21 +1252,11 @@ var app = new Vue({
                     if (visited_groups.has(precursor.group_id)) {
                         this.$set(precursor, 'show', false);
                     } else {
-                        if (numShow < this.reactionLimit) {
-                            this.$set(precursor, 'show', true);
-                            numShow += 1;
-                        } else {
-                            this.$set(precursor, 'show', false);
-                        }
+                        this.$set(precursor, 'show', true);
                         visited_groups.add(precursor.group_id);
                     }
                 } else { // !allowCluster
-                    if (numShow < this.reactionLimit) {
-                        numShow += 1;
-                        this.$set(precursor, 'show', true);
-                    } else {
-                        this.$set(precursor, 'show', false);
-                    }
+                    this.$set(precursor, 'show', true);
                 }
             }
         },
