@@ -1,5 +1,6 @@
 from rdkit import Chem
 from django.http import JsonResponse
+from celery.exceptions import TimeoutError
 from askcos_site.askcos_celery.siteselectivity.sites_worker import get_sites
 
 def selectivity(request):
@@ -16,7 +17,17 @@ def selectivity(request):
         return JsonResponse(resp, status=400)
 
     res = get_sites.delay(smiles)
-    result = res.get(30)
+    try:
+        result = res.get(30)
+    except TimeoutError:
+        resp['error'] = 'API request timed out (limit 30s)'
+        res.revoke()
+        return JsonResponse(resp, status=408)
+    except Exception as e:
+        resp['error'] = str(e)
+        res.revoke()
+        return JsonResponse(resp, status=400)
+
     #if result:
     resp['results'] = {'smiles': smiles,
             'task_scores': result}
