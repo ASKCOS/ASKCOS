@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ft-worker
+  labels:
+    app: ft-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: ft-worker
+  template:
+    metadata:
+      labels:
+        pod: ft-worker
+    spec:
+      containers:
+        - name: ft-worker
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+          command: ["/bin/bash"]
+          args: ["-c", "celery -A askcos_site worker -c 2 -Q ft_worker -n ft_worker@%h"]
+          envFrom:
+            - configMapRef:
+                name: django-config
+      imagePullSecrets:
+        - name: regcred
