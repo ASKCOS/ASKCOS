@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cr-network-worker
+  labels:
+    app: cr-network-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: cr-network-worker
+  template:
+    metadata:
+      labels:
+        pod: cr-network-worker
+    spec:
+      containers:
+        - name: cr-network-worker
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+          command: ["/bin/bash"]
+          args: ["-c", "celery -A askcos_site worker -c 2 -Q cr_network_worker -n cr_network_worker@%h"]
+          envFrom:
+            - configMapRef:
+                name: django-config
+      imagePullSecrets:
+        - name: regcred
