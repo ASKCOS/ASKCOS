@@ -100,10 +100,10 @@ DEFAULT_FROM_EMAIL = 'no-reply@askcos4.mit.edu'
 # NOTE: we recommend relocating the db to an ssd for speed
 DATABASES = {'default': {
     'ENGINE': 'django.db.backends.mysql',
-    'NAME': 'askcos_db',
+    'NAME': os.getenv('MYSQL_DATABASE', 'askcos_db'),
     'USER': os.getenv('MYSQL_USER', 'root'),
-    'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', 'root'),
-    'HOST': 'mysql',
+    'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', 'password'),
+    'HOST': os.getenv('MYSQL_HOST', 'mysql'),
     'PORT': '3306',
 }}
 
