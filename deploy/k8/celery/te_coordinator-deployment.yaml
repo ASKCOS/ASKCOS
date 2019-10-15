@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: te-coordinator
+  labels:
+    app: te-coordinator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: te-coordinator
+  template:
+    metadata:
+      labels:
+        pod: te-coordinator
+    spec:
+      containers:
+        - name: te-coordinator
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+          command: ["/bin/bash"]
+          args: ["-c", "celery -A askcos_site worker -c 2 -Q te_coordinator -n te_coordinator@%h"]
+          envFrom:
+            - configMapRef:
+                name: django-config
+      imagePullSecrets:
+        - name: regcred
