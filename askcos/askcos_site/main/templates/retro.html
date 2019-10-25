@@ -67,7 +67,7 @@ function liberalSettings() {
         <th>Template prioritization:</td>
         <td>
             <select id="id_template_prioritzation" name="template_prioritization" onchange="showFields(this.options[this.selectedIndex].value)">
-                <option value="Popularity" {% if form.template_prioritization == 'Popularity' %}selected{% endif %}>Apply all templates</option>
+                <!-- <option value="Popularity" {% if form.template_prioritization == 'Popularity' %}selected{% endif %}>Apply all templates</option> -->
                 <option value="Relevance"  {% if form.template_prioritization == 'Relevance' %}selected{% endif %}>Apply relevant templates</option>
             </select>
         </td>
