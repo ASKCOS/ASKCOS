@@ -16,6 +16,7 @@ app = Celery('askcos_site', broker='amqp://{}:{}'.format(RABBIT_HOST, RABBIT_POR
     include=[
         'askcos_site.askcos_celery.treebuilder.tb_worker',
         'askcos_site.askcos_celery.treebuilder.tb_c_worker',
+        'askcos_site.askcos_celery.treebuilder.tb_c_worker_preload',
         'askcos_site.askcos_celery.treebuilder.tb_coordinator',
         'askcos_site.askcos_celery.treebuilder.tb_coordinator_mcts',
         'askcos_site.askcos_celery.contextrecommender.cr_coordinator',
