@@ -18,11 +18,9 @@
 {% block page_body %}
 
 <div>
-  <p>
-    <a href="/retro/network/?tb={{id}}">
-      New! Try visualizing the explored graph with the interactive path planner
-    </a>
-  </p>
+  <p><b>New: Try visualizing the explored graph with the interactive path planner!</b><br>
+  <p>Click to view the <a href="/retro/network/?tb={{id}}&view=25">top 25</a> or <a href="/retro/network/?tb={{id}}&view=all">all</a> pathways at once in the interactive path planner.</p>
+  <p>Note: expect slow rendering times when clicking 'all' for a large number of pathways</p>
 </div>
 
 <div id="app" data-id="{{ id }}" class="container-fluid">
@@ -30,7 +28,18 @@
     <div id="settings" class="col-md-12"></div>
   </div>
   <div class="row">
-    <div id="left-pane" class="col-md-6" style="border-right: solid 1px #eee"></div>
+      <div class="col-md-6 text-center">
+          <h3>Synthetic pathway</h3>
+          <div>Tree %% currentTreeId %% of %% trees.length %%</div>
+          <a class='btn btn-defult' @click='prevTree'>Previous</a> &nbsp;&nbsp;&nbsp;
+          <a class='btn btn-defult' @click='nextTree'>Next</a>
+      </div>
+      <div class="col-md-6 text-center">
+          <h3>Pathway details</h3>
+      </div>
+  </div>
+  <div class="row">
+    <div id="left-pane" class="col-md-6" style="width: 50%; height:600px; border-right: solid 1px #eee"></div>
     <div id="right-pane" class="col-md-6 text-center" style="position: sticky; top: 75px">
       <template v-if="selected">
           <template v-if="selected.type=='chemical'">
