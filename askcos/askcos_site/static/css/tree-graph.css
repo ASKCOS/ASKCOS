@@ -11,6 +11,10 @@
   align-items: center;
 }
 
+.vis-network {
+    border: 1px solid black;
+}
+
 a {
   cursor: pointer
 }
