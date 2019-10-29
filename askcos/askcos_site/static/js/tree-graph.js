@@ -72,7 +72,7 @@ function makeNode(child, id) {
     node['id'] = id
     node['ppg'] = child['ppg']
     node['smiles'] = child['smiles']
-    node['image'] = "/draw/smiles/"+child['smiles']
+    node['image'] = "/draw/smiles/"+encodeURIComponent(child['smiles'])
     node['shape'] = "image"
     node['type'] = 'chemical'
     var buyableString = (Number(child['ppg'])) ? '$'+child['ppg']+'/g' : 'not buyable'
@@ -158,10 +158,10 @@ function initializeNetwork(data, elementDiv) {
             multiselect: false,
             hover: true,
             dragNodes: false,
-            dragView: false,
+            // dragView: false,
             selectConnectedEdges: false,
             tooltipDelay: 0,
-            zoomView: false
+            // zoomView: false
         },
         layout: {
           hierarchical: {
@@ -179,16 +179,16 @@ function initializeNetwork(data, elementDiv) {
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
         ctx.restore();
     })
-    network.storePositions();
-    var nodes = data.nodes;
-    var first = nodes.min('y');
-    var last = nodes.max('y');
-    var y = last.y - first.y;
-    container.style.height = `${y+200}px`;
-    var first = nodes.min('x');
-    var last = nodes.max('x');
-    var x = last.x - first.x;
-    container.style.width = `${x+200}px`;
+    // network.storePositions();
+    // var nodes = data.nodes;
+    // var first = nodes.min('y');
+    // var last = nodes.max('y');
+    // var y = last.y - first.y;
+    // container.style.height = `${y+200}px`;
+    // var first = nodes.min('x');
+    // var last = nodes.max('x');
+    // var x = last.x - first.x;
+    // container.style.width = `${x+200}px`;
     return network
 }
 
@@ -219,7 +219,9 @@ var app = new Vue({
       numReactions: 0,
       trees: [],
       settings: {},
-      selected: null
+      selected: null,
+      currentTreeId: 0,
+      networkData: {},
     },
     mounted: function() {
       this.resultId = this.$el.getAttribute('data-id');
@@ -239,8 +241,11 @@ var app = new Vue({
             this.trees = trees;
             this.settings = result['settings'];
             this.renderSettings();
-            this.buildTrees(this.trees);
-            sleep(1000).then(() => app.fitNetworks()).then(() => hideLoader());
+            this.networkContainer = document.getElementById('left-pane')
+            if (this.trees.length) {
+                this.buildTree(this.currentTreeId, this.networkContainer);
+            }
+            hideLoader()
           })
       },
       buildTrees: function(trees) {
@@ -272,22 +277,35 @@ var app = new Vue({
           this.buildTree(tree, divElem, count);
         }
       },
-      buildTree: function(tree, elem, id) {
+      buildTree: function(treeId, elem) {
         var nodes = new vis.DataSet([]);
         var edges = new vis.DataSet([]);
-        makeTreeData(tree, 0, nodes, edges);
-        var data = {
+        makeTreeData(this.trees[treeId], 0, nodes, edges);
+        this.networkData = {
           nodes: nodes,
           edges: edges
         }
-        var network = initializeNetwork(data, elem);
-        network.id = id;
-        network.on('selectNode', function(params) {
-          app.showNode(id, params.nodes[0])
+        this.network = initializeNetwork(this.networkData, elem);
+        this.network.on('selectNode', function(params) {
+          app.showNode(params.nodes[0])
         });
-        network.fit();
-        this.networks.push(network);
-        this.networkData.push(data);
+        sleep(100).then(() => app.network.fit())
+        // this.networks.push(network);
+        // this.networkData.push(data);
+      },
+      nextTree: function() {
+          if (this.currentTreeId < this.trees.length - 1) {
+              this.selected = null
+              this.currentTreeId =  this.currentTreeId + 1
+              this.buildTree(this.currentTreeId, this.networkContainer)
+          }
+      },
+      prevTree: function() {
+          if (this.currentTreeId > 0) {
+              this.selected = null
+              this.currentTreeId =  this.currentTreeId - 1
+              this.buildTree(this.currentTreeId, this.networkContainer)
+          }
       },
       resizeCanvases: function() {
         for (var n in this.networks) {
@@ -302,21 +320,17 @@ var app = new Vue({
           div.style.height = `${y+200}px`;
         }
       },
-      fitNetworks: function() {
-        for (var network of this.networks) {
-          network.fit();
-        }
-      },
       renderSettings: function() {
         console.log(this.settings);
         var settingsDiv = document.createElement('div');
         var targetDiv = document.createElement('div');
-        targetDiv.innerHTML = '<div class="text-center">Target: '+this.settings.smiles+'</div><div class="text-center"><img src="/draw/smiles/'+this.settings.smiles+'"></div>'
+        targetDiv.innerHTML = '<div class="text-center">Target: '+this.settings.smiles+'</div><div class="text-center"><img src="/draw/smiles/'+encodeURIComponent(this.settings.smiles)+'"></div>'
         settingsDiv.appendChild(targetDiv);
         var settingsTitle = document.createElement('h3');
         settingsTitle.innerHTML = 'Settings:';
         settingsDiv.appendChild(settingsTitle);
         var settingsTable = document.createElement('table');
+        this.settingsTable = settingsTable;
         settingsTable.classList.add('table');
         settingsTable.innerHTML = '<tr><th>Expansion settings:</th><td>Max. depth: '+this.settings.max_depth+'</td><td>Max. branching factor: '+this.settings.max_branching+'</td></tr>'
         settingsDiv.appendChild(settingsTable);
@@ -376,16 +390,10 @@ var app = new Vue({
           n += 1;
         }
       },
-      showNode: function(networkId, nodeId) {
-        for (network of this.networks) {
-          if (network.id == networkId) {
-            nodeId = network.getSelectedNodes()[0]
-            this.selected = this.networkData[networkId-1].nodes.get(nodeId)
-          }
-          else {
-            network.unselectAll()
-          }
-        }
+      showNode: function(nodeId) {
+        this.selected = this.networkData.nodes.get(nodeId)
+        // nodeId = this.network.getSelectedNodes()[0]
+        // this.selected = this.networkData[networkId-1].nodes.get(nodeId)
       }
     },
     delimiters: ['%%', '%%'],

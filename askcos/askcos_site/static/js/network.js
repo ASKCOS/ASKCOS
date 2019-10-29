@@ -412,9 +412,10 @@ var app = new Vue({
     mounted: function() {
         var urlParams = new URLSearchParams(window.location.search);
         let loadTreeBuilder = urlParams.get('tb')
+        let numTrees = urlParams.get('view')
         console.log(loadTreeBuilder)
         if (loadTreeBuilder) {
-            this.loadFromTreeBuilder(loadTreeBuilder)
+            this.loadFromTreeBuilder(loadTreeBuilder, numTrees)
         }
     },
     destroyed: function() {
@@ -1444,7 +1445,7 @@ var app = new Vue({
                 this.walkTree(child, node)
             }
         },
-        loadFromTreeBuilder: function(objectId) {
+        loadFromTreeBuilder: function(objectId, numTrees) {
             this.allowCluster = false
             showLoader()
             fetch('/api/get-result/?id='+objectId)
@@ -1459,7 +1460,12 @@ var app = new Vue({
               var trees = result['result']['paths'];
               var graph = result['result']['graph'];
               this.addResultsFromTreeBuilder(graph, target)
-              this.addPathsFromTreeBuilder(trees)
+              if (numTrees == 'all') {
+                this.addPathsFromTreeBuilder(trees)
+              }
+              else {
+                this.addPathsFromTreeBuilder(trees.slice(0, Number(numTrees)))
+              }
             })
             .finally(() => hideLoader())
         }
