@@ -1060,12 +1060,15 @@ class MCTS:
             C = self.Chemicals[chem_smi]
             if C.terminal:
                 yield []
-
             if depth > self.max_depth:
                 return
 
             done_children_of_this_chemical = []
+
+            # if depth > self.max_depth:
+            #     return            
             for tid, CTA in C.template_idx_results.items():
+                ########??????????????????????????######################
                 if CTA.waiting:
                     continue
                 for rct_smi, R in CTA.reactions.items():
@@ -1075,11 +1078,9 @@ class MCTS:
                     if rxn_smiles not in done_children_of_this_chemical: # necessary to avoid duplicates
                         for path in DLS_rxn(chem_smi, tid, rct_smi, depth):
                             yield [rxn_dict(rxnsmiles_to_id(rxn_smiles), rxn_smiles, children=path,
-                                plausibility=R.plausibility,
-                                template_score=R.template_score, **tidlisttoinfodict(R.tforms))]
-                            # TODO: figure out when to include num_examples
+                                plausibility=R.plausibility, template_score=R.template_score, **tidlisttoinfodict(R.tforms))]
                         done_children_of_this_chemical.append(rxn_smiles)
-
+           
 
         def DLS_rxn(chem_smi, template_idx, rct_smi, depth):
             """Yields children paths starting from a specific ``rxn_id``.
@@ -1096,7 +1097,7 @@ class MCTS:
             # rxn_list = []
             # for smi in R.reactant_smiles:
             #     rxn_list.append([chem_dict(smi, children=path, **{}) for path in DLS_chem(smi, depth+1)])
-
+                
             # return [rxns[0] for rxns in itertools.product(rxn_list)]
 
             ###################

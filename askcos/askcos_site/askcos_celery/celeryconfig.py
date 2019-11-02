@@ -25,6 +25,7 @@ CELERYD_PREFETCH_MULTIPLIER = 1
 
 # Task routes (to make sure workers are task-specific)
 CELERY_TASK_ROUTES = {
+    'askcos_site.askcos_celery.treebuilder.tb_c_worker_preload.get_top_precursors': {'queue': 'tb_c_worker_preload'},
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.get_top_precursors': {'queue': 'tb_c_worker'},
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.fast_filter_check': {'queue': 'tb_c_worker'},
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.apply_one_template_by_idx': {'queue': 'tb_c_worker'},

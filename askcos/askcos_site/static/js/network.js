@@ -412,9 +412,10 @@ var app = new Vue({
     mounted: function() {
         var urlParams = new URLSearchParams(window.location.search);
         let loadTreeBuilder = urlParams.get('tb')
+        let numTrees = urlParams.get('view')
         console.log(loadTreeBuilder)
         if (loadTreeBuilder) {
-            this.loadFromTreeBuilder(loadTreeBuilder)
+            this.loadFromTreeBuilder(loadTreeBuilder, numTrees)
         }
     },
     destroyed: function() {
@@ -1252,21 +1253,11 @@ var app = new Vue({
                     if (visited_groups.has(precursor.group_id)) {
                         this.$set(precursor, 'show', false);
                     } else {
-                        if (numShow < this.reactionLimit) {
-                            this.$set(precursor, 'show', true);
-                            numShow += 1;
-                        } else {
-                            this.$set(precursor, 'show', false);
-                        }
+                        this.$set(precursor, 'show', true);
                         visited_groups.add(precursor.group_id);
                     }
                 } else { // !allowCluster
-                    if (numShow < this.reactionLimit) {
-                        numShow += 1;
-                        this.$set(precursor, 'show', true);
-                    } else {
-                        this.$set(precursor, 'show', false);
-                    }
+                    this.$set(precursor, 'show', true);
                 }
             }
         },
@@ -1454,7 +1445,7 @@ var app = new Vue({
                 this.walkTree(child, node)
             }
         },
-        loadFromTreeBuilder: function(objectId) {
+        loadFromTreeBuilder: function(objectId, numTrees) {
             this.allowCluster = false
             showLoader()
             fetch('/api/get-result/?id='+objectId)
@@ -1469,7 +1460,12 @@ var app = new Vue({
               var trees = result['result']['paths'];
               var graph = result['result']['graph'];
               this.addResultsFromTreeBuilder(graph, target)
-              this.addPathsFromTreeBuilder(trees)
+              if (numTrees == 'all') {
+                this.addPathsFromTreeBuilder(trees)
+              }
+              else {
+                this.addPathsFromTreeBuilder(trees.slice(0, Number(numTrees)))
+              }
             })
             .finally(() => hideLoader())
         }

@@ -94,7 +94,6 @@ def buyables(request):
     resp['buyables'] = search_result
     return JsonResponse(resp)
 
-@login_required
 def delete_buyable(request):
     resp = {}
     if not can_modify_buyables(request):
@@ -108,7 +107,6 @@ def delete_buyable(request):
     resp['success'] = True
     return JsonResponse(resp)
 
-@login_required
 def upload_buyable(request):
     resp = {}
     if not can_modify_buyables(request):
@@ -151,7 +149,6 @@ def upload_buyable(request):
     resp['total'] = result['total']
     return JsonResponse(resp)
 
-@login_required
 def add_buyable(request):
     resp = {}
     if not can_modify_buyables(request):

@@ -3,6 +3,7 @@
 SKIP_SEED=false
 SKIP_SSL=false
 SKIP_MIGRATION=false
+SKIP_HTTPS=false
 
 while [[ $# -gt 0 ]]
 do
@@ -11,6 +12,11 @@ key="$1"
 case $key in
     --skip-seed)
     SKIP_SEED=true
+    shift # past argument
+    ;;
+    --skip-https)
+    SKIP_HTTPS=true
+    SKIP_SSL=true
     shift # past argument
     ;;
     --skip-ssl)
@@ -53,6 +59,20 @@ if [ "$SKIP_SEED" = false ]; then
 
 fi
 
+if [ "$SKIP_HTTPS" = true ]; then
+  echo ""
+  echo "###############################"
+  echo "not using https"
+  echo "###############################"
+  cp nginx.http.conf nginx.conf
+else
+  echo ""
+  echo "###############################"
+  echo "using https"
+  echo "###############################"
+  cp nginx.https.conf nginx.conf
+fi
+
 if [ "$SKIP_SSL" = false ]; then
   echo ""
   echo "###############################"
@@ -72,8 +92,8 @@ echo ""
 echo "#######################"
 echo "starting celery workers"
 echo "#######################"
-docker-compose up -d te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker tb_coordinator_mcts tb_c_worker sites_worker
-docker-compose up -d --scale tb_coordinator_mcts=2 --scale tb_c_worker=12
+docker-compose up -d te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker sites_worker
+docker-compose up -d --scale tb_coordinator_mcts=2 --scale tb_c_worker=12 tb_coordinator_mcts tb_c_worker
 
 if [ "$SKIP_MIGRATION" = false ]; then
   echo ""

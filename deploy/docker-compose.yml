@@ -136,6 +136,18 @@ services:
       - mysql
       - mongo
 
+  tb_c_worker_preload:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    restart: always
+    env_file:
+      - .env
+    command: bash -c "celery -A askcos_site worker -c 1 -Q tb_c_worker_preload -n tb_c_worker_preload@%h"
+    depends_on:
+      - redis
+      - rabbit
+      - mysql
+      - mongo
+
   sites_worker:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
     restart: always
