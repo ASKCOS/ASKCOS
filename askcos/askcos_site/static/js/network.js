@@ -1360,6 +1360,14 @@ var app = new Vue({
                 }
             }
         },
+        alreadyAddedToresults: function(chemical, results) {
+            for (var res of results) {
+              if (chemical.reactant_smiles.join('.') == res.smiles) {
+                  return true
+              }
+            }
+            return false
+        },
         addResultsFromTreeBuilder: function(graph, target) {
             this.target = target
             this.data.nodes = new vis.DataSet([])
@@ -1372,6 +1380,9 @@ var app = new Vue({
               let rank = 1
               graph[smiles].sort((a, b) => b.template_score - a.template_score)
               for (chemical of graph[smiles]) {
+                if (this.alreadyAddedToresults(chemical, this.results[smiles])) {
+                    continue
+                }
                 this.results[smiles].push({
                   rank: rank,
                   smiles_split: chemical.reactant_smiles,
