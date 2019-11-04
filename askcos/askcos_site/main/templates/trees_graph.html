@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load staticfiles %}
 
-{% block title %}Tree Builder Graph Visualization{% endblock %}
+{% block title %}Tree Builder Visualization{% endblock %}
 
 {% block extrahead %}
 <script src="{% static 'js/browser-compat.js' %}"></script>
@@ -13,26 +13,104 @@
 <link rel="stylesheet" href="{% static 'css/tree-graph.css' %}" type="text/css">
 {% endblock %}
 
-{% block page_title %}Tree Builder Graph Visualization{% endblock %}
+{% block page_title %}Tree Builder Visualization{% endblock %}
 
 {% block page_body %}
 
 <div>
-  <p><b>New: Try visualizing the explored graph with the interactive path planner!</b><br>
-  <p>Click to view the <a href="/retro/network/?tb={{id}}&view=25">top 25</a> or <a href="/retro/network/?tb={{id}}&view=all">all</a> pathways at once in the interactive path planner.</p>
-  <p>Note: expect slow rendering times when clicking 'all' for a large number of pathways</p>
+  <p class="text-center">Click to view the <a href="/retro/network/?tb={{id}}&view=25">top 25</a> or <a href="/retro/network/?tb={{id}}&view=all">all</a> pathways at once in the interactive path planner (expect slow rendering times when clicking 'all')</p>
 </div>
 
 <div id="app" data-id="{{ id }}" class="container-fluid">
   <div class="row">
-    <div id="settings" class="col-md-12"></div>
+      <div class="col-md-12 text-center" v-if="!!settings.known_bad_reactions">
+        After expanding %% numChemicals %% total chemicals and %% numReactions %% total reactions (with %% settings.known_bad_reactions.length %% banned reactions, %% settings.forbidden_molecules.length %% banned chemicals)
+      </div>
+  </div>
+  <div class="row">
+    <div id="settings" class="col-md-12">
+      <h3><a href="#" @click="showSettings = !showSettings">Settings</a></h3>
+    </div>
+  </div>
+  <div class="row" v-if="showSettings">
+    <div id="settings" class="col-md-12">
+      <div id="target">
+          <div class="text-center">
+              Target: %% settings.smiles %%
+            </div>
+            <div class="text-center">
+              <img v-if="settings.smiles" :src="'/draw/smiles/'+encodeURIComponent(settings.smiles)">
+            </div>
+      </div>
+      <table class="table">
+        <tr>
+          <th>Expansion settings:</th>
+          <td>Max. depth: %% settings.max_depth %%</td>
+          <td>Max. branching factor: %% settings.max_branching %%</td>
+        </tr>
+        <tr>
+          <th></th>
+          <td>Num. templates: %% settings.template_count %%</td>
+          <td>Max cum. prob: %% settings.max_cum_template_prob %%</td>
+        </tr>
+        <tr>
+          <th></th>
+          <td colspan=2>Expansion time (s): %% settings.expansion_time %%</td>
+        </tr>
+        <tr>
+          <th>Stop criteria:</th>
+          <td colspan=2>Maximum chemical price ($/g): %% settings.max_ppg %%</td>
+        </tr>
+        <tr v-if="!!settings.max_natom_dict && settings.max_natom_dict.logic != 'none'">
+          <th></th>
+          <td colspan=2>Chemical property logic: C=%% settings.max_natom_dict.C %% N=%% settings.max_natom_dict.N %% H=%% settings.max_natom_dict.H %% O=%% settings.max_natom_dict.O %%</td>
+        </tr>
+        <tr v-if="!!settings.min_chemical_history_dict && settings.min_chemical_history_dict.logic != 'none'">
+          <th></th>
+          <td colspan=2>Chemical popularity logic: Min. freq. as reactant=%% settings.min_chemical_history_dict.as_reactant %% Min. freq. as product=%% settings.min_chemical_history_dict.as_product %%</td>
+        </tr>
+        <tr>
+          <th>Evaluation settings:</th>
+          <td>Min. plausibility: %% settings.filter_threshold %%</td>
+          <td></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+  <div class="row" style="margin: 5px auto">
+      <div class="col-md-12 text-center">
+          <div>
+            Sort trees by:
+          </div>
+          <div>
+            <label class="btn btn-default">
+                <input type="radio" v-on:change="sortTrees('numReactions', true)" v-model="treeSortOption" value="numReactions" autocomplete="off" checked> Fewest Reactions
+            </label>
+            <label class="btn btn-default">
+                <input type="radio" v-on:change="sortTrees('firstStepScore')" v-model="treeSortOption" value="firstStepScore" autocomplete="off"> Best first step
+            </label>
+            <label class="btn btn-default">
+                <input type="radio" v-on:change="sortTrees('avgScore')" v-model="treeSortOption" value="avgScore" autocomplete="off"> Average score
+            </label>
+            <label class="btn btn-default">
+                <input type="radio" v-on:change="sortTrees('avgPlausibility')" v-model="treeSortOption" value="avgPlausibility" autocomplete="off"> Average plausibility
+            </label>
+            <label class="btn btn-default">
+                <input type="radio" v-on:change="sortTrees('minPlausibility')" v-model="treeSortOption" value="minPlausibility" autocomplete="off"> Best worst step
+            </label>
+          </div>
+      </div>
   </div>
   <div class="row">
       <div class="col-md-6 text-center">
           <h3>Synthetic pathway</h3>
-          <div>Tree %% currentTreeId %% of %% trees.length %%</div>
-          <a class='btn btn-defult' @click='prevTree'>Previous</a> &nbsp;&nbsp;&nbsp;
-          <a class='btn btn-defult' @click='nextTree'>Next</a>
+          <div>Tree %% currentTreeId+1 %% of %% trees.length %%</div>
+          <div style="margin: 5px auto">
+            <button class='btn btn-default' @click='firstTree'>&lt;&lt; First</button> &nbsp;&nbsp;&nbsp;
+            <button class='btn btn-default' @click='prevTree'>&lt; Previous</button> &nbsp;&nbsp;&nbsp;
+            <button class='btn btn-default' @click='nextTree'>Next &gt;</button> &nbsp;&nbsp;&nbsp;
+            <button class='btn btn-default' @click='lastTree'>Last &gt;&gt;</button>
+          </div>
       </div>
       <div class="col-md-6 text-center">
           <h3>Pathway details</h3>
@@ -59,6 +137,20 @@
                   <div><b>Smiles: </b>%% selected.smiles %%</div>
                   <div style="margin-bottom: 10px">
                       <img :src="'/draw/reaction/'+encodeURIComponent(selected.smiles)" style="max-width: 100%" />
+                  </div>
+              </div>
+              <div class="text-left">
+                  <div>
+                    <b>Plausibility:</b> %% selected.plausibility.toFixed(3) %%
+                  </div>
+                  <div>
+                    <b>Template score:</b> %% selected.template_score.toFixed(3) %%
+                  </div>
+                  <div>
+                    <b>Template examples:</b> %% selected.num_examples %%
+                  </div>
+                  <div>
+                    <b>Necessary reagent:</b> %% selected.necessary_reagent %%
                   </div>
                   <div><b>Supporting templates:</b>
                     <ul>
