@@ -36,7 +36,7 @@ services:
       - 'mongo_data:/data/db'
 
   app:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
     hostname: app
     restart: always
     env_file:
@@ -55,7 +55,7 @@ services:
       - mongo
 
   te_coordinator:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
     restart: always
     env_file:
       - .env
@@ -65,7 +65,7 @@ services:
       - rabbit
 
   sc_coordinator:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
     restart: always
     env_file:
       - .env
@@ -77,7 +77,7 @@ services:
       - mongo
 
   ft_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
     restart: always
     env_file:
       - .env
@@ -89,7 +89,7 @@ services:
       - mongo
 
   cr_coordinator:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
     restart: always
     env_file:
       - .env
@@ -101,7 +101,7 @@ services:
       - mongo
 
   cr_network_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
     restart: always
     env_file:
       - .env
@@ -113,7 +113,7 @@ services:
       - mongo
 
   tb_coordinator_mcts:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
     restart: always
     env_file:
       - .env
@@ -125,7 +125,7 @@ services:
       - mongo
 
   tb_c_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
     restart: always
     env_file:
       - .env
@@ -137,7 +137,7 @@ services:
       - mongo
 
   tb_c_worker_preload:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
     restart: always
     env_file:
       - .env
@@ -149,7 +149,7 @@ services:
       - mongo
 
   sites_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
     restart: always
     env_file:
       - .env
