@@ -24,7 +24,6 @@ Developer notes:
 * Enabled option to skip https altogether, despite this not being recommended.
 
 Bug fixes:
-* Tree builder now attempts to disallow protection/de-protection loops in pathways.
 * "Connection reset by peer" should be observed much less frequently.
 * Format of the synthesis predictor export is now csv.
 * Link to export Reaxys reactions supporting a given template now works again.
