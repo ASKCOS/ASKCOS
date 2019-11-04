@@ -40,7 +40,7 @@ class TemplateTransformer(object):
             to not use a cache.
     """
 
-    def __init__(self, load_all=gc.PRELOAD_TEMPLATES, use_db=True, cache_size=0):
+    def __init__(self, load_all=gc.PRELOAD_TEMPLATES, use_db=True):
         """Initializes TemplateTransformer.
 
         Args:
@@ -53,72 +53,8 @@ class TemplateTransformer(object):
         """
         self.load_all = load_all
         self.use_db = use_db
-        self.cache_size = cache_size
-        if cache_size > 0:
-            self.template_cache = TemplateCache(cache_size)
-        else:
-            self.template_cache = None
         if load_all:
             self.id_to_index = {} # Dictionary to keep track of ID -> index in self.templates
-
-    def get_precursor_prioritizers(self, precursor_prioritizer):
-        """Loads precursor prioritizer for the transformer to use.
-
-        Args:
-            precursor_prioritizer (str): Specifies which prioritization method
-                to use.
-        """
-        if not precursor_prioritizer:
-            MyLogger.print_and_log(
-                'Cannot run the Transformer without a precursor prioritization method. Exiting...', transformer_loc, level=3)
-        if precursor_prioritizer in self.precursor_prioritizers:
-            precursor = self.precursor_prioritizers[precursor_prioritizer]
-        else:
-            if precursor_prioritizer == gc.heuristic:
-                precursor = HeuristicPrecursorPrioritizer()
-            elif precursor_prioritizer == gc.relevanceheuristic:
-                precursor = RelevanceHeuristicPrecursorPrioritizer()
-            elif precursor_prioritizer == gc.scscore:
-                precursor = SCScorePrecursorPrioritizer()
-            elif precursor_prioritizer == gc.mincost:
-                precursor = MinCostPrecursorPrioritizer()
-            elif precursor_prioritizer == gc.natural:
-                precursor = DefaultPrioritizer()
-            else:
-                precursor = DefaultPrioritizer()
-                MyLogger.print_and_log(
-                    'Prioritization method not recognized. Using natural prioritization.', transformer_loc, level=1)
-
-            precursor.load_model()
-            self.precursor_prioritizers[precursor_prioritizer] = precursor
-
-        self.precursor_prioritizer = precursor
-
-    def get_template_prioritizers(self, template_prioritizer):
-        """Loads template prioritizer for the transformer to use.
-
-        Args:
-            template_prioritizer (str): Specifies which prioritization method
-                to use.
-        """
-        if not template_prioritizer:
-            MyLogger.print_and_log(
-                'Cannot run the Transformer without a template prioritization method. Exiting...', transformer_loc, level=3)
-        if template_prioritizer in self.template_prioritizers:
-            template = self.template_prioritizers[template_prioritizer]
-        else:
-            if template_prioritizer == gc.popularity:
-                template = PopularityTemplatePrioritizer()
-            elif template_prioritizer == gc.relevance:
-                template = RelevanceTemplatePrioritizer()
-            else:
-                template = PopularityTemplatePrioritizer()
-                MyLogger.print_and_log('Prioritization method not recognized. Using literature popularity prioritization.', transformer_loc, level = 1)
-
-            template.load_model()
-            self.template_prioritizers[template_prioritizer] = template
-
-        self.template_prioritizer = template
 
     def doc_to_template(self, document):
         """Returns a template given a document from the database or file.
@@ -313,19 +249,6 @@ class TemplateTransformer(object):
     def load(self, *args, **kwargs):
         """Load and initialize templates."""
         raise NotImplementedError
-
-    def reorder(self):
-        """Reorder self.templates in descending popularity.
-
-        Also builds id_to_index table.
-        """
-        self.num_templates = len(self.templates)
-        if self.load_all or not self.use_db:
-            self.templates = sorted(self.templates, key=lambda z: z['count'], reverse=True)
-            self.id_to_index = {template['_id']: i for i,
-                template in enumerate(self.templates)}
-        else:
-            self.templates = sorted(self.templates, key=lambda z: z[1])
 
     def lookup_id(self, template_id):
         """Find the reaction SMARTS for this template_id.

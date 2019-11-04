@@ -20,18 +20,6 @@ from pymongo import MongoClient
 
 relevance_template_prioritizer_loc = 'relevance_template_prioritizer'
 
-def top1(y_true, y_pred, k=1):
-    return tf.keras.metrics.sparse_top_k_categorical_accuracy(y_true, y_pred, k=k)
-def top10(y_true, y_pred, k=10):
-    return tf.keras.metrics.sparse_top_k_categorical_accuracy(y_true, y_pred, k=k)
-def top50(y_true, y_pred, k=50):
-    return tf.keras.metrics.sparse_top_k_categorical_accuracy(y_true, y_pred, k=k)
-def top100(y_true, y_pred, k=100):
-    return tf.keras.metrics.sparse_top_k_categorical_accuracy(y_true, y_pred, k=k)
-
-def loss(labels, logits):
-    return tf.keras.losses.sparse_categorical_crossentropy(labels, logits, from_logits=True)
-
 def doc_to_template(document, chiral):
     """Returns a template given a document from the database or file.
 
