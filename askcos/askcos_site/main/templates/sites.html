@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Site Selectivity Prediction{% endblock %}
+{% block page_title %}Site Selectivity Prediction{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block javascript %}
+<script>
+$("#smiles").change(function () {
+    console.log( $(this).val() );
+    $("#results").hide();
+    $.ajax({
+        url: '/ajax/smiles_to_image/',
+        data: {
+            smiles: $(this).val(),
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data.err) {
+                $("#smiles_mol_wrapper").show();
+                $("#smiles_image").html('error! could not parse');
+                $("#controls_wrapper").hide();
+            } else {
+                $("#smiles_image").html(data.html);
+                $("#smiles").val(data.smiles)
+                $("#smiles_mol_wrapper").show();
+                $("#controls_wrapper").show();
+            }
+        },
+    });
+
+});
+$("#get_sites").click(function () {
+    console.log('getting Prediction');
+    $.ajax({
+        url: '/ajax/get_sites/',
+        data: {
+            smiles: $("#smiles").val(),
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data.err) {
+                alert(data.message);
+            } else {
+                $("#results").html(data.html);
+                $("#results").show();
+            }
+        }
+    });
+});
+// On load, if entries defined, switch it out
+$(document).ready(function() {
+    if ("{{smiles}}" != "") {
+        $("#smiles").val("{{smiles}}");
+        $("#smiles").trigger("change");
+    }
+    if ("{{smiles}}" != "") {
+    	$("#smiles").val("{{ smiles }}");
+		setTimeout(function() {
+			$("#get_smiles").trigger('click');
+		}, 10);
+	}
+});
+</script>
+{% endblock %}
+
+
+{% block page_body %}
+<p>This modules will predict site selectivity of aromatic C-H functionalization reactions. It is based on a multitask neural network that uses a WLN graph encoding</p>
+
+<table class="table table-borderless table-nonfluid">
+<tr><th>Input chemical: </th><td><input id="smiles" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('smiles')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
+
+<!-- Placeholder for rendering image after a SMILES string is entered -->
+<tr id="smiles_mol_wrapper" style="display:none"><th style="vertical-align: text-top;">Parsed moleucle:</th><td id="smiles_image"></td></tr>
+
+
+
+<!-- Controls -->
+<tr id="controls_wrapper" style="display:none">
+<td>
+<button type="button" style="width:100%" id="get_sites">Look up</button>
+</td>
+</tr>
+</table>
+
+<!-- Results -->
+<br>
+<p id="results"></p>
+
+{% if footnote %}
+<br>
+<div style="font-size:smaller"><i>{{ footnote }}</i></div>
+{% endif %}
+
+
+<!-- drawing box -->
+{% include "drawing_modal.html" %}
+
+
+{% endblock %}

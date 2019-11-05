@@ -1,41 +1,45 @@
 # ASKCOS:
 Software package for the prediction of feasible synthetic routes towards a desired compound and associated tasks related to synthesis planning. Originally developed under the DARPA Make-It program and now being developed under the [MLPDS Consortium](http://mlpds.mit.edu).
 
-# v0.3.1 Release
+# v0.4.0 Release
 
-Video demo of new UI features: https://drive.google.com/open?id=1SnxTGxgLuZKR1buvYo-4t0Zagof9385Q
+Video demo of new UI features: WIP
 
-Release Notes
-User notes:
-* HTTPS support
-* Tree builder jobs from web user interface run asynchronously and are automatically saved to view later
-* Interactive path planner has new hierarchical view
-* Support email creates issue directly in our development space (gitlab)
-* Support ticket communication is confidential and can only be viewed by the person who logged the issue (outside of our group). The shared flag will be checked to determine if the contents of the issue can be used to create an FAQ in the future. The default is to have the shared flag unchecked.
+Release Notes  
+User notes:  
+* New site selectivity module to predict the most likely site of aromatic C-H functionalization.
+* New clustering of one-step retrsynthetic predictions in the Interactive Path Planning user interface.
+* New visualization of tree builder results in the Interactive Path Planning user interface. The entire expanded graph is now able to be explored, instead of only pathways that were resolved.
+* The tree builder is now more resilient for large, complex molecules and long expansion times. "Connection reset by peer" should be observed much less frequently.
+* Updated webpage to view molecules in the buyables database. This webpage also now includes the ability to modify, in real time, the buyables database.
+* Improved API error handling.
+* Molecular weights of compounds are now shown in the forward predictor results.
+
 
 Developer notes:
-* New GitLab development space
-* Upgraded to Python 3.5, Django 2.2, and celery 4.3
-* New deploy script to help manage order of starting new services
-* New mysql (v5.7) and mongodb (v4.0.10) microservices, for user data and job results, respectively
-* mysql services decouples user data from front end, i.e. - updates to front end won't erase user data or require backup/restore
-* Templates and buyable compounds now exist in a mongo database. Templates are still loaded (now from DB), once at initialization, however buyable lookups are live, i.e. - changes to DB will be reflected in the application without requiring a restart. A future version will include a front end for interaction with buyables database.
+* Support for Kubernetes deployments.
+* Option included to not preload retrosynthetic templates upon deployment, and instead create the templates on-the-fly as needed.
+* Groundwork for unit tests.
+* Automatically generated documentation.
+* Enabled option to skip https altogether, despite this not being recommended.
 
 Bug fixes:
-* Context recommender API can now return scores with ‘return_scores’ parameter
-* Correct number of workers now appear on status page after scaling services
-* Removed Google Analytics snippet left over from public site
+* "Connection reset by peer" should be observed much less frequently.
+* Format of the synthesis predictor export is now csv.
+* Link to export Reaxys reactions supporting a given template now works again.
+* No more Docker images are built on-the-fly.
+* Results saved with old versions of ASKCOS should now be able to be restored to newer versions.
 
 ### Upgrade information
 
-The easiest way to upgrade to the new version of ASKCOS is using Docker and docker-compose. To get started, make sure both docker and docker-compose are installed on your machine. We have a pre-built docker image of ASKCOS hosted on DockerHub. It is a private repository; if you do not have access to pull the image contact mef231@mit.edu. In addition, you need to have the deploy/ folder from our code repository. To get the most recent version of ASKCOS:
+The easiest way to upgrade to the new version of ASKCOS is using Docker and docker-compose. To get started, make sure both docker and docker-compose are installed on your machine. We have a pre-built docker image of ASKCOS hosted on GitLab. It is a private repository; if you do not have access to pull the image, please contact us. In addition, you need to have the deploy/ folder from our code repository. To get the most recent version of ASKCOS:
 
 ```bash
-$ docker login # enter credentials
-$ docker pull mefortunato/askcos:0.3.1
+$ docker login registry.gitlab.com # enter credentials
+$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
 ```
 
-Then, follow the instructions under “How do I upgrade ASKCOS to a new version?” below using the new version of the deploy folder from this repository.
+Then, follow the instructions under "How do I upgrade ASKCOS to a new version?" below using the new version of the deploy folder from this repository.
 
 ### Using GitLab Deploy Tokens
 
@@ -46,10 +50,9 @@ $ export DEPLOY_TOKEN_USERNAME=
 $ export DEPLOY_TOKEN_PASSWORD=
 $ git clone https://$DEPLOY_TOKEN_USERNAME:$DEPLOY_TOKEN_PASSWORD@gitlab.com/mlpds_mit/askcos/askcos.git
 $ docker login registry.gitlab.com -u $DEPLOY_TOKEN_USERNAME -p $DEPLOY_TOKEN_PASSWORD
-$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.3.1
-$ docker tag registry.gitlab.com/mlpds_mit/askcos/askcos:0.3.1 mefortunato/askcos:0.3.1
+$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
 $ cd askcos/deploy
-$ git checkout v0.3.1
+$ git checkout v0.4.0
 $ bash deploy.sh
 ```
 
@@ -75,6 +78,7 @@ $ bash deploy.sh
 There are three optional arguments you can pass along:
 * --skip-seed: This will skip seeding the mongo database. Unless you know that the mongo database is currently up and running, you should probably choose to seed the database
 * --skip-ssl: This will skip the generation of a random self-signed ssl certificate. If you are supplying your own, use this option so as to not override the certificates
+* --skip-https: This will skip requiring https altogether. This option is not recommended, but was added in case users' browsers do not allow viewing pages with invalid certificates.
 * --skip-migration: This will skip performing the db migration required by django. Only use this if you know the migration has already been performed and the db models have not changed.
 
 
@@ -104,7 +108,7 @@ If you are upgrading the deployment from a previous version,or moving the applic
 6) Deploy the new application with `bash deploy.sh`
 7) Restore user data with `bash restore.sh`
 
-Note: For versions >=0.3.1, user data persists in docker volumes, and is not tied to the lifecycle of the container services. In other words, as long as you do not include the [-v] flag to `docker-compose down`, volumes do not get removed, and user data is safe. In this case, the backup/restore procedure is not necessary.
+Note: For versions >=0.3.1, user data persists in docker volumes, and is not tied to the lifecycle of the container services. In other words, as long as you do not include the [-v] flag to `docker-compose down`, volumes do not get removed, and user data is safe. In this case, the backup/restore procedure is not necessary as the new containers that get created upon an upgrade will continue to use the docker volumes that contain all the important data.
 
 ### (Optional) Building the ASKCOS Image
 
@@ -112,9 +116,8 @@ The askcos image itself can be built using the Dockerfile in this repository.
 
 ```bash
 $ git clone https://gitlab.com/mlpds_mit/askcos/askcos  
-$ cd askcos/makeit/data  
-$ git lfs pull  
-$ cd ../../  
+$ cd askcos/  
+$ git lfs pull   
 $ docker build -t askcos .
 ```
 
@@ -143,212 +146,6 @@ The celery worker will take a few minutes to start up (possibly up to 5 minutes;
 #### Scaling workers
 
 Only 1 worker per queue is deployed by default with limited concurrency. This is not ideal for many-user demand. You can easily scale the number of celery workers you'd like to use with `docker-compose up -d --scale tb_c_worker=N` where N is the number of workers you want, for example. The above note applies to each worker you start, however, and each worker will consume RAM.
-
-## Future Improvements
-
- - Container orchestration with Kubernetes (will allow for distributed celery workers on multiple machines)
-
-
-# Installation without Docker
-
-A coarse installation guide can be found in ```install_cli.sh``` (i.e., "install command line interface"). Note that this shell script is  _not_ meant to actually be run as a shell script. 
-
-We also have an installation guide for the Django web interface, which uses Celery for asynchronous task management (```install_webapp.sh```). This relies on RabbitMQ and Redis servers and uWSGI/NGINX or Apache for deployment.
-
-Please note that this code relies on either (1) additional data files not contained in this repo, but available from ccoley@mit.edu or (2) connection to a MongoDB with specific expectations for databases/collections/etc.
-
-### Dependencies
-The code has primarily been developed for Python 2.7.6 on Ubuntu 16.04. However, we have made an effort to make it work on Python 3.6.1 as well (tested on macOS 10.13.3). 
-
-Included in this repository is a conda environment ```askcos.yml```. Note that this is a fairly messy file and there are some extraneous packages listed. Additionally, some packages are slightly out of date and could be updated without any issues. We are woring to clean this script up and streamline the deployment process. 
-
-
-### Make-It installation instructions (Ubuntu 16.04, Python 2.7.6)
-1. Place the Make-It repository inside an ```ASKCOS``` folder in your home folder
-
-1. Download miniconda2 (or miniconda3 for Python 3) and add it to the system path
-	```
-	wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
-	bash Miniconda2-latest-Linux-x86_64.sh -b -p $HOME/miniconda
-	export PATH=~/miniconda/bin:$PATH
-	echo 'export PATH=~/miniconda/bin:$PATH' >> ~/.bashrc
-	```
-
-1. [MIGHT BE NECESSARY] Install libxext6, libsm6, and zlib-1.2.9, and add ```$HOME/miniconda/lib/python2.7/site-packages``` to ```PYTHONPATH``` and ```$HOME/miniconda/lib``` to ```LD_LIBRARY_PATH```
-
-1. Prepare system-wide dependencies before setting up python packages
-
-	```
-	sudo apt install heimdal-dev
-	sudo apt install libkrb5-dev 
-	sudo apt-get install libhdf5-dev
-	sudo apt-get install build-essential
-	```
-
-1. Create the "askcos" conda environment using the provided ```askcos.yml``` as a starting point
-
-	```
-	conda-env create -f askcos.yml -n askcos
-	```
-
-1. Add Make-It folder and askcos subfolder to your ```PYTHONPATH``` environment variable
-
-	```
-	export PYTHONPATH=~/ASKCOS/Make-It:~/ASKCOS/Make-It/askcos:$PYTHONPATH
-	echo 'export PYTHONPATH=~/ASKCOS/Make-It:~/ASKCOS/Make-It/askcos:$PYTHONPATH' >> ~/.bashrc 
-	```
-
-1. [OPTIONAL] create a link between ```Make-It/makeit/data``` and wherever you actually want to store the data
-
-1. Install RDKit and Pymongo
-
-	```
-	source activate askcos
-	conda install rdkit -c rdkit
-	pip install pymongo
-	sudo apt install libxrender-dev 
-
-	export PYTHONPATH=~/miniconda/envs/askcos/lib/python2.7/site-packages:$PYTHONPATH
-	export LD_LIBRARY_PATH=~/miniconda/envs/askcos/lib:$LD_LIBRARY_PATH
-
-	echo 'export PYTHONPATH=~/miniconda/envs/askcos/lib/python2.7/site-packages:$PYTHONPATH' >> ~/.bashrc
-	echo 'export LD_LIBRARY_PATH=~/miniconda/envs/askcos/lib:$LD_LIBRARY_PATH' >> ~/.bashrc
-	```
-
-1. Install a more recent verison of Tensorflow
-
-	```
-	pip install tensorflow==1.4.1
-	```
-
-1. Set the default Keras backend to ```"theano"``` by editing ```~/.keras/keras.json```. If this is the first time you're running keras, this file won't exist. Run ```python -c "import keras"``` to have this file be generated.
-
-1. Test Make-It by running any of the individual modules below and/or the full planning script.
-
-### Website installation instructions (Ubuntu 16.04, Python 2.7.6)
-
-1. Install Redis as the results backend
-
-	```
-	sudo add-apt-repository -y ppa:chris-lea/redis-server 
-	sudo apt-get update
-	sudo apt-get install redis-server
-	sudo service redis start 
-	```
-
-1. Install RabbitMQ as the message broker
-
-	```
-	echo "deb https://dl.bintray.com/rabbitmq/debian xenial main" | sudo tee /etc/apt/sources.list.d/bintray.rabbitmq.list 
-	wget -O- https://dl.bintray.com/rabbitmq/Keys/rabbitmq-release-signing-key.asc |
-	     sudo apt-key add - 
-	sudo apt-get update 
-
-	wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb 
-	sudo dpkg -i erlang-solutions_1.0_all.deb
-	sudo apt-get update
-	sudo apt-get install erlang 
-	sudo apt-get install rabbitmq-server # on OS X, brew install rabbitmq
-
-	sudo service redis start 
-	sudo service rabbitmq-server start
-	```
-	
-1. Install uWSGI
-
-	```
-	pip install uwsgi
-	sudo apt-get install nginx
-	sudo /etc/init.d/nginx start 
-	```
-	
-1. Test that uWSGI is working by temporarily running the webserver
-
-	```
-	uwsgi --http :8000 --wsgi-file wsgi.py
-	```
-
-	and in a new terminal window...
-
-	```
-	curl http://localhost:8000
-	```
-
-1. Inside the askcos folder, get uwsgi_params
-
-	```
-	wget https://raw.githubusercontent.com/nginx/nginx/master/conf/uwsgi_params
-	```
-
-1. Edit /etc/nginx/nginx.conf as needed, according to http://uwsgi-docs.readthedocs.io/en/latest/tutorials/Django_and_nginx.html and/or using the nginx.conf file provided in the deploy subfolder as a template
-
-1. Start the uWSGI server (long-term, this should be run as a service)
-
-	```
-	uwsgi --socket :8000 --wsgi-file wsgi.py
-	```
-
-1. Start the NGINX server
-
-	```
-	sudo service nginx start
-	```
-	
-1. Test basic website functionality
-	- SCScore
-	- Buyable page
-	- Drawing
-	- Saving/restoring pages
-	
-1. Test Celery functionality by starting up context recommender workers
-	1. 
-
-		```
-		celery -A askcos_site worker -c 1 -Q cr_coordinator -n "cr_coordinator@$(hostname)" --max-tasks-per-child 1000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
-		celery -A askcos_site worker -c 1 -Q cr_network_worker -n "cr_network_worker@$(hostname)" --max-tasks-per-child 5000 --loglevel=$CELERY_LOG_LEVEL  --logfile=celery_logs/%p.log &
-		```
-	1. Go to the /context/ page on the website and make a request for the neurla network context recommender model
-	
-1. Edit ```spawn_workers.sh``` to reflect the anticipated server load (i.e., number of workers needed to support each task) before running the script to spawn them.
-
-	_note: if you want the workers to run on a separate server, you will need to edit ```askcos/askcos_site/celery.py``` to give an explicit SERVERHOST instead of localhost. You will also need to open up the ports for the message broker (5672) and redis server (6379) to the other server._
-
-
-### Setting up the Celery workers on a different server from the Webserver
-
-For scalability, it is possible to have the webserver and compute servers completely separately. The webserver will host the website, RabbitMQ, and Redis servers. The compute server will be where Celery workers are spun up.
-
-1. If using AWS, open up connections between instances in the same security group (following the slightly-outdated https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/security-group-rules-reference.html#sg-rules-other-instances)
-
-1. [On the webserver] Allow remote connections to RabbitMQ. It is possible to create specific users for the default vhost to limit access, but it is easiest to open up all remote connections to the "guest" user (https://www.rabbitmq.com/access-control.html). This relies on non-RabbitMQ security measures to prevent unwanted connections to the server's port. Create ```/etc/rabbitmq/rabbitmq.conf``` if it does not exits and enter one line:
-
-	```
-	loopback_users = none
-	```
-
-1. [On the webserver] Edit ```/etc/redis/redis.conf``` to allow remote connections from worker machine. Ideally, you can bind to a specific IP by editing the ```bind 127.0.0.1``` line. This seems to work fine on our local servers but did not work well on AWS. The alternative is to completely open up connections by changing the ```bind``` line to ```bind 0.0.0.0``` and edit the following block to say ```protected-mode off```. As with the RabbitMQ settings, this means that Redis will rely on other firewalls/security measures.
-
-
-1. [On the compute server] Change the ```SERVERHOST``` in ```askcos/askcos_site/celery.py``` to the IP of the webserver, so the Celery workers know where to look for the RabbitMQ/Redis servers. If using AWS, this should be the _private_ IP of the webserver instance.
-
-1. [On the compute server] Spin up as many workers as desired using ```spawn_workers.sh``` from inside the ```askcos``` folder. The most computationally intensive task is the TreeBuilder, for which we generally allocate 4-12 processes in each worker pool. Each process requires 3-4 GB of RAM. The other Celery workers (aside from the nearest neighbor context recommender, which should be deprecated) are relatively small in memory footprint.
-
-
-# Customization
-
-### Changing the database of buyable chemicals
-
-Information about what chemicals are considered buyable is stored in a flat pickle file at ```makeit/data/local_db_dumps/pricer_using_reaxys_v2-chemicals_and_reaxys_v2-buyables.pkl```. It contains three dictionaries:
-
-- ```prices``` - a dictionary that maps RDKit-canonicalized isomeric SMILES strings to chemical prices in price-per-gram
-- ```prices_flat``` - the same dictionary but with non-isomeric SMILES strings
-- ```prices_by_rxn``` - was intended to be a dictionary that maps Elsevier chemical IDs to price-per-gram
-
-In the code, these dictionaries are loaded from disk by the ```Pricer``` class defined in ```makeit/utilities/buyable/pricer.py```. To update what is considered buyable, you can create an object of ```Pricer``` class, call the ```load()``` method, add chemicals from your own database into the dictionaries stored under the ```prices``` and ```prices_flat``` attributes, then dump the information back out to the pickle file with ```Pricer.dump_to_file()```.
-
-Once the database is updated, it will be necessary to spin down/up the retrosynthetic workers (```tb_c_worker``` and ```tb_coordinator_mcts```) as well as the primary webservice for them to reload the data. The buyable module (http://askcos.mit.edu/price/) can be used to check that the web service has been updated with the new buyable database.
-
-As a final note, a price per gram of 0 is used throughout the codebase to be considered ```not buyable```. So to add in-inventory systems without consideration of cost, using a placeholder of $1/g or $100/g is recommended. In the future, we might have a special note for ```in stock``` that is independent of price information.
 
 
 # How to run individual modules

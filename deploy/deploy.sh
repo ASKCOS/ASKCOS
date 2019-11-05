@@ -3,8 +3,7 @@
 SKIP_SEED=false
 SKIP_SSL=false
 SKIP_MIGRATION=false
-
-RANDOM_STRING=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1`
+SKIP_HTTPS=false
 
 while [[ $# -gt 0 ]]
 do
@@ -13,6 +12,11 @@ key="$1"
 case $key in
     --skip-seed)
     SKIP_SEED=true
+    shift # past argument
+    ;;
+    --skip-https)
+    SKIP_HTTPS=true
+    SKIP_SSL=true
     shift # past argument
     ;;
     --skip-ssl)
@@ -49,7 +53,24 @@ if [ "$SKIP_SEED" = false ]; then
   echo "###############################"
   echo "seeding mongo database"
   echo "###############################"
-  docker-compose up mongoseed
+  cd mongo
+  docker run -it --rm --network deploy_default --env-file ../.env -v ${PWD}:/init mongo bash /init/init.sh
+  cd ../
+
+fi
+
+if [ "$SKIP_HTTPS" = true ]; then
+  echo ""
+  echo "###############################"
+  echo "not using https"
+  echo "###############################"
+  cp nginx.http.conf nginx.conf
+else
+  echo ""
+  echo "###############################"
+  echo "using https"
+  echo "###############################"
+  cp nginx.https.conf nginx.conf
 fi
 
 if [ "$SKIP_SSL" = false ]; then
@@ -57,7 +78,7 @@ if [ "$SKIP_SSL" = false ]; then
   echo "###############################"
   echo "creating SSL certificates"
   echo "###############################"
-  openssl req   -new   -newkey rsa:4096   -days 3650   -nodes   -x509   -subj "/C=US/ST=MA/L=BOS/O=askcos/CN=askcos.$RANDOM_STRING.com"   -keyout askcos.ssl.key -out askcos.ssl.cert
+  openssl req   -new   -newkey rsa:4096   -days 3650   -nodes   -x509   -subj "/C=US/ST=MA/L=BOS/O=askcos/CN=askcos.$RANDOM.com"   -keyout askcos.ssl.key -out askcos.ssl.cert
 fi
 
 echo ""
@@ -65,12 +86,14 @@ echo "#################################"
 echo "starting web application services"
 echo "#################################"
 docker-compose up -d nginx app
+docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py collectstatic --noinput"
 
 echo ""
 echo "#######################"
 echo "starting celery workers"
 echo "#######################"
-docker-compose up -d te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker tb_coordinator_mcts tb_c_worker
+docker-compose up -d te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker tb_coordinator_mcts tb_c_worker tb_c_worker_preload sites_worker
+docker-compose up -d --scale tb_coordinator_mcts=2
 
 if [ "$SKIP_MIGRATION" = false ]; then
   echo ""

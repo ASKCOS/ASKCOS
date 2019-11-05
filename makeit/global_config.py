@@ -8,6 +8,9 @@ USE_STEREOCHEMISTRY = True
 # Output debugging statements
 DEBUG = False
 
+# Whether to preload all templates for the retrotransformer
+PRELOAD_TEMPLATES = False
+
 ################################################################################
 # Options for different modules, defined as strings
 ################################################################################

@@ -3,6 +3,7 @@ from makeit.utilities.buyable.pricer import Pricer
 from multiprocessing import Process, Manager, Queue, Pool
 from celery.result import allow_join_result
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 # from makeit.mcts.cost import Reset, score_max_depth, MinCost, BuyablePathwayCount
 # from makeit.mcts.misc import get_feature_vec, save_sparse_tree
@@ -992,11 +993,33 @@ class MCTS:
                 Args:
                     tids (list of int): Template IDs to get info about.
             """
-            return {
-                'tforms': [str(self.retroTransformer.templates[tid]['_id']) for tid in tids],
-                'num_examples': int(sum([self.retroTransformer.templates[tid]['count'] for tid in tids])),
-                'necessary_reagent': self.retroTransformer.templates[tids[0]]['necessary_reagent'],
-            }
+            if self.retroTransformer.load_all or not self.retroTransformer.use_db:
+                return {
+                    'tforms': [str(self.retroTransformer.templates[tid]['_id']) for tid in tids],
+                    'num_examples': int(sum([self.retroTransformer.templates[tid]['count'] for tid in tids])),
+                    'necessary_reagent': self.retroTransformer.templates[tids[0]]['necessary_reagent'],
+                }
+            else:
+                db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
+                                        'id'], connect=gc.MONGO['connect'])
+
+                db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
+                collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
+                TEMPLATE_DB = db_client[db_name][collection]
+                tforms = []
+                num_examples = 0
+                necessary_reagent = None
+                for tid in tids:
+                    template = TEMPLATE_DB.find_one({'_id': ObjectId(self.retroTransformer.templates[tid][0])})
+                    tforms.append(str(template.get('_id', -1)))
+                    num_examples += template.get('count', 1)
+                    if necessary_reagent is None:
+                        necessary_reagent = template.get('necessary_reagent', '')
+                return {
+                    'tforms': tforms,
+                    'num_examples': int(num_examples),
+                    'necessary_reagent': necessary_reagent,
+                }
 
         seen_rxnsmiles = {}
         self.current_index = 1
@@ -1018,6 +1041,7 @@ class MCTS:
             Yields:
                 dict: nested dictionaries defining synthesis trees
             """
+            print(len(self.Reactions.keys()))
             for path in DLS_chem(self.smiles, depth=0, headNode=True):
                 yield chem_dict(chemsmiles_to_id(self.smiles), children=path, **cheminfodict(self.smiles))
 
@@ -1032,12 +1056,15 @@ class MCTS:
             C = self.Chemicals[chem_smi]
             if C.terminal:
                 yield []
-
             if depth > self.max_depth:
                 return
 
             done_children_of_this_chemical = []
+
+            # if depth > self.max_depth:
+            #     return            
             for tid, CTA in C.template_idx_results.items():
+                ########??????????????????????????######################
                 if CTA.waiting:
                     continue
                 for rct_smi, R in CTA.reactions.items():
@@ -1047,11 +1074,9 @@ class MCTS:
                     if rxn_smiles not in done_children_of_this_chemical: # necessary to avoid duplicates
                         for path in DLS_rxn(chem_smi, tid, rct_smi, depth):
                             yield [rxn_dict(rxnsmiles_to_id(rxn_smiles), rxn_smiles, children=path,
-                                plausibility=R.plausibility,
-                                template_score=R.template_score, **tidlisttoinfodict(R.tforms))]
-                            # TODO: figure out when to include num_examples
+                                plausibility=R.plausibility, template_score=R.template_score, **tidlisttoinfodict(R.tforms))]
                         done_children_of_this_chemical.append(rxn_smiles)
-
+           
 
         def DLS_rxn(chem_smi, template_idx, rct_smi, depth):
             """Yields children paths starting from a specific ``rxn_id``.
@@ -1068,7 +1093,7 @@ class MCTS:
             # rxn_list = []
             # for smi in R.reactant_smiles:
             #     rxn_list.append([chem_dict(smi, children=path, **{}) for path in DLS_chem(smi, depth+1)])
-
+                
             # return [rxns[0] for rxns in itertools.product(rxn_list)]
 
             ###################
@@ -1271,7 +1296,7 @@ class MCTS:
         self.max_natom_dict = max_natom_dict
         self.max_ppg = max_ppg
         self.sort_trees_by = sort_trees_by
-
+        MyLogger.print_and_log('Active pathway #: {}'.format(num_active_pathways), treebuilder_loc)
 
         if min_chemical_history_dict['logic'] not in [None, 'none'] and \
                 self.chemhistorian is None:
@@ -1338,6 +1363,18 @@ class MCTS:
         )
 
         return self.return_trees()
+
+    def return_chemical_results(self):
+        results = defaultdict(list)
+        for chemical in self.Chemicals.values():
+            if not chemical.template_idx_results:
+                results[chemical.smiles]
+            for cta in chemical.template_idx_results.values():
+                for res in cta.reactions.values():
+                    reaction = vars(res)
+                    reaction['pathway_count'] = int(reaction['pathway_count'])
+                    results[chemical.smiles].append(reaction)
+        return dict(results)
 
 
 if __name__ == '__main__':

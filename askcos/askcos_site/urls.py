@@ -68,6 +68,10 @@ urlpatterns += [
     re_path(r'^ajax/start_synth/$', views.ajax_start_synth, name='ajax_start_synth'),
     re_path(r'^synth_interactive/download$', views.export_synth_results, name='export_synth_results'),
 
+    # Site Selectivity prediction
+    re_path(r'^site_prediction/$', views.site_prediction, name='site_prediction'),
+    re_path(r'^ajax/get_sites/$', views.ajax_get_sites, name='ajax_get_sites'),
+
     # Template examination (by str(ObjectID))
     re_path(r'^template/target=(?P<id>.+)$', views.template_target, name='template_target'),
     re_path(r'^template/download/target=(?P<id>.+)$', views.template_target_export, name='template_target_export'),
@@ -81,6 +85,7 @@ urlpatterns += [
 
     # Pricing
     re_path(r'^price/$', views.pricing, name='pricing'),
+    re_path(r'^buyables/$', views.buyables, name='buyables'),
     re_path(r'^ajax/price_smiles/$', views.ajax_price_smiles, name='ajax_price_smiles'),
     re_path(r'^price/smiles/(?P<smiles>.+)$', views.price_smiles, name='price_smiles'),
     re_path(r'^price/xrn/(?P<xrn>.+)$', views.price_xrn, name='price_xrn'),
@@ -94,6 +99,7 @@ urlpatterns += [
     re_path(r'^draw/smiles/(?P<smiles>.+)$', views.draw_smiles, name='draw_smiles'),
     re_path(r'^draw/template/(?P<template>.+)$', views.draw_template, name='draw_template'),
     re_path(r'^draw/reaction/(?P<smiles>.+)$', views.draw_reaction, name='draw_reaction'),
+    re_path(r'^draw/highlight/smiles=(?P<smiles>.+)&reacting_atoms=(?P<reacting_atoms>.+)&bonds=(?P<bonds>.+)$', views.draw_smiles_highlight, name='draw_highlight'),
 
     # Separation
     # re_path(r'^separation/input/$', views.sep_input, name='sep_input'),
@@ -132,6 +138,14 @@ urlpatterns += [
     re_path(r'^api/scscore/$', api.scscore.scscore, name='scscore_api'),
     re_path(r'^api/price/$', api.price.price, name='price_api'),
     re_path(r'^api/celery/$', api.status.celery_status, name='celery_api'),
+    re_path(r'^api/validate-chem-name/$', api.validate_chem_name.validate_chem_name, name='validate_chem_name_api'),
+    re_path(r'^api/buyables/search', api.buyables.buyables, name='all_buyables_api'),
+    re_path(r'^api/buyables/add', api.buyables.add_buyable, name='add_buyables_api'),
+    re_path(r'^api/buyables/upload', api.buyables.upload_buyable, name='upload_buyables_api'),
+    re_path(r'^api/buyables/delete', api.buyables.delete_buyable, name='delete_buyables_api'),
+
+    re_path(r'^api/cluster/$', api.cluster.cluster, name='cluster_api'),
+    re_path(r'^api/selectivity/$', api.selectivity.selectivity, name='selectivity'),
 
     # async results
     re_path(r'^api/get-result/$', api.results.get_result, name='get_async_result'),

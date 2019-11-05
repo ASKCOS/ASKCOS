@@ -83,6 +83,12 @@ $("#reagents").change(function () {
 });
 $("#start_synth").click(function () {
     console.log('starting synth');
+    var reactants = $("#reactants").val() + $("#reagents").val()
+    // possibly poor quality check to count the number of heavy atoms which must be > 3
+    if (reactants.replace(/\.|\[|\]|\+|\-|\=|\#/g, '').length < 4) {
+        alert('Reactants must contain more than 3 atoms!')
+        return
+    }
     $.ajax({
         url: '/ajax/start_synth/',
         data: {

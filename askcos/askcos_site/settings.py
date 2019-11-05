@@ -20,7 +20,7 @@ import makeit.global_config as gc
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'notsosecret'
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', False)
+DEBUG = os.getenv('DJANGO_DEBUG', False)
 
 ALLOWED_HOSTS = ['0.0.0.0', 'askcos.mit.edu', 'askcos4.mit.edu']
 if os.environ.get('CURRENT_HOST'):
@@ -100,10 +100,10 @@ DEFAULT_FROM_EMAIL = 'no-reply@askcos4.mit.edu'
 # NOTE: we recommend relocating the db to an ssd for speed
 DATABASES = {'default': {
     'ENGINE': 'django.db.backends.mysql',
-    'NAME': 'askcos_db',
+    'NAME': os.getenv('MYSQL_DATABASE', 'askcos_db'),
     'USER': os.getenv('MYSQL_USER', 'root'),
-    'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', 'root'),
-    'HOST': 'mysql',
+    'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', 'password'),
+    'HOST': os.getenv('MYSQL_HOST', 'mysql'),
     'PORT': '3306',
 }}
 
