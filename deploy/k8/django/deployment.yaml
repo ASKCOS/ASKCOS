@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django
+  labels:
+    app: django
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: django
+  template:
+    metadata:
+      labels:
+        pod: django
+    spec:
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+        - name: staticfiles
+          emptyDir: {}
+      initContainers:
+        - name: migrate
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+          command: ["/bin/bash"]
+          args: ["-c", "python /usr/local/ASKCOS/askcos/manage.py makemigrations main && python /usr/local/ASKCOS/askcos/manage.py migrate"]
+        - name: collectstatic
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+          command: ["/bin/bash"]
+          args: ["-c", "python /usr/local/ASKCOS/askcos/manage.py collectstatic --noinput && mv /usr/local/ASKCOS/askcos/askcos_site/static/* /static/"]
+          volumeMounts:
+            - name: staticfiles
+              mountPath: /static
+      containers:
+        - name: nginx
+          image: nginx:stable
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/
+            - name: staticfiles
+              mountPath: /static
+        - name: django
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+          command: ["/bin/bash"]
+          args: ["-c", "uwsgi --http :8000 --master --processes=4 --wsgi-file /usr/local/ASKCOS/askcos/wsgi.py"]
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: django-config
+          resources:
+            requests:
+              memory: "15Gi"
+      imagePullSecrets:
+        - name: regcred

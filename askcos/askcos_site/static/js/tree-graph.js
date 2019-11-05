@@ -23,8 +23,8 @@ function hideNetwork(n) {
 }
 
 function hideAllNetworks() {
-  for (var networkDiv of document.querySelectorAll('.tree-graph')) {
-    networkDiv.style.display = 'none';
+  for (var n=0; n<document.querySelectorAll('.tree-graph').length; n++) {
+    hideNetwork(n)
   }
 }
 
@@ -38,13 +38,32 @@ function showNetwork(n) {
 }
 
 function showAllNetworks() {
-  for (var networkDiv of document.querySelectorAll('.tree-graph')) {
-    networkDiv.style.display = '';
+  for (var n=0; n<document.querySelectorAll('.tree-graph').length; n++) {
+    showNetwork(n)
   }
 }
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function colorOf(child) {
+  if (child['ppg']) {
+    if (child['as_reactant'] || child['as_product']) {
+      return "#1B5E20" // green
+    }
+    else {
+      return '#FFC400' // yellow
+    }
+  }
+  else {
+    if (child['as_reactant'] || child['as_product']) {
+      return  '#E65100' // orange
+    }
+    else {
+      return '#B71C1C' // red
+    }
+  }
 }
 
 function makeNode(child, id) {
@@ -53,7 +72,7 @@ function makeNode(child, id) {
     node['id'] = id
     node['ppg'] = child['ppg']
     node['smiles'] = child['smiles']
-    node['image'] = "/draw/smiles/"+child['smiles']
+    node['image'] = "/draw/smiles/"+encodeURIComponent(child['smiles'])
     node['shape'] = "image"
     node['type'] = 'chemical'
     var buyableString = (Number(child['ppg'])) ? '$'+child['ppg']+'/g' : 'not buyable'
@@ -64,15 +83,8 @@ function makeNode(child, id) {
     ${child['as_product']} precedents as product<br>
     ${buyableString}`
     node['borderWidth'] = 2
-    if (node['ppg'] == 0) {
-      node['color'] = {
-        border: "#880000"
-      }
-    }
-    else {
-      node['color'] = {
-        border: "#008800"
-      }
+    node['color'] = {
+      border: colorOf(child)
     }
   }
   else if (child['is_reaction']) {
@@ -85,7 +97,8 @@ function makeNode(child, id) {
     node['template_score'] = child['template_score']
     node['tforms'] = child['tforms']
     node['label'] = `${child['num_examples']} examples
-FF score: ${Number(child['plausibility']).toFixed(3)}`
+FF score: ${Number(child['plausibility']).toFixed(3)}
+Template score: ${Number(child['template_score']).toFixed(3)}`
     node['font'] = {align: 'center'}
   }
   return node
@@ -126,6 +139,45 @@ function makeNodes(children, root) {
   return result
 }
 
+function treeStats(tree) {
+    let nodes = new vis.DataSet([])
+    let edges = new vis.DataSet([])
+    makeTreeData(tree, 0, nodes, edges)
+    let numReactions = 0
+    let avgScore = 0
+    let avgPlausibility = 0
+    let minScore = 1.0
+    let minPlausibility = 1.0
+    for (node of nodes.get()) {
+        if (node.type == 'reaction') {
+            numReactions += 1
+            avgScore += node.template_score
+            avgPlausibility += node.plausibility
+            minScore = Math.min(minScore, node.template_score)
+            minPlausibility = Math.min(minPlausibility, node.plausibility)
+        }
+    }
+    avgScore /= numReactions
+    avgPlausibility /= numReactions
+
+    tree.numReactions = numReactions
+    tree.firstStepScore=  nodes.get(1).template_score
+    tree.avgScore = avgScore
+    tree.avgPlausibility = avgPlausibility
+    tree.minPlausibility = minPlausibility
+}
+
+function sortObjectArray(arr, prop, reverse) {
+    arr.sort(function(a, b) {
+        if (!!reverse) {
+            return a[prop] - b[prop]
+        }
+        else {
+            return b[prop] - a[prop]
+        }
+    })
+}
+
 function initializeNetwork(data, elementDiv) {
     var container = elementDiv;
     var options = {
@@ -146,10 +198,10 @@ function initializeNetwork(data, elementDiv) {
             multiselect: false,
             hover: true,
             dragNodes: false,
-            dragView: false,
+            // dragView: false,
             selectConnectedEdges: false,
             tooltipDelay: 0,
-            zoomView: false
+            // zoomView: false
         },
         layout: {
           hierarchical: {
@@ -167,16 +219,6 @@ function initializeNetwork(data, elementDiv) {
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
         ctx.restore();
     })
-    network.storePositions();
-    var nodes = data.nodes;
-    var first = nodes.min('y');
-    var last = nodes.max('y');
-    var y = last.y - first.y;
-    container.style.height = `${y+200}px`;
-    var first = nodes.min('x');
-    var last = nodes.max('x');
-    var x = last.x - first.x;
-    container.style.width = `${x+200}px`;
     return network
 }
 
@@ -200,14 +242,16 @@ var csrftoken = getCookie('csrftoken');
 var app = new Vue({
     el: '#app',
     data: {
-      networks: [],
-      networkData: [],
       resultId: "",
       numChemicals: 0,
       numReactions: 0,
       trees: [],
       settings: {},
-      selected: null
+      showSettings: false,
+      selected: null,
+      currentTreeId: 0,
+      networkData: {},
+      treeSortOption: 'numReactions'
     },
     mounted: function() {
       this.resultId = this.$el.getAttribute('data-id');
@@ -220,110 +264,70 @@ var app = new Vue({
           .then(resp => resp.json())
           .then(json => {
             var result = json['result'];
-            var stats = result['result'][0];
-            var trees = result['result'][1];
+            var stats = result['result']['status'];
+            var trees = result['result']['paths'];
             this.numChemicals = stats[0];
             this.numReactions = stats[1];
             this.trees = trees;
             this.settings = result['settings'];
-            this.renderSettings();
-            this.buildTrees(this.trees);
-            sleep(1000).then(() => app.fitNetworks()).then(() => hideLoader());
+            this.networkContainer = document.getElementById('left-pane')
+            if (this.trees.length) {
+                this.allTreeStats()
+                this.sortTrees(this.treeSortOption, true)
+                console.log(this.trees)
+                this.buildTree(this.currentTreeId, this.networkContainer);
+            }
+            hideLoader()
           })
       },
-      buildTrees: function(trees) {
-        var container = document.getElementById('left-pane')
-        var statsDiv = document.createElement('div')
-        statsDiv.classList.add('text-center')
-        statsDiv.style.margin = "10px auto"
-        statsDiv.innerHTML = `After expanding (with ${this.settings.known_bad_reactions.length} banned reactions, ${this.settings.forbidden_molecules.length} banned chemicals), ${this.numChemicals} total chemicals and ${this.numReactions} total reactions`;
-        container.appendChild(statsDiv);
-        var hideShowAllDiv = document.createElement('div');
-        hideShowAllDiv.classList.add('text-center');
-        hideShowAllDiv.style.margin = "10px auto";
-        hideShowAllDiv.innerHTML = '<a onclick=hideAllNetworks()>Hide all</a>';
-        hideShowAllDiv.innerHTML += ' ';
-        hideShowAllDiv.innerHTML += '<a onclick=showAllNetworks()>Show all</a>';
-        container.appendChild(hideShowAllDiv);
-        var count = 0
-        for (tree of trees) {
-          count += 1;
-          var titleDiv = document.createElement('div');
-          titleDiv.classList.add('text-center');
-          titleDiv.innerHTML = '<h3 style="display: inline; margin-right: 5px">Option '+count+'</h3>';
-          titleDiv.innerHTML += '<a class="hideNetwork" onclick=hideNetwork('+(count-1)+')>hide</a>'
-          titleDiv.innerHTML += '<a style="display: none" class="showNetwork" onclick=showNetwork('+(count-1)+')>show</a>'
-          container.appendChild(titleDiv);
-          var divElem = document.createElement('div');
-          divElem.classList.add('tree-graph');
-          container.appendChild(divElem);
-          this.buildTree(tree, divElem, count);
-        }
-      },
-      buildTree: function(tree, elem, id) {
+      buildTree: function(treeId, elem) {
         var nodes = new vis.DataSet([]);
         var edges = new vis.DataSet([]);
-        makeTreeData(tree, 0, nodes, edges);
-        var data = {
+        makeTreeData(this.trees[treeId], 0, nodes, edges);
+        this.networkData = {
           nodes: nodes,
           edges: edges
         }
-        var network = initializeNetwork(data, elem);
-        network.id = id;
-        network.on('selectNode', function(params) {
-          app.showNode(id, params.nodes[0])
+        this.network = initializeNetwork(this.networkData, elem);
+        this.network.on('selectNode', function(params) {
+          app.showNode(params.nodes[0])
         });
-        network.fit();
-        this.networks.push(network);
-        this.networkData.push(data);
+        sleep(500).then(() => app.network.fit())
       },
-      resizeCanvases: function() {
-        for (var n in this.networks) {
-          var network = this.networks[n];
-          network.storePositions();
-          var nodes = this.networkData[n].nodes;
-          var first = nodes.min('y');
-          var last = nodes.max('y');
-          var x = last.x - first.x;
-          var y = last.y - first.y;
-          var div = document.querySelectorAll('.tree-graph')[n];
-          div.style.height = `${y+200}px`;
-        }
+      sortTrees: function(prop, reverse) {
+        sortObjectArray(this.trees, prop, reverse)
+        this.currentTreeId = 0
+        this.buildTree(this.currentTreeId, this.networkContainer)
       },
-      fitNetworks: function() {
-        for (var network of this.networks) {
-          network.fit();
-        }
+      nextTree: function() {
+          if (this.currentTreeId < this.trees.length - 1) {
+              this.selected = null
+              this.currentTreeId =  this.currentTreeId + 1
+              this.buildTree(this.currentTreeId, this.networkContainer)
+          }
       },
-      renderSettings: function() {
-        console.log(this.settings);
-        var settingsDiv = document.createElement('div');
-        var targetDiv = document.createElement('div');
-        targetDiv.innerHTML = '<div class="text-center">Target: '+this.settings.smiles+'</div><div class="text-center"><img src="/draw/smiles/'+this.settings.smiles+'"></div>'
-        settingsDiv.appendChild(targetDiv);
-        var settingsTitle = document.createElement('h3');
-        settingsTitle.innerHTML = 'Settings:';
-        settingsDiv.appendChild(settingsTitle);
-        var settingsTable = document.createElement('table');
-        settingsTable.classList.add('table');
-        settingsTable.innerHTML = '<tr><th>Expansion settings:</th><td>Max. depth: '+this.settings.max_depth+'</td><td>Max. branching factor: '+this.settings.max_branching+'</td></tr>'
-        settingsDiv.appendChild(settingsTable);
-        settingsTable.innerHTML += '<tr><th></th><td>Num. templates: '+this.settings.template_count+'</td><td>Max cum. prob: '+this.settings.max_cum_template_prob+'</td></tr>'
-        settingsTable.innerHTML += '<tr><th></th><td colspan=2>Expansion time (s): '+this.settings.expansion_time+'</td></tr>'
-        settingsTable.innerHTML += '<tr><th>Stop criteria:</th><td colspan=2>Maximum chemical price ($/g): '+this.settings.max_ppg+'</td></tr>'
-        if (this.settings.max_natom_dict.logic != 'none') {
-          settingsTable.innerHTML += `<tr><th></th><td colspan=2>Chemical property logic: C=${this.settings.max_natom_dict.C} N=${this.settings.max_natom_dict.N} H=${this.settings.max_natom_dict.H} O=${this.settings.max_natom_dict.O}</td></tr>`
+      prevTree: function() {
+          if (this.currentTreeId > 0) {
+              this.selected = null
+              this.currentTreeId =  this.currentTreeId - 1
+              this.buildTree(this.currentTreeId, this.networkContainer)
+          }
+      },
+      firstTree: function() {
+        this.selected = null
+        this.currentTreeId = 0
+        this.buildTree(this.currentTreeId, this.networkContainer)
+      },
+      lastTree: function() {
+        this.selected = null
+        this.currentTreeId = this.trees.length-1
+        this.buildTree(this.currentTreeId, this.networkContainer)
+      },
+      allTreeStats: function() {
+        this.treeStats = []
+        for (tree of this.trees) {
+          this.treeStats.push(treeStats(tree))
         }
-
-        if (this.settings.min_chemical_history_dict.logic != 'none') {
-          settingsTable.innerHTML += `<tr><th></th><td colspan=2>Chemical popularity logic: Min. freq. as reactant=${this.settings.min_chemical_history_dict.as_reactant} Min. freq. as product=${this.settings.min_chemical_history_dict.as_product}</td></tr>`
-        }
-        settingsTable.innerHTML += `<tr>
-          <th>Evaluation settings:</th>
-          <td>Min. plausibility: ${this.settings.filter_threshold}</td>
-          <td></td>
-        </tr>`
-        document.getElementById('settings').appendChild(settingsDiv);
       },
       blacklist: function() {
         n = 0
@@ -364,16 +368,8 @@ var app = new Vue({
           n += 1;
         }
       },
-      showNode: function(networkId, nodeId) {
-        for (network of this.networks) {
-          if (network.id == networkId) {
-            nodeId = network.getSelectedNodes()[0]
-            this.selected = this.networkData[networkId-1].nodes.get(nodeId)
-          }
-          else {
-            network.unselectAll()
-          }
-        }
+      showNode: function(nodeId) {
+        this.selected = this.networkData.nodes.get(nodeId)
       }
     },
     delimiters: ['%%', '%%'],

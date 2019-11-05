@@ -32,20 +32,20 @@ The static files (css/js) are stored in a volume, independent from the container
 
 ```bash
 $ docker-compose down -v
-$ docker pull mefortunato/askcos:latest
-$ docker tag mefortunato/askcos:latest askcos
+$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:latest
+$ docker tag registry.gitlab.com/mlpds_mit/askcos/askcos:latest askcos
 $ docker-compose up -d
 $ bash restore.sh
 ```
 
-### Pulling the image from DockerHub
+### Pulling the image from GitLab registry
 
-Pre-built images for versioned releases are available from [DockerHub](https://hub.docker.com/). You will need an DockerHub account, and you will need to be added to the private repository. Contact [mef231@mit.edu](mef231@mit.edu) with your username to be given access. If you pull the image from DockerHub, you can skip the (slow) build process below.
+Pre-built images for versioned releases are now available from [GitLab](registry.gitlab.com). You will need an GitLab deploy token to pull the image. Contact [mef231@mit.edu](mef231@mit.edu) to be given access. If you pull the image from GitLab, you can skip the (slow) build process below.
 
 ```bash
 $ docker login # enter credentials
-$ docker pull mefortunato/askcos # optionally supply :<version-number>
-$ docker tag mefortunato/askcos askcos # docker-compose still looks for 'askcos' image
+$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos # optionally supply :<version-number>
+$ docker tag registry.gitlab.com/mlpds_mit/askcos/askcos askcos # docker-compose still looks for 'askcos' image
 ```
 
 __If you pull from DockerHub, skip the build process below.__

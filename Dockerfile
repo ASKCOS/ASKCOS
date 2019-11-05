@@ -6,6 +6,7 @@ COPY requirements.txt requirements.txt
 
 RUN apt-get update && \
     apt-get install -y libboost-thread-dev libboost-python-dev python-tk libopenblas-dev libeigen3-dev libcairo2-dev pkg-config python-dev python-mysqldb && \
+    pip install Cython 'numpy>=1.16.4' && \
     pip install -r requirements.txt && rm requirements.txt && \
     useradd -ms /bin/bash askcos
 
