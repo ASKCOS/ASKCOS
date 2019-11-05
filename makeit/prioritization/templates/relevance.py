@@ -157,6 +157,17 @@ class RelevanceTemplatePrioritizer(Prioritizer):
             return np.zeros((self.FP_len,), dtype=np.float32)
         return self.mol_to_fp(Chem.MolFromSmiles(smi))
 
+    def reorder_templates(self, smiles, templates, max_num_templates, max_cum_prob):
+        scores, indices = self.get_topk_from_smi(smiles, max_num_templates)
+        top_templates = []
+        cum_score = 0.0
+        for ind, score in zip(indices, softmax(scores)):
+            top_templates.append(templates[ind])
+            cum_score += score
+            if cum_score > max_cum_prob:
+                break
+        return top_templates, scores[:len(top_templates)]
+
     def get_priority(self, input_tuple, **kwargs):
         """Returns list of templates ordered by relevance.
 
