@@ -9,18 +9,49 @@ transformer and grabs templates from the database.
 """
 
 from __future__ import absolute_import, unicode_literals, print_function
+import requests
 from django.conf import settings
 from celery import shared_task
 from celery.signals import celeryd_init
 from pymongo import MongoClient
 import makeit.global_config as gc
 from makeit.retrosynthetic.transformer import RetroTransformer
-from rdkit import RDLogger
+from rdkit import RDLogger, Chem
+from rdkit.Chem import AllChem
+import numpy as np
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
 CORRESPONDING_QUEUE = 'tb_c_worker'
 CORRESPONDING_RESERVABLE_QUEUE = 'tb_c_worker_reservable'
 retroTransformer = None
+
+def softmax(x):
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
+
+def template_relevance_api(smiles, templates, max_num_templates, max_cum_prob):
+    mol = Chem.MolFromSmiles(smiles)
+    fp = np.array(
+        AllChem.GetMorganFingerprintAsBitVect(
+            mol, 2, nBits=2048, useChirality=True
+        ), dtype=np.float32
+    ).reshape(1, -1)
+    resp = requests.post(
+        'http://template_relevance:8501/v1/models/template_relevance:predict',
+        json={'instances': fp.tolist()}
+    )
+    scores = np.array(resp.json()['predictions']).reshape(-1)
+    indices = np.argsort(-scores)[:max_num_templates]
+    scores = softmax(scores[indices])
+    top_templates = []
+    cum_score = 0.0
+    for ind, score in zip(indices, softmax(scores)):
+        top_templates.append(templates[ind])
+        cum_score += score
+        if cum_score > max_cum_prob:
+            break
+    return top_templates, scores[:len(top_templates)]
+    
 
 
 @celeryd_init.connect
@@ -39,17 +70,19 @@ def configure_worker(options={}, **kwargs):
 
     # Instantiate and load retro transformer
     global retroTransformer
-    retroTransformer = RetroTransformer(celery=True)
-
-    retroTransformer.load(chiral=True)
-    retroTransformer.get_precursor_prioritizers('RelevanceHeuristic')
-    retroTransformer.get_template_prioritizers('Relevance')
-    print(retroTransformer.fast_filter.evaluate('CCCCCCO.CCCCBr', 'CCCCCCOCCCC'))
+    retroTransformer = RetroTransformer(template_prioritizer=None)
+    retroTransformer.load()
     print('### TREE BUILDER WORKER STARTED UP ###')
 
 
 @shared_task
-def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=0, max_branching=20, template_count=10000, mode=gc.max, max_cum_prob=1, apply_fast_filter=False, filter_threshold=0.8, cluster=True, cluster_method='kmeans', cluster_feature='original', cluster_fp_type='morgan', cluster_fp_length=512, cluster_fp_radius=1):
+def get_top_precursors(
+        smiles, template_prioritizer=template_relevance_api, precursor_prioritizer=None, 
+        fast_filter=None, max_num_templates=10000, 
+        max_cum_prob=1, fast_filter_threshold=0.8, 
+        cluster=True, cluster_method='kmeans', cluster_feature='original', 
+        cluster_fp_type='morgan', cluster_fp_length=512, cluster_fp_radius=1
+    ):
     """Get the precursors for a chemical defined by its SMILES.
 
     Args:
@@ -85,33 +118,32 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
             precursors found.
     """
 
-    # print('Treebuilder worker was asked to expand {} (mincount {}, branching {}) using {} and {}'.format(
-    #    smiles, mincount, max_branching, template_prioritizer, precursor_prioritizer
-    #))
-
     global retroTransformer
     result = retroTransformer.get_outcomes(
-        smiles, mincount, (precursor_prioritizer,
-                           template_prioritizer), template_count=template_count, mode=mode,
-        max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
+        smiles, max_num_templates=max_num_templates, max_cum_prob=max_cum_prob, 
+        fast_filter_threshold=fast_filter_threshold, template_prioritizer=template_prioritizer,
+        precursor_prioritizer=precursor_prioritizer, fast_filter=fast_filter
+    )
+    
+    return (smiles, result)
 
     # print(result)
 
-    precursors = result.return_top(
-        n=max_branching, 
-        cluster=cluster,
-        cluster_method=cluster_method,
-        cluster_feature=cluster_feature,
-        cluster_fp_type=cluster_fp_type,
-        cluster_fp_length=cluster_fp_length,
-        cluster_fp_radius=cluster_fp_radius
-    )
-    return (smiles, precursors)
+    # precursors = result.return_top(
+    #     n=max_branching, 
+    #     cluster=cluster,
+    #     cluster_method=cluster_method,
+    #     cluster_feature=cluster_feature,
+    #     cluster_fp_type=cluster_fp_type,
+    #     cluster_fp_length=cluster_fp_length,
+    #     cluster_fp_radius=cluster_fp_radius
+    # )
+    # return (smiles, precursors)
 
 @shared_task
-def template_relevance(smiles, template_count):
+def template_relevance(smiles, max_num_templates, max_cum_prob):
     global retroTransformer
-    probs, indices = retroTransformer.template_prioritizer.get_topk_from_smi(smiles, k=template_count)
+    probs, indices = retroTransformer.template_prioritizer(smiles, retroTransformer.templates, max_num_templates, max_cum_prob)
     return (probs, indices)
 
 @shared_task
@@ -137,7 +169,7 @@ def fast_filter_check(*args, **kwargs):
     """
     print('got request for fast filter')
     global retroTransformer
-    return retroTransformer.fast_filter.evaluate(*args, **kwargs)
+    return retroTransformer.fast_filter(*args, **kwargs)
 
 
 @shared_task(bind=True)

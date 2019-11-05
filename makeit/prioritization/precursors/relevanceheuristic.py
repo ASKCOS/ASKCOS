@@ -21,7 +21,7 @@ class RelevanceHeuristicPrecursorPrioritizer(Prioritizer):
     def score_precursor(self, precursor):
         scores = []
         necessary_reagent_atoms = precursor['necessary_reagent'].count('[')/2.
-        for smiles in precursor['smiles_list']:
+        for smiles in precursor['smiles_split']:
             ppg = self.pricer.lookup_smiles(smiles, alreadyCanonical=True)
             # If buyable, basically free
             if ppg:
@@ -48,10 +48,14 @@ class RelevanceHeuristicPrecursorPrioritizer(Prioritizer):
     def reorder_precursors(self, precursors):
         scores = np.array([self.score_precursor(p) for p in precursors])
         indices = np.argsort(-scores)
+        scores = scores[indices]
         result = []
+        rank = 1
         for i, score in zip(indices, scores):
             result.append(precursors[i])
             result[-1]['score'] = score
+            result[-1]['rank'] = rank
+            rank += 1
         return result
 
     def get_priority(self, retroPrecursor, **kwargs):

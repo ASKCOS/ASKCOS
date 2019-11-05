@@ -2,6 +2,7 @@ from __future__ import print_function
 import makeit.global_config as gc
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
+import pymongo
 from makeit.prioritization.precursors.heuristic import HeuristicPrecursorPrioritizer
 from makeit.prioritization.precursors.relevanceheuristic import RelevanceHeuristicPrecursorPrioritizer
 from makeit.prioritization.precursors.mincost import MinCostPrecursorPrioritizer
@@ -228,10 +229,10 @@ class TemplateTransformer(object):
         to_retrieve = [
             '_id', 'reaction_smarts',
             'necessary_reagent', 'count', 
-            'intra_only', 'dimer_only', 'template_id',
+            'intra_only', 'dimer_only', 'idex',
             'references'
         ]
-        for document in self.TEMPLATE_DB.find({}, to_retrieve):
+        for document in self.TEMPLATE_DB.find({}, to_retrieve).sort('index', pymongo.ASCENDING):
             if self.load_all:
                 template = self.doc_to_template(document)
                 if template is not None:
@@ -240,6 +241,7 @@ class TemplateTransformer(object):
                 _id = document.get('_id')
                 if _id:
                     self.templates.append(_id)
+        self.num_templates = len(self.templates)
 
     def get_outcomes(self, *args, **kwargs):
         """Gets outcome of single transformation.

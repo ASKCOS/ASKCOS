@@ -2,6 +2,7 @@ import os
 from rdkit import Chem
 import makeit.global_config as gc
 from makeit.utilities.io.logger import MyLogger
+from makeit.utilities.cluster import cluster_precursors
 from makeit.interfaces.template_transformer import TemplateTransformer
 from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
 from makeit.prioritization.precursors.relevanceheuristic import RelevanceHeuristicPrecursorPrioritizer
@@ -52,7 +53,8 @@ class RetroTransformer(TemplateTransformer):
             self, use_db=True, TEMPLATE_DB=None, load_all=gc.PRELOAD_TEMPLATES,
             template_prioritizer='relevance', 
             precursor_prioritizer='relevanceheuristic',
-            fast_filter='default'
+            fast_filter='default', cluster='default',
+            cluster_settings={}
         ):
         """Initializes RetroTransformer.
 
@@ -70,6 +72,8 @@ class RetroTransformer(TemplateTransformer):
         self.template_prioritizer = template_prioritizer
         self.precursor_prioritizer = precursor_prioritizer
         self.fast_filter = fast_filter
+        self.cluster = cluster
+        self.cluster_settings = cluster_settings
         
         super(RetroTransformer, self).__init__(load_all=load_all, use_db=use_db)
 
@@ -98,6 +102,10 @@ class RetroTransformer(TemplateTransformer):
             self.fast_filter_object.load(gc.FAST_FILTER_MODEL['trained_model_path'])
             self.fast_filter = lambda x, y: self.fast_filter_object.evaluate(x, y)[0][0]['score']
 
+        if self.cluster == 'default':
+            MyLogger.print_and_log('Using default clustering for RetroTransformer', retro_transformer_loc)
+            self.cluster = cluster_precursors
+        
         MyLogger.print_and_log('Loading retro-synthetic transformer', retro_transformer_loc)
         if self.use_db:
             MyLogger.print_and_log('reading from db', retro_transformer_loc)
@@ -118,7 +126,8 @@ class RetroTransformer(TemplateTransformer):
             self, smiles, template_prioritizer=None, 
             precursor_prioritizer=None, fast_filter=None, 
             fast_filter_threshold=0.75, max_num_templates=100, 
-            max_cum_prob=0.995,  **kwargs
+            max_cum_prob=0.995, cluster=None, cluster_settings={}, 
+            **kwargs
         ):
         """Performs a one-step retrosynthesis given a SMILES string.
 
@@ -144,6 +153,13 @@ class RetroTransformer(TemplateTransformer):
                 as arguments and returns a score on the range [0.0, 1.0].
             fast_filter_threshold (float): Fast filter threshold to filter
                 bad predictions. 1.0 means use all templates
+            cluster (optional, callable): Use to override cluster method.
+                This can be any callable that accepts 
+                (target, outcomes, **cluster_settings) where target is a smiles 
+                string, outcomes is a list of precursor dictionaries, and cluster_settings 
+                are cluster specific cluster settings.
+            cluster_settings (optional, dict): Dictionary of cluster specific settings
+                to be passed to clustering method.
             **kwargs: Additional kwargs to pass through to prioritizers or to
                 handle deprecated options.
 
@@ -161,11 +177,18 @@ class RetroTransformer(TemplateTransformer):
         if fast_filter == None:
             fast_filter = self.fast_filter
 
+        if cluster == None:
+            cluster = self.cluster
+
+        if cluster_settings == None:
+            cluster_settings = self.cluster_settings
+
         mol = Chem.MolFromSmiles(smiles)
         smiles = Chem.MolToSmiles(mol, isomericSmiles=True)
         mol = rdchiralReactants(smiles)
 
         results = []
+        smiles_to_index = {}
 
         templates, scores = template_prioritizer(smiles, self.templates, max_num_templates, max_cum_prob)
 
@@ -177,14 +200,27 @@ class RetroTransformer(TemplateTransformer):
                 template['score'] = score
             precursors = self.apply_one_template(mol, template)
             for precursor in precursors:
-                joined_smiles = '.'.join(precursor['smiles_list'])
+                joined_smiles = '.'.join(precursor['smiles_split'])
+                precursor['plausibility'] = fast_filter(joined_smiles, smiles)
                 # skip if no transformation happened
-                if joined_smiles == smiles:
+                if joined_smiles == smiles or precursor['plausibility'] < fast_filter_threshold:
                     continue 
-                precursor['plasuibility'] = fast_filter(smiles, joined_smiles)
-                if precursor['plasuibility'] >= fast_filter_threshold:
+                if joined_smiles in smiles_to_index:
+                    res = results[smiles_to_index[joined_smiles]]
+                    res['tforms'] |= set([precursor['template_id']])
+                    res['num_examples'] += precursor['num_examples']
+                    res['template_score'] = max(res['template_score'], precursor['template_score'])
+                else:
+                    precursor['tforms'] = set([precursor['template_id']])
+                    smiles_to_index[joined_smiles] = len(results)
                     results.append(precursor)
+        for rank, result in enumerate(results, 1):
+            result['tforms'] = list(result['tforms'])
+            result['rank'] = rank
         results = precursor_prioritizer(results)
+        cluster_ids = cluster(smiles, results, **cluster_settings)
+        for (i, precursor) in enumerate(results):
+            precursor['group_id'] = cluster_ids[i]
         return results
 
     def apply_one_template(self, mol, template):
@@ -208,7 +244,8 @@ class RetroTransformer(TemplateTransformer):
                 '.'.join(smiles_list), ('.'.join(smiles_list), (-1,))
             )
             results.append({
-                'smiles_list': sorted(smiles_list),
+                'smiles': '.'.join(smiles_list),
+                'smiles_split': sorted(smiles_list),
                 'mapped_smiles': reacting_atoms[0],
                 'reacting_atoms': reacting_atoms[1],
                 'template_id': str(template['_id']),
