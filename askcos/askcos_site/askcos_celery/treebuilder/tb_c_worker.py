@@ -19,6 +19,7 @@ from makeit.retrosynthetic.transformer import RetroTransformer
 from rdkit import RDLogger, Chem
 from rdkit.Chem import AllChem
 import numpy as np
+from bson import ObjectId
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
 CORRESPONDING_QUEUE = 'tb_c_worker'
@@ -50,7 +51,7 @@ def template_relevance_api(smiles, templates, max_num_templates, max_cum_prob):
         cum_score += score
         if cum_score > max_cum_prob:
             break
-    return top_templates, scores[:len(top_templates)]
+    return top_templates, scores, indices
     
 
 
@@ -143,8 +144,10 @@ def get_top_precursors(
 @shared_task
 def template_relevance(smiles, max_num_templates, max_cum_prob):
     global retroTransformer
-    probs, indices = retroTransformer.template_prioritizer(smiles, retroTransformer.templates, max_num_templates, max_cum_prob)
-    return (probs, indices)
+    templates, scores, indices = template_relevance_api(smiles, retroTransformer.templates, max_num_templates, max_cum_prob)
+    if len(templates) > 0 and isinstance(templates[0], ObjectId):
+        templates = [str(t) for t in templates]
+    return templates, scores.tolist(), indices.tolist()
 
 @shared_task
 def apply_one_template_by_idx(*args, **kwargs):
@@ -155,6 +158,7 @@ def apply_one_template_by_idx(*args, **kwargs):
             applying given template to the molecule.
     """
     global retroTransformer
+    kwargs.update({'template_prioritizer': template_relevance_api})
     return retroTransformer.apply_one_template_by_idx(*args, **kwargs)
 
 @shared_task

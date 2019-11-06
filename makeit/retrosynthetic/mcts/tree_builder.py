@@ -172,16 +172,16 @@ class MCTS:
             if retroTransformer:
                 self.retroTransformer = retroTransformer
             else:
-                self.retroTransformer = model_loader.load_Retro_Transformer(mincount=self.mincount,
-                                                                            mincount_chiral=self.mincount_chiral,
-                                                                            chiral=self.chiral)
-                self.retroTransformer.load_fast_filter()
+                self.retroTransformer = model_loader.load_Retro_Transformer()
+                self.retroTransformer.load()
                 # don't load template prioritizer until later, TF doesn't like forking
         else:
             # Still need to load to have num refs, etc.
             MyLogger.print_and_log('Loading transforms for informational purposes only', treebuilder_loc)
-            self.retroTransformer = RetroTransformer(mincount=self.mincount, mincount_chiral=self.mincount_chiral)
-            self.retroTransformer.load(chiral=True, rxns=False)
+            self.retroTransformer = RetroTransformer(
+                template_prioritizer=None, precursor_prioritizer=None, fast_filter=None
+            )
+            self.retroTransformer.load()
             MyLogger.print_and_log('...done loading {} informational transforms!'.format(len(self.retroTransformer.templates)), treebuilder_loc)
 
 
@@ -199,10 +199,9 @@ class MCTS:
                 # same database. _id is _id of active pathway
                 self.pending_results.append(tb_c_worker.apply_one_template_by_idx.apply_async(
                     args=(_id, smiles, template_idx),
-                    kwargs={'template_count': self.template_count,
+                    kwargs={'max_num_templates': self.template_count,
                             'max_cum_prob': self.max_cum_template_prob,
-                            'apply_fast_filter': self.apply_fast_filter,
-                            'filter_threshold': self.filter_threshold},
+                            'fast_filter_threshold': self.filter_threshold},
                     # queue=self.private_worker_queue, ## CWC TEST: don't reserve
                 ))
                 self.status[(smiles, template_idx)] = WAITING
@@ -864,18 +863,13 @@ class MCTS:
 
             # Define first chemical node (target)
             if self.celery:
-                res = tb_c_worker.template_relevance.delay(self.smiles, self.template_count)
-                probs, indeces = res.get(10)
+                res = tb_c_worker.template_relevance.delay(self.smiles, self.template_count, self.max_cum_template_prob)
+                templates, probs, indeces = res.get(10)
             else:
-                probs, indeces = self.template_prioritizer.get_topk_from_smi(self.smiles, k=self.template_count)
-            truncate_to = np.argwhere(np.cumsum(probs) >= self.max_cum_template_prob)
-            if len(truncate_to):
-                truncate_to = truncate_to[0][0] + 1 # Truncate based on max_cum_prob?
-            else:
-                truncate_to = self.template_count
+                templates, probs, indeces = self.template_prioritizer.reorder_templates(self.smiles, self.retroTransformer.templates, self.template_count, self.max_cum_template_prob)
             value = 1 # current value assigned to precursor (note: may replace with real value function)
             self.Chemicals[self.smiles] = Chemical(self.smiles)
-            self.Chemicals[self.smiles].set_template_relevance_probs(probs[:truncate_to], indeces[:truncate_to], value)
+            self.Chemicals[self.smiles].set_template_relevance_probs(probs, indeces, value)
             MyLogger.print_and_log('Calculating initial probs for target', treebuilder_loc)
             hist = self.chemhistorian.lookup_smiles(self.smiles, alreadyCanonical=False)
             self.Chemicals[self.smiles].as_reactant = hist['as_reactant']
@@ -1014,7 +1008,7 @@ class MCTS:
                 num_examples = 0
                 necessary_reagent = None
                 for tid in tids:
-                    template = TEMPLATE_DB.find_one({'_id': ObjectId(self.retroTransformer.templates[tid][0])})
+                    template = TEMPLATE_DB.find_one({'_id': ObjectId(self.retroTransformer.templates[tid])})
                     tforms.append(str(template.get('_id', -1)))
                     num_examples += template.get('count', 1)
                     if necessary_reagent is None:

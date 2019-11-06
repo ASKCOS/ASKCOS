@@ -10,6 +10,7 @@ from makeit.synthetic.evaluation.fast_filter import FastFilterScorer
 from rdchiral.main import rdchiralRun
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 from bson.objectid import ObjectId
+from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 
 retro_transformer_loc = 'retro_transformer'
@@ -190,7 +191,7 @@ class RetroTransformer(TemplateTransformer):
         results = []
         smiles_to_index = {}
 
-        templates, scores = template_prioritizer(smiles, self.templates, max_num_templates, max_cum_prob)
+        templates, scores, indices = template_prioritizer(smiles, self.templates, max_num_templates, max_cum_prob)
 
         for template, score in zip(templates, scores):
             if not self.load_all:
@@ -249,8 +250,66 @@ class RetroTransformer(TemplateTransformer):
                 'mapped_smiles': reacting_atoms[0],
                 'reacting_atoms': reacting_atoms[1],
                 'template_id': str(template['_id']),
-                'template_score': template['score'],
                 'num_examples': template['count'],
                 'necessary_reagent': template['necessary_reagent']
             })
+            if template.get('score') is not None:
+                results[-1]['template_score'] = template.get('score')
         return results
+
+    def apply_one_template_by_idx(
+        self, _id, smiles, template_idx, calculate_next_probs=True,
+        fast_filter_threshold=0.75, max_num_templates=100, max_cum_prob=0.995,
+        template_prioritizer=None
+    ):
+        if template_prioritizer is None:
+            template_prioritizer = self.template_prioritizer
+
+        mol = Chem.MolFromSmiles(smiles)
+        smiles = Chem.MolToSmiles(mol, isomericSmiles=True)
+        mol = rdchiralReactants(smiles)
+
+        all_outcomes = []
+        seen_reactants = {}
+        seen_reactant_combos = []
+
+        if self.load_all:
+            template = self.templates[template_idx]
+        elif not self.use_db:
+            template = self.doc_to_template(self.templates[template_idx])
+        else:
+            db_client = MongoClient(
+                gc.MONGO['path'], gc.MONGO['id'], connect=gc.MONGO['connect']
+            )
+            db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
+            collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
+            self.TEMPLATE_DB = db_client[db_name][collection]
+            doc = self.TEMPLATE_DB.find_one({'_id': ObjectId(self.templates[template_idx])})
+            template = self.doc_to_template(doc)
+        
+        for precursor in self.apply_one_template(mol, template):
+            reactant_smiles = precursor['smiles']
+            if reactant_smiles in seen_reactant_combos:
+                continue
+            seen_reactant_combos.append(reactant_smiles)
+            fast_filter_score = self.fast_filter(reactant_smiles, smiles)
+            if fast_filter_score < fast_filter_threshold:
+                continue
+            
+            reactants = []
+            if calculate_next_probs:
+                for reactant_smi in precursor['smiles_split']:
+                    if reactant_smi not in seen_reactants:
+                        templates, scores, indeces = template_prioritizer(
+                            reactant_smi, self.templates, max_num_templates, max_cum_prob
+                        )
+                        value = 1
+                        seen_reactants[reactant_smi] = (reactant_smi, scores.tolist(), indeces.tolist(), value)
+                    reactants.append(seen_reactants[reactant_smi])
+                all_outcomes.append((_id, smiles, template_idx, reactants, fast_filter_score))
+            else:
+                all_outcomes.append((_id, smiles, template_idx, precursor['smiles_split'], fast_filter_score))
+        if not all_outcomes:
+            all_outcomes.append((_id, smiles, template_idx, [], 0.0)) # dummy outcome
+
+        return all_outcomes

@@ -166,7 +166,7 @@ class RelevanceTemplatePrioritizer(Prioritizer):
             cum_score += score
             if cum_score > max_cum_prob:
                 break
-        return top_templates, scores[:len(top_templates)]
+        return top_templates, scores, indices
 
     def get_priority(self, input_tuple, **kwargs):
         """Returns list of templates ordered by relevance.
