@@ -9,43 +9,24 @@ transformer and grabs templates from the database.
 """
 
 from __future__ import absolute_import, unicode_literals, print_function
-import requests
 from django.conf import settings
 from celery import shared_task
 from celery.signals import celeryd_init
 from pymongo import MongoClient
 import makeit.global_config as gc
 from makeit.retrosynthetic.transformer import RetroTransformer
+from makeit.prioritization.templates.relevance import TemplateRelevanceTFServingAPI
 from rdkit import RDLogger, Chem
 from rdkit.Chem import AllChem
 import numpy as np
 from bson import ObjectId
+from scipy.special import softmax
+
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
 CORRESPONDING_QUEUE = 'tb_c_worker'
 CORRESPONDING_RESERVABLE_QUEUE = 'tb_c_worker_reservable'
 retroTransformer = None
-
-def softmax(x):
-    e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum()
-
-def tf_serving_api(hostname, smiles, max_num_templates, max_cum_prob):
-    mol = Chem.MolFromSmiles(smiles)
-    fp = np.array(
-        AllChem.GetMorganFingerprintAsBitVect(
-            mol, 2, nBits=2048, useChirality=True
-        ), dtype=np.float32
-    ).reshape(1, -1)
-    resp = requests.post(
-        'http://{}:8501/v1/models/template_relevance:predict'.format(hostname),
-        json={'instances': fp.tolist()}
-    )
-    scores = np.array(resp.json()['predictions']).reshape(-1)
-    indices = np.argsort(-scores)[:max_num_templates]
-    scores = softmax(scores[indices])
-    truncate = np.argmax(np.cumsum(scores)>max_cum_prob)
-    return scores[:truncate].tolist(), indices[:truncate].tolist()
 
 @celeryd_init.connect
 def configure_worker(options={}, **kwargs):
@@ -113,7 +94,9 @@ def get_top_precursors(
     """
 
     hostname = 'template_relevance_{}'.format(template_prioritizer)
-    template_prioritizer = lambda x, y, z: tf_serving_api(hostname, x, y, z)
+    template_prioritizer = TemplateRelevanceTFServingAPI(
+        hostname=hostname, model_name='template_relevance'
+    )
 
     global retroTransformer
     result = retroTransformer.get_outcomes(
@@ -125,24 +108,18 @@ def get_top_precursors(
     
     return (smiles, result)
 
-    # print(result)
-
-    # precursors = result.return_top(
-    #     n=max_branching, 
-    #     cluster=cluster,
-    #     cluster_method=cluster_method,
-    #     cluster_feature=cluster_feature,
-    #     cluster_fp_type=cluster_fp_type,
-    #     cluster_fp_length=cluster_fp_length,
-    #     cluster_fp_radius=cluster_fp_radius
-    # )
-    # return (smiles, precursors)
-
 @shared_task
 def template_relevance(smiles, max_num_templates, max_cum_prob, relevance_model='reaxys'):
     global retroTransformer
     hostname = 'template_relevance_{}'.format(relevance_model)
-    scores, indices = tf_serving_api(hostname, smiles, max_num_templates, max_cum_prob)
+    template_prioritizer = TemplateRelevanceTFServingAPI(
+        hostname=hostname, model_name='template_relevance'
+    )
+    scores, indices = template_prioritizer.predict(smiles, max_num_templates, max_cum_prob)
+    if not isinstance(scores, list):
+        scores = scores.tolist()
+    if not isinstance(indices, list):
+        indices = indices.tolist()
     return scores, indices
 
 @shared_task
@@ -158,7 +135,9 @@ def apply_one_template_by_idx(*args, **kwargs):
     template_prioritizer = kwargs.pop('template_prioritizer', 'reaxys')
 
     hostname = 'template_relevance_{}'.format(template_prioritizer)
-    template_prioritizer = lambda x, y, z: tf_serving_api(hostname, x, y, z)
+    template_prioritizer = TemplateRelevanceTFServingAPI(
+        hostname=hostname, model_name='template_relevance'
+    )
 
     kwargs.update({'template_prioritizer': template_prioritizer})
 

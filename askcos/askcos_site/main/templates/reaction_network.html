@@ -60,6 +60,37 @@
 </script>
 
 <div class="mx-auto">
+    <label class="btn btn-default">
+        <input type="radio" value="reaxys" v-model="templateSet" checked>
+            Reaxys
+        </input>
+    </label>
+    <label class="btn btn-default">
+        <input type="radio" value="uspto" v-model="templateSet" checked>
+            USPTO
+        </input>
+    </label>
+</div>
+
+<div class="mx-auto">
+    <label class="btn btn-default">
+        <input type="radio" value="reaxys" v-model="templatePrioritization" checked>
+            Reaxys
+        </input>
+    </label>
+    <label class="btn btn-default">
+        <input type="radio" value="uspto" v-model="templatePrioritization" checked>
+            USPTO
+        </input>
+    </label>
+    <label class="btn btn-default">
+        <input type="radio" value="uspto_pretrained" v-model="templatePrioritization" checked>
+            USPTO (pretrained)
+        </input>
+    </label>
+</div>
+
+<div class="mx-auto">
     <form class="form-inline" autocomplete="off" v-on:submit.prevent="changeTarget">
         <div class="form-group">
             Target: <input id="target" type="text" class="form-control text-center" v-model="target">
@@ -121,9 +152,20 @@
         </div>
         <div class="form-inline mb-10">
             <div class="form-group">
+                Template set:
+                <select v-model="templateSet" class="form-control">
+                    <option value="reaxys">Reaxys</option>
+                    <option value="uspto">USPTO</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-inline mb-10">
+            <div class="form-group">
                 Template prioritization:
                 <select v-model="templatePrioritization" class="form-control">
-                    <option value="Relevance">Relevance</option>
+                    <option value="reaxys">Reaxys</option>
+                    <option value="uspto">USPTO</option>
+                    <option value="uspto_pretrained">USPTO (pretrained)</option>
                 </select>
             </div>
         </div>

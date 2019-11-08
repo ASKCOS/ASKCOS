@@ -875,7 +875,7 @@ class MCTS:
                 res = tb_c_worker.template_relevance.delay(self.smiles, self.template_count, self.max_cum_template_prob)
                 probs, indeces = res.get(10)
             else:
-                probs, indeces = self.template_prioritizer.reorder_templates(self.smiles, self.template_count, self.max_cum_template_prob)
+                probs, indeces = self.template_prioritizer.predict(self.smiles, self.template_count, self.max_cum_template_prob)
             value = 1 # current value assigned to precursor (note: may replace with real value function)
             self.Chemicals[self.smiles] = Chemical(self.smiles)
             self.Chemicals[self.smiles].set_template_relevance_probs(probs, indeces, value)

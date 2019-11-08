@@ -20,11 +20,11 @@ def singlestep(request):
 
     if template_set not in ['reaxys', 'uspto']:
         resp['error'] = 'Template set {} not available'.format(template_set)
-        return JsonResponse(resp, 400)
+        return JsonResponse(resp, status=400)
 
     if template_prioritizer not in ['reaxys', 'uspto', 'uspto_pretrained']:
         resp['error'] = 'Template prioritizer {} not available'.format(template_prioritizer)
-        return JsonResponse(resp, 400)
+        return JsonResponse(resp, status=400)
 
     if not target:
         resp['error'] = 'Required parameter "target" missing'
