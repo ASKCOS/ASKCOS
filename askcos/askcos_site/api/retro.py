@@ -15,6 +15,16 @@ def singlestep(request):
     max_num_templates = int(request.GET.get('num_templates', 100))
     max_cum_prob = float(request.GET.get('max_cum_prob', 0.995))
     fast_filter_threshold = float(request.GET.get('filter_threshold', 0.75))
+    template_set = request.GET.get('template_set', 'reaxys')
+    template_prioritizer = request.GET.get('template_prioritizer', 'reaxys')
+
+    if template_set not in ['reaxys', 'uspto']:
+        resp['error'] = 'Template set {} not available'.format(template_set)
+        return JsonResponse(resp, 400)
+
+    if template_prioritizer not in ['reaxys', 'uspto', 'uspto_pretrained']:
+        resp['error'] = 'Template prioritizer {} not available'.format(template_prioritizer)
+        return JsonResponse(resp, 400)
 
     if not target:
         resp['error'] = 'Required parameter "target" missing'
@@ -48,6 +58,8 @@ def singlestep(request):
     else:
         res = get_top_precursors_c.delay(
             target,
+            template_set=template_set,
+            template_prioritizer=template_prioritizer,
             fast_filter_threshold=fast_filter_threshold,
             max_cum_prob=max_cum_prob,
             max_num_templates=max_num_templates,

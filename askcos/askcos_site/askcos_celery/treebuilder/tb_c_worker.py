@@ -30,7 +30,7 @@ def softmax(x):
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum()
 
-def template_relevance_api(smiles, templates, max_num_templates, max_cum_prob):
+def tf_serving_api(hostname, smiles, max_num_templates, max_cum_prob):
     mol = Chem.MolFromSmiles(smiles)
     fp = np.array(
         AllChem.GetMorganFingerprintAsBitVect(
@@ -38,22 +38,14 @@ def template_relevance_api(smiles, templates, max_num_templates, max_cum_prob):
         ), dtype=np.float32
     ).reshape(1, -1)
     resp = requests.post(
-        'http://template_relevance:8501/v1/models/template_relevance:predict',
+        'http://{}:8501/v1/models/template_relevance:predict'.format(hostname),
         json={'instances': fp.tolist()}
     )
     scores = np.array(resp.json()['predictions']).reshape(-1)
     indices = np.argsort(-scores)[:max_num_templates]
     scores = softmax(scores[indices])
-    top_templates = []
-    cum_score = 0.0
-    for ind, score in zip(indices, softmax(scores)):
-        top_templates.append(templates[ind])
-        cum_score += score
-        if cum_score > max_cum_prob:
-            break
-    return top_templates, scores, indices
-    
-
+    truncate = np.argmax(np.cumsum(scores)>max_cum_prob)
+    return scores[:truncate].tolist(), indices[:truncate].tolist()
 
 @celeryd_init.connect
 def configure_worker(options={}, **kwargs):
@@ -78,10 +70,11 @@ def configure_worker(options={}, **kwargs):
 
 @shared_task
 def get_top_precursors(
-        smiles, template_prioritizer=template_relevance_api, precursor_prioritizer=None, 
-        fast_filter=None, max_num_templates=10000, 
-        max_cum_prob=1, fast_filter_threshold=0.8, 
-        cluster=True, cluster_method='kmeans', cluster_feature='original', 
+        smiles, precursor_prioritizer=None,
+        template_set='reaxys', template_prioritizer='reaxys',
+        fast_filter=None, max_num_templates=1000,
+        max_cum_prob=1, fast_filter_threshold=0.75,
+        cluster=True, cluster_method='kmeans', cluster_feature='original',
         cluster_fp_type='morgan', cluster_fp_length=512, cluster_fp_radius=1
     ):
     """Get the precursors for a chemical defined by its SMILES.
@@ -119,9 +112,13 @@ def get_top_precursors(
             precursors found.
     """
 
+    hostname = 'template_relevance_{}'.format(template_prioritizer)
+    template_prioritizer = lambda x, y, z: tf_serving_api(hostname, x, y, z)
+
     global retroTransformer
     result = retroTransformer.get_outcomes(
-        smiles, max_num_templates=max_num_templates, max_cum_prob=max_cum_prob, 
+        smiles, template_set=template_set,
+        max_num_templates=max_num_templates, max_cum_prob=max_cum_prob, 
         fast_filter_threshold=fast_filter_threshold, template_prioritizer=template_prioritizer,
         precursor_prioritizer=precursor_prioritizer, fast_filter=fast_filter
     )
@@ -142,12 +139,11 @@ def get_top_precursors(
     # return (smiles, precursors)
 
 @shared_task
-def template_relevance(smiles, max_num_templates, max_cum_prob):
+def template_relevance(smiles, max_num_templates, max_cum_prob, relevance_model='reaxys'):
     global retroTransformer
-    templates, scores, indices = template_relevance_api(smiles, retroTransformer.templates, max_num_templates, max_cum_prob)
-    if len(templates) > 0 and isinstance(templates[0], ObjectId):
-        templates = [str(t) for t in templates]
-    return templates, scores.tolist(), indices.tolist()
+    hostname = 'template_relevance_{}'.format(relevance_model)
+    scores, indices = tf_serving_api(hostname, smiles, max_num_templates, max_cum_prob)
+    return scores, indices
 
 @shared_task
 def apply_one_template_by_idx(*args, **kwargs):
@@ -158,7 +154,14 @@ def apply_one_template_by_idx(*args, **kwargs):
             applying given template to the molecule.
     """
     global retroTransformer
-    kwargs.update({'template_prioritizer': template_relevance_api})
+
+    template_prioritizer = kwargs.pop('template_prioritizer', 'reaxys')
+
+    hostname = 'template_relevance_{}'.format(template_prioritizer)
+    template_prioritizer = lambda x, y, z: tf_serving_api(hostname, x, y, z)
+
+    kwargs.update({'template_prioritizer': template_prioritizer})
+
     return retroTransformer.apply_one_template_by_idx(*args, **kwargs)
 
 @shared_task

@@ -10,6 +10,7 @@ from makeit.synthetic.evaluation.fast_filter import FastFilterScorer
 from rdchiral.main import rdchiralRun
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 from bson.objectid import ObjectId
+import pymongo
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 
@@ -120,14 +121,18 @@ class RetroTransformer(TemplateTransformer):
             MyLogger.print_and_log('reading from file', retro_transformer_loc)
             self.load_from_file(template_filename)
 
-        MyLogger.print_and_log('Retrosynthetic transformer has been loaded - using {} templates.'.format(
-            self.num_templates), retro_transformer_loc)
+        MyLogger.print_and_log(
+            'Retrosynthetic transformer has been loaded - using {} templates (may be multiple template sets!).'.format(
+                self.num_templates
+            ), retro_transformer_loc
+        )
 
     def get_outcomes(
-            self, smiles, template_prioritizer=None, 
-            precursor_prioritizer=None, fast_filter=None, 
-            fast_filter_threshold=0.75, max_num_templates=100, 
-            max_cum_prob=0.995, cluster=None, cluster_settings={}, 
+            self, smiles, precursor_prioritizer=None,
+            template_set='reaxys', template_prioritizer=None, 
+            fast_filter=None, fast_filter_threshold=0.75, 
+            max_num_templates=100, max_cum_prob=0.995, 
+            cluster=None, cluster_settings={}, 
             **kwargs
         ):
         """Performs a one-step retrosynthesis given a SMILES string.
@@ -191,14 +196,29 @@ class RetroTransformer(TemplateTransformer):
         results = []
         smiles_to_index = {}
 
-        templates, scores, indices = template_prioritizer(smiles, self.templates, max_num_templates, max_cum_prob)
+        scores, indices = template_prioritizer(smiles, max_num_templates, max_cum_prob)
+
+        if self.use_db:
+            templates = [
+                self.TEMPLATE_DB.find_one(
+                    {
+                        'index': i,
+                        'template_set': template_set
+                    }
+                )
+                for i in indices
+            ]
+        else:
+            templates = list(filter(
+                lambda x: x['template_set'] == template_set and x['index'] in indices,
+                self.templates
+            ))
+
+        if not self.load_all:
+            templates = [self.doc_to_template(temp) for temp in templates]
 
         for template, score in zip(templates, scores):
-            if not self.load_all:
-                if self.use_db:
-                    template = self.TEMPLATE_DB.find_one({'_id': template})
-                template = self.doc_to_template(template)
-                template['score'] = score
+            template['score'] = score
             precursors = self.apply_one_template(mol, template)
             for precursor in precursors:
                 joined_smiles = '.'.join(precursor['smiles_split'])
@@ -260,7 +280,7 @@ class RetroTransformer(TemplateTransformer):
     def apply_one_template_by_idx(
         self, _id, smiles, template_idx, calculate_next_probs=True,
         fast_filter_threshold=0.75, max_num_templates=100, max_cum_prob=0.995,
-        template_prioritizer=None
+        template_prioritizer=None, template_set='reaxys'
     ):
         if template_prioritizer is None:
             template_prioritizer = self.template_prioritizer
@@ -284,7 +304,12 @@ class RetroTransformer(TemplateTransformer):
             db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
             collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
             self.TEMPLATE_DB = db_client[db_name][collection]
-            doc = self.TEMPLATE_DB.find_one({'_id': ObjectId(self.templates[template_idx])})
+            doc = self.TEMPLATE_DB.find_one(
+                {
+                    'index': template_idx,
+                    'template_set': template_set
+                }
+            )
             template = self.doc_to_template(doc)
         
         for precursor in self.apply_one_template(mol, template):
@@ -300,11 +325,11 @@ class RetroTransformer(TemplateTransformer):
             if calculate_next_probs:
                 for reactant_smi in precursor['smiles_split']:
                     if reactant_smi not in seen_reactants:
-                        templates, scores, indeces = template_prioritizer(
-                            reactant_smi, self.templates, max_num_templates, max_cum_prob
+                        scores, indeces = template_prioritizer(
+                            reactant_smi, max_num_templates, max_cum_prob
                         )
                         value = 1
-                        seen_reactants[reactant_smi] = (reactant_smi, scores.tolist(), indeces.tolist(), value)
+                        seen_reactants[reactant_smi] = (reactant_smi, scores, indeces, value)
                     reactants.append(seen_reactants[reactant_smi])
                 all_outcomes.append((_id, smiles, template_idx, reactants, fast_filter_score))
             else:

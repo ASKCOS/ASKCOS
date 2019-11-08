@@ -160,11 +160,31 @@ services:
       - mysql
       - mongo
 
-  template_relevance:
+  template_relevance_reaxys:
     image: tensorflow/serving
     restart: always
     volumes:
       - ./models/template_relevance/reaxys:/models/template_relevance/1
+    environment:
+      - MODEL_NAME=template_relevance
+    expose:
+      - 8501
+
+  template_relevance_uspto:
+    image: tensorflow/serving
+    restart: always
+    volumes:
+      - ./models/template_relevance/uspto:/models/template_relevance/1
+    environment:
+      - MODEL_NAME=template_relevance
+    expose:
+      - 8501
+
+  template_relevance_uspto_pretrained:
+    image: tensorflow/serving
+    restart: always
+    volumes:
+      - ./models/template_relevance/uspto_pretrained:/models/template_relevance/1
     environment:
       - MODEL_NAME=template_relevance
     expose:

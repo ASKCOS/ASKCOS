@@ -1,2 +1,2 @@
-db.buyables.createIndex({smiles: 1})
+db.buyables.createIndex({smiles: "hashed"})
 db.retro_templates.createIndex({index: 1})
