@@ -89,6 +89,12 @@ docker-compose up -d nginx app
 docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py collectstatic --noinput"
 
 echo ""
+echo "###################################"
+echo "starting tensorflow serving workers"
+echo "###################################"
+docker-compose up -d template_relevance_reaxys template_relevance_uspto template_relevance_uspto_pretrained
+
+echo ""
 echo "#######################"
 echo "starting celery workers"
 echo "#######################"
