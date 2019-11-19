@@ -7,7 +7,6 @@ from pymongo import MongoClient
 from bson import ObjectId
 import pandas as pd
 import io
-
 from rdkit import Chem
 
 mongo = MongoClient(gc.MONGO['path'])
@@ -79,6 +78,9 @@ def buyables(request):
     query = {}
     if search:
         if exact:
+            mol = Chem.MolFromSmiles(search)
+            if mol:
+                search = Chem.MolToSmiles(mol, isomericSmiles=True)
             query['smiles'] = search
         else:
             query['smiles'] = {'$regex': '.*{}.*'.format(search)}
