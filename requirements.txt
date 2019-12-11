@@ -26,3 +26,4 @@ tqdm
 uWSGI
 sphinx
 cachetools
+rdchiral

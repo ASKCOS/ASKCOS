@@ -164,6 +164,7 @@ class RetroTransformer(TemplateTransformer):
             if len(template) != 1:
                 raise ValueError('Duplicate templates found when trying to retrieve one unique template!')
             template = template[0]
+            print(template)
 
         if not self.load_all:
             template = self.doc_to_template(template)
@@ -324,7 +325,9 @@ class RetroTransformer(TemplateTransformer):
 
         try:
             outcomes, mapped_outcomes = rdchiralRun(template['rxn'], mol, return_mapped=True)
+            # outcomes, mapped_outcomes = rdchiralRun(template, mol, return_mapped=True)
         except Exception as e:
+            print(e)
             return results
 
         for j, outcome in enumerate(outcomes):
@@ -394,7 +397,8 @@ class RetroTransformer(TemplateTransformer):
         seen_reactant_combos = []
 
         template = self.get_one_template_by_idx(template_idx, template_set)
-        
+        template['rxn'] = rdchiralReaction(template['reaction_smarts'])
+
         for precursor in self.apply_one_template(mol, template):
             reactant_smiles = precursor['smiles']
             if reactant_smiles in seen_reactant_combos:
@@ -424,3 +428,33 @@ class RetroTransformer(TemplateTransformer):
             all_outcomes.append((_id, smiles, template_idx, [], 0.0)) # dummy outcome
 
         return all_outcomes
+
+
+if __name__ == '__main__':
+
+    MyLogger.initialize_logFile()
+    t = RetroTransformer()
+    t.load()#chiral=True, refs=False, rxns=True)
+    # def get_outcomes(
+    #             self, smiles, precursor_prioritizer=None,
+    #             template_set='reaxys', template_prioritizer=None, 
+    #             fast_filter=None, fast_filter_threshold=0.75, 
+    #             max_num_templates=100, max_cum_prob=0.995, 
+    #             cluster=None, cluster_settings={}, 
+    #             **kwargs
+        # ):
+    #Test using a chiral molecule
+    # outcomes = t.get_outcomes('CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1')#, \
+    #     #100, (gc.relevanceheuristic, gc.relevance))
+    # print(outcomes)
+
+
+    # #Test using a molecule that give many precursors
+    # outcomes = t.get_outcomes('CN(C)CCOC(c1ccccc1)c2ccccc2')#, \
+    #     #100, (gc.relevanceheuristic, gc.relevance))
+    # print(outcomes)
+
+
+    #test with one template
+    outcomes = t.apply_one_template_by_idx(1, 'CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1', 109659)
+    print(outcomes)

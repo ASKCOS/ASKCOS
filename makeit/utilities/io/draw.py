@@ -59,7 +59,7 @@ def MolsSmilesToImageHighlight(smiles, options=None, **kwargs):
         #Will only draw the highlighted atoms if they are mapped by isotope from rdchiral otherwise
         #the reacting_atoms will not match the atom index and draw the highlight in the incorrect location
         else:
-            isotope_idx_map = {a.GetIsotope():a.GetIdx() for a in mol.GetAtoms()}
+            isotope_idx_map = {a.GetAtomMapNum():a.GetIdx() for a in mol.GetAtoms()}
             highlightAtoms = [isotope_idx_map[x] for x in reacting_atoms]
             #TODO add options for colors?
             highlightAtomColors = {x:(0,1,0) for x in highlightAtoms}
@@ -75,7 +75,7 @@ def MolsSmilesToImageHighlight(smiles, options=None, **kwargs):
         highlightAtomColors = []
         
     if clear_map:
-        [a.SetIsotope(0) for a in mol.GetAtoms()]
+        [a.SetAtomMapNum(0) for a in mol.GetAtoms()]
     m2=Draw.PrepareMolForDrawing(mol)
     d2.DrawMolecule(m2,highlightAtoms=highlightAtoms, \
         highlightBonds=highlightBonds, highlightAtomColors=highlightAtomColors)
