@@ -1,0 +1,260 @@
+[
+	{
+		"smarts": "[C:1](=[O:3])[OH:2]>>[C:1](=[O:3])[O:2]CC",
+		"smiles": "OC(=O)CCCCCC",
+		"expected": ["CCCCCCC(=O)OCC"],
+		"description": "Testing achiral transformations with chiral molecules (not in template): Preparing a carboxylic acid from hydrolysis of an ethyl ester"
+	},
+	{
+		"smarts": "[C:1](=[O:3])[OH:2]>>[C:1](=[O:3])[O:2]CC",
+		"smiles": "OC(=O)CCCC[C@H](Cl)C",
+		"expected": ["CCOC(=O)CCCC[C@@H](C)Cl"],
+		"description": "Testing achiral transformations with chiral molecules (not in template): Preparing a carboxylic acid from hydrolysis of an ethyl ester"
+	},
+	{
+		"smarts": "[C:1](=[O:3])[OH:2]>>[C:1](=[O:3])[O:2]CC",
+		"smiles": "OC(=O)CCCC[C@@H](Cl)C",
+		"expected": ["CCOC(=O)CCCC[C@H](C)Cl"],
+		"description": "Testing achiral transformations with chiral molecules (not in template): Preparing a carboxylic acid from hydrolysis of an ethyl ester"
+	},
+	{
+		"smarts": "[C:1](=[O:3])[OH:2]>>[C:1](=[O:3])[O:2]CC",
+		"smiles": "OC(=O)C[C@H](CC(=O)OC)C",
+		"expected": ["CCOC(=O)C[C@@H](C)CC(=O)OC"],
+		"description": "Testing achiral transformations with chiral molecules (not in template): Preparing a carboxylic acid from hydrolysis of an ethyl ester"
+	},
+	{
+		"smarts": "[C:1](=[O:3])[OH:2]>>[C:1](=[O:3])[O:2]CC",
+		"smiles": "OC(=O)C[C@H](CC(=O)OCCC)C",
+		"expected": ["CCCOC(=O)C[C@H](C)CC(=O)OCC"],
+		"description": "Testing achiral transformations with chiral molecules (not in template): Preparing a carboxylic acid from hydrolysis of an ethyl ester"
+	},
+	{
+		"smarts": "[C:1](=[O:3])[OH:2]>>[C:1](=[O:3])[O:2]CC",
+		"smiles": "OC(=O)CC/C=C(F)\\C",
+		"expected": ["CCOC(=O)CC/C=C(\\C)F"],
+		"description": "Testing achiral transformations with chiral molecules (not in template): Preparing a carboxylic acid from hydrolysis of an ethyl ester"
+	},
+	{
+		"smarts": "[C:1](=[O:3])[OH:2]>>[C:1](=[O:3])[O:2]CC",
+		"smiles": "OC(=O)CC/C=C(F)/C",
+		"expected": ["CCOC(=O)CC/C=C(/C)F"],
+		"description": "Testing achiral transformations with chiral molecules (not in template): Preparing a carboxylic acid from hydrolysis of an ethyl ester"
+	},
+	{
+		"smarts": "[C:4][C:1](=[O:3])[OH:2]>>[C:4][C:1](=[O:3])[O:2]CC",
+		"smiles": "OC(=O)[C@H](Cl)C",
+		"expected": ["CCOC(=O)[C@@H](C)Cl"],
+		"description": "Testing achiral transformations with chiral molecules (partially in template, but auxiliary): Preparing a carboxylic acid from hydrolysis of an ethyl ester"
+	},
+	{
+		"smarts": "[C:4][C:1](=[O:3])[OH:2]>>[C:4][C:1](=[O:3])[O:2]CC",
+		"smiles": "OC(=O)[C@@H](Cl)C",
+		"expected": ["CCOC(=O)[C@H](C)Cl"],
+		"description": "Testing achiral transformations with chiral molecules (partially in template, but auxiliary): Preparing a carboxylic acid from hydrolysis of an ethyl ester"
+	},
+	{
+		"smarts": "[C:4][C:1](=[O:3])[OH:2]>>[C:4][C:1](=[O:3])[O:2]CC",
+		"smiles": "OC(=O)[C@@H](C(=O)OC)C",
+		"expected": ["CCOC(=O)[C@H](C)C(=O)OC"],
+		"description": "Testing achiral transformations with chiral molecules (partially in template, but auxiliary): Preparing a carboxylic acid from hydrolysis of an ethyl ester"
+	},
+	{
+		"smarts": "[C:4][C:1](=[O:3])[OH:2]>>[C:4][C:1](=[O:3])[O:2]CC",
+		"smiles": "OC(=O)[C@H](C(=O)OC)C",
+		"expected": ["CCOC(=O)[C@@H](C)C(=O)OC"],
+		"description": "Testing achiral transformations with chiral molecules (partially in template, but auxiliary): Preparing a carboxylic acid from hydrolysis of an ethyl ester"
+	},
+	{
+		"smarts": "[CH:1][O:2][C:3]>>[CH:1][OH:2].O[C:3]",
+		"smiles": "CCCC[C@@H](OCC)C",
+		"expected": ["CCCC[C@H](C)O.CCO"],
+		"description": "Testing achiral transformations with chiral molecules (partially in template, but auxiliary): Alkylation reaction with unspecified chirality, template could not have specified"
+	},
+	{
+		"smarts": "[CH:1][O:2][C:3]>>[CH:1][OH:2].O[C:3]",
+		"smiles": "C/C=C/C(OCC)C",
+		"expected": ["C/C=C/C(C)O.CCO"],
+		"description": "Testing achiral transformations with chiral molecules (partially in template, but auxiliary): Alkylation reaction with unspecified chirality, template could not have specified"
+	},
+	{
+		"smarts": "[*:4][C:1]([*:5])[O:2][C:3]>>[*:4][C:1]([*:5])[OH:2].O[C:3]",
+		"smiles": "CCCC[C@@](CC)(OCC)C",
+		"expected": ["CCCC[C@](C)(O)CC.CCO"],
+		"description": "Testing achiral transformations with chiral molecules (partially in template, but auxiliary): Alkylation reaction with unspecified chirality, template could not have specified due to symmetry"
+	},
+	{
+		"smarts": "[OH:1][CH:2]=[C:3]>>CC[O:1][CH:2]=[C:3]",
+		"smiles": "O/C=C/CC",
+		"expected": ["CC/C=C/OCC"],
+		"description": "Testing achiral transformations with chiral molecules (partially in template, but auxiliary): Alkylation reaction with unspecified chirality, template could not have specified due to symmetry"
+	},
+	{
+		"smarts": "[C:1][CH:2]([CH3:3])[O:4][C:5]>>[C:1][CH:2]([CH3:3])[OH:4].O[C:5]",
+		"smiles": "CCCC[C@@H](OCC)C",
+		"expected": [],
+		"description": "Testing achiral transformations with chiral molecules (fully in template): Alkylation reaction with unspecified chirality, template could have specified"
+	},
+	{
+		"smarts": "[CH:1]([CH3:2])=[CH:3]([CH2:4][O:5][C:6])>>[CH:1]([CH3:2])=[CH:3][CH2:4][OH:5].O[C:6]",
+		"smiles": "C(\\C)=C\\COCC",
+		"expected": [],
+		"description": "Testing achiral transformations with chiral molecules (fully in template): Etherification reaction with unspecified chirality, template could have specified"
+	},
+	{
+		"smarts": "[C:1][CH:2]([CH3:3])[O:4][C:5]>>[C:1][CH:2]([CH3:3])[OH:4].O[C:5]",
+		"smiles": "CCCC[C@@H](OCC)C",
+		"expected": [],
+		"description": "Testing achiral transformations with chiral molecules (fully in template): Etherification reaction with unspecified chirality, template could have specified"
+	},
+	{
+		"smarts": "[C:1][C@H:2]([CH3:3])[I:4]>>[C:1][C@@H:2]([CH3:3])Br",
+		"smiles": "CCCCC(I)C",
+		"expected": [],
+		"description": "Testing chiral transformations with achiral molecules: SN2 with inversion of a tetrahedral center"
+	},
+	{
+		"smarts": "[C:1]/[CH:2]=[CH:3]\\[C:4]>>[C:1][C:2]#[C:3][C:4]",
+		"smiles": "CCCC=CCC",
+		"expected": [],
+		"description": "Testing chiral transformations with achiral molecules: Prepare a cis alkene from an alkyne"
+	},
+	{
+		"smarts": "[C:1]/[CH:2]=[CH:3]\\[C:4]>>[C:1][C:2]#[C:3][C:4]",
+		"smiles": "CCC/C=C\\CC",
+		"expected": ["CCC#CCCC"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects cis double bond: Molecule has explicit cis double bond: explicit cis"
+	},
+	{
+		"smarts": "[C:1]/[CH:2]=[CH:3]\\[C:4]>>[C:1][C:2]#[C:3][C:4]",
+		"smiles": "CCC/C=C/CC",
+		"expected": [],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects cis double bond: Molecule has explicit cis double bond: explicit trans"
+	},
+	{
+		"smarts": "[C:1]/[CH:2]=[CH:3]\\[C:4]>>[C:1][C:2]#[C:3][C:4]",
+		"smiles": "C1(CCC)CCCC=CCC1",
+		"expected": ["CCCC1CCC#CCCC1"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects cis double bond: Molecule has explicit cis double bond: implicit cis in ring"
+	},
+	{
+		"smarts": "[C:1]/[CH:2]=[CH:3]/[C:4]>>[C:1][C:2]#[C:3][C:4]",
+		"smiles": "C1(CCC)CCCC=CCC1",
+		"expected": [],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects trans double bond: Prepare a trans alkene from an alkyne: implicit cis"
+	},
+	{
+		"smarts": "[C:1]/[CH:2]=[CH:3]/[C:4]>>[C:1][C:2]#[C:3][C:4]",
+		"smiles": "CCC/C=C\\CC",
+		"expected": [],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects trans double bond: Prepare a trans alkene from an alkyne: explicit cis"
+	},
+	{
+		"smarts": "[C:1]/[CH:2]=[CH:3]/[C:4]>>[C:1][C:2]#[C:3][C:4]",
+		"smiles": "CCC/C=C/CC",
+		"expected": ["CCC#CCCC"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects trans double bond: Prepare a trans alkene from an alkyne: explicit trans"
+	},
+	{
+		"smarts": "[C:1][C@H:2]([CH3:3])[I:4]>>[C:1][C@@H:2]([CH3:3])Br",
+		"smiles": "CCCC[C@@H](I)C",
+		"expected": ["CCCC[C@@H](C)Br"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects tetrahedral center: ...that will be inverted: SN2 with inversion of a tetrahedral center"
+	},
+	{
+		"smarts": "[C:1][C@H:2]([CH3:3])[I:4]>>[C:1][C@H:2](Br)[CH3:3]",
+		"smiles": "CCCC[C@@H](I)C",
+		"expected": ["CCCC[C@@H](C)Br"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects tetrahedral center: ...that will be inverted: SN2 with inversion of a tetrahedral center"
+	},
+	{
+		"smarts": "[C:1][C@@H:2]([CH3:3])[I:4]>>[C:1][C@@H:2](Br)[CH3:3]",
+		"smiles": "CCCC[C@@H](I)C",
+		"expected": ["CCCC[C@@H](C)Br"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects tetrahedral center: ...that will be inverted: SN2 with inversion of a tetrahedral center"
+	},
+	{
+		"smarts": "[C:1][C@H:2]([CH3:3])[I:4]>>[C:1][C@H:2]([CH3:3])Br",
+		"smiles": "CCCC[C@@H](I)C",
+		"expected": ["CCCC[C@H](C)Br"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects tetrahedral center: ...that will be preserved: SN2 with retention of a tetrahedral center"
+	},
+	{
+		"smarts": "[C:1][C@@H:2]([CH3:3])[I:4]>>[C:1][C@@H:2]([CH3:3])Br",
+		"smiles": "CCCC[C@@H](I)C",
+		"expected": ["CCCC[C@H](C)Br"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects tetrahedral center: ...that will be preserved: SN2 with retention of a tetrahedral center"
+	},
+	{
+		"smarts": "[C:1][C@H:2]([CH3:3])[I:4]>>[C:1][C@@H:2](Br)[CH3:3]",
+		"smiles": "CCCC[C@@H](I)C",
+		"expected": ["CCCC[C@H](C)Br"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects tetrahedral center: ...that will be preserved: SN2 with retention of a tetrahedral center"
+	},
+	{
+		"smarts": "[C:1][C@H:2]([CH3:3])[I:4]>>[C:1][CH:2](Br)[CH3:3]",
+		"smiles": "CCCC[C@@H](I)C",
+		"expected": ["CCCCC(C)Br"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects tetrahedral center: ...that will be destroyed"
+	},
+	{
+		"smarts": "[C:1][CH:2]([CH3:3])[I:4]>>[C:1][C@H:2](Br)[CH3:3]",
+		"smiles": "CCCCC(I)C",
+		"expected": ["CCCC[C@@H](C)Br"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects tetrahedral center: ...that will be introduced"
+	},
+	{
+		"smarts": "[C:1][CH:2]([CH3:3])[I:4]>>[C:1][C@@H:2](Br)[CH3:3]",
+		"smiles": "CCCCC(I)C",
+		"expected": ["CCCC[C@H](C)Br"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects tetrahedral center: ...that will be introduced"
+	},
+	{
+		"smarts": "[C:1][CH:2]([CH3:3])[I:4]>>[C:1][C@H:2]([CH3:3])Br",
+		"smiles": "CCCCC(I)C",
+		"expected": ["CCCC[C@H](C)Br"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects tetrahedral center: ...that will be introduced"
+	},
+	{
+		"smarts": "[C:1][CH:2]([C:3])[I:4]>>[C:1][C@H:2]([C:3])Br",
+		"smiles": "CCCCC(I)C",
+		"expected": ["CCCCC(C)Br"],
+		"description": "Testing chiral transformations with chiral molecules: Reaction expects tetrahedral center: Chirality specified in precursor, but symmetry makes them equivalent"
+	},
+	{
+		"smarts": "[c:1]-[CH;@@;D3;+0:2]1-[O;H0;D2;+0]-[CH;@;D3;+0:3]-1-[c:4]>>[c:1]/[CH;D2;+0:2]=[CH;D2;+0:3]/[c:4]",
+		"smiles": "c1ccccc1[C@H]2[C@H](O2)c1ccccc1",
+		"expected": [],
+		"description": "Testing chiral transformations with chiral molecules: Molecule needs two stereocenters: preparing a trans epoxide from a trans alkene: cis epoxide should not match"
+	},
+	{
+		"smarts": "[c:1]-[CH;@@;D3;+0:2]1-[O;H0;D2;+0]-[CH;@;D3;+0:3]-1-[c:4]>>[c:1]/[CH;D2;+0:2]=[CH;D2;+0:3]/[c:4]",
+		"smiles": "c1ccccc1[C@H]2[C@@H](O2)c1ccccc1",
+		"expected": ["C(=C/c1ccccc1)\\c1ccccc1"],
+		"description": "Testing chiral transformations with chiral molecules: Molecule needs two stereocenters: preparing a trans epoxide from a trans alkene: trans epoxide should match"
+	},
+	{
+		"smarts": "[c:1]-[CH;@@;D3;+0:2]1-[O;H0;D2;+0]-[CH;@@;D3;+0:3]-1-[c:4]>>[c:1]/[CH;D2;+0:2]=[CH;D2;+0:3]\\[c:4]",
+		"smiles": "c1ccccc1[C@H]2[C@H](O2)c1ccccc1",
+		"expected": ["C(=C\\c1ccccc1)\\c1ccccc1"],
+		"description": "Testing chiral transformations with chiral molecules: Molecule needs two stereocenters: preparing a cis epoxide from a cis alkene: cis epoxide should match"
+	},
+	{
+		"smarts": "[c:1]-[CH;@@;D3;+0:2]1-[O;H0;D2;+0]-[CH;@@;D3;+0:3]-1-[c:4]>>[c:1]/[CH;D2;+0:2]=[CH;D2;+0:3]\\[c:4]",
+		"smiles": "c1ccccc1[C@H]2[C@@H](O2)c1ccccc1",
+		"expected": [],
+		"description": "Testing chiral transformations with chiral molecules: Molecule needs two stereocenters: preparing a cis epoxide from a cis alkene: trans epoxide should not match"
+	},
+	{
+		"smarts": "[C:1](=[O:3])[O:2][C:4]>>[C:1](=[O:3])[OH:2].O[C:4]",
+		"smiles": "C1C(=O)OCCC1",
+		"expected": ["O=C(O)CCCCO"],
+		"description": "Accidental fragmentation: intramolecular esterification"
+	},
+    {
+        "smarts": "[O-;H0;D1:3]-[N+;H0;D3:1](=[O;D1;H0:2])-[c;H0;D3;+0:5](:[c:4]):[c:6]>>[O-]-[N+;H0;D3:1](=[O;D1;H0:2])-[OH;D1;+0:3].[c:4]:[cH;D2;+0:5]:[c:6]",
+        "smiles": "CC1=C(C=C(C=C1[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]",
+        "expected": ["Cc1ccc([N+](=O)[O-])cc1[N+](=O)[O-].O=[N+]([O-])O", "Cc1c([N+](=O)[O-])cccc1[N+](=O)[O-].O=[N+]([O-])O"],
+        "description": "Nitration template with 'hypervalent' nitrogen"
+    }
+]
