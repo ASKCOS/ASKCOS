@@ -99,7 +99,7 @@ def initialize_rxn_from_smarts(reaction_smarts):
 
     unmapped = 700
     for rct in rxn.GetReactants():
-        rct.UpdatePropertyCache()
+        rct.UpdatePropertyCache(strict=False)
         Chem.AssignStereochemistry(rct)
         # Fill in atom map numbers
         for a in rct.GetAtoms():
@@ -116,7 +116,7 @@ def initialize_reactants_from_smiles(reactant_smiles):
     # Initialize reactants
     reactants = Chem.MolFromSmiles(reactant_smiles)
     Chem.AssignStereochemistry(reactants, flagPossibleStereoCenters=True)
-    reactants.UpdatePropertyCache()
+    reactants.UpdatePropertyCache(strict=False)
     # To have the product atoms match reactant atoms, we
     # need to populate the Isotope field, since this field
     # gets copied over during the reaction.

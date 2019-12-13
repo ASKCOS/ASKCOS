@@ -58,6 +58,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
         self.celery = celery
         self.template_prioritizers = {}
         self.lookup_only = lookup_only
+        self.load_all = True
 
         super(ForwardTransformer, self).__init__()
 
@@ -196,7 +197,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
 
 
                 try:
-                    outcome.UpdatePropertyCache()
+                    outcome.UpdatePropertyCache(strict=False)
                     Chem.SanitizeMol(outcome)
                 except Exception as e:
                     if gc.DEBUG:
