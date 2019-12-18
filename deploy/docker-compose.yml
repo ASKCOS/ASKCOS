@@ -2,6 +2,7 @@ version: '2.2'
 services:
   nginx:
     image: nginx:latest
+    restart: always
     depends_on:
       - app
     volumes:
