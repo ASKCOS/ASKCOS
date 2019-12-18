@@ -11,7 +11,6 @@ from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritiz
 from makeit.prioritization.default import DefaultPrioritizer
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 from pymongo import MongoClient
-from makeit.utilities.template_cache import TemplateCache
 from bson.objectid import ObjectId
 from makeit.utilities.io.logger import MyLogger
 transformer_loc = 'template_transformer'
@@ -36,11 +35,9 @@ class TemplateTransformer(object):
         mincount (int): Minimum template popularity.
         mincount_chiral (int): Minimum template popularity for chiral templates.
         TEMPLATE_DB ():
-        cache_size (int): Maximum cache size to use for template cache. Set to 0
-            to not use a cache.
     """
 
-    def __init__(self, load_all=gc.PRELOAD_TEMPLATES, use_db=True, cache_size=0):
+    def __init__(self, load_all=gc.PRELOAD_TEMPLATES, use_db=True):
         """Initializes TemplateTransformer.
 
         Args:
@@ -48,16 +45,9 @@ class TemplateTransformer(object):
                 memory. (default: {gc.PRELOAD_TEMPLATES})
             use_db (bool, optional): Whether to use the database to look up
                 templates. (default: {True})
-            cache_size (int, optional): Maximum cache size to use for template
-                cache. Set to 0 to not use a cache. (default: {0})
         """
         self.load_all = load_all
         self.use_db = use_db
-        self.cache_size = cache_size
-        if cache_size > 0:
-            self.template_cache = TemplateCache(cache_size)
-        else:
-            self.template_cache = None
         if load_all:
             self.id_to_index = {} # Dictionary to keep track of ID -> index in self.templates
 
@@ -356,10 +346,6 @@ class TemplateTransformer(object):
                     i, template) in enumerate(self.templates)}
             return self.templates[self.id_to_index[template_id]]
 
-        if self.cache_size > 0:
-            if not self.lookup_only or ObjectId(template_id) in self.template_cache:
-                return self.template_cache[ObjectId(template_id)]
-
         db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
                                 'id'], connect=gc.MONGO['connect'])
 
@@ -390,8 +376,6 @@ class TemplateTransformer(object):
         # Save collection TEMPLATE_DB
         self.load_databases(retro, chiral=chiral)
         self.chiral = chiral
-        if self.cache_size > 0:
-            self.template_cache.chiral = chiral
         if self.lookup_only:
             return
         if self.mincount and 'count' in self.TEMPLATE_DB.find_one():
