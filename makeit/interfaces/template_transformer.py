@@ -12,7 +12,6 @@ from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritiz
 from makeit.prioritization.default import DefaultPrioritizer
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 from pymongo import MongoClient
-from makeit.utilities.template_cache import TemplateCache
 from bson.objectid import ObjectId
 from makeit.utilities.io.logger import MyLogger
 transformer_loc = 'template_transformer'
@@ -37,8 +36,6 @@ class TemplateTransformer(object):
         mincount (int): Minimum template popularity.
         mincount_chiral (int): Minimum template popularity for chiral templates.
         TEMPLATE_DB ():
-        cache_size (int): Maximum cache size to use for template cache. Set to 0
-            to not use a cache.
     """
 
     def __init__(self, load_all=gc.PRELOAD_TEMPLATES, use_db=True, TEMPLATE_DB=None):

@@ -46,8 +46,6 @@ class RetroTransformer(TemplateTransformer):
         fast_filter (FastFilterScorer or None): Fast filter for evaluation.
         load_all (bool): Whether to load all of the templates into memory.
         use_db (bool): Whether to use the database to look up templates.
-        cache_size (int): Maximum cache size to use for template cache. Set to 0
-            to not use a cache.
     """
 
 

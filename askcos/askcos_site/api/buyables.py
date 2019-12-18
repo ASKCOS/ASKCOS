@@ -7,32 +7,38 @@ from pymongo import MongoClient
 from bson import ObjectId
 import pandas as pd
 import io
-
 from rdkit import Chem
 
 mongo = MongoClient(gc.MONGO['path'])
 buyables_db = mongo[gc.BUYABLES['database']][gc.BUYABLES['collection']]
 
 
-def add_buyable_list_to_db(buyable_list):
+def add_buyable_list_to_db(buyable_list, allow_overwrite=True):
     result = {
         'error': None,
         'count': 0,
         'added': [],
         'updated': [],
+        'added_count': 0,
+        'updated_count': 0,
+        'duplicate_count': 0,
         'total': len(buyable_list)
     }
     for buyable in buyable_list:
-        res = add_buyable_to_db(buyable)
+        res = add_buyable_to_db(buyable, allow_overwrite=allow_overwrite)
         if not res['error']:
+            if res.get('duplicate'):
+                result['duplicate_count'] += 1
             if res.get('inserted'):
                 result['added'].append(res['inserted'])
+                result['added_count'] += 1
             if res.get('updated'):
                 result['updated'].append(res['updated'])
+                result['updated_count'] += 1
             result['count'] += 1
     return result
 
-def add_buyable_to_db(buyable):
+def add_buyable_to_db(buyable, allow_overwrite=True):
     result = {'error': None}
     smiles = buyable.get('smiles')
     ppg = float(buyable.get('ppg', 0.0))
@@ -54,13 +60,15 @@ def add_buyable_to_db(buyable):
         'source': source
     }
     existing_doc = buyables_db.find_one({'smiles': smiles})
-    if existing_doc:
+    if existing_doc and allow_overwrite:
         buyables_db.update_one(
             {'smiles': smiles},
             {'$set': {'ppg': ppg, 'source': source}}
         )
         new_doc['_id'] = str(existing_doc['_id'])
         result['updated'] = new_doc
+    elif existing_doc and not allow_overwrite:
+        result['duplicate'] = True
     else:
         insert_result = buyables_db.insert_one(new_doc)
         if not insert_result.inserted_id:
@@ -74,14 +82,19 @@ def add_buyable_to_db(buyable):
 def buyables(request):
     search = request.GET.get('q', None)
     source = request.GET.get('source', None)
-    exact = request.GET.get('exact', None) in ['true', 'True']
-    limit = int(request.GET.get('limit', 1000))
+    regex = request.GET.get('regex', None) in ['true', 'True']
+    limit = int(request.GET.get('limit', 100))
+    canon = request.GET.get('canonicalize', 'True') in ['True', 'true']
     query = {}
     if search:
-        if exact:
-            query['smiles'] = search
-        else:
+        if regex:
             query['smiles'] = {'$regex': '.*{}.*'.format(search)}
+        else:
+            if canon:
+                mol = Chem.MolFromSmiles(search)
+                if mol:
+                    search = Chem.MolToSmiles(mol, isomericSmiles=True)
+            query['smiles'] = search
     if source:
         query['source'] = source
     resp = {}
@@ -92,6 +105,7 @@ def buyables(request):
     for doc in search_result:
         doc['_id'] = str(doc['_id'])
     resp['buyables'] = search_result
+    resp['search'] = search
     return JsonResponse(resp)
 
 def delete_buyable(request):
@@ -115,6 +129,8 @@ def upload_buyable(request):
     print(request.FILES)
     file_format = request.POST.get('format')
     upload_file = request.FILES.get('file')
+    return_limit = int(request.POST.get('returnLimit', 1000))
+    allow_overwrite = request.POST.get('allowOverwrite', 'True') in ['True', 'true']
     try:
         content = upload_file.read()
     except:
@@ -140,11 +156,14 @@ def upload_buyable(request):
     if not isinstance(upload_json, list) or len(upload_json) == 0 or not isinstance(upload_json[0], dict):
         resp['error'] = 'Improperly formatted json!'
         return JsonResponse(resp)
-    result = add_buyable_list_to_db(upload_json)
+    result = add_buyable_list_to_db(upload_json, allow_overwrite=allow_overwrite)
     if result.get('error'):
         resp['error'] = result['error']
-    resp['added'] = result['added']
-    resp['updated'] = result['updated']
+    resp['added'] = result['added'][:return_limit]
+    resp['updated'] = result['updated'][:return_limit]
+    resp['added_count'] = result['added_count']
+    resp['updated_count'] = result['updated_count']
+    resp['duplicate_count'] = result['duplicate_count']
     resp['count'] = result['count']
     resp['total'] = result['total']
     return JsonResponse(resp)
@@ -157,15 +176,18 @@ def add_buyable(request):
     smiles = request.GET.get('smiles', None)
     ppg = float(request.GET.get('ppg', 0.0))
     source = request.GET.get('source', '')
+    allow_overwrite = request.GET.get('allowOverwrite', 'True') in ['True', 'true']
     result = add_buyable_to_db({
         'smiles': smiles,
         'ppg': ppg,
         'source': source
-    })
+    }, allow_overwrite=allow_overwrite)
     if result['error']:
         resp['error'] = result['error']
         return JsonResponse(resp)
     resp['success'] = True
+    if result.get('duplicate') == True:
+        resp['duplicate'] = True
     if result.get('inserted'):
         resp['inserted'] = result['inserted']
     if result.get('updated'):
