@@ -26,7 +26,7 @@ API endpoints exist for the following services (described in more depth below):
 |/api/template/|Retrosynthetic template lookup|
 |/api/fast-filter/|Coarse-filter for reactions plausibility|
 |/api/scscore/|Synthetic complexity score|
-|/api/price/|Buyable price|
+|/api/buyables/|Buyable price|
 |/api/celery/|Query the status of the celery workers|
 
 ## Making requests
@@ -1519,19 +1519,27 @@ pprint(resp.json())
     {'request': {'smiles': ['OC(c1ccccc1)c1ccccc1']}, 'score': 1.5127570072299896}
 
 
-## /api/price/
-Given a `smiles` string of a molecule, return the `price` (resolved to integer price per gram values) in the buyables database. A price of 0.0 means the cheical is not in the buyables database.
+## /api/buyables/search
+Given a query, return buyables information. The query can be a SMILES string, or the source field for buyable documents. Optionally, the SMILES string can be canonicalized, or the query string could be a regular expression as follows: '.*{}.*'.format(SMILES) for mongoDB. This endpoint returns `buyables`, a list of documents from mongoDB with `ppg` (price per gram), `smiles`, and `source` (if it exists).
 
 
 ```python
 params = {
-    'smiles': 'OC(c1ccccc1)c1ccccc1' # required
+    'q': 'OC(c1ccccc1)c1ccccc1', # required
+    
+    'source': '',
+    'regex': False,
+    'limit': 100,
+    'canonicalize': True
 }
-resp = requests.get(HOST+'/api/price/', params=params, verify=False)
+resp = requests.get(HOST+'/api/buyables/search/', params=params, verify=False)
 pprint(resp.json())
 ```
 
-    {'price': 1.0, 'request': {'smiles': ['OC(c1ccccc1)c1ccccc1']}}
+    {'buyables': [{'_id': '5dfa4fd06e1e8a027c02fbd9',
+                   'ppg': 1.0,
+                   'smiles': 'OC(c1ccccc1)c1ccccc1'}],
+     'search': 'OC(c1ccccc1)c1ccccc1'}
 
 
     /usr/local/lib/python3.5/dist-packages/urllib3/connectionpool.py:847: InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#ssl-warnings
