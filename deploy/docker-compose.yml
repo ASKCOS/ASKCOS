@@ -1,7 +1,7 @@
 version: '2.2'
 services:
   nginx:
-    image: nginx:latest
+    image: nginx:1.17.6
     restart: always
     depends_on:
       - app
@@ -28,7 +28,7 @@ services:
       - '3306'
 
   mongo:
-    image: mongo
+    image: mongo:4.2.2
     hostname: mongo
     restart: always
     env_file:
@@ -162,7 +162,7 @@ services:
       - mongo
 
   redis:
-    image: redis
+    image: redis:5.0.7
     hostname: redis
     env_file:
       - .env
@@ -174,7 +174,7 @@ services:
     command: redis-server --port ${REDIS_PORT}
 
   rabbit:
-    image: rabbitmq
+    image: rabbitmq:3.8.2
     hostname: rabbit
     env_file:
       - .env

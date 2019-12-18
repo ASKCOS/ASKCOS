@@ -256,7 +256,6 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         chiral = kwargs.get('chiral', True)
         use_db = kwargs.get('use_db', True)
         load_all = kwargs.get('load_all', gc.PRELOAD_TEMPLATES)
-        template_cache = kwargs.get('template_cache', None)
         if not load_all and use_db:
             db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
                                     'id'], connect=gc.MONGO['connect'])
@@ -268,11 +267,8 @@ class RelevanceTemplatePrioritizer(Prioritizer):
             if load_all:
                 template = templates[id]
             elif use_db:
-                if template_cache is not None:
-                    template = template_cache[ObjectId(templates[id][0])]
-                else:
-                    document = TEMPLATE_DB.find_one({'_id': ObjectId(templates[id][0])})
-                    template = doc_to_template(document, chiral)
+                document = TEMPLATE_DB.find_one({'_id': ObjectId(templates[id][0])})
+                template = doc_to_template(document, chiral)
             else:
                 template = doc_to_template(templates[id], chiral)
             template['score'] = prob

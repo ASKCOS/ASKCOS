@@ -58,14 +58,12 @@ class RetroTransformer(TemplateTransformer):
         fast_filter (FastFilterScorer or None): Fast filter for evaluation.
         load_all (bool): Whether to load all of the templates into memory.
         use_db (bool): Whether to use the database to look up templates.
-        cache_size (int): Maximum cache size to use for template cache. Set to 0
-            to not use a cache.
     """
 
     def __init__(self, celery=False, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
         mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
         TEMPLATE_DB=None, lookup_only=False, load_all=gc.PRELOAD_TEMPLATES,
-        use_db=True, cache_size=0):
+        use_db=True):
         """Initializes RetroTransformer.
 
         Args:
@@ -89,8 +87,6 @@ class RetroTransformer(TemplateTransformer):
                 memory. (default: {gc.PRELOAD_TEMPLATES})
             use_db (bool, optional): Whether to use the database to look up
                 templates. (default: {True})
-            cache_size (int, optional): Maximum cache size to use for template
-                cache. Set to 0 to not use a cache. (default: {0})
         """
 
         self.mincount = mincount
@@ -111,7 +107,7 @@ class RetroTransformer(TemplateTransformer):
             # Pre-load fast filter
             self.load_fast_filter()
 
-        super(RetroTransformer, self).__init__(load_all=load_all, use_db=use_db, cache_size=cache_size)
+        super(RetroTransformer, self).__init__(load_all=load_all, use_db=use_db)
 
     def load(self, chiral=True, refs=False, rxns=True, efgs=False, rxn_ex=False):
         """Loads templates to finish initializing the transformer.
@@ -271,8 +267,6 @@ class RetroTransformer(TemplateTransformer):
             template = self.templates[template_idx]
         elif not self.use_db:
             template = self.doc_to_template(self.templates[template_idx])
-        elif self.cache_size > 0:
-            template = self.template_cache[self.templates[template_idx][0]]
         else:
             # HACK: I'm creating a new mongo client every time to avoid the
             #       forking error...
@@ -462,8 +456,7 @@ class RetroTransformer(TemplateTransformer):
         for template in self.template_prioritizer.get_priority((self.templates, target),
             TEMPLATE_DB=self.TEMPLATE_DB, mincount=self.mincount,
             mincount_chiral=self.mincount_chiral, chiral=True,
-            load_all=self.load_all, use_db=self.use_db,
-            template_cache=self.template_cache, **kwargs):
+            load_all=self.load_all, use_db=self.use_db, **kwargs):
 
             if not template['chiral'] and template['count'] < self.mincount:
                 pass
