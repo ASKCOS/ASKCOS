@@ -35,8 +35,10 @@ var app = new Vue({
         uploadFile: '',
         searchSmilesQuery: '',
         searchSourceQuery: '',
-        searchExact: true,
+        searchRegex: false,
         searchLimit: 100,
+        canonSmiles: true,
+        allowOverwrite: true,
         showAddModal: false,
         showUploadModal: false,
         addBuyableSmiles: '',
@@ -47,7 +49,7 @@ var app = new Vue({
     methods: {
         search: function() {
             showLoader()
-            fetch('/api/buyables/search?q='+encodeURIComponent(this.searchSmilesQuery)+'&source='+this.searchSourceQuery+'&exact='+this.searchExact+'&limit='+this.searchLimit)
+            fetch('/api/buyables/search?q='+encodeURIComponent(this.searchSmilesQuery)+'&source='+this.searchSourceQuery+'&regex='+this.searchRegex+'&limit='+this.searchLimit+'&canonicalize='+this.canonSmiles)
             .then(resp => resp.json())
             .then(json => {
                 console.log(json['buyables']);
@@ -74,6 +76,7 @@ var app = new Vue({
             let formData = new FormData()
             formData.append('file', this.uploadFile)
             formData.append('format', this.uploadFileFormat)
+            formData.append('allowOverwrite', this.allowOverwrite)
             fetch('/api/buyables/upload', 
                 {
                     'method': 'POST',
@@ -90,7 +93,7 @@ var app = new Vue({
                     hideLoader()
                     return
                 }
-                alert('Successfully added/modified '+json.count+' of '+json.total+' entries')
+                alert('Out of '+json.total+' entries, successfully added '+json.added_count+', updated '+json.updated_count+', and skipped '+json.duplicate_count+' duplicates. Only adding (up to) '+2*this.searchLimit+' documents to the list below')
                 if (json.added.length > 0) {
                     this.buyables.unshift(...json.added)
                 }
@@ -118,7 +121,7 @@ var app = new Vue({
         },
         addBuyable: function() {
             showLoader()
-            fetch('/api/buyables/add?smiles='+encodeURIComponent(this.addBuyableSmiles)+'&ppg='+this.addBuyablePrice+'&source='+this.addBuyableSource)
+            fetch('/api/buyables/add?smiles='+encodeURIComponent(this.addBuyableSmiles)+'&ppg='+this.addBuyablePrice+'&source='+this.addBuyableSource+'&allowOverwrite='+this.allowOverwrite)
             .then(resp => resp.json())
             .then(json => {
                 if (json.error || json.success != true) {
@@ -136,11 +139,17 @@ var app = new Vue({
                             }
                         }
                     }
+                    if (json.duplicate) {
+                        alert('Compound already exists in database! Check allow overwrite checkbox to allow overwriting!')
+                    }
                 }
             })
             .finally(() => hideLoader())
         },
         deleteBuyable: function(_id) {
+            if (!window.confirm('Click "OK" to confirm deleting this entry')) {
+                return
+            }
             showLoader()
             fetch('/api/buyables/delete?_id='+encodeURIComponent(_id))
             .then(resp => resp.json())

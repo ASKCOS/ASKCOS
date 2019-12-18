@@ -71,6 +71,12 @@
                     <input class="form-control" type="text" v-model="addBuyableSource">
                 </label>
             </div>
+            <div class="form-inline">
+                <label style="margin: 0 5px">
+                    Allow overwrite: 
+                    <input class="form-control" type='checkbox' v-model="allowOverwrite">
+                </label>
+            </div>
         </form>
         <div slot="footer">
             <button class="btn btn-success" @click="showAddModal = false;addBuyable()">Add</button>
@@ -88,14 +94,20 @@
                 </label>
             </div>
             <div class="form-inline">
-                    <label>
-                        Format: 
-                        <select v-model="uploadFileFormat" class="form-control">
-                            <option value="json">JSON</option>
-                            <option value="csv">CSV</option>
-                        </select>
-                    </label>
-                </div>
+                <label>
+                    Format: 
+                    <select v-model="uploadFileFormat" class="form-control">
+                        <option value="json">JSON</option>
+                        <option value="csv">CSV</option>
+                    </select>
+                </label>
+            </div>
+            <div class="form-inline">
+                <label style="margin: 0 5px">
+                    Allow overwrite: 
+                    <input class="form-control" type='checkbox' v-model="allowOverwrite">
+                </label>
+            </div>
         </form>
         <div slot="footer">
             <button class="btn btn-success" @click="showUploadModal = false;handleUploadSubmit()">Upload</button>
@@ -119,7 +131,7 @@
                 </div>
                 <div class="form-inline">
                     <label style="margin: 5px">
-                        Smiles: 
+                        SMILES: 
                         <input class='form-control' type="text" id="searchSmiles" v-model="searchSmilesQuery"/> 
                     </label>
                 </div>
@@ -134,8 +146,14 @@
                 </div>
                 <div class="form-inline">
                     <label style="margin: 0 5px">
-                        Require exact SMILES match: 
-                        <input class="form-control" type='checkbox' v-model="searchExact">
+                        Canonicalize SMILES: 
+                        <input class="form-control" type='checkbox' v-model="canonSmiles">
+                    </label>
+                </div>
+                <div class="form-inline">
+                    <label style="margin: 0 5px">
+                        Use regular expression: 
+                        <input class="form-control" type='checkbox' v-model="searchRegex">
                     </label>
                     <label style="margin: 0 5px">
                         Limit results: 
