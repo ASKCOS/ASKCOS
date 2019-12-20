@@ -66,8 +66,8 @@
         </input>
     </label>
     <label class="btn btn-default">
-        <input type="radio" value="uspto" v-model="templateSet" checked>
-            USPTO
+        <input type="radio" value="uspto_50k" v-model="templateSet" checked>
+            USPTO_50k
         </input>
     </label>
 </div>
@@ -79,13 +79,8 @@
         </input>
     </label>
     <label class="btn btn-default">
-        <input type="radio" value="uspto" v-model="templatePrioritization" checked>
-            USPTO
-        </input>
-    </label>
-    <label class="btn btn-default">
-        <input type="radio" value="uspto_pretrained" v-model="templatePrioritization" checked>
-            USPTO (pretrained)
+        <input type="radio" value="uspto_50k" v-model="templatePrioritization" checked>
+            USPTO_50k
         </input>
     </label>
 </div>
@@ -155,7 +150,7 @@
                 Template set:
                 <select v-model="templateSet" class="form-control">
                     <option value="reaxys">Reaxys</option>
-                    <option value="uspto">USPTO</option>
+                    <option value="uspto_50k">USPTO_50k</option>
                 </select>
             </div>
         </div>
@@ -164,8 +159,7 @@
                 Template prioritization:
                 <select v-model="templatePrioritization" class="form-control">
                     <option value="reaxys">Reaxys</option>
-                    <option value="uspto">USPTO</option>
-                    <option value="uspto_pretrained">USPTO (pretrained)</option>
+                    <option value="uspto_50k">USPTO_50k</option>
                 </select>
             </div>
         </div>

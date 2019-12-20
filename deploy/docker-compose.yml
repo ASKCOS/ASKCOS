@@ -171,21 +171,11 @@ services:
     expose:
       - 8501
 
-  template_relevance_uspto:
+  template_relevance_uspto_50k:
     image: tensorflow/serving
     restart: always
     volumes:
-      - ./models/template_relevance/uspto:/models/template_relevance/1
-    environment:
-      - MODEL_NAME=template_relevance
-    expose:
-      - 8501
-
-  template_relevance_uspto_pretrained:
-    image: tensorflow/serving
-    restart: always
-    volumes:
-      - ./models/template_relevance/uspto_pretrained:/models/template_relevance/1
+      - ./models/template_relevance/uspto_50k:/models/template_relevance/1
     environment:
       - MODEL_NAME=template_relevance
     expose:

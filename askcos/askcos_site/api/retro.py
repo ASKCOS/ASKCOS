@@ -18,11 +18,11 @@ def singlestep(request):
     template_set = request.GET.get('template_set', 'reaxys')
     template_prioritizer = request.GET.get('template_prioritizer', 'reaxys')
 
-    if template_set not in ['reaxys', 'uspto']:
+    if template_set not in ['reaxys', 'uspto_50k']:
         resp['error'] = 'Template set {} not available'.format(template_set)
         return JsonResponse(resp, status=400)
 
-    if template_prioritizer not in ['reaxys', 'uspto', 'uspto_pretrained']:
+    if template_prioritizer not in ['reaxys', 'uspto_50k']:
         resp['error'] = 'Template prioritizer {} not available'.format(template_prioritizer)
         return JsonResponse(resp, status=400)
 
