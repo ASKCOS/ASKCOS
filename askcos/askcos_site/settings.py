@@ -62,6 +62,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'askcos_site.main',
+    'askcos_site',
     'django_extensions',
 )
 
