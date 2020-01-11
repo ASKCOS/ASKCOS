@@ -10,6 +10,8 @@ RUN apt-get update && \
     pip install -r requirements.txt && rm requirements.txt && \
     useradd -ms /bin/bash askcos
 
+COPY --from=registry.gitlab.com/mlpds_mit/askcos/makeit-data:0.4.1 /data /usr/local/ASKCOS/makeit/data
+
 COPY --chown=askcos:askcos . /usr/local/ASKCOS
 
 
