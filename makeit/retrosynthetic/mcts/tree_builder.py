@@ -53,8 +53,7 @@ class MCTS:
     """
 
     def __init__(self, retroTransformer=None, pricer=None, max_branching=20, max_depth=3, expansion_time=60,
-                 celery=False, chiral=True, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
-                 mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
+                 celery=False, chiral=True, mincount=0, mincount_chiral=0,
                  template_prioritization=gc.relevance, precursor_prioritization=gc.relevanceheuristic,
                  chemhistorian=None, nproc=8, num_active_pathways=None):
         """Initialization of an object of the MCTS class.
@@ -152,7 +151,7 @@ class MCTS:
         if chemhistorian is None:
             from makeit.utilities.historian.chemicals import ChemHistorian
             self.chemhistorian = ChemHistorian()
-            self.chemhistorian.load_from_file(refs=False, compressed=True)
+            self.chemhistorian.load_from_file(refs=False, hashed=True)
 
         # Initialize vars, reset dicts, etc.
         self.reset(soft_reset=False) # hard
@@ -558,7 +557,7 @@ class MCTS:
         #     self.model.load(MODEL_PATH)
 
         # Load models that are required
-        self.retroTransformer.get_template_prioritizers(gc.relevance)
+        # self.retroTransformer.get_template_prioritizers(gc.relevance)
         self.initialized[i] = True
 
         while True:
@@ -1010,8 +1009,8 @@ class MCTS:
                 db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
                                         'id'], connect=gc.MONGO['connect'])
 
-                db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
-                collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
+                db_name = gc.RETRO_TEMPLATES['database']
+                collection = gc.RETRO_TEMPLATES['collection']
                 TEMPLATE_DB = db_client[db_name][collection]
                 tforms = []
                 num_examples = 0
@@ -1311,7 +1310,7 @@ class MCTS:
                 self.chemhistorian is None:
             from makeit.utilities.historian.chemicals import ChemHistorian
             self.chemhistorian = ChemHistorian()
-            self.chemhistorian.load_from_file(refs=False, compressed=True)
+            self.chemhistorian.load_from_file(refs=False, hashed=True)
             MyLogger.print_and_log('Loaded compressed chemhistorian from file', treebuilder_loc, level=1)
 
         # Define stop criterion
@@ -1406,9 +1405,7 @@ if __name__ == '__main__':
     # Load tree builder
     NCPUS = 4
     print("There are {} processes available ... ".format(NCPUS))
-    Tree = MCTS(nproc=NCPUS, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
-        mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
-        celery=celery)
+    Tree = MCTS(nproc=NCPUS, mincount=0, mincount_chiral=0, celery=celery)
 
     ####################################################################################
     ############################# SCOPOLAMINE TEST #####################################

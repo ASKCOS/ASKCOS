@@ -10,17 +10,17 @@ else:
 
 class TestTemplateRelevance(unittest.TestCase):
     def setUp(self):
-        self.model = rel.RelevanceTemplatePrioritizer(use_tf=True)
+        self.model = rel.RelevanceTemplatePrioritizer()
         self.model.load_model()
 
     def test_01_get_topk_from_smi(self):
-        result = self.model.get_topk_from_smi('CCCOCCC')
+        result = self.model.predict('CCCOCCC', 100, 0.995)
         with open(os.path.join(os.path.dirname(__file__), 'expected/relevance_01.pkl'), 'rb') as t:
             expected = pickle.load(t)
         self.assertEqual(expected, result)
 
     def test_02_get_topk_from_smi(self):
-        result = self.model.get_topk_from_smi('CCCNc1ccccc1')
+        result = self.model.predict('CCCNc1ccccc1', 100, 0.995)
         with open(os.path.join(os.path.dirname(__file__), 'expected/relevance_02.pkl'), 'rb') as t:
             expected = pickle.load(t)
         self.assertEqual(expected, result)

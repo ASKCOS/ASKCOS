@@ -48,17 +48,6 @@ echo "##########################"
 docker-compose up -d mysql mongo redis rabbit
 sleep 1
 
-if [ "$SKIP_SEED" = false ]; then
-  echo ""
-  echo "###############################"
-  echo "seeding mongo database"
-  echo "###############################"
-  cd mongo
-  docker run -it --rm --network deploy_default --env-file ../.env -v ${PWD}:/init mongo bash /init/init.sh
-  cd ../
-
-fi
-
 if [ "$SKIP_HTTPS" = true ]; then
   echo ""
   echo "###############################"
@@ -87,6 +76,14 @@ echo "starting web application services"
 echo "#################################"
 docker-compose up -d nginx app
 docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py collectstatic --noinput"
+
+if [ "$SKIP_SEED" = false ]; then
+  echo ""
+  echo "###############################"
+  echo "seeding mongo database"
+  echo "###############################"
+  docker-compose exec app python -c "from askcos_site.main.db import seed_mongo_db;seed_mongo_db(reactions=False, chemicals=False)"
+fi
 
 echo ""
 echo "###################################"

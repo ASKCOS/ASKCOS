@@ -1,10 +1,10 @@
 import unittest
-import makeit.utilities.historian.chemicals as c
+from makeit.utilities.historian.chemicals import ChemHistorian
 
 class TestChemHistorian(unittest.TestCase):
     def setUp(self):
-        self.chemhistorian = c.ChemHistorian()
-        self.chemhistorian.load_from_file(refs=False, compressed=True)
+        self.chemhistorian = ChemHistorian(hashed=True)
+        self.chemhistorian.load()
 
     def test_01_lookup_smiles(self):
         result = self.chemhistorian.lookup_smiles('CCCCO')

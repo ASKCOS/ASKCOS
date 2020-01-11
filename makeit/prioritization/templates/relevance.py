@@ -23,7 +23,7 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         self.fp_length = fp_length
         self.fp_radius = fp_radius
 
-    def load_model(self, model_path=gc.Relevance_Prioritization['trained_model_path'], **kwargs):
+    def load_model(self, model_path=gc.RELEVANCE_TEMPLATE_PRIORITIZATION['reaxys']['model_path'], **kwargs):
         """Loads a model to predict template priority.
 
         Args:

@@ -8,19 +8,15 @@ client = MongoClient(
     gc.MONGO['id'],
     connect=gc.MONGO['connect']
 )
-db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
-collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
-retro_chiral = client[db_name][collection]
+db_name = gc.RETRO_TEMPLATES['database']
+collection = gc.RETRO_TEMPLATES['collection']
+retro_templates = client[db_name][collection]
 
 def template(request):
     resp = {}
     resp['request'] = dict(**request.GET)
     _id = request.GET.get('id')
-    transform = retro_chiral.find_one({'_id': ObjectId(_id)})
-    if not transform:
-        transform = retro_achiral.find_one({'_id': ObjectId(_id)})
-    if not transform:
-        transform = synth.find_one({'_id': ObjectId(_id)})
+    transform = retro_templates.find_one({'_id': ObjectId(_id)})
     if not transform:
         resp['error'] = 'Cannot find template with id '+_id
         return JsonResponse(resp)

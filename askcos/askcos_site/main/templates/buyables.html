@@ -201,7 +201,7 @@
                             <td class="text-center">%% doc['source'] %% </td>
                             {% if can_modify_buyables %}
                             <td class="text-center">
-                                <i @click="deleteBuyable(doc._id)" class="fas fa-trash-alt"></i>
+                                <i @click="deleteBuyable(doc._id)" class="fas fa-trash-alt" style="cursor: pointer;"></i>
                             </td>
                             {% endif %}
                         </tr>

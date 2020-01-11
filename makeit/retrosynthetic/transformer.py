@@ -1,7 +1,15 @@
 import os
 from rdkit import Chem
 import makeit.global_config as gc
+import os, sys
+import makeit.utilities.io.pickle as pickle
+from pymongo import MongoClient
+from pymongo.errors import ServerSelectionTimeoutError
 
+import rdkit.Chem as Chem
+from rdkit.Chem import AllChem
+import numpy as np
+from functools import partial  # used for passing args to multiprocessing
 from makeit.utilities.io.logger import MyLogger
 from makeit.utilities.cluster import cluster_precursors
 from makeit.interfaces.template_transformer import TemplateTransformer
@@ -51,12 +59,12 @@ class RetroTransformer(TemplateTransformer):
 
 
     def __init__(
-            self, use_db=True, TEMPLATE_DB=None, load_all=gc.PRELOAD_TEMPLATES,
-            template_prioritizer='relevance', 
-            precursor_prioritizer='relevanceheuristic',
-            fast_filter='default', cluster='default',
-            cluster_settings={}
-        ):
+        self, use_db=True, TEMPLATE_DB=None, load_all=gc.PRELOAD_TEMPLATES,
+        template_set='reaxys', template_prioritizer='reaxys', 
+        precursor_prioritizer='relevanceheuristic',
+        fast_filter='default', cluster='default',
+        cluster_settings={}
+    ):
         """Initializes RetroTransformer.
 
         Args:
@@ -75,6 +83,7 @@ class RetroTransformer(TemplateTransformer):
         """
 
         self.templates = []
+        self.template_set = template_set
         self.TEMPLATE_DB = TEMPLATE_DB
         self.template_prioritizer = template_prioritizer
         self.precursor_prioritizer = precursor_prioritizer
@@ -87,14 +96,15 @@ class RetroTransformer(TemplateTransformer):
 
     def load(self, template_filename=None):
         if template_filename is None:
-            template_filename = os.path.join(
-                gc.local_db_dumps,
-                gc.RETRO_TRANSFORMS_CHIRAL['file_name']
-            )
-        if self.template_prioritizer == 'relevance':
+            template_filename = gc.RETRO_TEMPLATES['file_name']
+
+        if self.template_prioritizer in gc.RELEVANCE_TEMPLATE_PRIORITIZATION:
             MyLogger.print_and_log('Loading template prioritizer for RetroTransformer', retro_transformer_loc)
-            self.template_prioritizer = RelevanceTemplatePrioritizer()
-            self.template_prioritizer.load_model()
+            template_prioritizer = RelevanceTemplatePrioritizer()
+            template_prioritizer.load_model(
+                gc.RELEVANCE_TEMPLATE_PRIORITIZATION[self.template_prioritizer]['model_path']
+            )
+            self.template_prioritizer = template_prioritizer
         
         if self.precursor_prioritizer == 'relevanceheuristic':
             MyLogger.print_and_log('Loading precursor prioritizer for RetroTransformer', retro_transformer_loc)
@@ -120,10 +130,10 @@ class RetroTransformer(TemplateTransformer):
             except ServerSelectionTimeoutError:
                 MyLogger.print_and_log('cannot connect to db, reading from file instead', retro_transformer_loc)
                 self.use_db = False
-                self.load_from_file(template_filename)
+                self.load_from_file(template_filename, self.template_set)
         else:
             MyLogger.print_and_log('reading from file', retro_transformer_loc)
-            self.load_from_file(template_filename)
+            self.load_from_file(template_filename, self.template_set)
 
         MyLogger.print_and_log(
             'Retrosynthetic transformer has been loaded - using {} templates (may be multiple template sets!).'.format(
@@ -131,7 +141,7 @@ class RetroTransformer(TemplateTransformer):
             ), retro_transformer_loc
         )
 
-    def get_one_template_by_idx(self, index, template_set):
+    def get_one_template_by_idx(self, index, template_set=None):
         """Returns one template from given template set with given index.
 
         Args:
@@ -142,12 +152,15 @@ class RetroTransformer(TemplateTransformer):
             Template dictionary ready to be applied (i.e. - has 'rxn' object)
 
         """
+        if template_set is None:
+            template_set = self.template_set
+
         if self.use_db:
             db_client = MongoClient(
                 gc.MONGO['path'], gc.MONGO['id'], connect=gc.MONGO['connect']
             )
-            db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
-            collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
+            db_name = gc.RETRO_TEMPLATES['database']
+            collection = gc.RETRO_TEMPLATES['collection']
             self.TEMPLATE_DB = db_client[db_name][collection]
             template = self.TEMPLATE_DB.find_one(
                 {
@@ -170,7 +183,7 @@ class RetroTransformer(TemplateTransformer):
 
         return template
 
-    def order_templates_by_indices(self, indices, template_set):
+    def order_templates_by_indices(self, indices, template_set=None):
         """Reorders and returns templates given specified indices.
 
         Handles use of a database, multiple template sets, as well as preloading templates.
@@ -182,6 +195,8 @@ class RetroTransformer(TemplateTransformer):
             List of templates ready to be applied (i.e. - with rxn object)
 
         """
+        if template_set is None:
+            template_set = self.template_set
 
         index_list = indices.tolist()
 
@@ -209,7 +224,7 @@ class RetroTransformer(TemplateTransformer):
 
     def get_outcomes(
             self, smiles, precursor_prioritizer=None,
-            template_set='reaxys', template_prioritizer=None, 
+            template_set=None, template_prioritizer=None, 
             fast_filter=None, fast_filter_threshold=0.75, 
             max_num_templates=100, max_cum_prob=0.995, 
             cluster=None, cluster_settings={}, 
@@ -252,6 +267,9 @@ class RetroTransformer(TemplateTransformer):
              RetroResult: Special object for a retrosynthetic expansion result,
                 defined by ./results.py
         """
+
+        if template_set is None:
+            template_set = self.template_set
 
         if template_prioritizer is None:
             template_prioritizer = self.template_prioritizer
@@ -355,7 +373,7 @@ class RetroTransformer(TemplateTransformer):
     def apply_one_template_by_idx(
         self, _id, smiles, template_idx, calculate_next_probs=True,
         fast_filter_threshold=0.75, max_num_templates=100, max_cum_prob=0.995,
-        template_prioritizer=None, template_set='reaxys'
+        template_prioritizer=None, template_set=None
     ):
         """Applies one template by index.
 
@@ -386,6 +404,9 @@ class RetroTransformer(TemplateTransformer):
         """
         if template_prioritizer is None:
             template_prioritizer = self.template_prioritizer
+        
+        if template_set is None:
+            template_set = self.template_set
 
         mol = Chem.MolFromSmiles(smiles)
         smiles = Chem.MolToSmiles(mol, isomericSmiles=True)
@@ -457,70 +478,3 @@ if __name__ == '__main__':
     #test with one template
     outcomes = t.apply_one_template_by_idx(1, 'CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1', 109659)
     print(outcomes)
-
-    # import matplotlib.pyplot as plt
-    # import time
-    #
-    # preload_start = time.time()
-    # preload_rt = RetroTransformer(load_all=True)
-    # preload_rt.load()
-    # preload_elapsed = time.time()-preload_start
-    # print('Preload took {} seconds to load.'.format(round(preload_elapsed, 3)))
-    # preload_rt.load_fast_filter()
-    #
-    # db_start = time.time()
-    # db_rt = RetroTransformer(load_all=False)
-    # db_rt.load()
-    # db_elapsed = time.time()-db_start
-    # print('DB took {} seconds to load.'.format(round(db_elapsed, 3)))
-    # db_rt.load_fast_filter()
-    #
-    # counts = [10, 100, 1000, 10000, 100000, sys.maxsize]
-    # labels = ['10', '100', '1000', '10000', '100000', str(len(db_rt.templates))]
-    # smiles = ['CN(C)CCOC(c1ccccc1)c2ccccc2', 'OC(Cn1cncn1)(Cn2cncn2)c3ccc(F)cc3F', 'Cc1ccnc2N(C3CC3)c4ncccc4C(=O)Nc12', 'CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3', 'CN1C(=O)CN=C(c2ccccc2)c3cc(Cl)ccc13']
-    #
-    # counts.reverse()
-    # labels.reverse()
-
-    # for p in (1.0, 0.999, 0.997, 0.995):
-    #     p_avg = []
-    #     p_std = []
-    #     db_avg = []
-    #     db_std = []
-    #     for count in counts:
-    #         preload_times = []
-    #         db_times = []
-    #         for s in smiles:
-    #             p_start = time.time()
-    #             p_out = preload_rt.get_outcomes(s, 0, (gc.relevanceheuristic, gc.relevance), template_count=count, max_cum_prob=p)
-    #             p_elapsed = time.time() - p_start
-    #             preload_times.append(p_elapsed)
-    #
-    #             db_start = time.time()
-    #             db_out = db_rt.get_outcomes(s, 0, (gc.relevanceheuristic, gc.relevance), template_count=count, max_cum_prob=p)
-    #             db_elapsed = time.time() - db_start
-    #             db_times.append(db_elapsed)
-    #             print(s)
-    #
-    #         p_avg.append(np.mean(preload_times))
-    #         p_std.append(np.std(preload_times))
-    #         db_avg.append(np.mean(db_times))
-    #         db_std.append(np.std(db_times))
-    #         print(count)
-    #
-    #     import pickle
-    #     with open('{}_p_avg_std_db.pkl'.format(p), 'wb') as f:
-    #         pickle.dump((p_avg, p_std, db_avg, db_std), f)
-    #     x = np.arange(len(p_avg))
-    #     width = 0.35
-    #     p1 = plt.bar(x - width/2, p_avg, width, yerr=p_std)
-    #     p2 = plt.bar(x + width/2, db_avg, width, yerr=db_std)
-    #     plt.ylabel('Elapsed Time (s)')
-    #     plt.ylim(bottom=0)
-    #     plt.title('Time for Preloading vs DB lookup (p={})'.format(p))
-    #     plt.xticks(x, labels)
-    #     plt.xlabel('# Templates')
-    #     plt.legend((p1[0], p2[0]), ('Preload', 'DB'))
-    #     plt.savefig('{}_times.png'.format(p))
-    #     plt.close()
-    #     print(p)

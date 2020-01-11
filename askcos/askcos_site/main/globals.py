@@ -13,36 +13,23 @@ import makeit.retrosynthetic.transformer as transformer
 RetroTransformer = transformer.RetroTransformer(template_prioritizer=None, precursor_prioritizer=None, fast_filter=None)
 RetroTransformer.load()
 RETRO_CHIRAL_FOOTNOTE = 'Using {} chiral retrosynthesis templates from {}/{}'.format(
-    gc.Relevance_Prioritization['output_size'],
-    gc.RETRO_TRANSFORMS_CHIRAL['database'],
-    gc.RETRO_TRANSFORMS_CHIRAL['collection']
+    gc.RELEVANCE_TEMPLATE_PRIORITIZATION['reaxys']['output_size'],
+    gc.RETRO_TEMPLATES['database'],
+    gc.RETRO_TEMPLATES['collection']
 )
 
 ### Databases
-db = db_client[settings.REACTIONS['database']]
-REACTION_DB = db[settings.REACTIONS['collection']]
-# RETRO_LIT_FOOTNOTE = 'Searched {} known reactions from literature'.format(REACTION_DB.count())
+db = db_client[gc.REACTIONS['database']]
+REACTION_DB = db[gc.REACTIONS['collection']]
 
-db = db_client[settings.INSTANCES['database']]
-INSTANCE_DB = db[settings.INSTANCES['collection']]
+db = db_client[gc.CHEMICALS['database']]
+CHEMICAL_DB = db[gc.CHEMICALS['collection']]
 
-db = db_client[settings.CHEMICALS['database']]
-CHEMICAL_DB = db[settings.CHEMICALS['collection']]
+db = db_client[gc.BUYABLES['database']]
+BUYABLE_DB = db[gc.BUYABLES['collection']]
 
-db = db_client[settings.BUYABLES['database']]
-BUYABLE_DB = db[settings.BUYABLES['collection']]
-
-db = db_client[settings.SOLVENTS['database']]
-SOLVENT_DB = db[settings.SOLVENTS['collection']]
-
-db = db_client[settings.REACTIONS_OLD['database']]
-REACTION_DB_OLD = db[settings.REACTIONS_OLD['collection']]
-
-db = db_client[settings.INSTANCES_OLD['database']]
-INSTANCE_DB_OLD = db[settings.INSTANCES_OLD['collection']]
-
-db = db_client[settings.CHEMICALS_OLD['database']]
-CHEMICAL_DB_OLD = db[settings.CHEMICALS_OLD['collection']]
+db = db_client[gc.SOLVENTS['database']]
+SOLVENT_DB = db[gc.SOLVENTS['collection']]
 
 
 ### Prices
@@ -84,8 +71,7 @@ print(scscorer.get_score_from_smiles('CCCC', noprice=True))
 
 # Solvent choices - the save file is created by the template-based forward predictor
 solvent_choices = []
-from makeit.utilities.io.files import get_abraham_solvents_path
-file_path = get_abraham_solvents_path()
+file_path = gc.SOLVENTS['file_name']
 if os.path.isfile(file_path):
     with open(file_path, 'rb') as fid:
         solvent_name_to_smiles = pickle.load(fid)
