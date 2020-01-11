@@ -1,31 +1,20 @@
-from __future__ import print_function
-
+import os
+from rdkit import Chem
 import makeit.global_config as gc
-import os, sys
-import makeit.utilities.io.pickle as pickle
-from pymongo import MongoClient
-from pymongo.errors import ServerSelectionTimeoutError
 
-USE_STEREOCHEMISTRY = True
-import rdkit.Chem as Chem
-from rdkit.Chem import AllChem
-import numpy as np
-from functools import partial  # used for passing args to multiprocessing
 from makeit.utilities.io.logger import MyLogger
-from makeit.utilities.reactants import clean_reactant_mapping
-from makeit.retrosynthetic.results import RetroResult, RetroPrecursor
+from makeit.utilities.cluster import cluster_precursors
 from makeit.interfaces.template_transformer import TemplateTransformer
-from makeit.prioritization.precursors.heuristic import HeuristicPrecursorPrioritizer
-from makeit.prioritization.precursors.relevanceheuristic import RelevanceHeuristicPrecursorPrioritizer
-from makeit.prioritization.precursors.mincost import MinCostPrecursorPrioritizer
-from makeit.prioritization.precursors.scscore import SCScorePrecursorPrioritizer
-from makeit.prioritization.templates.popularity import PopularityTemplatePrioritizer
 from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
-from makeit.prioritization.default import DefaultPrioritizer
+from makeit.prioritization.precursors.relevanceheuristic import RelevanceHeuristicPrecursorPrioritizer
 from makeit.synthetic.evaluation.fast_filter import FastFilterScorer
 from rdchiral.main import rdchiralRun
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 from bson.objectid import ObjectId
+import pymongo
+from pymongo import MongoClient
+from pymongo.errors import ServerSelectionTimeoutError
+
 retro_transformer_loc = 'retro_transformer'
 
 
@@ -60,131 +49,202 @@ class RetroTransformer(TemplateTransformer):
         use_db (bool): Whether to use the database to look up templates.
     """
 
-    def __init__(self, celery=False, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
-        mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
-        TEMPLATE_DB=None, lookup_only=False, load_all=gc.PRELOAD_TEMPLATES,
-        use_db=True):
+
+    def __init__(
+            self, use_db=True, TEMPLATE_DB=None, load_all=gc.PRELOAD_TEMPLATES,
+            template_prioritizer='relevance', 
+            precursor_prioritizer='relevanceheuristic',
+            fast_filter='default', cluster='default',
+            cluster_settings={}
+        ):
         """Initializes RetroTransformer.
 
         Args:
-            celery (bool, optional): Whether or not Celery is being used.
-                (default: {False})
-            mincount (int, optional): Minimum number of precedents for an
-                achiral template for inclusion in the template library. Only
-                used when retrotransformers need to be initialized.
-                (default: {25})
-            mincount_chiral (int, optional): Minimum number of precedents
-                for a chiral template for inclusion in the template library.
-                Only used when retrotransformers need to be initialized. Chiral
-                templates are necessarily more specific, so we generally use a
-                lower threshold than achiral templates. (default: {10})
-            TEMPLATE_DB (None or MongoDB, optional): Database to load
-                templates from. (default: {None})
-            lookup_only (bool, optional): Whether to only lookup templates in
-                the database (instead of loading the entire database).
-                (default: {False})
-            load_all (bool, optional): Whether to load all of the templates into
-                memory. (default: {gc.PRELOAD_TEMPLATES})
             use_db (bool, optional): Whether to use the database to look up
                 templates. (default: {True})
+            TEMPLATE_DB (None or MongoDB, optional): Database to load
+                templates from. (default: {None})
+            load_all (bool, optional): Whether to load all of the templates into
+                memory. (default: {gc.PRELOAD_TEMPLATES})
+            template_prioritizer (str or Prioritizer): Template prioritizer 
+                to use. This can either be 'relevance' or an instance of type 
+                Prioritizer the implements a predict method that takes 
+                (smiles, max_num_templates, max_cum_prob) arguments and 
+                returns np.ndarrays of type np.float32 for (scores, indices)
+                of templates to use.
         """
 
-        self.mincount = mincount
-        if mincount_chiral == -1:
-            self.mincount_chiral = mincount
-        else:
-            self.mincount_chiral = mincount_chiral
         self.templates = []
-        self.celery = celery
         self.TEMPLATE_DB = TEMPLATE_DB
-        self.lookup_only = lookup_only
-        self.precursor_prioritizers = {}
-        self.template_prioritizers = {}
-        self.precursor_prioritizer = None
-        self.template_prioritizer = None
-        self.fast_filter = None
-        if self.celery:
-            # Pre-load fast filter
-            self.load_fast_filter()
-
+        self.template_prioritizer = template_prioritizer
+        self.precursor_prioritizer = precursor_prioritizer
+        self.fast_filter = fast_filter
+        self.cluster = cluster
+        self.cluster_settings = cluster_settings
+        
         super(RetroTransformer, self).__init__(load_all=load_all, use_db=use_db)
 
-    def load(self, chiral=True, refs=False, rxns=True, efgs=False, rxn_ex=False):
-        """Loads templates to finish initializing the transformer.
 
-        Args:
-            TEMPLATE_DB (None or MongoDB, optional): MongoDB to load from.
-                (default: {None})
-            chiral (bool, optional): Whether to pay close attention to
-                chirality. (default: {False})
-            refs (bool, optional): Whether to also save references
-                (Reaxys instance IDs) when loading templates. (default: {False})
-            rxns (bool, optional): Whether to actually load reaction SMARTS
-                into RDKit reaction objects. (default: {True})
-            efgs (bool, optional): Whether to load statistics about DFG
-                popularity. [old] (default: {False})
-            rxn_ex (bool, optional): Whether to also save a reaction example
-                with each template as it is loaded. (default: {False})
-        """
-
-        self.chiral = chiral
-
-        MyLogger.print_and_log('Loading retro-synthetic transformer, including all templates with more than {} hits ({} for chiral reactions)'.format(
-            self.mincount, self.mincount_chiral), retro_transformer_loc)
-
-        if chiral:
-            from makeit.utilities.io.files import get_retrotransformer_chiral_path
-            file_path = get_retrotransformer_chiral_path(
-                gc.RETRO_TRANSFORMS_CHIRAL['database'],
-                gc.RETRO_TRANSFORMS_CHIRAL['collection'],
-                self.mincount,
-                self.mincount_chiral,
+    def load(self, template_filename=None):
+        if template_filename is None:
+            template_filename = os.path.join(
+                gc.local_db_dumps,
+                gc.RETRO_TRANSFORMS_CHIRAL['file_name']
             )
-        else:
-            from makeit.utilities.io.files import get_retrotransformer_achiral_path
-            file_path = get_retrotransformer_achiral_path(
-                gc.RETRO_TRANSFORMS['database'],
-                gc.RETRO_TRANSFORMS['collection'],
-                self.mincount,
-            )
+        if self.template_prioritizer == 'relevance':
+            MyLogger.print_and_log('Loading template prioritizer for RetroTransformer', retro_transformer_loc)
+            self.template_prioritizer = RelevanceTemplatePrioritizer()
+            self.template_prioritizer.load_model()
+        
+        if self.precursor_prioritizer == 'relevanceheuristic':
+            MyLogger.print_and_log('Loading precursor prioritizer for RetroTransformer', retro_transformer_loc)
+            self.precursor_prioritizer_object = RelevanceHeuristicPrecursorPrioritizer()
+            self.precursor_prioritizer_object.load_model()
+            self.precursor_prioritizer = self.precursor_prioritizer_object.reorder_precursors
+        
+        if self.fast_filter == 'default':
+            MyLogger.print_and_log('Loading fast filter for RetroTransformer', retro_transformer_loc)
+            self.fast_filter_object = FastFilterScorer()
+            self.fast_filter_object.load(gc.FAST_FILTER_MODEL['trained_model_path'])
+            self.fast_filter = lambda x, y: self.fast_filter_object.evaluate(x, y)[0][0]['score']
 
+        if self.cluster == 'default':
+            MyLogger.print_and_log('Using default clustering for RetroTransformer', retro_transformer_loc)
+            self.cluster = cluster_precursors
+        
+        MyLogger.print_and_log('Loading retro-synthetic transformer', retro_transformer_loc)
         if self.use_db:
             MyLogger.print_and_log('reading from db', retro_transformer_loc)
             try:
-                self.load_from_database(True, chiral=chiral, rxns=True, refs=True, efgs=True, rxn_ex=True)
+                self.load_from_database()
             except ServerSelectionTimeoutError:
                 MyLogger.print_and_log('cannot connect to db, reading from file instead', retro_transformer_loc)
                 self.use_db = False
-                self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+                self.load_from_file(template_filename)
         else:
             MyLogger.print_and_log('reading from file', retro_transformer_loc)
-            self.load_from_file(True, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+            self.load_from_file(template_filename)
 
-        self.reorder()
-        MyLogger.print_and_log('Retrosynthetic transformer has been loaded - using {} templates.'.format(
-            self.num_templates), retro_transformer_loc)
+        MyLogger.print_and_log(
+            'Retrosynthetic transformer has been loaded - using {} templates (may be multiple template sets!).'.format(
+                self.num_templates
+            ), retro_transformer_loc
+        )
 
-    def load_fast_filter(self):
-        """Initializes and loads FastFilterScorer.
+    def get_one_template_by_idx(self, index, template_set):
+        """Returns one template from given template set with given index.
 
-        NOTE: Keras backend must be Theano for fast filter to work.
+        Args:
+            index (int): index of template to return
+            template_set (str): name of template set to return template from
+
+        Returns:
+            Template dictionary ready to be applied (i.e. - has 'rxn' object)
+
         """
-        self.fast_filter = FastFilterScorer()
-        # self.fast_filter.set_keras_backend('theano')
-        self.fast_filter.load(model_path=gc.FAST_FILTER_MODEL['trained_model_path'])
+        if self.use_db:
+            db_client = MongoClient(
+                gc.MONGO['path'], gc.MONGO['id'], connect=gc.MONGO['connect']
+            )
+            db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
+            collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
+            self.TEMPLATE_DB = db_client[db_name][collection]
+            template = self.TEMPLATE_DB.find_one(
+                {
+                    'index': index,
+                    'template_set': template_set
+                }
+            )
+        else:
+            template = list(filter(
+                lambda x: x['template_set'] == template_set and x['index']==index,
+                self.templates
+            ))
+            if len(template) != 1:
+                raise ValueError('Duplicate templates found when trying to retrieve one unique template!')
+            template = template[0]
+            print(template)
 
-    def get_outcomes(self, smiles, mincount, prioritizers, **kwargs):
+        if not self.load_all:
+            template = self.doc_to_template(template)
+
+        return template
+
+    def order_templates_by_indices(self, indices, template_set):
+        """Reorders and returns templates given specified indices.
+
+        Handles use of a database, multiple template sets, as well as preloading templates.
+
+        Args:
+            indices (np.ndarray): Numpy array of indices to reorder templates.
+
+        Returns:
+            List of templates ready to be applied (i.e. - with rxn object)
+
+        """
+
+        index_list = indices.tolist()
+
+        if self.use_db:
+            templates = list(
+                self.TEMPLATE_DB.find(
+                    {
+                        'index': {'$in': index_list},
+                        'template_set': template_set
+                    }
+                )
+            )
+        else:
+            templates = list(filter(
+                lambda x: x['template_set'] == template_set and x['index'] in indices,
+                self.templates
+            ))
+
+        templates.sort(key=lambda x: index_list.index(x['index']))
+
+        if not self.load_all:
+            templates = [self.doc_to_template(temp) for temp in templates]
+
+        return templates
+
+    def get_outcomes(
+            self, smiles, precursor_prioritizer=None,
+            template_set='reaxys', template_prioritizer=None, 
+            fast_filter=None, fast_filter_threshold=0.75, 
+            max_num_templates=100, max_cum_prob=0.995, 
+            cluster=None, cluster_settings={}, 
+            **kwargs
+        ):
         """Performs a one-step retrosynthesis given a SMILES string.
 
         Applies each transformation template sequentially to given target
         molecule to perform retrosynthesis.
 
         Args:
-            smiles (str): Product SMILES string to find precursors for.
-            mincount (int): Minimum template popularity.
-            prioritizers (2-tuple of (str, str)): Tuple defining the
-                precursor_prioritizer and template_prioritizer to use for
-                expansion, each as a string.
+            smiles (str): Target SMILES string to find precursors for.
+            template_prioritizer (optional, Prioritizer): Use to override
+                prioritizer created during initialization. This can be 
+                any Prioritizer instance that implements a predict method 
+                that accepts (smiles, templates, max_num_templates, max_cum_prob) 
+                as arguments and returns a (scores, indices) for templates
+                up until max_num_templates or max_cum_prob.
+            precursor_prioritizer (optional, callable): Use to override
+                prioritizer created during initialization. This can be
+                any callable function that reorders a list of precursor
+                dictionary objects.
+            fast_filter (optional, callable): Use to override fast filter
+                created during initialization. This can be any callable 
+                function that accepts (reactants, products) smiles strings 
+                as arguments and returns a score on the range [0.0, 1.0].
+            fast_filter_threshold (float): Fast filter threshold to filter
+                bad predictions. 1.0 means use all templates.
+            cluster (optional, callable): Use to override cluster method.
+                This can be any callable that accepts 
+                (target, outcomes, **cluster_settings) where target is a smiles 
+                string, outcomes is a list of precursor dictionaries, and cluster_settings 
+                are cluster specific cluster settings.
+            cluster_settings (optional, dict): Dictionary of cluster specific settings
+                to be passed to clustering method.
             **kwargs: Additional kwargs to pass through to prioritizers or to
                 handle deprecated options.
 
@@ -192,301 +252,207 @@ class RetroTransformer(TemplateTransformer):
              RetroResult: Special object for a retrosynthetic expansion result,
                 defined by ./results.py
         """
-        apply_fast_filter = kwargs.pop('apply_fast_filter', True)
-        filter_threshold = kwargs.pop('filter_threshold', 0.75)
-        if (apply_fast_filter and not self.fast_filter):
-            self.load_fast_filter()
-        (precursor_prioritizer, template_prioritizer) = prioritizers
-        # Check modules:
-        if not (template_prioritizer and precursor_prioritizer):
-            MyLogger.print_and_log(
-                'Template prioritizer and/or precursor prioritizer are missing. Exiting...', retro_transformer_loc, level=3)
-        self.mincount = mincount
-        self.get_precursor_prioritizers(precursor_prioritizer)
-        self.get_template_prioritizers(template_prioritizer)
 
-        # Define mol to operate on
+        if template_prioritizer is None:
+            template_prioritizer = self.template_prioritizer
+        
+        if precursor_prioritizer is None:
+            precursor_prioritizer = self.precursor_prioritizer
+
+        if fast_filter == None:
+            fast_filter = self.fast_filter
+
+        if cluster == None:
+            cluster = self.cluster
+
+        if cluster_settings == None:
+            cluster_settings = self.cluster_settings
+
         mol = Chem.MolFromSmiles(smiles)
-        smiles = Chem.MolToSmiles(mol, isomericSmiles=True)  # to canonicalize
-        if self.chiral:
-            mol = rdchiralReactants(smiles)
-
-        # Initialize results object
-        result = RetroResult(smiles)
-
-        for template in self.top_templates(smiles, **kwargs):
-            for precursor in self.apply_one_template(mol, smiles, template):
-
-                # Should we add this to the results?
-                if apply_fast_filter:
-                    reactant_smiles = '.'.join(precursor.smiles_list)
-                    filter_flag, filter_score = self.fast_filter.filter_with_threshold(reactant_smiles, smiles, filter_threshold)
-                    if filter_flag:
-                        precursor.plausibility = filter_score
-                        result.add_precursor(precursor, self.precursor_prioritizer, **kwargs)
-                else:
-                    result.add_precursor(precursor, self.precursor_prioritizer, **kwargs)
-        return result
-
-    def apply_one_template_by_idx(self, _id, smiles, template_idx, calculate_next_probs=True, **kwargs):
-        """Takes a SMILES and applies the template with given index.
-
-        This is useful in the MCTS code.
-
-        Args:
-            _id (int): Not used; passed through to output.
-            smiles (str): SMILES of molecule to apply template to.
-            template_idx (int): Index of template to be used.
-            calculate_next_probs (bool, optional): Whether to calculate template
-                relevance probabilities for precursors (default: {True})
-            **kwargs: Additional optional arguments.
-
-        Returns:
-            list of 5-tuples of (int, str, int, list, float): Result of
-                applying given template to the molecule including the template
-                relevance probabilities of all resulting precursors when
-                calculate_next_probs is True.
-        """
-        # QUESTION: Why are these not just optional named arguments?
-        apply_fast_filter = kwargs.pop('apply_fast_filter', True)
-        filter_threshold = kwargs.pop('filter_threshold', 0.75)
-        template_count = kwargs.pop('template_count', 100)
-        max_cum_prob = kwargs.pop('max_cum_prob', 0.995)
-        if (apply_fast_filter and not self.fast_filter):
-            self.load_fast_filter()
-        self.get_template_prioritizers(gc.relevance)
-
-        # Define mol to operate on
-        mol = Chem.MolFromSmiles(smiles)
-        smiles = Chem.MolToSmiles(mol, isomericSmiles=True)  # to canonicalize
-        if self.chiral:
-            mol = rdchiralReactants(smiles)
-
-        all_outcomes = []; seen_reactants = {}; seen_reactant_combos = [];
-        if self.load_all:
-            template = self.templates[template_idx]
-        elif not self.use_db:
-            template = self.doc_to_template(self.templates[template_idx])
-        else:
-            # HACK: I'm creating a new mongo client every time to avoid the
-            #       forking error...
-            db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
-                                    'id'], connect=gc.MONGO['connect'])
-
-            db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
-            collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
-            self.TEMPLATE_DB = db_client[db_name][collection]
-            doc = self.TEMPLATE_DB.find_one({'_id': ObjectId(self.templates[template_idx][0])})
-            template = self.doc_to_template(doc)
-        for smiles_list in self.apply_one_template_smilesonly(mol, smiles, template):
-            # Avoid duplicate outcomes (e.g., by symmetry)
-            reactant_smiles = '.'.join(smiles_list)
-            if reactant_smiles in seen_reactant_combos:
-                continue
-            seen_reactant_combos.append(reactant_smiles)
-
-            # Should we add this to the results?
-            filter_score = 1.0
-            if apply_fast_filter:
-                filter_flag, filter_score = self.fast_filter.filter_with_threshold(reactant_smiles, smiles, filter_threshold)
-                if not filter_flag:
-                    continue
-
-            # Should we calculate template relevance scores for each precursor?
-            reactants = []
-            if calculate_next_probs:
-                for reactant_smi in smiles_list:
-                    if reactant_smi not in seen_reactants:
-                        probs, indeces = self.template_prioritizer.get_topk_from_smi(reactant_smi, k=template_count)
-                        # Truncate based on max_cum_prob?
-                        truncate_to = np.argwhere(np.cumsum(probs) >= max_cum_prob)
-                        if len(truncate_to):
-                            truncate_to = truncate_to[0][0] + 1 # Truncate based on max_cum_prob?
-                        else:
-                            truncate_to = template_count
-                        value = 1 # current value assigned to precursor (note: may replace with real value function)
-                        # Save to dict
-                        seen_reactants[reactant_smi] = (reactant_smi, probs[:truncate_to], indeces[:truncate_to], value)
-                    reactants.append(seen_reactants[reactant_smi])
-
-                all_outcomes.append((_id, smiles, template_idx, reactants, filter_score))
-
-            else:
-                all_outcomes.append((_id, smiles, template_idx, smiles_list, filter_score))
-
-        if not all_outcomes:
-            all_outcomes.append((_id, smiles, template_idx, [], 0.0)) # dummy outcome
-
-        return all_outcomes
-
-
-    def apply_one_template_smilesonly(self, react_mol, smiles, template, **kwargs):
-        """Takes a rdchiralReactants object and applies a single template.
-
-        Only yields SMILES of precursors.
-
-        Args:
-            react_mol (rdchiralReactants): Initialized reactant object using
-                RDChiral helper package; is the target compound to find
-                precursors for.
-            smiles (str): Product SMILES (no atom mapping).
-            template (dict): Template to be applied, containing an initialized
-                rdchiralReaction object as its 'rxn' field.
-            smiles_list_only (bool): Whether we only care about the list of
-                reactant smiles strings.
-            **kwargs: Additional kwargs to accept deprecated options.
-
-        Yields:
-            list of str: Results of applying template in the form of a list
-                of SMILES strings.
-        """
-        if template is not None:
-            try:
-                if self.chiral:
-                    outcomes = rdchiralRun(template['rxn'], react_mol)
-                else:
-                    outcomes = template['rxn'].RunReactants([react_mol])
-                results = []
-                for j, outcome in enumerate(outcomes):
-                    smiles_list = []
-                    # Output of rdchiral is (a list of) smiles of the products.
-                    smiles_list = outcome.split('.')
-
-                    if template['intra_only'] and len(smiles_list) > 1:
-                        # Disallowed intermolecular reaction
-                        continue
-                    if template['dimer_only'] and (len(set(smiles_list)) != 1 or len(smiles_list) != 2):
-                        # Not a dimer
-                        continue
-                    if '.'.join(smiles_list) == smiles:
-                        # no transformation
-                        continue
-                    yield smiles_list
-            except Exception as e:
-                pass
-
-    def apply_one_template(self, react_mol, smiles, template, **kwargs):
-        """Takes a rdchiralReactants object and applies a single template.
-
-        Arguments:
-            react_mol (rdchiralReactants): Initialized reactant object using
-                RDChiral helper package; is the target compound to find
-                precursors for.
-            smiles (str): Product SMILES (no atom mapping).
-            template (dict): Template to be applied, containing an initialized
-                rdchiralReaction object as its 'rxn' field.
-            smiles_list_only (bool): Whether we only care about the list of
-                reactant smiles strings.
-            **kwargs: Additional kwargs to accept deprecated options.
-
-        Returns:
-            list: RetroPrecursor objects resulting from applying this one
-                template.
-        """
-        if template is None:
-            return []
-        try:
-            if self.chiral:
-                outcomes, mapped_outcomes = rdchiralRun(template['rxn'], react_mol, return_mapped=True)
-            else:
-                outcomes = template['rxn'].RunReactants([react_mol])
-        except Exception as e:
-            return []
+        smiles = Chem.MolToSmiles(mol, isomericSmiles=True)
+        mol = rdchiralReactants(smiles)
 
         results = []
+        smiles_to_index = {}
+
+        scores, indices = template_prioritizer.predict(smiles, max_num_templates, max_cum_prob)
+
+        templates = self.order_templates_by_indices(indices, template_set)
+
+        for template, score in zip(templates, scores):
+            precursors = self.apply_one_template(mol, template)
+            for precursor in precursors:
+                precursor['template_score'] = score
+                joined_smiles = '.'.join(precursor['smiles_split'])
+                precursor['plausibility'] = fast_filter(joined_smiles, smiles)
+                # skip if no transformation happened or plausibility is below threshold
+                if joined_smiles == smiles or precursor['plausibility'] < fast_filter_threshold:
+                    continue 
+                if joined_smiles in smiles_to_index:
+                    res = results[smiles_to_index[joined_smiles]]
+                    res['tforms'] |= set([precursor['template_id']])
+                    res['num_examples'] += precursor['num_examples']
+                    res['template_score'] = max(res['template_score'], score)
+                else:
+                    precursor['tforms'] = set([precursor['template_id']])
+                    smiles_to_index[joined_smiles] = len(results)
+                    results.append(precursor)
+        for rank, result in enumerate(results, 1):
+            result['tforms'] = list(result['tforms'])
+            result['rank'] = rank
+        results = precursor_prioritizer(results)
+        cluster_ids = cluster(smiles, results, **cluster_settings)
+        for (i, precursor) in enumerate(results):
+            precursor['group_id'] = cluster_ids[i]
+        return results
+
+    def apply_one_template(self, mol, template):
+        """Applies one template to a molecules and returns precursors.
+
+        Args:
+            mol (rdchiralReactants): rdchiral reactants molecules to apply
+                the template to.
+            template (dict): Dictionary representing template to apply. Must 
+                have 'rxn' key where value is a rdchiralReaction object.
+
+        Returns:
+            List of dictionaries representing precursors generated from 
+                template application.
+
+        """
+        results = []
+
+        try:
+            outcomes, mapped_outcomes = rdchiralRun(template['rxn'], mol, return_mapped=True)
+            # outcomes, mapped_outcomes = rdchiralRun(template, mol, return_mapped=True)
+        except Exception as e:
+            print(e)
+            return results
+
         for j, outcome in enumerate(outcomes):
             smiles_list = []
-            # Output of rdchiral is (a list of) smiles of the products.
-            if self.chiral:
-                smiles_list = outcome.split('.')
-            # Output of the standard reactor in rdkit is an rdkit molecule object.
-            else:
-                try:
-                    for x in outcome:
-                        x.UpdatePropertyCache()
-                        Chem.SanitizeMol(x)
-                        [a.SetProp('molAtomMapNumber', a.GetProp('old_molAtomMapNumber'))
-                         for a in x.GetAtoms()
-                         if 'old_molAtomMapNumber' in a.GetPropsAsDict()]
-                        smiles_list.extend(Chem.MolToSmiles(
-                            x, isomericSmiles=USE_STEREOCHEMISTRY).split('.'))
-                except Exception as e:
-                    print(e) # fail quietly
-                    continue
-
+            smiles_list = outcome.split('.')
             if template['intra_only'] and len(smiles_list) > 1:
                 # Disallowed intermolecular reaction
                 continue
             if template['dimer_only'] and (len(set(smiles_list)) != 1 or len(smiles_list) != 2):
                 # Not a dimer
                 continue
-            if '.'.join(smiles_list) == smiles:
-                # no transformation
-                continue
-
-            #Mapped outcomes is {clean_smiles: (mapped_smiles, reacting atoms)}
             reacting_atoms = mapped_outcomes.get(
                 '.'.join(smiles_list), ('.'.join(smiles_list), (-1,))
             )
-
-            precursor = RetroPrecursor(
-                smiles_list=sorted(smiles_list),
-                mapped_smiles=reacting_atoms[0],
-                reacting_atoms=reacting_atoms[1],
-                template_id=str(template['_id']),
-                template_score=template['score'],
-                num_examples=template['count'],
-                necessary_reagent=template['necessary_reagent']
-            )
-
-            results.append(precursor)
-
+            results.append({
+                'smiles': '.'.join(smiles_list),
+                'smiles_split': sorted(smiles_list),
+                'mapped_smiles': reacting_atoms[0],
+                'reacting_atoms': reacting_atoms[1],
+                'template_id': str(template['_id']),
+                'num_examples': template['count'],
+                'necessary_reagent': template['necessary_reagent']
+            })
         return results
 
-    def top_templates(self, target, **kwargs):
-        """Generates only top templates.
+    def apply_one_template_by_idx(
+        self, _id, smiles, template_idx, calculate_next_probs=True,
+        fast_filter_threshold=0.75, max_num_templates=100, max_cum_prob=0.995,
+        template_prioritizer=None, template_set='reaxys'
+    ):
+        """Applies one template by index.
 
         Args:
-            target (str): SMILES string of target product.
-            **kwargs: Additional options to pass template_prioritizer.
+            _id (int): Pathway id used by tree builder.
+            smiles (str): SMILES string of molecule to apply template to.
+            template_idx (int): index of template to apply.
+            calculate_next_probs (bool): Fag to caculate probabilies (template 
+                relevance scores) for precursors generated by template 
+                application.
+            fast_filter_threshold (float): Fast filter threshold to filter
+                bad predictions. 1.0 means use all templates.
+            max_num_templates (int): Maximum number of template scores and 
+                indices to return when calculating next probabilities.
+            max_cum_prob (float): Maximum cumulative probabilites to use 
+                when returning next probabilities.
+            template_prioritizer (Prioritizer): Use to override
+                prioritizer created during initialization. This can be 
+                any Prioritizer instance that implements a predict method 
+                that accepts (smiles, templates, max_num_templates, max_cum_prob) 
+                as arguments and returns a (scores, indices) for templates
+                up until max_num_templates or max_cum_prob.
+            template_set (str): Name of template set to use when multiple 
+                template sets are available.
 
-        Yields:
-            dict: Single templates in order of decreasing priority.
+        Returns:
+            List of outcomes wth (_id, smiles, template_idx, precursors, fast_filter_score)
         """
-        for template in self.template_prioritizer.get_priority((self.templates, target),
-            TEMPLATE_DB=self.TEMPLATE_DB, mincount=self.mincount,
-            mincount_chiral=self.mincount_chiral, chiral=True,
-            load_all=self.load_all, use_db=self.use_db, **kwargs):
+        if template_prioritizer is None:
+            template_prioritizer = self.template_prioritizer
 
-            if not template['chiral'] and template['count'] < self.mincount:
-                pass
-            elif template['chiral'] and template['count'] < self.mincount_chiral:
-                pass
+        mol = Chem.MolFromSmiles(smiles)
+        smiles = Chem.MolToSmiles(mol, isomericSmiles=True)
+        mol = rdchiralReactants(smiles)
+
+        all_outcomes = []
+        seen_reactants = {}
+        seen_reactant_combos = []
+
+        template = self.get_one_template_by_idx(template_idx, template_set)
+        template['rxn'] = rdchiralReaction(template['reaction_smarts'])
+
+        for precursor in self.apply_one_template(mol, template):
+            reactant_smiles = precursor['smiles']
+            if reactant_smiles in seen_reactant_combos:
+                continue
+            seen_reactant_combos.append(reactant_smiles)
+            fast_filter_score = self.fast_filter(reactant_smiles, smiles)
+            if fast_filter_score < fast_filter_threshold:
+                continue
+            
+            reactants = []
+            if calculate_next_probs:
+                for reactant_smi in precursor['smiles_split']:
+                    if reactant_smi not in seen_reactants:
+                        scores, indeces = template_prioritizer.predict(
+                            reactant_smi, max_num_templates, max_cum_prob
+                        )
+                        # scores and indeces will be passed through celery, need to be lists
+                        scores = scores.tolist()
+                        indeces = indeces.tolist()
+                        value = 1
+                        seen_reactants[reactant_smi] = (reactant_smi, scores, indeces, value)
+                    reactants.append(seen_reactants[reactant_smi])
+                all_outcomes.append((_id, smiles, template_idx, reactants, fast_filter_score))
             else:
-                yield template
+                all_outcomes.append((_id, smiles, template_idx, precursor['smiles_split'], fast_filter_score))
+        if not all_outcomes:
+            all_outcomes.append((_id, smiles, template_idx, [], 0.0)) # dummy outcome
+
+        return all_outcomes
+
 
 if __name__ == '__main__':
 
     MyLogger.initialize_logFile()
     t = RetroTransformer()
-    t.load(chiral=True, refs=False, rxns=True)
-
+    t.load()#chiral=True, refs=False, rxns=True)
+    # def get_outcomes(
+    #             self, smiles, precursor_prioritizer=None,
+    #             template_set='reaxys', template_prioritizer=None, 
+    #             fast_filter=None, fast_filter_threshold=0.75, 
+    #             max_num_templates=100, max_cum_prob=0.995, 
+    #             cluster=None, cluster_settings={}, 
+    #             **kwargs
+        # ):
     #Test using a chiral molecule
-    outcomes = t.get_outcomes('CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1', \
-        100, (gc.relevanceheuristic, gc.relevance))
-    precursors = outcomes.precursors
+    # outcomes = t.get_outcomes('CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1')#, \
+    #     #100, (gc.relevanceheuristic, gc.relevance))
+    # print(outcomes)
 
-    print([precursor.smiles_list for precursor in precursors])
-    print([precursor.reacting_atoms for precursor in precursors])
 
-    #Test using a molecule that give many precursors
-    outcomes = t.get_outcomes('CN(C)CCOC(c1ccccc1)c2ccccc2', \
-        100, (gc.relevanceheuristic, gc.relevance))
-    precursors = outcomes.precursors
+    # #Test using a molecule that give many precursors
+    # outcomes = t.get_outcomes('CN(C)CCOC(c1ccccc1)c2ccccc2')#, \
+    #     #100, (gc.relevanceheuristic, gc.relevance))
+    # print(outcomes)
 
-    print([precursor.smiles_list for precursor in precursors])
-    print([precursor.reacting_atoms for precursor in precursors])
-    print([precursor.mapped_smiles for precursor in precursors])
 
     #test with one template
     outcomes = t.apply_one_template_by_idx(1, 'CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1', 109659)

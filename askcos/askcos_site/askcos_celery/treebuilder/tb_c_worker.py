@@ -15,13 +15,18 @@ from celery.signals import celeryd_init
 from pymongo import MongoClient
 import makeit.global_config as gc
 from makeit.retrosynthetic.transformer import RetroTransformer
-from rdkit import RDLogger
+from makeit.prioritization.templates.relevance import TemplateRelevanceTFServingAPI
+from rdkit import RDLogger, Chem
+from rdkit.Chem import AllChem
+import numpy as np
+from bson import ObjectId
+from scipy.special import softmax
+
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
 CORRESPONDING_QUEUE = 'tb_c_worker'
 CORRESPONDING_RESERVABLE_QUEUE = 'tb_c_worker_reservable'
 retroTransformer = None
-
 
 @celeryd_init.connect
 def configure_worker(options={}, **kwargs):
@@ -39,15 +44,20 @@ def configure_worker(options={}, **kwargs):
 
     # Instantiate and load retro transformer
     global retroTransformer
-    retroTransformer = RetroTransformer(celery=True)
-
-    retroTransformer.load(chiral=True)
-    print(retroTransformer.fast_filter.evaluate('CCCCCCO.CCCCBr', 'CCCCCCOCCCC'))
+    retroTransformer = RetroTransformer(template_prioritizer=None)
+    retroTransformer.load()
     print('### TREE BUILDER WORKER STARTED UP ###')
 
 
 @shared_task
-def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=0, max_branching=20, template_count=10000, mode=gc.max, max_cum_prob=1, apply_fast_filter=False, filter_threshold=0.8, cluster=True, cluster_method='kmeans', cluster_feature='original', cluster_fp_type='morgan', cluster_fp_length=512, cluster_fp_radius=1):
+def get_top_precursors(
+        smiles, precursor_prioritizer=None,
+        template_set='reaxys', template_prioritizer='reaxys',
+        fast_filter=None, max_num_templates=1000,
+        max_cum_prob=1, fast_filter_threshold=0.75,
+        cluster=True, cluster_method='kmeans', cluster_feature='original',
+        cluster_fp_type='morgan', cluster_fp_length=512, cluster_fp_radius=1
+    ):
     """Get the precursors for a chemical defined by its SMILES.
 
     Args:
@@ -83,28 +93,34 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
             precursors found.
     """
 
-    # print('Treebuilder worker was asked to expand {} (mincount {}, branching {}) using {} and {}'.format(
-    #    smiles, mincount, max_branching, template_prioritizer, precursor_prioritizer
-    #))
+    hostname = 'template_relevance_{}'.format(template_prioritizer)
+    template_prioritizer = TemplateRelevanceTFServingAPI(
+        hostname=hostname, model_name='template_relevance'
+    )
 
     global retroTransformer
     result = retroTransformer.get_outcomes(
-        smiles, mincount, (precursor_prioritizer,
-                           template_prioritizer), template_count=template_count, mode=mode,
-        max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
-
-    # print(result)
-
-    precursors = result.return_top(
-        n=max_branching, 
-        cluster=cluster,
-        cluster_method=cluster_method,
-        cluster_feature=cluster_feature,
-        cluster_fp_type=cluster_fp_type,
-        cluster_fp_length=cluster_fp_length,
-        cluster_fp_radius=cluster_fp_radius
+        smiles, template_set=template_set,
+        max_num_templates=max_num_templates, max_cum_prob=max_cum_prob, 
+        fast_filter_threshold=fast_filter_threshold, template_prioritizer=template_prioritizer,
+        precursor_prioritizer=precursor_prioritizer, fast_filter=fast_filter
     )
-    return (smiles, precursors)
+    
+    return (smiles, result)
+
+@shared_task
+def template_relevance(smiles, max_num_templates, max_cum_prob, relevance_model='reaxys'):
+    global retroTransformer
+    hostname = 'template_relevance_{}'.format(relevance_model)
+    template_prioritizer = TemplateRelevanceTFServingAPI(
+        hostname=hostname, model_name='template_relevance'
+    )
+    scores, indices = template_prioritizer.predict(smiles, max_num_templates, max_cum_prob)
+    if not isinstance(scores, list):
+        scores = scores.tolist()
+    if not isinstance(indices, list):
+        indices = indices.tolist()
+    return scores, indices
 
 @shared_task
 def apply_one_template_by_idx(*args, **kwargs):
@@ -114,6 +130,17 @@ def apply_one_template_by_idx(*args, **kwargs):
         list of 5-tuples of (int, str, int, list, float): Result of
             applying given template to the molecule.
     """
+    global retroTransformer
+
+    template_prioritizer = kwargs.pop('template_prioritizer', 'reaxys')
+
+    hostname = 'template_relevance_{}'.format(template_prioritizer)
+    template_prioritizer = TemplateRelevanceTFServingAPI(
+        hostname=hostname, model_name='template_relevance'
+    )
+
+    kwargs.update({'template_prioritizer': template_prioritizer})
+
     return retroTransformer.apply_one_template_by_idx(*args, **kwargs)
 
 @shared_task
@@ -127,7 +154,8 @@ def fast_filter_check(*args, **kwargs):
         list: Reaction outcomes.
     """
     print('got request for fast filter')
-    return retroTransformer.fast_filter.evaluate(*args, **kwargs)
+    global retroTransformer
+    return retroTransformer.fast_filter(*args, **kwargs)
 
 
 @shared_task(bind=True)

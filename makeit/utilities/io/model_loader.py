@@ -14,14 +14,14 @@ import sys
 model_loader_loc = 'model_loader'
 
 
-def load_Retro_Transformer(mincount=25, mincount_chiral=10, chiral=True):
+def load_Retro_Transformer():
     '''    
     Load the model and databases required for the retro transformer. Returns the retro transformer, ready to run.
     '''
     MyLogger.print_and_log(
         'Loading retro synthetic template database...', model_loader_loc)
-    retroTransformer = RetroTransformer(mincount=mincount, mincount_chiral=mincount_chiral)
-    retroTransformer.load(chiral=chiral)
+    retroTransformer = RetroTransformer()
+    retroTransformer.load()
     MyLogger.print_and_log(
         'Retro synthetic transformer loaded.', model_loader_loc)
     return retroTransformer

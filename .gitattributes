@@ -33,6 +33,11 @@ makeit/data/historian/chemicals.pickle_no_refs_compressed filter=lfs diff=lfs me
 makeit/data/historian/__init__.py filter=lfs diff=lfs merge=lfs -text
 makeit/data/historian/reactions.pickle filter=lfs diff=lfs merge=lfs -text
 makeit/data/context/NeuralNet_Cont_Model/weights.h5 filter=lfs diff=lfs merge=lfs -text
+makeit/data/prioritization/template-relevance-50k-pretrained.hdf5 filter=lfs diff=lfs merge=lfs -text
+makeit/data/prioritization/template-relevance-50k.hdf5 filter=lfs diff=lfs merge=lfs -text
+makeit/data/prioritization/template-relevance-reaxys_v9_10_5.hdf5 filter=lfs diff=lfs merge=lfs -text
+makeit/data/prioritization/template-relevance-uspto.hdf5 filter=lfs diff=lfs merge=lfs -text
+makeit/data/prioritization/template-relevance-uspto-pretrained.hdf5 filter=lfs diff=lfs merge=lfs -text
 *.data* filter=lfs diff=lfs merge=lfs -text
 *.pkl* filter=lfs diff=lfs merge=lfs -text
 *.pickle* filter=lfs diff=lfs merge=lfs -text

@@ -400,7 +400,8 @@ var app = new Vue({
         selected: null,
         isHighlightAtom: true,
         reactionLimit: 5,
-        templatePrioritization: "Relevance",
+        templatePrioritization: "reaxys",
+        templateSet: "reaxys",
         precursorScoring: "RelevanceHeuristic",
         numTemplates: 1000,
         maxCumProb: 0.999,
@@ -436,7 +437,8 @@ var app = new Vue({
             var url = '/api/retro/?';
             var params = {
                 target: smiles,
-                template_prioritization: this.templatePrioritization,
+                template_set: this.templateSet,
+                template_prioritizer: this.templatePrioritization,
                 precursor_prioritization: this.precursorScoring,
                 num_templates: this.numTemplates,
                 max_cum_prob: this.maxCumProb,

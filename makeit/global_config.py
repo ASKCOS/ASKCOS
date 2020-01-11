@@ -117,8 +117,8 @@ RETRO_TRANSFORMS_CHIRAL = {
     'file_name': 'retrotransformer_chiral_using_reaxys_v2-transforms_retro_v9_mincount10_mincountchiral5.pkl',
     'database': 'askcos',
     'collection': 'retro_templates',
-    'mincount': 10,
-    'mincount_chiral': 5
+    'mincount': 0,
+    'mincount_chiral': 0
 }
 
 SYNTH_TRANSFORMS = {
@@ -171,6 +171,7 @@ FAST_FILTER_MODEL = {
 
 # Hard coded mincounts to maintain compatibility of the relevance method (weights are numpy matrices)
 Relevance_Prioritization = {
+    'trained_model_path': os.path.join(prioritization_data, 'template-relevance-reaxys_v9_10_5.hdf5'),
     'trained_model_path_True': os.path.join(prioritization_data, 'template_relevance_network_weights_v9_10_5.pickle'),
     'output_size': 163723,
     'min_chiral':5,

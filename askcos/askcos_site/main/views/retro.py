@@ -135,12 +135,14 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         if chiral:
             if max_cum_prob > 0.999 and template_count > 1000:
                 res = get_top_precursors_p.delay(
-                    smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=max_n,
-                    template_count=template_count, max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
+                    smiles, max_num_templates=template_count, max_cum_prob=max_cum_prob, 
+                    fast_filter_threshold=filter_threshold
+                )
             else:
                 res = get_top_precursors_c.delay(
-                    smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=max_n,
-                    template_count=template_count, max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
+                    smiles, max_num_templates=template_count, max_cum_prob=max_cum_prob, 
+                    fast_filter_threshold=filter_threshold
+                )
             
             (smiles, precursors) = res.get(300)
             # allow up to 5 minutes...can be pretty slow

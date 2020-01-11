@@ -10,12 +10,10 @@ import makeit.global_config as gc
 
 # Chiral Retro Transformer
 import makeit.retrosynthetic.transformer as transformer
-RetroTransformer = transformer.RetroTransformer(lookup_only=True)
-RetroTransformer.load(chiral=True, refs=True, rxns=False)
-RETRO_CHIRAL_FOOTNOTE = 'Using {} chiral retrosynthesis templates (mincount {} if achiral, mincount {} if chiral) from {}/{}'.format(
+RetroTransformer = transformer.RetroTransformer(template_prioritizer=None, precursor_prioritizer=None, fast_filter=None)
+RetroTransformer.load()
+RETRO_CHIRAL_FOOTNOTE = 'Using {} chiral retrosynthesis templates from {}/{}'.format(
     gc.Relevance_Prioritization['output_size'],
-    gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
-    gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
     gc.RETRO_TRANSFORMS_CHIRAL['database'],
     gc.RETRO_TRANSFORMS_CHIRAL['collection']
 )

@@ -2,6 +2,7 @@ from __future__ import print_function
 import makeit.global_config as gc
 import rdkit.Chem as Chem
 from rdkit.Chem import AllChem
+import pymongo
 from makeit.prioritization.precursors.heuristic import HeuristicPrecursorPrioritizer
 from makeit.prioritization.precursors.relevanceheuristic import RelevanceHeuristicPrecursorPrioritizer
 from makeit.prioritization.precursors.mincost import MinCostPrecursorPrioritizer
@@ -37,7 +38,7 @@ class TemplateTransformer(object):
         TEMPLATE_DB ():
     """
 
-    def __init__(self, load_all=gc.PRELOAD_TEMPLATES, use_db=True):
+    def __init__(self, load_all=gc.PRELOAD_TEMPLATES, use_db=True, TEMPLATE_DB=None):
         """Initializes TemplateTransformer.
 
         Args:
@@ -46,69 +47,70 @@ class TemplateTransformer(object):
             use_db (bool, optional): Whether to use the database to look up
                 templates. (default: {True})
         """
+        self.templates = []
         self.load_all = load_all
         self.use_db = use_db
-        if load_all:
-            self.id_to_index = {} # Dictionary to keep track of ID -> index in self.templates
+        self.TEMPLATE_DB = TEMPLATE_DB
+        self.id_to_index = {} # Dictionary to keep track of ID -> index in self.templates
 
-    def get_precursor_prioritizers(self, precursor_prioritizer):
-        """Loads precursor prioritizer for the transformer to use.
-
-        Args:
-            precursor_prioritizer (str): Specifies which prioritization method
-                to use.
-        """
-        if not precursor_prioritizer:
-            MyLogger.print_and_log(
-                'Cannot run the Transformer without a precursor prioritization method. Exiting...', transformer_loc, level=3)
-        if precursor_prioritizer in self.precursor_prioritizers:
-            precursor = self.precursor_prioritizers[precursor_prioritizer]
-        else:
-            if precursor_prioritizer == gc.heuristic:
-                precursor = HeuristicPrecursorPrioritizer()
-            elif precursor_prioritizer == gc.relevanceheuristic:
-                precursor = RelevanceHeuristicPrecursorPrioritizer()
-            elif precursor_prioritizer == gc.scscore:
-                precursor = SCScorePrecursorPrioritizer()
-            elif precursor_prioritizer == gc.mincost:
-                precursor = MinCostPrecursorPrioritizer()
-            elif precursor_prioritizer == gc.natural:
-                precursor = DefaultPrioritizer()
-            else:
-                precursor = DefaultPrioritizer()
-                MyLogger.print_and_log(
-                    'Prioritization method not recognized. Using natural prioritization.', transformer_loc, level=1)
-
-            precursor.load_model()
-            self.precursor_prioritizers[precursor_prioritizer] = precursor
-
-        self.precursor_prioritizer = precursor
-
-    def get_template_prioritizers(self, template_prioritizer):
-        """Loads template prioritizer for the transformer to use.
+    def doc_to_template(self, document):
+        """Returns a template given a document from the database or file.
 
         Args:
-            template_prioritizer (str): Specifies which prioritization method
-                to use.
+            document (dict): Document of template from database or file.
+
+        Returns:
+            dict: Retrosynthetic template.
         """
-        if not template_prioritizer:
-            MyLogger.print_and_log(
-                'Cannot run the Transformer without a template prioritization method. Exiting...', transformer_loc, level=3)
-        if template_prioritizer in self.template_prioritizers:
-            template = self.template_prioritizers[template_prioritizer]
-        else:
-            if template_prioritizer == gc.popularity:
-                template = PopularityTemplatePrioritizer()
-            elif template_prioritizer == gc.relevance:
-                template = RelevanceTemplatePrioritizer()
-            else:
-                template = PopularityTemplatePrioritizer()
-                MyLogger.print_and_log('Prioritization method not recognized. Using literature popularity prioritization.', transformer_loc, level = 1)
+        if 'reaction_smarts' not in document:
+            return
+        reaction_smarts = str(document['reaction_smarts'])
+        if not reaction_smarts:
+            return
 
-            template.load_model()
-            self.template_prioritizers[template_prioritizer] = template
+        # different thresholds for chiral and non chiral reactions
+        chiral_rxn = False
+        for c in reaction_smarts:
+            if c in ('@', '/', '\\'):
+                chiral_rxn = True
+                break
 
-        self.template_prioritizer = template
+        # Define dictionary
+        template = {
+            'name':                 document['name'] if 'name' in document else '',
+            'reaction_smarts':      reaction_smarts,
+            'incompatible_groups':  document['incompatible_groups'] if 'incompatible_groups' in document else [],
+            'reference':            document['reference'] if 'reference' in document else '',
+            'references':           document['references'] if 'references' in document else [],
+            'rxn_example':          document['rxn_example'] if 'rxn_example' in document else '',
+            'explicit_H':           document['explicit_H'] if 'explicit_H' in document else False,
+            '_id':                  document['_id'] if '_id' in document else -1,
+            'product_smiles':       document['product_smiles'] if 'product_smiles' in document else [],
+            'necessary_reagent':    document['necessary_reagent'] if 'necessary_reagent' in document else '',
+            'efgs':                 document['efgs'] if 'efgs' in document else None,
+            'intra_only':           document['intra_only'] if 'intra_only' in document else False,
+            'dimer_only':           document['dimer_only'] if 'dimer_only' in document else False,
+        }
+        template['chiral'] = chiral_rxn
+
+        # Frequency/popularity score
+        template['count'] = document.get('count', 1)
+
+        # Define reaction in RDKit and validate
+        try:
+            # Force reactants and products to be one pseudo-molecule (bookkeeping)
+            reaction_smarts_one = '(' + reaction_smarts.replace('>>', ')>>(') + ')'
+
+            rxn = rdchiralReaction(str(reaction_smarts_one))
+            template['rxn'] = rxn
+
+        except Exception as e:
+            if gc.DEBUG:
+                MyLogger.print_and_log('Couldnt load : {}: {}'.format(
+                    reaction_smarts_one, e), transformer_loc, level=1)
+            template['rxn'] = None
+            template['rxn_f'] = None
+        return template
 
     def doc_to_template(self, document):
         """Returns a template given a document from the database or file.
@@ -227,71 +229,31 @@ class TemplateTransformer(object):
 
             MyLogger.print_and_log('Wrote templates to {}'.format(file_path), transformer_loc)
 
-    def load_from_file(self, retro, file_path, chiral=False, rxns=True, refs=False, efgs=False, rxn_ex=False):
+    def load_from_file(self, file_path):
         """Read the template database from a previously saved file.
 
         Args:
-            retro (bool): Whether in the retrosynthetic direction.
             file_path (str): Pickle file to read dumped templates from.
-            chiral (bool, optional): Whether to handle chirality properly
-                (only for retro for now). (default: {False})
-            rxns (bool, optional): Whether to actually load the reaction objects
-                (or just the info). (default: {True})
-            refs (bool, optional): Whether to include references.
-                (default: {False})
-            efgs (bool, optional): Whether to include efg information.
-                (default: {False})
-            rxn_ex (bool, optional): Whether to include reaction examples.
-                (default: {False})
         """
 
         MyLogger.print_and_log('Loading templates from {}'.format(file_path), transformer_loc)
 
         if os.path.isfile(file_path):
             with open(file_path, 'rb') as file:
-                if self.load_all:
-                    if retro and chiral and rxns: # cannot pickle rdchiralReactions, so need to reload from SMARTS
-                        pickle_templates = pickle.load(file)
-                        self.templates = []
-                        for template in pickle_templates:
-                            try:
-                                template['rxn'] = rdchiralReaction(
-                                    str('(' + template['reaction_smarts'].replace('>>', ')>>(') + ')'))
-                            except Exception as e:
-                                template['rxn'] = None
-                            self.templates.append(template)
-                    else:
-                        self.templates = pickle.load(file)
-                elif not self.use_db:
-                    self.templates = pickle.load(file)
-                    if not (retro and chiral and rxns):
-                        self.load_all = True
-                else:
-                    pickle_templates = pickle.load(file)
-                    self.templates = []
-                    for template in pickle_templates:
-                        self.templates.append((template.get('_id', -1), template.get('count', 1)))
+                pickle_templates = pickle.load(file)
         else:
             MyLogger.print_and_log("No file to read data from.", transformer_loc, level=1)
             raise IOError('File not found to load template_transformer from!')
-
-        # Clear out unnecessary info
-        if self.load_all or not self.use_db:
-            if not refs:
-                [self.templates[i].pop('references', None) for i in range(len(self.templates))]
-            elif 'references' not in self.templates[0]:
-                raise IOError('Save file does not contain references (which were requested!)')
-
-            if not efgs:
-                [self.templates[i].pop('efgs', None) for i in range(len(self.templates))]
-            elif 'efgs' not in self.templates[0]:
-                raise IOError('Save file does not contain efg info (which was requested!)')
-
-            if not rxn_ex:
-                [self.templates[i].pop('rxn_example', None) for i in range(len(self.templates))]
-            elif 'rxn_example' not in self.templates[0]:
-                raise IOError('Save file does not contain a reaction example (which was requested!)')
-
+        
+        self.templates = pickle_templates
+        for template in self.templates:
+            if self.load_all:
+                try:
+                    template['rxn'] = rdchiralReaction(
+                        str('(' + template['reaction_smarts'].replace('>>', ')>>(') + ')'))
+                except Exception as e:
+                    template['rxn'] = None
+            self.id_to_index[template.get('_id')] = len(self.templates)
 
         self.num_templates = len(self.templates)
         MyLogger.print_and_log('Loaded templates. Using {} templates'.format(self.num_templates), transformer_loc)
@@ -304,18 +266,6 @@ class TemplateTransformer(object):
         """Load and initialize templates."""
         raise NotImplementedError
 
-    def reorder(self):
-        """Reorder self.templates in descending popularity.
-
-        Also builds id_to_index table.
-        """
-        self.num_templates = len(self.templates)
-        if self.load_all or not self.use_db:
-            self.templates = sorted(self.templates, key=lambda z: z['count'], reverse=True)
-            self.id_to_index = {template['_id']: i for i,
-                template in enumerate(self.templates)}
-        else:
-            self.templates = sorted(self.templates, key=lambda z: z[1], reverse=True)
 
     def lookup_id(self, template_id):
         """Find the reaction SMARTS for this template_id.
@@ -326,84 +276,37 @@ class TemplateTransformer(object):
         Returns:
             Reaction SMARTS for requested template.
         """
-        if self.load_all:
-            if self.lookup_only:
-                db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
-                                        'id'], connect=gc.MONGO['connect'])
-
-                db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
-                collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
-                self.TEMPLATE_DB = db_client[db_name][collection]
-                return self.TEMPLATE_DB.find_one({'_id': ObjectId(template_id)})
-
-            if not self.id_to_index:  # need to build
-                self.id_to_index = {template['_id']: i for (
-                    i, template) in enumerate(self.templates)}
-            return self.templates[self.id_to_index[template_id]]
-        elif not self.use_db:
-            if not self.id_to_index:  # need to build
-                self.id_to_index = {template['_id']: i for (
-                    i, template) in enumerate(self.templates)}
+        if self.use_db:
+            return self.TEMPLATE_DB.find_one({'_id': ObjectId(template_id)})
+        else:
             return self.templates[self.id_to_index[template_id]]
 
-        db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
-                                'id'], connect=gc.MONGO['connect'])
-
-        db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
-        collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
-        self.TEMPLATE_DB = db_client[db_name][collection]
-        return self.TEMPLATE_DB.find_one({'_id': ObjectId(template_id)})
-
-    def load_from_database(self, retro, chiral=False, refs=False, rxns=True, efgs=False, rxn_ex=False):
-        """Read the template data from the database.
-
-        Args:
-            retro (bool): Whether in the retrosynthetic direction.
-            chiral (bool, optional): Whether to handle chirality properly
-                (only for retro for now). (default: {False})
-            refs (bool, optional): Whether to include references.
-                (default: {False})
-            rxns (bool, optional): Whether to actually load the reaction objects
-                (or just the info). (default: {True})
-            efgs (bool, optional): Whether to include efg information.
-                (default: {False})
-            rxn_ex (bool, optional): Whether to include reaction examples.
-                (default: {False})
-        """
+    def load_from_database(self):
+        """Read the template data from the database."""
         if not self.use_db:
             MyLogger.print_and_log('Error: Cannot load from database when use_db=False',
                 transformer_loc, level=3)
-        # Save collection TEMPLATE_DB
-        self.load_databases(retro, chiral=chiral)
-        self.chiral = chiral
-        if self.lookup_only:
-            return
-        if self.mincount and 'count' in self.TEMPLATE_DB.find_one():
-            if retro:
-                filter_dict = {'count': {'$gte': min(
-                    self.mincount, self.mincount_chiral)}}
-            else:
-                filter_dict = {'count': {'$gte': self.mincount}}
-        else:
-            filter_dict = {}
+
+        if not self.TEMPLATE_DB:
+            self.load_databases()
 
         # Look for all templates in collection
-        to_retrieve = ['_id', 'reaction_smarts',
-                       'necessary_reagent', 'count', 'intra_only', 'dimer_only']
-        if refs:
-            to_retrieve.append('references')
-        if efgs:
-            to_retrieve.append('efgs')
-        if rxn_ex:
-            to_retrieve.append('rxn_example')
-        for document in self.TEMPLATE_DB.find(filter_dict, to_retrieve):
+        to_retrieve = [
+            '_id', 'reaction_smarts',
+            'necessary_reagent', 'count', 
+            'intra_only', 'dimer_only', 'idex',
+            'references'
+        ]
+        for document in self.TEMPLATE_DB.find({}, to_retrieve).sort('index', pymongo.ASCENDING):
             if self.load_all:
                 template = self.doc_to_template(document)
                 if template is not None:
                     self.templates.append(template)
             else:
-                self.templates.append((document.get('_id', -1), document.get('count', 1)))
-        self.reorder()
+                _id = document.get('_id')
+                if _id:
+                    self.templates.append(_id)
+        self.num_templates = len(self.templates)
 
     def get_outcomes(self, *args, **kwargs):
         """Gets outcome of single transformation.
@@ -414,7 +317,7 @@ class TemplateTransformer(object):
         """
         raise NotImplementedError
 
-    def load_databases(self, retro, chiral=False, timeout=15000):
+    def load_databases(self, timeout=1000):
         """Loads the databases specified by the global config.
 
         Args:
@@ -432,20 +335,6 @@ class TemplateTransformer(object):
         db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
         collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
         self.TEMPLATE_DB = db_client[db_name][collection]
-        # if retro:
-        #     if self.chiral:
-        #         self.TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS_CHIRAL[
-        #             'database']][gc.RETRO_TRANSFORMS_CHIRAL['collection']]
-        #         MyLogger.print_and_log("Using {} as template database.".format(
-        #             gc.RETRO_TRANSFORMS_CHIRAL['collection']), transformer_loc)
-        #     else:
-        #         self.TEMPLATE_DB = db_client[gc.RETRO_TRANSFORMS[
-        #             'database']][gc.RETRO_TRANSFORMS['collection']]
-        #         MyLogger.print_and_log("Using {} as template database.".format(
-        #             gc.RETRO_TRANSFORMS['collection']), transformer_loc)
-        # else:
-        #     self.TEMPLATE_DB = db_client[gc.SYNTH_TRANSFORMS[
-        #         'database']][gc.SYNTH_TRANSFORMS['collection']]
 
     def apply_one_template(self, *args, **kwargs):
         """Applies a single template to a given molecule.

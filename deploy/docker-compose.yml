@@ -130,7 +130,7 @@ services:
     restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 12 -Q tb_c_worker -n tb_c_worker@%h"
+    command: bash -c "celery -A askcos_site worker -c 1 -Q tb_c_worker -n tb_c_worker@%h --pool=gevent --without-heartbeat"
     depends_on:
       - redis
       - rabbit
@@ -160,6 +160,16 @@ services:
       - rabbit
       - mysql
       - mongo
+
+  template_relevance_reaxys:
+    image: tensorflow/serving
+    restart: always
+    volumes:
+      - ./models/template_relevance/reaxys:/models/template_relevance/1
+    environment:
+      - MODEL_NAME=template_relevance
+    ports:
+      - 8501:8501
 
   redis:
     image: redis:5.0.7
