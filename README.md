@@ -1,34 +1,28 @@
 # ASKCOS:
 Software package for the prediction of feasible synthetic routes towards a desired compound and associated tasks related to synthesis planning. Originally developed under the DARPA Make-It program and now being developed under the [MLPDS Consortium](http://mlpds.mit.edu).
 
-# v0.4.0 Release
-
-Video demo of new UI features: WIP
+# v0.4.1 Release
 
 Release Notes  
 User notes:  
-* New site selectivity module to predict the most likely site of aromatic C-H functionalization.
-* New clustering of one-step retrsynthetic predictions in the Interactive Path Planning user interface.
-* New visualization of tree builder results in the Interactive Path Planning user interface. The entire expanded graph is now able to be explored, instead of only pathways that were resolved.
-* The tree builder is now more resilient for large, complex molecules and long expansion times. "Connection reset by peer" should be observed much less frequently.
-* Updated webpage to view molecules in the buyables database. This webpage also now includes the ability to modify, in real time, the buyables database.
-* Improved API error handling.
-* Molecular weights of compounds are now shown in the forward predictor results.
-
+* Upgrade to rdkit version 2019.03.3
+* Migration of rdchiral to standalone pypi package. rdchiral development can not be found at https://github.com/connorcoley/rdchiral
+* Improved buyables lookup consistency
+* Canonicalizes SMILES strings before lookup in buyables module
+* Improved granularity of feedback after buyable upload
+* Improved handling of reaction templates in rdchiral for "hypervalent" nitrogens. Significant improvement for nitration reactions
 
 Developer notes:
-* Support for Kubernetes deployments.
-* Option included to not preload retrosynthetic templates upon deployment, and instead create the templates on-the-fly as needed.
-* Groundwork for unit tests.
-* Automatically generated documentation.
-* Enabled option to skip https altogether, despite this not being recommended.
+* makeit data migrated to separate repository (https://gitlab.com/mlpds_mit/ASKCOS/makeit-data)
+* Data copied from data-only docker container (registry.gitlab.com/mlpds_mit/askcos/makeit-data:0.4.1)
+* Docker builds are now much, much, much faster
+* chemhistorian data migrated to mongodb. This increases initialization mongodb seeding time, but decreases memory footprint
+* All dependencies, including third-party docker images, are now pinned to specific versions
+* Seeding of mongo db now occurs using the backend "app" service
 
 Bug fixes:
-* "Connection reset by peer" should be observed much less frequently.
-* Format of the synthesis predictor export is now csv.
-* Link to export Reaxys reactions supporting a given template now works again.
-* No more Docker images are built on-the-fly.
-* Results saved with old versions of ASKCOS should now be able to be restored to newer versions.
+* Buyables page bugfixes
+* nginx service restarts like the rest of the services now
 
 ### Upgrade information
 
@@ -36,7 +30,7 @@ The easiest way to upgrade to the new version of ASKCOS is using Docker and dock
 
 ```bash
 $ docker login registry.gitlab.com # enter credentials
-$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
 ```
 
 Then, follow the instructions under "How do I upgrade ASKCOS to a new version?" below using the new version of the deploy folder from this repository.
@@ -50,9 +44,9 @@ $ export DEPLOY_TOKEN_USERNAME=
 $ export DEPLOY_TOKEN_PASSWORD=
 $ git clone https://$DEPLOY_TOKEN_USERNAME:$DEPLOY_TOKEN_PASSWORD@gitlab.com/mlpds_mit/askcos/askcos.git
 $ docker login registry.gitlab.com -u $DEPLOY_TOKEN_USERNAME -p $DEPLOY_TOKEN_PASSWORD
-$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
 $ cd askcos/deploy
-$ git checkout v0.4.0
+$ git checkout v0.4.1
 $ bash deploy.sh
 ```
 
@@ -97,6 +91,8 @@ $ docker-compose down -v
 ### Upgrading or moving deployments
 
 #### Backing up user data
+
+If you are upgrading from v0.3.1 or later, the backup/restore process is no longer needed unless you are moving the deployment to a brand new computer/cloud instance.
 
 If you are upgrading the deployment from a previous version,or moving the application to a different server, you may want to retain user accounts and user-saved data/results. Previous to version 0.3.1, user data was stored in an sqlite db at `askcos/db.sqlite3` and a user\_saves directory at `makeit/data/user_saves`, _in the running app container service_. Versions >=0.3.1 use a mysql service for user data, and a mongo db for user results. Although the process for backing-up/restoring data is different, currently the `backup.sh` and `restore.sh` scripts are capable of handling the backup process. Please read the following carefully so as to not lose any user data:
 
