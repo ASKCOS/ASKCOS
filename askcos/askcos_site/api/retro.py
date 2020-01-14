@@ -12,15 +12,19 @@ def singlestep(request):
     resp['request'] = dict(**request.GET)
     run_async = request.GET.get('async', False)
     target = request.GET.get('target')
-    # template_prioritization = request.GET.get('template_prioritization', gc.relevance)
-    template_prioritization = gc.relevance
-    precursor_prioritization = request.GET.get('precursor_prioritization', gc.relevanceheuristic)
-    mincount = int(request.GET.get('mincount', 0))
-    num_templates = int(request.GET.get('num_templates', 100))
+    max_num_templates = int(request.GET.get('num_templates', 100))
     max_cum_prob = float(request.GET.get('max_cum_prob', 0.995))
-    apply_fast_filter = request.GET.get('apply_fast_filter', 'True') in ['True', 'true']
-    filter_threshold = float(request.GET.get('filter_threshold', 0.75))
-    max_branching = int(request.GET.get('num_results', 100))
+    fast_filter_threshold = float(request.GET.get('filter_threshold', 0.75))
+    template_set = request.GET.get('template_set', 'reaxys')
+    template_prioritizer = request.GET.get('template_prioritizer', 'reaxys')
+
+    if template_set not in ['reaxys', 'uspto_50k']:
+        resp['error'] = 'Template set {} not available'.format(template_set)
+        return JsonResponse(resp, status=400)
+
+    if template_prioritizer not in ['reaxys', 'uspto_50k']:
+        resp['error'] = 'Template prioritizer {} not available'.format(template_prioritizer)
+        return JsonResponse(resp, status=400)
 
     if not target:
         resp['error'] = 'Required parameter "target" missing'
@@ -38,17 +42,12 @@ def singlestep(request):
     cluster_fp_length = int(request.GET.get('cluster_fp_length', 512))
     cluster_fp_radius = int(request.GET.get('cluster_fp_radius', 1))
 
-    if max_cum_prob > 0.999 and num_templates > 1000:
+    if max_cum_prob > 0.999 and max_num_templates > 1000:
         res = get_top_precursors_p.delay(
             target,
-            template_prioritization,
-            precursor_prioritization,
-            mincount=mincount,
-            apply_fast_filter=apply_fast_filter,
-            filter_threshold=filter_threshold,
-            max_branching=max_branching,
+            fast_filter_threshold=fast_filter_threshold,
             max_cum_prob=max_cum_prob,
-            template_count=num_templates,
+            max_num_templates=max_num_templates,
             cluster=cluster,
             cluster_method=cluster_method,
             cluster_feature=cluster_feature,
@@ -59,14 +58,11 @@ def singlestep(request):
     else:
         res = get_top_precursors_c.delay(
             target,
-            template_prioritization,
-            precursor_prioritization,
-            mincount=mincount,
-            apply_fast_filter=apply_fast_filter,
-            filter_threshold=filter_threshold,
-            max_branching=max_branching,
+            template_set=template_set,
+            template_prioritizer=template_prioritizer,
+            fast_filter_threshold=fast_filter_threshold,
             max_cum_prob=max_cum_prob,
-            template_count=num_templates,
+            max_num_templates=max_num_templates,
             cluster=cluster,
             cluster_method=cluster_method,
             cluster_feature=cluster_feature,

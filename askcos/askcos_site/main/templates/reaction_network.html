@@ -59,6 +59,34 @@
   </transition>
 </script>
 
+<!-- <div class="mx-auto">
+    <div>Template set:</div>
+    <label class="btn btn-default">
+        <input type="radio" value="reaxys" v-model="templateSet" checked>
+            Reaxys
+        </input>
+    </label>
+    <label class="btn btn-default">
+        <input type="radio" value="uspto_50k" v-model="templateSet" checked>
+            USPTO_50k
+        </input>
+    </label>
+</div> -->
+
+<!-- <div class="mx-auto">
+    <div>Template relevance model:</div>
+    <label class="btn btn-default">
+        <input type="radio" value="reaxys" v-model="templatePrioritization" checked>
+            Reaxys
+        </input>
+    </label>
+    <label class="btn btn-default">
+        <input type="radio" value="uspto_50k" v-model="templatePrioritization" checked>
+            USPTO_50k
+        </input>
+    </label>
+</div> -->
+
 <div class="mx-auto">
     <form class="form-inline" autocomplete="off" v-on:submit.prevent="changeTarget">
         <div class="form-group">
@@ -119,14 +147,24 @@
                 results to the graph visualization
             </div>
         </div>
-        <div class="form-inline mb-10">
+        <!-- <div class="form-inline mb-10">
+            <div class="form-group">
+                Template set:
+                <select v-model="templateSet" class="form-control">
+                    <option value="reaxys">Reaxys</option>
+                    <option value="uspto_50k">USPTO_50k</option>
+                </select>
+            </div>
+        </div> -->
+        <!-- <div class="form-inline mb-10">
             <div class="form-group">
                 Template prioritization:
                 <select v-model="templatePrioritization" class="form-control">
-                    <option value="Relevance">Relevance</option>
+                    <option value="reaxys">Reaxys</option>
+                    <option value="uspto_50k">USPTO_50k</option>
                 </select>
             </div>
-        </div>
+        </div> -->
         <div class="form-inline mb-10">
             <div class="form-group">
                 Precursor scoring:

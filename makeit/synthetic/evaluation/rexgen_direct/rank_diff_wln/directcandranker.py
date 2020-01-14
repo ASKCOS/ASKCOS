@@ -1,4 +1,5 @@
 import tensorflow as tf
+from makeit import global_config as gc
 from makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn import linearND, linear
 from makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores import atom_fdim as adim, bond_fdim as bdim, max_nb, smiles2graph, smiles2graph, bond_types
 from makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models import *
@@ -18,7 +19,7 @@ hidden_size = 500
 depth = 3
 core_size = 16
 MAX_NCAND = 1500
-model_path = os.path.join(os.path.dirname(__file__), "model-core16-500-3-max150-direct-useScores", "model.ckpt-2400000")
+model_path = gc.TEMPLATE_FREE_FORWARD_PREDICTOR['rank_model_path']
 
 def softmax(x):
     e_x = np.exp(x - np.max(x))

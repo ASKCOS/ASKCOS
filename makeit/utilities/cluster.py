@@ -7,6 +7,15 @@ import numpy as np
 import hdbscan
 import sklearn.cluster as cluster
 
+def cluster_precursors(original, precursors, **settings):
+    precursor_smiles = [prec['smiles'] for prec in precursors]
+    precursor_scores = [prec['score'] for prec in precursors]
+    cluster_ids = group_results(
+        original, precursor_smiles, scores=precursor_scores,
+        **settings
+    )
+    return cluster_ids
+
 def group_results(original, outcomes, **kwargs):
     '''Cluster the similar transformed outcomes together
     

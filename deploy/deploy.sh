@@ -48,17 +48,6 @@ echo "##########################"
 docker-compose up -d mysql mongo redis rabbit
 sleep 1
 
-if [ "$SKIP_SEED" = false ]; then
-  echo ""
-  echo "###############################"
-  echo "seeding mongo database"
-  echo "###############################"
-  cd mongo
-  docker run -it --rm --network deploy_default --env-file ../.env -v ${PWD}:/init mongo bash /init/init.sh
-  cd ../
-
-fi
-
 if [ "$SKIP_HTTPS" = true ]; then
   echo ""
   echo "###############################"
@@ -88,12 +77,26 @@ echo "#################################"
 docker-compose up -d nginx app
 docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py collectstatic --noinput"
 
+if [ "$SKIP_SEED" = false ]; then
+  echo ""
+  echo "###############################"
+  echo "seeding mongo database"
+  echo "###############################"
+  docker-compose exec app python -c "from askcos_site.main.db import seed_mongo_db;seed_mongo_db(reactions=False, chemicals=False)"
+fi
+
+echo ""
+echo "###################################"
+echo "starting tensorflow serving workers"
+echo "###################################"
+docker-compose up -d template_relevance_reaxys
+
 echo ""
 echo "#######################"
 echo "starting celery workers"
 echo "#######################"
-docker-compose up -d te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker tb_coordinator_mcts tb_c_worker tb_c_worker_preload sites_worker
-docker-compose up -d --scale tb_coordinator_mcts=2
+docker-compose up -d te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker sites_worker tb_c_worker_preload
+docker-compose up -d --scale tb_coordinator_mcts=2 --scale tb_c_worker=12 tb_coordinator_mcts tb_c_worker
 
 if [ "$SKIP_MIGRATION" = false ]; then
   echo ""

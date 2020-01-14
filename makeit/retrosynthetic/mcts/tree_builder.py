@@ -53,8 +53,7 @@ class MCTS:
     """
 
     def __init__(self, retroTransformer=None, pricer=None, max_branching=20, max_depth=3, expansion_time=60,
-                 celery=False, chiral=True, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
-                 mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
+                 celery=False, chiral=True, mincount=0, mincount_chiral=0,
                  template_prioritization=gc.relevance, precursor_prioritization=gc.relevanceheuristic,
                  chemhistorian=None, nproc=8, num_active_pathways=None):
         """Initialization of an object of the MCTS class.
@@ -152,7 +151,7 @@ class MCTS:
         if chemhistorian is None:
             from makeit.utilities.historian.chemicals import ChemHistorian
             self.chemhistorian = ChemHistorian()
-            self.chemhistorian.load_from_file(refs=False, compressed=True)
+            self.chemhistorian.load_from_file(refs=False, hashed=True)
 
         # Initialize vars, reset dicts, etc.
         self.reset(soft_reset=False) # hard
@@ -161,10 +160,10 @@ class MCTS:
         # Get template relevance model - need for target to get things started
         # NOTE: VERY IMPORTANT TO NOT USE TENSORFLOW!! OTHERWISE FORKED PROCESSES HANG
         # THIS SHOULD BE ABLE TO BE FIXED
-        from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
-        template_prioritizer = RelevanceTemplatePrioritizer(use_tf=False)
-        template_prioritizer.load_model()
-        self.template_prioritizer = template_prioritizer
+        # from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
+        # template_prioritizer = RelevanceTemplatePrioritizer()
+        # template_prioritizer.load_model()
+        # self.template_prioritizer = template_prioritizer
 
 
         # When not using Celery, need to ensure retroTransformer initialized
@@ -172,16 +171,16 @@ class MCTS:
             if retroTransformer:
                 self.retroTransformer = retroTransformer
             else:
-                self.retroTransformer = model_loader.load_Retro_Transformer(mincount=self.mincount,
-                                                                            mincount_chiral=self.mincount_chiral,
-                                                                            chiral=self.chiral)
-                self.retroTransformer.load_fast_filter()
+                self.retroTransformer = model_loader.load_Retro_Transformer()
+                self.retroTransformer.load()
                 # don't load template prioritizer until later, TF doesn't like forking
         else:
             # Still need to load to have num refs, etc.
             MyLogger.print_and_log('Loading transforms for informational purposes only', treebuilder_loc)
-            self.retroTransformer = RetroTransformer(mincount=self.mincount, mincount_chiral=self.mincount_chiral)
-            self.retroTransformer.load(chiral=True, rxns=False)
+            self.retroTransformer = RetroTransformer(
+                template_prioritizer=None, precursor_prioritizer=None, fast_filter=None
+            )
+            self.retroTransformer.load()
             MyLogger.print_and_log('...done loading {} informational transforms!'.format(len(self.retroTransformer.templates)), treebuilder_loc)
 
 
@@ -199,10 +198,10 @@ class MCTS:
                 # same database. _id is _id of active pathway
                 self.pending_results.append(tb_c_worker.apply_one_template_by_idx.apply_async(
                     args=(_id, smiles, template_idx),
-                    kwargs={'template_count': self.template_count,
+                    kwargs={'max_num_templates': self.template_count,
                             'max_cum_prob': self.max_cum_template_prob,
-                            'apply_fast_filter': self.apply_fast_filter,
-                            'filter_threshold': self.filter_threshold},
+                            'fast_filter_threshold': self.filter_threshold,
+                            'template_prioritizer': self.template_prioritizer},
                     # queue=self.private_worker_queue, ## CWC TEST: don't reserve
                 ))
                 self.status[(smiles, template_idx)] = WAITING
@@ -236,7 +235,12 @@ class MCTS:
                     #     self.private_worker_queue = request.get(timeout=10)
 
                     ## CWC TEST: don't reserve
-                    res = tb_c_worker.apply_one_template_by_idx.delay(1, 'CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1', 109659)
+                    res = tb_c_worker.apply_one_template_by_idx.delay(
+                        1, 
+                        'CCOC(=O)[C@H]1C[C@@H](C(=O)N2[C@@H](c3ccccc3)CC[C@@H]2c2ccccc2)[C@@H](c2ccccc2)N1', 
+                        1, 
+                        template_prioritizer='reaxys'
+                    )
                     res.get(20)
                 except Exception as e:
                     res.revoke()
@@ -553,7 +557,7 @@ class MCTS:
         #     self.model.load(MODEL_PATH)
 
         # Load models that are required
-        self.retroTransformer.get_template_prioritizers(gc.relevance)
+        # self.retroTransformer.get_template_prioritizers(gc.relevance)
         self.initialized[i] = True
 
         while True:
@@ -570,7 +574,10 @@ class MCTS:
 
                     # print('{} grabbed {} and {} from queue'.format(_id, smiles, template_idx))
                     try:
-                        all_outcomes = self.retroTransformer.apply_one_template_by_idx(_id, smiles, template_idx) # TODO: add settings
+                        all_outcomes = self.retroTransformer.apply_one_template_by_idx(
+                            _id, smiles, template_idx, 
+                            template_prioritizer=template_prioritizer
+                        ) # TODO: add settings
                     except Exception as e:
                         print(e)
                         all_outcomes = [(_id, smiles, template_idx, [], 0.0)]
@@ -863,15 +870,14 @@ class MCTS:
             self.prepare()
 
             # Define first chemical node (target)
-            probs, indeces = self.template_prioritizer.get_topk_from_smi(self.smiles, k=self.template_count)
-            truncate_to = np.argwhere(np.cumsum(probs) >= self.max_cum_template_prob)
-            if len(truncate_to):
-                truncate_to = truncate_to[0][0] + 1 # Truncate based on max_cum_prob?
+            if self.celery:
+                res = tb_c_worker.template_relevance.delay(self.smiles, self.template_count, self.max_cum_template_prob)
+                probs, indeces = res.get(10)
             else:
-                truncate_to = self.template_count
+                probs, indeces = self.template_prioritizer.predict(self.smiles, self.template_count, self.max_cum_template_prob)
             value = 1 # current value assigned to precursor (note: may replace with real value function)
             self.Chemicals[self.smiles] = Chemical(self.smiles)
-            self.Chemicals[self.smiles].set_template_relevance_probs(probs[:truncate_to], indeces[:truncate_to], value)
+            self.Chemicals[self.smiles].set_template_relevance_probs(probs, indeces, value)
             MyLogger.print_and_log('Calculating initial probs for target', treebuilder_loc)
             hist = self.chemhistorian.lookup_smiles(self.smiles, alreadyCanonical=False)
             self.Chemicals[self.smiles].as_reactant = hist['as_reactant']
@@ -1003,14 +1009,14 @@ class MCTS:
                 db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
                                         'id'], connect=gc.MONGO['connect'])
 
-                db_name = gc.RETRO_TRANSFORMS_CHIRAL['database']
-                collection = gc.RETRO_TRANSFORMS_CHIRAL['collection']
+                db_name = gc.RETRO_TEMPLATES['database']
+                collection = gc.RETRO_TEMPLATES['collection']
                 TEMPLATE_DB = db_client[db_name][collection]
                 tforms = []
                 num_examples = 0
                 necessary_reagent = None
                 for tid in tids:
-                    template = TEMPLATE_DB.find_one({'_id': ObjectId(self.retroTransformer.templates[tid][0])})
+                    template = TEMPLATE_DB.find_one({'_id': ObjectId(self.retroTransformer.templates[tid])})
                     tforms.append(str(template.get('_id', -1)))
                     num_examples += template.get('count', 1)
                     if necessary_reagent is None:
@@ -1218,6 +1224,7 @@ class MCTS:
                           soft_reset=False,
                           return_first=False,
                           sort_trees_by='plausibility',
+                          template_prioritizer='reaxys',
                           **kwargs):
         """Returns trees with path ending in buyable chemicals.
 
@@ -1296,13 +1303,14 @@ class MCTS:
         self.max_natom_dict = max_natom_dict
         self.max_ppg = max_ppg
         self.sort_trees_by = sort_trees_by
+        self.template_prioritizer = template_prioritizer
         MyLogger.print_and_log('Active pathway #: {}'.format(num_active_pathways), treebuilder_loc)
 
         if min_chemical_history_dict['logic'] not in [None, 'none'] and \
                 self.chemhistorian is None:
             from makeit.utilities.historian.chemicals import ChemHistorian
             self.chemhistorian = ChemHistorian()
-            self.chemhistorian.load_from_file(refs=False, compressed=True)
+            self.chemhistorian.load_from_file(refs=False, hashed=True)
             MyLogger.print_and_log('Loaded compressed chemhistorian from file', treebuilder_loc, level=1)
 
         # Define stop criterion
@@ -1397,9 +1405,7 @@ if __name__ == '__main__':
     # Load tree builder
     NCPUS = 4
     print("There are {} processes available ... ".format(NCPUS))
-    Tree = MCTS(nproc=NCPUS, mincount=gc.RETRO_TRANSFORMS_CHIRAL['mincount'],
-        mincount_chiral=gc.RETRO_TRANSFORMS_CHIRAL['mincount_chiral'],
-        celery=celery)
+    Tree = MCTS(nproc=NCPUS, mincount=0, mincount_chiral=0, celery=celery)
 
     ####################################################################################
     ############################# SCOPOLAMINE TEST #####################################
