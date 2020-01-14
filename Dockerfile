@@ -21,5 +21,3 @@ USER askcos
 ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:"/usr/local/rdkit-2019-03/lib"
 ENV PYTHONPATH=${PYTHONPATH}:/usr/local/rdkit-2019-03:/usr/local/ASKCOS:/usr/local/ASKCOS/askcos/
 ENV KERAS_BACKEND=theano
-
-#RUN cd /usr/local/ASKCOS/docs && python -m sphinx.ext.apidoc -f -o ./ .. && make html && cd -

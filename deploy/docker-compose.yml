@@ -11,7 +11,6 @@ services:
       - './askcos.ssl.cert:/etc/ssl/certs/askcos.ssl.cert'
       - './askcos.ssl.key:/etc/ssl/private/askcos.ssl.key'
       - 'staticdata:/static'
-      - 'docdata:/documentation'
     ports:
       - '80:80'
       - '443:443'
@@ -197,4 +196,3 @@ volumes:
   mysql_data:
   mongo_data:
   staticdata:
-  docdata:
