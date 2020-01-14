@@ -161,6 +161,8 @@ class TemplateTransformer(object):
 
         Args:
             file_path (str): gzipped json file to read dumped templates from.
+            template_set (str): optional name of template set to load, otherwisse load templates from all template sets in file
+            retro (bool): whether or not templates being loaded represent retrsynthetic templates
         """
 
         MyLogger.print_and_log('Loading templates from {}'.format(file_path), transformer_loc)
@@ -172,7 +174,7 @@ class TemplateTransformer(object):
             MyLogger.print_and_log("No file to read data from.", transformer_loc, level=1)
             raise IOError('File not found to load template_transformer from!')
 
-        if template_set is not None and template_set is not 'all':
+        if template_set is not None and template_set != 'all':
             self.templates = list(
                 filter(
                     lambda x: x.get('template_set') == template_set, 
