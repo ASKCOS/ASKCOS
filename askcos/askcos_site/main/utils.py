@@ -1,6 +1,5 @@
 import os
 from django.http import JsonResponse
-# from .globals import CHEMICAL_DB
 import rdkit.Chem as Chem
 import sys
 if sys.version_info[0] < 3:
