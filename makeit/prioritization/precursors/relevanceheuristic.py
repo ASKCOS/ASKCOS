@@ -19,6 +19,14 @@ class RelevanceHeuristicPrecursorPrioritizer(Prioritizer):
         self._loaded = False
 
     def score_precursor(self, precursor):
+        """Score a given precursor using a combination of the template relevance score and a heuristic rule
+
+        Args:
+            precursor (dict): dictionary of precursor to score
+
+        Returns:
+            float: combined relevance heuristic score of precursor
+        """
         scores = []
         necessary_reagent_atoms = precursor['necessary_reagent'].count('[')/2.
         for smiles in precursor['smiles_split']:
@@ -46,6 +54,14 @@ class RelevanceHeuristicPrecursorPrioritizer(Prioritizer):
 
 
     def reorder_precursors(self, precursors):
+        """Reorder a list of precursors by their newly computed combined relevance heuristic score
+
+        Args:
+            precursors (list of dict)
+        
+        Returns:
+            list: reordered list of precursor dictionaries with new 'score' and 'rank' keys
+        """
         scores = np.array([self.score_precursor(p) for p in precursors])
         indices = np.argsort(-scores)
         scores = scores[indices]
