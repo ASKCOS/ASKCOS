@@ -144,10 +144,6 @@ RELEVANCE_TEMPLATE_PRIORITIZATION = {
     'reaxys': {
         'model_path': os.path.join(models_path, 'template_prioritization', 'template-relevance-reaxys_v9_10_5.hdf5'),
         'output_size': 163723
-    },
-    'uspto_50k': {
-        'model_path': os.path.join(models_path, 'template_prioritization', 'template-relevance-uspto_50k.hdf5'),
-        'output_size': 0
     }
 }
 
