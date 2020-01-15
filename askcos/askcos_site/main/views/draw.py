@@ -6,11 +6,15 @@ from django.conf import settings
 import django.contrib.auth.views
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-
+from PIL import Image, ImageOps
 from ..utils import ajax_error_wrapper, resolve_smiles
 from ..forms import DrawingInputForm
-
+from rdkit.Chem import rdChemReactions
+import cairosvg
+from rdkit.Chem.Draw.rdMolDraw2D import MolDraw2DSVG
 import re
+import io
+import numpy as np
 
 @ajax_error_wrapper
 def ajax_smiles_to_image(request):
@@ -105,6 +109,16 @@ def draw_mapped_reaction(request, smiles):
     response = HttpResponse(content_type='image/jpeg')
     print('in views', smiles)
     ReactionStringToImage(str(smiles), strip=False).save(response, 'png', quality=70)
+    return response
+
+def draw_highlighted_reaction(request, smiles):
+    '''
+        Returns a png response for a SMILES reaction string
+    '''
+    from makeit.utilities.io.draw import MappedReactionToHightlightImage
+    response = HttpResponse(content_type='image/jpeg')
+    print('in views', smiles)
+    MappedReactionToHightlightImage(str(smiles), highlightByReactant=True).save(response, 'png', quality=70)
     return response
 
 def draw_smiles_highlight(request, smiles, reacting_atoms, bonds='False'):

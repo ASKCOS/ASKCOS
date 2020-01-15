@@ -168,10 +168,6 @@ TEMPLATE_FREE_FORWARD_PREDICTOR = {
     'rank_model_path': os.path.join(models_path, 'forward_predictor', 'rexgen_direct', 'rank_diff_wln', 'model-core16-500-3-max150-direct-useScores', 'model.ckpt-2400000')
 }
 
-<<<<<<< HEAD
 SELECTIVITY = {
     'model_path': os.path.join(models_path, 'selectivity', 'model.ckpt-30615')
 }
-=======
-
->>>>>>> release-0.4.1-impurity

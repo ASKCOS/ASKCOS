@@ -89,26 +89,21 @@ echo ""
 echo "###################################"
 echo "starting tensorflow serving workers"
 echo "###################################"
-docker-compose up -d template_relevance_reaxys
+#docker-compose up -d template_relevance_reaxys
 
 echo ""
 echo "#######################"
 echo "starting celery workers"
 echo "#######################"
-<<<<<<< HEAD
-docker-compose up -d te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker sites_worker tb_c_worker_preload
-docker-compose up -d --scale tb_coordinator_mcts=2 --scale tb_c_worker=12 tb_coordinator_mcts tb_c_worker
-=======
-docker-compose up -d te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker tb_coordinator_mcts tb_c_worker tb_c_worker_preload sites_worker
-docker-compose up -d --scale tb_coordinator_mcts=2
+# docker-compose up -d te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker tb_coordinator_mcts tb_c_worker tb_c_worker_preload sites_worker
+# docker-compose up -d --scale tb_coordinator_mcts=2
 docker-compose up -d impurity_worker atom_mapping_worker
->>>>>>> release-0.4.1-impurity
 
 if [ "$SKIP_MIGRATION" = false ]; then
   echo ""
   echo "#################"
   echo "migrating user db"
   echo "#################"
-  docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py makemigrations main"
-  docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py migrate"
+#  docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py makemigrations main"
+#  docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py migrate"
 fi

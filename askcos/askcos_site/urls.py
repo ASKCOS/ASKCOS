@@ -96,6 +96,7 @@ urlpatterns += [
     re_path(r'^draw/template/(?P<template>.+)$', views.draw_template, name='draw_template'),
     re_path(r'^draw/reaction/(?P<smiles>.+)$', views.draw_reaction, name='draw_reaction'),
     re_path(r'^draw/mapped_reaction/(?P<smiles>.+)$', views.draw_mapped_reaction, name='draw_mapped_reaction'),
+    re_path(r'^draw/highlighted_reaction/(?P<smiles>.+)$', views.draw_highlighted_reaction, name='draw_highlighted_reaction'),
 
     re_path(r'^draw/highlight/smiles=(?P<smiles>.+)&reacting_atoms=(?P<reacting_atoms>.+)&bonds=(?P<bonds>.+)$', views.draw_smiles_highlight, name='draw_highlight'),
 

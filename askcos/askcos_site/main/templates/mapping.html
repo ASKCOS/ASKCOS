@@ -49,8 +49,10 @@ $("#start_synth").click(function () {
             } else {
                 $("#mapped_smiles_wrapper").show();
                 $("#mapped_image_wrapper").show();
+                $("#hightlight_image_wrapper").show();
                 $("#mapped_rxn_smiles").html(data.rxnsmiles_mapped);
-                $("#mapped_rxn_image").html(data.html);
+                $("#mapped_rxn_image").html(data.html_mapping);
+                $("#hightlight_rxn_image").html(data.html_highlight);
             }
         }
     });

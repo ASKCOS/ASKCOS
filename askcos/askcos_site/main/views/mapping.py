@@ -42,9 +42,11 @@ def ajax_find_atom_mapping(request):
     data['html_time'] = '{:.3f} seconds elapsed'.format(time.time() - startTime)
 
     if data['rxnsmiles_mapped']:
-        url = reverse('draw_mapped_reaction', kwargs={'smiles': data['rxnsmiles_mapped']})
-        data['html'] = '<img src="' + url + '">'
+        url_mapping = reverse('draw_mapped_reaction', kwargs={'smiles': data['rxnsmiles_mapped']})
+        url_highlight = reverse('draw_highlighted_reaction', kwargs={'smiles': data['rxnsmiles_mapped']})
+        data['html_mapping'] = '<img src="' + url_mapping + '">'
+        data['html_highlight'] = '<img src="' + url_highlight + '">'
     else:
-        data['html'] = 'No atom mapping is found'
-
+        data['html_mapping'] = 'No atom mapping is found'
+        data['html_highlight'] = 'No highlighted reaction iamge to show'
     return JsonResponse(data)

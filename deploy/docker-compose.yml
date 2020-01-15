@@ -11,6 +11,7 @@ services:
       - './askcos.ssl.cert:/etc/ssl/certs/askcos.ssl.cert'
       - './askcos.ssl.key:/etc/ssl/private/askcos.ssl.key'
       - 'staticdata:/static'
+      - 'docdata:/documentation'
     ports:
       - '80:80'
       - '443:443'
@@ -47,11 +48,8 @@ services:
       - '8000'
     volumes:
       - 'staticdata:/usr/local/ASKCOS/askcos/askcos_site/static'
-<<<<<<< HEAD
-=======
       - 'docdata:/usr/local/ASKCOS/docs/_build/html'
       - '../:/usr/local/ASKCOS/'
->>>>>>> release-0.4.1-impurity
     depends_on:
       - redis
       - rabbit
@@ -145,7 +143,7 @@ services:
     restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 1 -Q tb_c_worker -n tb_c_worker@%h --pool=gevent --without-heartbeat"
+    command: bash -c "celery -A askcos_site worker -c 12 -Q tb_c_worker -n tb_c_worker@%h"
     depends_on:
       - redis
       - rabbit
@@ -234,16 +232,6 @@ services:
     volumes:
       - '../:/usr/local/ASKCOS/'
 
-  template_relevance_reaxys:
-    image: tensorflow/serving
-    restart: always
-    volumes:
-      - ./models/template_relevance/reaxys:/models/template_relevance/1
-    environment:
-      - MODEL_NAME=template_relevance
-    ports:
-      - 8501:8501
-
   redis:
     image: redis:5.0.7
     hostname: redis
@@ -272,3 +260,4 @@ volumes:
   mysql_data:
   mongo_data:
   staticdata:
+  docdata:

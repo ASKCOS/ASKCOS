@@ -62,11 +62,7 @@ def MolsSmilesToImageHighlight(smiles, options=None, **kwargs):
         # Will only draw the highlighted atoms if they are mapped by isotope from rdchiral otherwise
         # the reacting_atoms will not match the atom index and draw the highlight in the incorrect location
         else:
-<<<<<<< HEAD
             isotope_idx_map = {a.GetAtomMapNum():a.GetIdx() for a in mol.GetAtoms()}
-=======
-            isotope_idx_map = {a.GetIsotope(): a.GetIdx() for a in mol.GetAtoms()}
->>>>>>> release-0.4.1-impurity
             highlightAtoms = [isotope_idx_map[x] for x in reacting_atoms]
             # TODO add options for colors?
             highlightAtomColors = {x: (0, 1, 0) for x in highlightAtoms}
@@ -82,17 +78,10 @@ def MolsSmilesToImageHighlight(smiles, options=None, **kwargs):
         highlightAtomColors = []
 
     if clear_map:
-<<<<<<< HEAD
         [a.SetAtomMapNum(0) for a in mol.GetAtoms()]
     m2=Draw.PrepareMolForDrawing(mol)
     d2.DrawMolecule(m2,highlightAtoms=highlightAtoms, \
         highlightBonds=highlightBonds, highlightAtomColors=highlightAtomColors)
-=======
-        [a.SetIsotope(0) for a in mol.GetAtoms()]
-    m2 = Draw.PrepareMolForDrawing(mol)
-    d2.DrawMolecule(m2, highlightAtoms=highlightAtoms, \
-                    highlightBonds=highlightBonds, highlightAtomColors=highlightAtomColors)
->>>>>>> release-0.4.1-impurity
     d2.FinishDrawing()
     txt = d2.GetDrawingText()
 
@@ -503,7 +492,10 @@ def MappedReactionToHightlightImage(rxnsmiles, highlightByReactant=True):
     colors = [(255 / 255, 200 / 255, 153 / 255),
               (204 / 255, 255 / 255, 153 / 255),
               (153 / 255, 179 / 255, 255 / 255),
-              (255 / 255, 153 / 255, 230 / 255)]
+              (255 / 255, 153 / 255, 230 / 255),
+              (204 / 255, 0 / 255, 204 / 255),
+              (192 / 255, 192 / 255, 192 / 255),
+              (204 / 255, 153 / 255, 255 / 255)]
     drawer.DrawReaction(rxn_mol, highlightByReactant=highlightByReactant, highlightColorsReactants=colors)
     drawer.FinishDrawing()
     svg = drawer.GetDrawingText()
