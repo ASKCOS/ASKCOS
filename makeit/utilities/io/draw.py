@@ -488,7 +488,7 @@ def MappedReactionToHightlightImage(rxnsmiles, highlightByReactant=True):
     print(rxnsmiles)
     rxn_mol = rdChemReactions.ReactionFromSmarts(rxnsmiles, useSmiles=True)
     # set the drawing image size
-    drawer = MolDraw2DSVG(750, 150)
+    drawer = MolDraw2DSVG(1500, 400)
     colors = [(255 / 255, 200 / 255, 153 / 255),
               (204 / 255, 255 / 255, 153 / 255),
               (153 / 255, 179 / 255, 255 / 255),

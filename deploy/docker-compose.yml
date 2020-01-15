@@ -49,7 +49,6 @@ services:
     volumes:
       - 'staticdata:/usr/local/ASKCOS/askcos/askcos_site/static'
       - 'docdata:/usr/local/ASKCOS/docs/_build/html'
-      - '../:/usr/local/ASKCOS/'
     depends_on:
       - redis
       - rabbit
@@ -65,8 +64,6 @@ services:
     depends_on:
       - redis
       - rabbit
-    volumes:
-      - '../:/usr/local/ASKCOS/'
 
   sc_coordinator:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
@@ -79,8 +76,6 @@ services:
       - rabbit
       - mysql
       - mongo
-    volumes:
-      - '../:/usr/local/ASKCOS/'
 
   ft_worker:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
@@ -93,8 +88,6 @@ services:
       - rabbit
       - mysql
       - mongo
-    volumes:
-      - '../:/usr/local/ASKCOS/'
 
   cr_coordinator:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
@@ -107,8 +100,6 @@ services:
       - rabbit
       - mysql
       - mongo
-    volumes:
-      - '../:/usr/local/ASKCOS/'
 
   cr_network_worker:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
@@ -121,8 +112,6 @@ services:
       - rabbit
       - mysql
       - mongo
-    volumes:
-      - '../:/usr/local/ASKCOS/'
 
   tb_coordinator_mcts:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
@@ -135,8 +124,6 @@ services:
       - rabbit
       - mysql
       - mongo
-    volumes:
-      - '../:/usr/local/ASKCOS/'
 
   tb_c_worker:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
@@ -173,36 +160,6 @@ services:
       - rabbit
       - mysql
       - mongo
-    volumes:
-      - '../:/usr/local/ASKCOS/'
-
-  tb_c_worker_preload:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
-    restart: always
-    env_file:
-      - .env
-    command: bash -c "celery -A askcos_site worker -c 1 -Q tb_c_worker_preload -n tb_c_worker_preload@%h"
-    depends_on:
-      - redis
-      - rabbit
-      - mysql
-      - mongo
-    volumes:
-      - '../:/usr/local/ASKCOS/'
-
-  sites_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
-    restart: always
-    env_file:
-      - .env
-    command: bash -c "celery -A askcos_site worker -c 1 -Q sites_worker --pool=gevent -n sites_worker@%h"
-    depends_on:
-      - redis
-      - rabbit
-      - mysql
-      - mongo
-    volumes:
-      - '../:/usr/local/ASKCOS/'
 
   impurity_worker:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
@@ -215,8 +172,6 @@ services:
       - rabbit
       - mysql
       - mongo
-    volumes:
-      - '../:/usr/local/ASKCOS/'
 
   atom_mapping_worker:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
@@ -229,8 +184,6 @@ services:
       - rabbit
       - mysql
       - mongo
-    volumes:
-      - '../:/usr/local/ASKCOS/'
 
   redis:
     image: redis:5.0.7
@@ -252,8 +205,6 @@ services:
     restart: always
     expose:
       - '${RABBITMQ_NODE_PORT}'
-    volumes:
-      - '../:/usr/local/ASKCOS/'
 
 volumes:
   redisdata:
