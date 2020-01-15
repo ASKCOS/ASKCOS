@@ -1,3 +1,8 @@
+import os, sys
+
+os.environ['KERAS_BACKEND'] = 'theano'
+os.environ['THEANO_FLAGS'] = 'device=cpu'
+
 from makeit.utilities.fastfilter_utilities import Highway_self, pos_ct, true_pos, real_pos, set_keras_backend
 from makeit.utilities.fingerprinting import create_rxn_Morgan2FP_separately
 from rdkit import Chem
@@ -107,6 +112,16 @@ class FastFilterScorer(Scorer):
         filter_flag = (score > threshold)
         return filter_flag, float(score)
 
+class FastFilerImpurityInspector():
+    def __init__(self):
+        self.inspector = FastFilterScorer()
+        self.inspector.load(model_path=gc.FAST_FILTER_MODEL['trained_model_path'])
+
+    def evaluate(self, rxnsmi):
+        rct, rea, prd = rxnsmi.split('>')
+        all_outcomes = self.inspector.evaluate(rct, prd)
+        score = all_outcomes[0][0]['score']
+        return score
 
 if __name__ == "__main__":
 

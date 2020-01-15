@@ -42,4 +42,9 @@ CELERY_TASK_ROUTES = {
     'askcos_site.askcos_celery.contextrecommender.cr_network_worker.*': {'queue':'cr_network_worker'},
     'askcos_site.askcos_celery.contextrecommender.cr_coordinator.*':{'queue':'cr_coordinator'},
     'askcos_site.askcos_celery.siteselectivity.sites_worker.*':{'queue':'sites_worker'},
+    'askcos_site.askcos_celery.impurity.impurity_worker.*':{'queue':'impurity_worker'},
+    'askcos_site.askcos_celery.atom_mapper.atom_mapping_worker.*':{'queue':'atom_mapping_worker'},
+    'askcos_site.askcos_celery.impurity.impurity_inspector_worker.*': {'queue': 'atom_mapping_worker'},
+    'askcos_site.askcos_celery.impurity.impurity_predictor_worker.*': {'queue': 'atom_mapping_worker'},
+
 }

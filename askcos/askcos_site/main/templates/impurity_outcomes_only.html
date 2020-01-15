@@ -1,0 +1,24 @@
+<table class="table table-nonfluid table_outcomes">
+<tr>
+	<th style="text-align: right">No. <a href="#" data-toggle="tooltip" title="Ranking is based on similarity between predicted impurity and major product."><span class="glyphicon glyphicon-info-sign"></span></a></th>
+	<th><center>Predicted impurities</center></th>
+	<th style="text-align: right">Possible mechanisms</th>
+	<th style="text-align: right">Inspector score</th>
+    <th style="text-align: right">Similarity score</th>
+</tr>
+
+{% for outcome in outcomes %}
+<tr>
+	<td>{{outcome.no}}</td>
+	<td>
+		<center>
+			<img src="" data-async-load="{% url 'draw_smiles' outcome.prd_smiles %}" alt="{{ outcome.prd_smiles }}"><br>
+			<font class="smiles">{{ outcome.prd_smiles }}</font>
+		</center>
+	</td>
+	<td style="text-align: right">{{ outcome.modes_name}}</td>
+	<td style="text-align: right">{{ outcome.avg_insp_score|floatformat:3 }}</td>
+    <td style="text-align: right">{{ outcome.similarity_to_major|floatformat:3 }}</td>
+</tr>
+{% endfor %}
+</table>

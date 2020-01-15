@@ -155,4 +155,4 @@ def get_precursor_options():
 @shared_task
 def get_precursor_score_options():
     """Returns the available options for precursor scoring modes."""
-    retunr[gc.max, gc.mean, gc.geometric, gc.pow8]
+    return [gc.max, gc.mean, gc.geometric, gc.pow8]

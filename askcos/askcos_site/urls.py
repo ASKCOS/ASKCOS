@@ -95,6 +95,8 @@ urlpatterns += [
     re_path(r'^draw/smiles/(?P<smiles>.+)$', views.draw_smiles, name='draw_smiles'),
     re_path(r'^draw/template/(?P<template>.+)$', views.draw_template, name='draw_template'),
     re_path(r'^draw/reaction/(?P<smiles>.+)$', views.draw_reaction, name='draw_reaction'),
+    re_path(r'^draw/mapped_reaction/(?P<smiles>.+)$', views.draw_mapped_reaction, name='draw_mapped_reaction'),
+
     re_path(r'^draw/highlight/smiles=(?P<smiles>.+)&reacting_atoms=(?P<reacting_atoms>.+)&bonds=(?P<bonds>.+)$', views.draw_smiles_highlight, name='draw_highlight'),
 
     # Separation
@@ -156,4 +158,13 @@ urlpatterns += [
 
     # Celery status
     re_path(r'^status/$', views.status),
+
+    # Interactive impurity prediction
+    re_path(r'^impurity_interactive/$', views.impurity_interactive, name='impurity_interactive'),
+    re_path(r'^ajax/start_impurity/$', views.ajax_start_impurity, name='ajax_start_impurity'),
+    re_path(r'^ajax/impurity_status/(?P<task_id>[\w-]+)/$', views.ajax_get_progress, name='ajax_impurity_status'),
+
+    # Atom mapping
+    re_path(r'^atom_mapping/$', views.atom_mapping, name='atom_mapping'),
+    re_path(r'^ajax/find_atom_mapping/$', views.ajax_find_atom_mapping, name='ajax_find_atom_mapping'),
 ]

@@ -10,7 +10,9 @@ READABLE_NAMES = {
     'tb_c_worker_preload': 'One-Step/Tree Builder Retrosynthesis Worker (Pre-loaded)',
     'tb_coordinator_mcts': 'Tree Builder Coordinator',
     'te_coordinator': 'Tree Evaluation Coordinator',
-    'sites_worker': 'Site Selectivity Worker'
+    'sites_worker': 'Site Selectivity Worker',
+    'impurity_worker': 'Impurity worker',
+    'atom_mapping_worker': 'Atom mapping worker',
 }
 
 def celery_status(request):

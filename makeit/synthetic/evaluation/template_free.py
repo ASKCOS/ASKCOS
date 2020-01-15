@@ -54,7 +54,7 @@ class TemplateFreeNeuralNetScorer(Scorer):
                 this_reactants_smiles += '.' + rgt1
             if cat1:
                 this_reactants_smiles += '.' + cat1
-            outcomes = self.model.predict(this_reactants_smiles,
+            _, outcomes = self.model.predict(this_reactants_smiles,
                 top_n=kwargs.get('top_n', 1e10))
             if not outcomes:
                 all_outcomes.append([{
@@ -126,6 +126,7 @@ if __name__ == '__main__':
         react = str(sys.argv[1])
     else:
         react = 'CCCCO.CCCCBr'
+
     MyLogger.initialize_logFile()
     scorer = TemplateFreeNeuralNetScorer()
     res = scorer.evaluate(react)
