@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Atom Mapping{% endblock %}
+{% block page_title %}Atom Mapping<span id="status"></span>{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'atom_mapping' %}">Atom Mapping</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block javascript %}
+<script>
+
+$("#rxn").change(function () {
+    console.log( $(this).val() );
+    $.ajax({
+        url: '/ajax/rxn_to_image/',
+        data: {
+            rxnsmiles: $(this).val(),
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data.err) {
+                $("#rxn_mol_wrapper").show();
+                $("#rxn_image").html('error! could not parse');
+            } else {
+                $("#rxn_image").html(data.html);
+                $("#rxn_mol_wrapper").show();
+            }
+        },
+    });
+});
+
+$("#start_synth").click(function () {
+    console.log('starting synth');
+    $.ajax({
+        url: '/ajax/find_atom_mapping/',
+        data: {
+            rxnsmiles: $("#rxn").val(),
+            mapper: $("#id_atom_mapper").val(),
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data.err) {
+                alert(data.message);
+            } else {
+                $("#mapped_smiles_wrapper").show();
+                $("#mapped_image_wrapper").show();
+                $("#hightlight_image_wrapper").show();
+                $("#mapped_rxn_smiles").html(data.rxnsmiles_mapped);
+                $("#mapped_rxn_image").html(data.html_mapping);
+                $("#hightlight_rxn_image").html(data.html_highlight);
+            }
+        }
+    });
+});
+
+
+</script>
+{% endblock %}
+
+
+{% block page_body %}
+<i>Note: This page uses two algorithms to map the given reaction smiles: </i>
+<br>
+<i>(1) WLN atom mapper uses a WLN forward predictor to find the atom mapping. It can only take in one product. </i>
+<br>
+<i>(2) Heuristic mapper uses the algorithm described in the Grzybowski's publication (doi: 10.1038/s41467-019-09440-2). </i>
+<table class="table table-borderless table-nonfluid">
+
+<!-- Reactants -->
+<tr><th style="vertical-align: text-top;">Reaction SMILES: </th><td><input id="rxn" maxlength="1000" size="60" type="text"/></td></tr>
+
+<tr id="rxn_mol_wrapper" style="display:none"><th style="vertical-align: text-top">Parsed reaction:</th><td id="rxn_image"></td></tr>
+
+<tr><th style="vertical-align:text-top;">Atom mapping model: <a href="#" data-toggle="tooltip" title="Atom mapping based on heuristics or WLN forward predictor."><span class="glyphicon glyphicon-info-sign"></span></a></th>
+    <td>
+        <select id="id_atom_mapper" name="atom_mapper" onchange="showFields(this.options[this.selectedIndex].value)">
+            <option value="WLN atom mapper" {% if atom_mapper == 'WLN atom mapper' %}selected{% endif %}>WLN atom mapper</option>
+            <option disabled value="Heuristic mapper" {% if atom_mapper == 'Heuristic mapper' %}selected{% endif %}>Heuristic mapper</option>
+        </select>
+    </td>
+</tr>
+
+<tr id="mapped_smiles_wrapper" style="display:none">
+    <th style="vertical-align: text-top">Mapped reaction smiles:</th><td id="mapped_rxn_smiles"></td>
+</tr>
+<tr id="mapped_image_wrapper" style="display:none">
+    <th style="vertical-align: text-top">Mapped reaction image:</th><td id="mapped_rxn_image"></td>
+</tr>
+<tr id="hightlight_image_wrapper" style="display:none">
+    <th style="vertical-align: text-top">Hightlighted reaction image:</th><td id="hightlight_rxn_image"></td>
+</tr>
+
+<tr><th>{% csrf_token %}</th></tr>
+
+<!-- Controls -->
+<tr id="controls_wrapper">
+<td colspan="2" style="width:100%">
+    <button type="button" style="width:100%" id="start_synth">Find atom mapping</button>
+</td>
+</tr>
+</table>
+
+{% if footnote %}
+<br>
+<div style="font-size:smaller"><i>{{ footnote }}</i></div>
+{% endif %}
+
+
+<!-- drawing box -->
+{% include "drawing_modal.html" %}
+
+{% endblock %}

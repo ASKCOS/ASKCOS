@@ -24,7 +24,7 @@
 
 
 
- <div class="jumbotron">
+<div class="jumbotron">
     <a href="{% url 'retro_network' %}"><h1 class="display-3">Interactive Path Planning</h1></a>
     <p class="lead">Interactively explore reaction pathways by chaining together one-step retrosynthesis predictions</p>
     <hr class="my-4">
@@ -33,7 +33,7 @@
 
 
 
- <div class="jumbotron">
+<div class="jumbotron">
     <a href="{% url 'retro_interactive_mcts' %}"><h1 class="display-3">Tree Builder</h1></a>
     <p class="lead">Generate and view possible synthesis plans, with manual step-wise evaluation</p>
     <hr class="my-4">
@@ -42,7 +42,7 @@
 
 
 
- <div class="jumbotron">
+<div class="jumbotron">
     <a href="{% url 'context_rxnsmiles' %}"><h1 class="display-3">Context Recommendation</h1></a>
     <p class="lead">Get ideas for reaction conditions for an attempted transformation</p>
     <hr class="my-4">
@@ -50,14 +50,14 @@
 </div>
 
 
- <div class="jumbotron">
+<div class="jumbotron">
     <a href="{% url 'synth_interactive' %}"><h1 class="display-3">Forward Prediction</h1></a>
     <p class="lead">Predict the outcome of a chemical reaction by specifying the reactants and context</p>
     <hr class="my-4">
     <p>This module allows you to use the Reaxys-trained template-based or USPTO-trained template-free forward predictor to anticipate the outcomes of an arbitrary chemical reaction. While the models are trained to be condition-dependent, this is a work-in-progress. The results of a forward enumeration can be exported to a .csv for offline processing or copying/pasting into Chemdraw.</p>
 </div>
 
- <div class="jumbotron">
+<div class="jumbotron">
     <a href="{% url 'evaluate_rxnsmiles' %}"><h1 class="display-3">Reaction Evaluation</h1></a>
     <p class="lead">Predict if a reaction will succeed by specifying the reactants and intended product</p>
     <hr class="my-4">
@@ -71,18 +71,31 @@
     <p>This module allows you to predict the selectivity of 123 aromatic C-H functionalization reactions</p>
 </div>
 
- <div class="jumbotron">
+<div class="jumbotron">
     <a href="{% url 'scscoring' %}"><h1 class="display-3">SCScore Evaluator</h1></a>
     <p class="lead">Analyze a chemical's perceived synthetic complexity</p>
     <hr class="my-4">
     <p>This module is a utility to evaluate the SCScore (a learned synthetic complexity metric) for arbitrary target chemicals. The model was trained on reactions in Reaxys in an attempt to understand the nuance of synthetic complexity, e.g., when protections and deprotections are constructive. It is designed to perceive a monotonic increase in complexity throughout a linear synthesis.</p>
 </div>
 
- <div class="jumbotron">
+<div class="jumbotron">
     <a href="{% url 'buyables' %}"><h1 class="display-3">Buyable Look-up</h1></a>
     <p class="lead">Check to see if a chemical is in the buyables database</p>
     <hr class="my-4">
     <p>This module is a utility to check if a certain compound is contained in our very-imperfect database of buyable compounds. Currently, we have approximately 175,000 chemicals (not all unique) from eMolecules, Sigma Aldrich with prices up to $100 per gram. </p>
+</div>
+
+<div class="jumbotron">
+    <a href="{% url 'impurity_interactive' %}"><h1 class="display-3">Impurity Prediction</h1></a>
+    <p class="lead">Impurity Prediction</p>
+    <hr class="my-4">
+    <p>Impurity Prediction </p>
+</div>
+<div class="jumbotron">
+    <a href="{% url 'atom_mapping' %}"><h1 class="display-3">Atom mapping</h1></a>
+    <p class="lead">Use WLN or heuristics to map a reaction SMILES. </p>
+    <hr class="my-4">
+    <p>Atom mapping </p>
 </div>
 
  <div class="jumbotron">

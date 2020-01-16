@@ -25,3 +25,4 @@ theano==1.0.4
 tqdm==4.38.0
 uWSGI==2.0.18
 rdchiral==1.0.0
+CairoSVG==2.4.2

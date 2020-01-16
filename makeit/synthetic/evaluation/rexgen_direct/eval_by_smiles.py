@@ -43,7 +43,7 @@ def copy_edit_mol(mol):
     return new_mol
 
 
-def edit_mol(rmol, edits):
+def edit_mol(rmol, edits, atommap=False):
     new_mol = Chem.RWMol(rmol)
 
     # Keep track of aromatic nitrogens, might cause hydrogen issues
@@ -120,7 +120,8 @@ def edit_mol(rmol, edits):
 
     # Clear formal charges to make molecules valid
     for atom in pred_mol.GetAtoms():
-        atom.ClearProp('molAtomMapNumber')
+        if not atommap:
+            atom.ClearProp('molAtomMapNumber')
         if atom.GetSymbol() == 'N' and atom.GetFormalCharge() == 1: # exclude negatively-charged azide
             bond_vals = sum([bond.GetBondTypeAsDouble() for bond in atom.GetBonds()])
             if bond_vals <= 3:
@@ -168,10 +169,19 @@ def edit_mol(rmol, edits):
             if sum(bond_vals) == len(bond_vals):
                 atom.SetNumExplicitHs(max(0, 4 - len(bond_vals)))
 
+    if atommap:
+        # reconstrcuct the molecule
+        pred_mol = copy_edit_mol(pred_mol).GetMol()
+        # recalculate the valence information
+        try:
+            pred_mol.UpdatePropertyCache()
+        except:
+            print('Valence problems.')
+
     # Bounce to/from SMILES to try to sanitize
     pred_smiles = Chem.MolToSmiles(pred_mol)
     pred_list = pred_smiles.split('.')
-    pred_mols = [Chem.MolFromSmiles(pred_smiles) for pred_smiles in pred_list]
+    pred_mols = [Chem.MolFromSmiles(item) for item in pred_list]
 
     for i, mol in enumerate(pred_mols):
 

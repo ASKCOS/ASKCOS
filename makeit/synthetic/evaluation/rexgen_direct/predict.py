@@ -12,7 +12,7 @@ class TFFP():
         self.ranker = DirectCandRanker()
         self.ranker.load_model()
 
-    def predict(self, smi, top_n=100):
+    def predict(self, smi, top_n=100, atommap=False):
         m = Chem.MolFromSmiles(smi)
         if not m:
             if smi[-1] == '.':
@@ -20,10 +20,11 @@ class TFFP():
             if not m:
                 raise ValueError('Could not parse molecule for TFFP! {}'.format(smi))
         [a.SetIntProp('molAtomMapNumber', i+1) for (i, a) in enumerate(m.GetAtoms())]
-        s = Chem.MolToSmiles(m)
-        (react, bond_preds, bond_scores, cur_att_score) = self.finder.predict(s)
-        outcomes = self.ranker.predict(react, bond_preds, bond_scores, scores=True, top_n=top_n)
-        return(outcomes)
+        rsmi_am = Chem.MolToSmiles(m)
+        (react, bond_preds, bond_scores, cur_att_score) = self.finder.predict(rsmi_am)
+        outcomes = self.ranker.predict(react, bond_preds, bond_scores,
+                                       scores=True, top_n=top_n, atommap=atommap)
+        return rsmi_am, outcomes
 
 
 if __name__ == "__main__":

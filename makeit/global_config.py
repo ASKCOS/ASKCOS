@@ -64,7 +64,6 @@ retro_enumeration = template
 prioritizaton = heuristic
 forward_scoring = network
 
-
 ################################################################################
 # Define data file locations
 ################################################################################

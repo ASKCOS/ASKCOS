@@ -80,7 +80,7 @@ class DirectCandRanker():
             saver = tf.train.Saver()
             saver.restore(self.session, model_path)
     
-    def predict(self, react, top_cand_bonds, top_cand_scores=[], scores=True, top_n=100):
+    def predict(self, react, top_cand_bonds, top_cand_scores=[], scores=True, top_n=100, atommap=False):
         '''react: atom mapped reactant smiles
         top_cand_bonds: list of strings "ai-aj-bo"'''
 
@@ -126,7 +126,8 @@ class DirectCandRanker():
                 x,y = x+1,y+1
                 if ((x,y) not in rbonds and t > 0) or ((x,y) in rbonds and rbonds[(x,y)] != t):
                     cbonds.append((x, y, bond_types_as_double[t]))
-            pred_smiles = edit_mol(rmol, cbonds)
+
+            pred_smiles = edit_mol(rmol, cbonds, atommap=atommap)
             cand_smiles.append(pred_smiles)
             cand_scores.append(cur_scores[idx])
             cand_probs.append(cur_probs[idx])

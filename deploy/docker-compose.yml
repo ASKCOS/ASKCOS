@@ -159,9 +159,32 @@ services:
       - mysql
       - mongo
 
+  impurity_worker:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
+    restart: always
+    env_file:
+      - .env
+    command: bash -c "celery -A askcos_site worker -c 1 -Q impurity_worker --pool=gevent -n impurity_worker@%h"
+    depends_on:
+      - redis
+      - rabbit
+      - mysql
+      - mongo
+
+  atom_mapping_worker:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
+    restart: always
+    env_file:
+      - .env
+    command: bash -c "celery -A askcos_site worker -c 3 -Q atom_mapping_worker --pool=gevent -n atom_mapping_worker@%h"
+    depends_on:
+      - redis
+      - rabbit
+      - mysql
+      - mongo
+
   template_relevance_reaxys:
     image: tensorflow/serving
-    restart: always
     volumes:
       - ./models/template_relevance/reaxys:/models/template_relevance/1
     environment:
