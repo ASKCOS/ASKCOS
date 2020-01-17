@@ -93,7 +93,7 @@ def get_top_precursors(
             precursors found.
     """
 
-    hostname = 'template_relevance_{}'.format(template_prioritizer)
+    hostname = 'template-relevance-{}'.format(template_prioritizer)
     template_prioritizer = TemplateRelevanceTFServingAPI(
         hostname=hostname, model_name='template_relevance'
     )
