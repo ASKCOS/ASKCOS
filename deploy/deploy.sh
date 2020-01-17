@@ -17,26 +17,29 @@ usage() {
   echo "Specify a task to perform, along with any desired options."
   echo
   echo "Valid commands:"
-  echo "    deploy:            performs initial deployment steps using https"
-  echo "    deploy-http:       performs initial deployment steps using http"
-  echo "    update:            update an existing deployment"
-  echo "    seed-db:           seed mongo database with data"
-  echo "    migrate:           perform user database migrations"
-  echo "    start:             (re)start an existing deployment"
-  echo "    stop:              stop a currently running deployment"
-  echo "    clean:             stop and remove a currently running deployment"
+  echo "    deploy:                   performs initial deployment steps using https"
+  echo "    deploy-http:              performs initial deployment steps using http"
+  echo "    update:                   update an existing deployment"
+  echo "    seed-db:                  seed mongo database with data"
+  echo "    migrate:                  perform user database migrations"
+  echo "    start:                    (re)start an existing deployment"
+  echo "    stop:                     stop a currently running deployment"
+  echo "    clean:                    stop and remove a currently running deployment"
   echo
   echo "Optional arguments:"
-  echo "    -f,--compose-file  specify docker-compose file(s) for deployment"
-  echo "    -v,--version       specify desired version for updating a deployment"
-#  echo "    -t,--templates     template data for reseeding mongo database"
-#  echo "    -b,--buyables      buyables data for reseeding mongo database"
-  echo "    -d,--dev           use docker-compose configuration for development (fewer workers)"
+  echo "    -f,--compose-file         specify docker-compose file(s) for deployment"
+  echo "    -v,--version              specify desired version for updating a deployment"
+  echo "    -b,--buyables             buyables data for reseeding mongo database"
+  echo "    -c,--chemicals            chemicals data for reseeding mongo database"
+  echo "    -x,--reactions            reactions data for reseeding mongo database"
+  echo "    -r,--retro-templates      retrosynthetic template data for reseeding mongo database"
+  echo "    -t,--forward-templates    forward template data for reseeding mongo database"
+  echo "    -d,--dev                  use docker-compose configuration for development (fewer workers)"
   echo
   echo "Examples:"
   echo "    ./deploy.sh deploy -f docker-compose.yml"
   echo "    ./deploy.sh update -v x.y.z"
-#  echo "    ./deploy.sh seed-db -t templates.json -b buyables.json"
+  echo "    ./deploy.sh seed-db -r retro-templates.json -b buyables.json"
   echo "    ./deploy.sh clean"
   echo
 }
@@ -44,8 +47,11 @@ usage() {
 # Default argument values
 COMPOSE_FILE=""
 VERSION="0.4.1"
-TEMPLATES=""
 BUYABLES=""
+CHEMICALS=""
+REACTIONS=""
+RETRO_TEMPLATES=""
+FORWARD_TEMPLATES=""
 
 COMMANDS=""
 while (( "$#" )); do
@@ -70,12 +76,24 @@ while (( "$#" )); do
       VERSION=$2
       shift 2
       ;;
-    -t|--templates)
-      TEMPLATES=$2  # TODO: This is not used anywhere
+    -b|--buyables)
+      BUYABLES=$2
       shift 2
       ;;
-    -b|--buyables)
-      BUYABLES=$2  # TODO: This is not used anywhere
+    -c|--chemicals)
+      CHEMICALS=$2
+      shift 2
+      ;;
+    -x|--reactions)
+      REACTIONS=$2
+      shift 2
+      ;;
+    -r|--retro-templates)
+      RETRO_TEMPLATES=$2
+      shift 2
+      ;;
+    -t|--forward-templates)
+      FORWARD_TEMPLATES=$2
       shift 2
       ;;
     --) # end argument parsing
@@ -118,9 +136,62 @@ start-db-services() {
   echo
 }
 
+set_db_defaults() {
+  # Set default values for seeding database if values are not already defined
+  BUYABLES=${BUYABLES:-default}
+  RETRO_TEMPLATES=${RETRO_TEMPLATES:-default}
+  FORWARD_TEMPLATES=${FORWARD_TEMPLATES:-default}
+}
+
 seed-db() {
   echo "Seeding mongo database..."
-  docker-compose exec app python -c "from askcos_site.main.db import seed_mongo_db;seed_mongo_db(reactions=False, chemicals=False)"
+  MAKEIT_PATH=$(docker-compose exec app bash -c "python -c 'import makeit; print(makeit.__file__.split(\"/__\")[0])'" | tr -d '\r')
+
+  if [ "$BUYABLES" = "default" ]; then
+    echo "Loading default buyables data..."
+    docker-compose exec app python -c "from askcos_site.main.db import seed_mongo_db; seed_mongo_db(buyables=True, chemicals=False, reactions=False, retro_templates=False, forward_templates=False)"
+  elif [ -n "$BUYABLES" ]; then
+    echo "Loading buyables data from $BUYABLES ..."
+    docker cp "$BUYABLES" deploy_app_1:"$MAKEIT_PATH/data/buyables/$(basename $BUYABLES)"
+    docker-compose exec app python -c "from askcos_site.main.db import seed_buyables; seed_buyables('$MAKEIT_PATH/data/buyables/$(basename $BUYABLES)')"
+  fi
+
+  if [ "$CHEMICALS" = "default" ]; then
+    echo "Loading default chemicals data..."
+    docker-compose exec app python -c "from askcos_site.main.db import seed_mongo_db; seed_mongo_db(buyables=False, chemicals=True, reactions=False, retro_templates=False, forward_templates=False)"
+  elif [ -n "$CHEMICALS" ]; then
+    echo "Loading chemicals data from $CHEMICALS ..."
+    docker cp "$CHEMICALS" deploy_app_1:"$MAKEIT_PATH/data/historian/$(basename $CHEMICALS)"
+    docker-compose exec app python -c "from askcos_site.main.db import seed_chemicals; seed_chemicals('$MAKEIT_PATH/data/historian/$(basename $CHEMICALS)')"
+  fi
+
+  if [ "$REACTIONS" = "default" ]; then
+    echo "Loading default reactions data..."
+    docker-compose exec app python -c "from askcos_site.main.db import seed_mongo_db; seed_mongo_db(buyables=False, chemicals=False, reactions=True, retro_templates=False, forward_templates=False)"
+  elif [ -n "$REACTIONS" ]; then
+    echo "Loading reactions data from $REACTIONS ..."
+    docker cp "$REACTIONS" deploy_app_1:"$MAKEIT_PATH/data/historian/$(basename $REACTIONS)"
+    docker-compose exec app python -c "from askcos_site.main.db import seed_reactions; seed_reactions('$MAKEIT_PATH/data/historian/$(basename $REACTIONS)')"
+  fi
+
+  if [ "$RETRO_TEMPLATES" = "default" ]; then
+    echo "Loading default retrosynthetic templates..."
+    docker-compose exec app python -c "from askcos_site.main.db import seed_mongo_db; seed_mongo_db(buyables=False, chemicals=False, reactions=False, retro_templates=True, forward_templates=False)"
+  elif [ -n "$RETRO_TEMPLATES" ]; then
+    echo "Loading retrosynthetic templates from $RETRO_TEMPLATES ..."
+    docker cp "$RETRO_TEMPLATES" deploy_app_1:"$MAKEIT_PATH/data/templates/$(basename $RETRO_TEMPLATES)"
+    docker-compose exec app python -c "from askcos_site.main.db import seed_retro_templates; seed_retro_templates('$MAKEIT_PATH/data/templates/$(basename $RETRO_TEMPLATES)')"
+  fi
+
+  if [ "$FORWARD_TEMPLATES" = "default" ]; then
+    echo "Loading default forward templates..."
+    docker-compose exec app python -c "from askcos_site.main.db import seed_mongo_db; seed_mongo_db(buyables=False, chemicals=False, reactions=False, retro_templates=False, forward_templates=True)"
+  elif [ -n "$FORWARD_TEMPLATES" ]; then
+    echo "Loading forward templates from $FORWARD_TEMPLATES ..."
+    docker cp "$FORWARD_TEMPLATES" deploy_app_1:"$MAKEIT_PATH/data/templates/$(basename $FORWARD_TEMPLATES)"
+    docker-compose exec app python -c "from askcos_site.main.db import seed_forward_templates; seed_forward_templates('$MAKEIT_PATH/data/templates/$(basename $FORWARD_TEMPLATES)')"
+  fi
+
   echo "Seeding complete."
   echo
 }
@@ -195,6 +266,7 @@ else
         create-ssl
         start-db-services
         start-web-services
+        set_db_defaults
         seed-db  # Must occur after starting app
         start-tf-server
         start-celery-workers
@@ -205,6 +277,7 @@ else
         copy-http-conf
         start-db-services
         start-web-services
+        set_db_defaults
         seed-db  # Must occur after starting app
         start-tf-server
         start-celery-workers
