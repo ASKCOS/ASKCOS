@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: redis
-        image: redis
+        image: redis:5.0.7
         command: ["redis-server"]
         args: ["--port", "6379"]
         env:

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: cr-network-worker
-          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
           command: ["/bin/bash"]
           args: ["-c", "celery -A askcos_site worker -c 2 -Q cr_network_worker -n cr_network_worker@%h"]
           envFrom:

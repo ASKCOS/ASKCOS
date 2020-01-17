@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: sites-worker
-          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
           imagePullPolicy: Always
           command: ["/bin/bash"]
           args: ["-c", "celery -A askcos_site worker -c 1 -Q sites_worker --pool=gevent -n sites_worker@%h"]
