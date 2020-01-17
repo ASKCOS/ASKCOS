@@ -111,7 +111,7 @@ def get_top_precursors(
 @shared_task
 def template_relevance(smiles, max_num_templates, max_cum_prob, relevance_model='reaxys'):
     global retroTransformer
-    hostname = 'template_relevance_{}'.format(relevance_model)
+    hostname = 'template-relevance-{}'.format(relevance_model)
     template_prioritizer = TemplateRelevanceTFServingAPI(
         hostname=hostname, model_name='template_relevance'
     )
@@ -134,7 +134,7 @@ def apply_one_template_by_idx(*args, **kwargs):
 
     template_prioritizer = kwargs.pop('template_prioritizer', 'reaxys')
 
-    hostname = 'template_relevance_{}'.format(template_prioritizer)
+    hostname = 'template-relevance-{}'.format(template_prioritizer)
     template_prioritizer = TemplateRelevanceTFServingAPI(
         hostname=hostname, model_name='template_relevance'
     )

@@ -89,7 +89,7 @@ echo ""
 echo "###################################"
 echo "starting tensorflow serving workers"
 echo "###################################"
-docker-compose up -d template_relevance_reaxys
+docker-compose up -d template-relevance-reaxys
 
 echo ""
 echo "#######################"
