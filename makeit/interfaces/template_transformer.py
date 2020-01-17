@@ -211,7 +211,11 @@ class TemplateTransformer(object):
             Reaction SMARTS for requested template.
         """
         if self.use_db:
-            return self.TEMPLATE_DB.find_one({'_id': ObjectId(template_id)})
+            template = self.TEMPLATE_DB.find_one({'_id': ObjectId(template_id)})
+            if template:
+                return template
+            else:
+                return self.TEMPLATE_DB.find_one({'_id': template_id})
         else:
             return self.templates[self.id_to_index[template_id]]
 
