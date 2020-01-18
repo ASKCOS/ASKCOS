@@ -15,18 +15,58 @@ from celery.signals import celeryd_init
 from pymongo import MongoClient
 import makeit.global_config as gc
 from makeit.retrosynthetic.transformer import RetroTransformer
-from makeit.prioritization.templates.relevance import TemplateRelevanceTFServingAPI
+from makeit.utilities.fingerprinting import create_rxn_Morgan2FP_separately
 from rdkit import RDLogger, Chem
 from rdkit.Chem import AllChem
 import numpy as np
 from bson import ObjectId
 from scipy.special import softmax
+import rdkit.Chem as Chem
+from rdkit.Chem import AllChem
+
+from ..tfserving import TFServingAPIModel
 
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
 CORRESPONDING_QUEUE = 'tb_c_worker'
 CORRESPONDING_RESERVABLE_QUEUE = 'tb_c_worker_reservable'
 retroTransformer = None
+
+
+class TemplateRelevanceAPIModel(TFServingAPIModel):
+    def transform_input(self, smiles, fp_length=2048, fp_radius=2, **kwargs):
+        mol = Chem.MolFromSmiles(smiles)
+        if not mol:
+            return np.zeros((self.fp_length,), dtype=np.float32)
+        return np.array(
+            AllChem.GetMorganFingerprintAsBitVect(
+                mol, fp_radius, nBits=fp_length, useChirality=True
+            ), dtype=np.float32
+        ).reshape(1, -1).tolist()
+    
+    def transform_output(self, pred, max_num_templates=100, max_cum_prob=0.995, **kwargs):
+        indices = np.argsort(-pred)[:max_num_templates]
+        scores = softmax(pred[indices])
+        truncate = np.argmax(np.cumsum(scores)>max_cum_prob)
+        return scores[:truncate], indices[:truncate]
+
+
+class FastFilterAPIModel(TFServingAPIModel):
+    def transform_input(self, reactant_smiles, target, rxnfpsize=2048, pfpsize=2048, useFeatures=False):
+        pfp, rfp = create_rxn_Morgan2FP_separately(
+            reactant_smiles, target, rxnfpsize=rxnfpsize, pfpsize=pfpsize, useFeatures=useFeatures
+        )
+        pfp = np.asarray(pfp, dtype='float32')
+        rfp = np.asarray(rfp, dtype='float32')
+        rxnfp = pfp - rfp
+        return [{
+            'input_1': pfp.tolist(),
+            'input_2': rxnfp.tolist()
+        }]
+    
+    def transform_output(self, pred):
+        return pred[0]
+
 
 @celeryd_init.connect
 def configure_worker(options={}, **kwargs):
@@ -44,7 +84,7 @@ def configure_worker(options={}, **kwargs):
 
     # Instantiate and load retro transformer
     global retroTransformer
-    retroTransformer = RetroTransformer(template_prioritizer=None)
+    retroTransformer = RetroTransformer(template_prioritizer=None, fast_filter=None)
     retroTransformer.load()
     print('### TREE BUILDER WORKER STARTED UP ###')
 
@@ -93,10 +133,13 @@ def get_top_precursors(
             precursors found.
     """
 
-    hostname = 'template-relevance-{}'.format(template_prioritizer)
-    template_prioritizer = TemplateRelevanceTFServingAPI(
-        hostname=hostname, model_name='template_relevance'
+    template_relevance_hostname = 'template-relevance-{}'.format(template_prioritizer)
+    template_prioritizer = TemplateRelevanceAPIModel(
+        hostname=template_relevance_hostname, model_name='template_relevance'
     )
+
+    fast_filter_hostname = 'fast-filter'
+    fast_filter = FastFilterAPIModel(fast_filter_hostname, 'fast_filter').predict
 
     global retroTransformer
     result = retroTransformer.get_outcomes(
@@ -112,10 +155,12 @@ def get_top_precursors(
 def template_relevance(smiles, max_num_templates, max_cum_prob, relevance_model='reaxys'):
     global retroTransformer
     hostname = 'template-relevance-{}'.format(relevance_model)
-    template_prioritizer = TemplateRelevanceTFServingAPI(
+    template_prioritizer = TemplateRelevanceAPIModel(
         hostname=hostname, model_name='template_relevance'
     )
-    scores, indices = template_prioritizer.predict(smiles, max_num_templates, max_cum_prob)
+    scores, indices = template_prioritizer.predict(
+        smiles, max_num_templates=max_num_templates, max_cum_prob=max_cum_prob
+    )
     if not isinstance(scores, list):
         scores = scores.tolist()
     if not isinstance(indices, list):
@@ -135,11 +180,17 @@ def apply_one_template_by_idx(*args, **kwargs):
     template_prioritizer = kwargs.pop('template_prioritizer', 'reaxys')
 
     hostname = 'template-relevance-{}'.format(template_prioritizer)
-    template_prioritizer = TemplateRelevanceTFServingAPI(
+    template_prioritizer = TemplateRelevanceAPIModel(
         hostname=hostname, model_name='template_relevance'
     )
 
-    kwargs.update({'template_prioritizer': template_prioritizer})
+    fast_filter_hostname = 'fast-filter'
+    fast_filter = FastFilterAPIModel(fast_filter_hostname, 'fast_filter').predict
+
+    kwargs.update({
+        'template_prioritizer': template_prioritizer,
+        'fast_filter': fast_filter
+    })
 
     return retroTransformer.apply_one_template_by_idx(*args, **kwargs)
 

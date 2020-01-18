@@ -185,8 +185,13 @@ services:
 
   template-relevance-reaxys:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos/models:template-relevance-reaxys
-    ports:
-      - 8501:8501
+    expose:
+      - 8501
+
+  fast-filter:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos/models:fast-filter
+    expose:
+      - 8501
 
   redis:
     image: redis:5.0.7
