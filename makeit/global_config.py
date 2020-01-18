@@ -135,7 +135,7 @@ PREDICTOR = {
 
 # Fast filter evaluation
 FAST_FILTER_MODEL = {
-    'trained_model_path': os.path.join(models_path, 'fast_filter','fast_filter_cleandata.h5'),
+    'model_path': os.path.join(models_path, 'fast_filter','1'),
 }
 
 # Hard coded mincounts to maintain compatibility of the relevance method (weights are numpy matrices)

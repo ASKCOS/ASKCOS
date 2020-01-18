@@ -115,7 +115,7 @@ class RetroTransformer(TemplateTransformer):
         if self.fast_filter == 'default':
             MyLogger.print_and_log('Loading fast filter for RetroTransformer', retro_transformer_loc)
             self.fast_filter_object = FastFilterScorer()
-            self.fast_filter_object.load(gc.FAST_FILTER_MODEL['trained_model_path'])
+            self.fast_filter_object.load()
             self.fast_filter = lambda x, y: self.fast_filter_object.evaluate(x, y)[0][0]['score']
 
         if self.cluster == 'default':
