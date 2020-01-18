@@ -16,7 +16,9 @@ def template(request):
     resp = {}
     resp['request'] = dict(**request.GET)
     _id = request.GET.get('id')
-    transform = retro_templates.find_one({'_id': ObjectId(_id)})
+    transform = retro_templates.find_one({'_id': _id})
+    if not transform:
+        transform = retro_templates.find_one({'_id': ObjectId(_id)})
     if not transform:
         resp['error'] = 'Cannot find template with id '+_id
         return JsonResponse(resp)
