@@ -239,14 +239,15 @@ def ReactionStringToImage(rxn_string, strip=True, update=True, options=None,
     return StitchPILsHorizontally(imgs)
 
 
-def TransformStringToImage(transform, retro=True, **kwargs):
+def TransformStringToImage(transform, retro=True, options=None,**kwargs):
     '''Wrapper function meant to take a SMARTS transform and return a PIL image
     of that transform.
 
     TODO: Need to improve generalization visually! Right now it still shows'''
 
-    options = defaultDrawOptions()
-    options.dotsPerAngstrom = 40
+    if not options:
+        options = defaultDrawOptions()
+        options.dotsPerAngstrom = 40
 
     # To generalize un-mapped atoms in transform, need to identify square brackets
     # without colon in the middle (e.g., [C]) and replace with dummy label [C:0] so
