@@ -53,6 +53,8 @@ def template_target(request, id, return_refs_only=False):
     context = {}
 
     transform = retro_templates.find_one({'_id': ObjectId(id)})
+    if not transform:
+        transform = retro_templates.find_one({'_id': id})
 
     if not transform:
         context['err'] = 'Transform not found'

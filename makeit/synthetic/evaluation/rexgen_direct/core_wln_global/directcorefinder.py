@@ -1,4 +1,5 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 from makeit import global_config as gc
 from makeit.synthetic.evaluation.rexgen_direct.core_wln_global.nn import linearND, linear
 from makeit.synthetic.evaluation.rexgen_direct.core_wln_global.models import *

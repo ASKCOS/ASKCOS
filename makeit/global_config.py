@@ -141,7 +141,7 @@ FAST_FILTER_MODEL = {
 # Hard coded mincounts to maintain compatibility of the relevance method (weights are numpy matrices)
 RELEVANCE_TEMPLATE_PRIORITIZATION = {
     'reaxys': {
-        'model_path': os.path.join(models_path, 'template_prioritization', 'template-relevance-reaxys_v9_10_5.hdf5'),
+        'model_path': os.path.join(models_path, 'template_prioritization', 'reaxys', '1'),
         'output_size': 163723
     }
 }

@@ -22,11 +22,11 @@ spec:
           emptyDir: {}
       initContainers:
         - name: migrate
-          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
           command: ["/bin/bash"]
           args: ["-c", "python /usr/local/ASKCOS/askcos/manage.py makemigrations main && python /usr/local/ASKCOS/askcos/manage.py migrate"]
         - name: collectstatic
-          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
           command: ["/bin/bash"]
           args: ["-c", "python /usr/local/ASKCOS/askcos/manage.py collectstatic --noinput && mv /usr/local/ASKCOS/askcos/askcos_site/static/* /static/"]
           volumeMounts:
@@ -34,7 +34,7 @@ spec:
               mountPath: /static
       containers:
         - name: nginx
-          image: nginx:stable
+          image: nginx:1.17.6
           ports:
             - containerPort: 80
           volumeMounts:
@@ -43,7 +43,7 @@ spec:
             - name: staticfiles
               mountPath: /static
         - name: django
-          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
           command: ["/bin/bash"]
           args: ["-c", "uwsgi --http :8000 --master --processes=4 --wsgi-file /usr/local/ASKCOS/askcos/wsgi.py"]
           ports:
@@ -53,6 +53,6 @@ spec:
                 name: django-config
           resources:
             requests:
-              memory: "15Gi"
+              memory: "5Gi"
       imagePullSecrets:
         - name: regcred

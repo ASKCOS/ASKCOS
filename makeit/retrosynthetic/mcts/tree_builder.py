@@ -1016,7 +1016,7 @@ class MCTS:
                 num_examples = 0
                 necessary_reagent = None
                 for tid in tids:
-                    template = TEMPLATE_DB.find_one({'_id': ObjectId(self.retroTransformer.templates[tid])})
+                    template = TEMPLATE_DB.find_one({'index': tid})
                     tforms.append(str(template.get('_id', -1)))
                     num_examples += template.get('count', 1)
                     if necessary_reagent is None:

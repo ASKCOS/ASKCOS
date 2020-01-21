@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: rabbit
-        image: rabbitmq
+        image: rabbitmq:3.8.2
         resources:
           requests:
             cpu: 100m

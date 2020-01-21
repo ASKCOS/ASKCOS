@@ -183,12 +183,8 @@ services:
       - mysql
       - mongo
 
-  template_relevance_reaxys:
-    image: tensorflow/serving
-    volumes:
-      - ./models/template_relevance/reaxys:/models/template_relevance/1
-    environment:
-      - MODEL_NAME=template_relevance
+  template-relevance-reaxys:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos/models:template-relevance-reaxys
     ports:
       - 8501:8501
 

@@ -1,4 +1,5 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 from makeit import global_config as gc
 from makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn import linearND, linear
 from makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores import atom_fdim as adim, bond_fdim as bdim, max_nb, smiles2graph, smiles2graph, bond_types

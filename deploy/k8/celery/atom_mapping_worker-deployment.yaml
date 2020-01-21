@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: atom-mapping-worker
+  labels:
+    app: atom-mapping-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: atom-mapping-worker
+  template:
+    metadata:
+      labels:
+        pod: atom-mapping-worker
+    spec:
+      containers:
+        - name: atom-mapping-worker
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
+          imagePullPolicy: Always
+          command: ["/bin/bash"]
+          args: ["-c", "celery -A askcos_site worker -c 3 -Q atom_mapping_worker --pool=gevent -n atom_mapping_worker@%h"]
+          envFrom:
+            - configMapRef:
+                name: django-config
+      imagePullSecrets:
+        - name: regcred

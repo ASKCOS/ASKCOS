@@ -14,7 +14,7 @@ spec:
         pod: mongo
     spec:
       containers:
-      - image: mongo
+      - image: mongo:4.2.2
         name: mongo
         env:
           # Use secret in real usage

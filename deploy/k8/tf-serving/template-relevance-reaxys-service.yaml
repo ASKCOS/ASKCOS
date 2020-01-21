@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: template-relevance-reaxys
+spec:
+  selector:
+    pod: template-relevance-reaxys
+  ports:
+  - protocol: TCP
+    port: 8501
+    targetPort: 8501
