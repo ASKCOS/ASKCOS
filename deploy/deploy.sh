@@ -44,6 +44,19 @@ usage() {
   echo
 }
 
+# Worker scales (i.e. number of celery workers)
+n_te_coordinator=1       # Tree evaluation coordinator
+n_sc_coordinator=1       # Scoring coordinator
+n_ft_worker=1            # Forward transformer worker
+n_cr_coordinator=1       # Context recommender coordinator
+n_cr_network_worker=1    # Context recommender neural network worker
+n_tb_coordinator_mcts=2  # Tree builder coordinator
+n_tb_c_worker=12         # Tree builder chiral worker
+n_tb_c_worker_preload=1  # Tree builder chiral worker with template preloading
+n_sites_worker=1         # Site selectivity worker
+n_impurity_worker=1      # Impurity worker
+n_atom_mapping_worker=1  # Atom mapping worker
+
 # Default argument values
 COMPOSE_FILE=""
 VERSION="0.4.1"
@@ -70,6 +83,8 @@ while (( "$#" )); do
       ;;
     -d|--dev)
       COMPOSE_FILE="docker-compose.yml:docker-compose.dev.yml"
+      n_tb_coordinator_mcts=1  # Tree builder coordinator
+      n_tb_c_worker=1          # Tree builder chiral worker
       shift 1
       ;;
     -v|--version)
@@ -231,7 +246,18 @@ start-tf-server() {
 
 start-celery-workers() {
   echo "Starting celery workers..."
-  docker-compose up -d te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker tb_coordinator_mcts \
+  docker-compose up -d --scale te_coordinator=$n_te_coordinator \
+                       --scale sc_coordinator=$n_sc_coordinator \
+                       --scale ft_worker=$n_ft_worker \
+                       --scale cr_coordinator=$n_cr_coordinator \
+                       --scale cr_network_worker=$n_cr_network_worker \
+                       --scale tb_coordinator_mcts=$n_tb_coordinator_mcts \
+                       --scale tb_c_worker=$n_tb_c_worker \
+                       --scale tb_c_worker_preload=$n_tb_c_worker_preload \
+                       --scale sites_worker=$n_sites_worker \
+                       --scale impurity_worker=$n_impurity_worker \
+                       --scale atom_mapping_worker=$n_atom_mapping_worker \
+                       te_coordinator sc_coordinator ft_worker cr_coordinator cr_network_worker tb_coordinator_mcts \
                        tb_c_worker tb_c_worker_preload sites_worker impurity_worker atom_mapping_worker
   echo "Start up complete."
   echo
