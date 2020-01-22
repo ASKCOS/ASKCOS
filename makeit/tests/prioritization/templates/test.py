@@ -1,29 +1,43 @@
-import makeit.prioritization.templates.relevance as rel
-import unittest
 import os
-import sys
-is_py2 = sys.version[0] == '2'
-if is_py2:
-    import cPickle as pickle
-else:
-    import pickle as pickle
+import pickle
+import unittest
+
+import numpy as np
+
+import makeit.prioritization.templates.relevance as rel
+
 
 class TestTemplateRelevance(unittest.TestCase):
-    def setUp(self):
-        self.model = rel.RelevanceTemplatePrioritizer()
-        self.model.load_model()
+
+    @classmethod
+    def setUpClass(cls):
+        """This method is run once before all tests in this class."""
+        cls.model = rel.RelevanceTemplatePrioritizer()
+        cls.model.load_model()
 
     def test_01_get_topk_from_smi(self):
-        result = self.model.predict('CCCOCCC', 100, 0.995)
+        """Test that the template relevance model returns the expected result for CCCOCCC"""
+        scores, indices = self.model.predict('CCCOCCC', 100, 0.995)
+
         with open(os.path.join(os.path.dirname(__file__), 'expected/relevance_01.pkl'), 'rb') as t:
             expected = pickle.load(t)
-        self.assertEqual(expected, result)
+
+        self.assertEqual(len(expected[0]), len(scores))
+        self.assertEqual(len(expected[1]), len(indices))
+        self.assertTrue(np.allclose(expected[0], scores))
+        self.assertTrue(np.array_equal(expected[1], indices))
 
     def test_02_get_topk_from_smi(self):
-        result = self.model.predict('CCCNc1ccccc1', 100, 0.995)
+        """Test that the template relevance model returns the expected result for CCCNc1ccccc1"""
+        scores, indices = self.model.predict('CCCNc1ccccc1', 100, 0.995)
+
         with open(os.path.join(os.path.dirname(__file__), 'expected/relevance_02.pkl'), 'rb') as t:
             expected = pickle.load(t)
-        self.assertEqual(expected, result)
+
+        self.assertEqual(len(expected[0]), len(scores))
+        self.assertEqual(len(expected[1]), len(indices))
+        self.assertTrue(np.allclose(expected[0], scores))
+        self.assertTrue(np.array_equal(expected[1], indices))
 
 
 if __name__ == '__main__':
