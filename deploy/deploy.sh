@@ -156,6 +156,7 @@ set_db_defaults() {
   BUYABLES=${BUYABLES:-default}
   RETRO_TEMPLATES=${RETRO_TEMPLATES:-default}
   FORWARD_TEMPLATES=${FORWARD_TEMPLATES:-default}
+  CHEMICALS=${CHEMICALS:-default}
 }
 
 seed-db() {
