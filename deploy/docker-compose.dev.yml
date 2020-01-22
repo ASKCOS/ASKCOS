@@ -1,0 +1,53 @@
+version: '2.2'
+services:
+  app:
+    build: ..
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    command: bash -c "uwsgi --socket :8000 --master --processes=2 --wsgi-file /usr/local/ASKCOS/askcos/wsgi.py"
+    volumes:
+      - 'staticdata:/usr/local/ASKCOS/askcos/askcos_site/static'
+      - '~/Code/ASKCOS/askcos/askcos_site:/usr/local/ASKCOS/askcos/askcos_site'
+
+  te_coordinator:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    command: bash -c "celery -A askcos_site worker -c 1 -Q te_coordinator -n te_coordinator@%h"
+
+  sc_coordinator:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    command: bash -c "celery -A askcos_site worker -c 1 -Q sc_coordinator -n sc_coordinator@%h"
+
+  ft_worker:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    command: bash -c "celery -A askcos_site worker -c 1 -Q ft_worker -n ft_worker@%h"
+
+  cr_coordinator:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    command: bash -c "celery -A askcos_site worker -c 1 -Q cr_coordinator -n cr_coordinator@%h"
+
+  cr_network_worker:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    command: bash -c "celery -A askcos_site worker -c 1 -Q cr_network_worker -n cr_network_worker@%h"
+
+  tb_coordinator_mcts:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    command: bash -c "celery -A askcos_site worker -c 1 -Q tb_coordinator_mcts -n tb_coordinator_mcts@%h --pool=gevent --without-heartbeat"
+
+  tb_c_worker:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    command: bash -c "celery -A askcos_site worker -c 1 -Q tb_c_worker -n tb_c_worker@%h --pool=gevent --without-heartbeat"
+
+  tb_c_worker_preload:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    command: bash -c "celery -A askcos_site worker -c 1 -Q tb_c_worker_preload -n tb_c_worker_preload@%h"
+
+  sites_worker:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    command: bash -c "celery -A askcos_site worker -c 1 -Q sites_worker --pool=gevent -n sites_worker@%h"
+
+  impurity_worker:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    command: bash -c "celery -A askcos_site worker -c 1 -Q impurity_worker --pool=gevent -n impurity_worker@%h"
+
+  atom_mapping_worker:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    command: bash -c "celery -A askcos_site worker -c 1 -Q atom_mapping_worker --pool=gevent -n atom_mapping_worker@%h"
