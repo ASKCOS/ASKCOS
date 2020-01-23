@@ -71,7 +71,7 @@ class TemplateRelevanceAPIModel(TFServingAPIModel):
         """
         indices = np.argsort(-pred)[:max_num_templates]
         scores = softmax(pred[indices])
-        truncate = np.argmax(np.cumsum(scores)>max_cum_prob)
+        truncate = np.argmax(np.cumsum(scores) > max_cum_prob)
         return scores[:truncate], indices[:truncate]
 
 
