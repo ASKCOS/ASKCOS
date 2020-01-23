@@ -240,7 +240,7 @@ start-web-services() {
 
 start-tf-server() {
   echo "Starting tensorflow serving worker..."
-  docker-compose up -d template-relevance-reaxys
+  docker-compose up -d template-relevance-reaxys fast-filter
   echo "Start up complete."
   echo
 }
