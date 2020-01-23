@@ -2,13 +2,12 @@ import numpy as np
 import requests
 
 class TFServingAPIModel(object):
-    """Template relevance prioritization model served using TF serving.
+    """Base tensorflow serving API Model class.
     
     Attributes:
         hostname (str): hostname of service serving tf model.
         model_name (str): Name of model provided to tf serving.
-        fp_length (int): Fingerprint length.
-        fp_radius (int): Fingerprint radius.
+        version (int): version of the model to use when serving
 
     """
     def __init__(self, hostname, model_name, version=1):
@@ -21,29 +20,20 @@ class TFServingAPIModel(object):
         pass
 
     def transform_input(self, *args):
+        """Identity transformation. Return the arguments as they were passed. If a single argument was passed, return it as a single argument and not a list."""
         if len(args) == 1:
             return args[0]
         return args
 
     def transform_output(self, *args):
+        """Identity transformation. Return the arguments as they were passed. If a single argument was passed, return it as a single argument and not a list."""
         if len(args) == 1:
             return args[0]
         return args
 
     def predict(self, *args, **kwargs):
-        """Makes prediction using TF Serving API.
-
-        Args:
-            smiles (str): SMILES string of input molecule
-            max_num_templates (int): Maximum number of template scores
-                and indices to return
-            max_cum_prob (float): Maximum cumulative probability of template
-                scores to return. Scores and indices will be returned up until
-                max_cum_prob is exceeded.
-
-        Returns:
-            (scores, indices): np.ndarrays of scores and indices for 
-                prioritized templates
+        """Makes a prediction using TF Serving API.
+        Calls a transformation function before and after actually calling the API endpoint to allow for customizable pipelines.
         """
         x = self.transform_input(*args, **kwargs)
         resp = requests.post(self.url, json={'instances': x})

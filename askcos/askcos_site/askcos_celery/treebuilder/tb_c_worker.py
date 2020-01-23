@@ -34,7 +34,24 @@ retroTransformer = None
 
 
 class TemplateRelevanceAPIModel(TFServingAPIModel):
+    """Template relevance Tensorflow API Model. Overrides input and output transformation methods with template relevance specific methods.
+
+    Attributes:
+        hostname (str): hostname of service serving tf model.
+        model_name (str): Name of model provided to tf serving.
+        version (int): version of the model to use when serving
+    """
     def transform_input(self, smiles, fp_length=2048, fp_radius=2, **kwargs):
+        """Transforms the input for the API model from a SMILES string to a fingerprint bit vector
+
+        Args:
+            smiles (str): SMILES string of input molecule
+            fp_length (int): Length of desired fingerprint. Must agree with model input shape
+            fp_radius (int): Radius of desired fingerprint. Should agree with parameter sed when model was trained
+
+        Returns:
+            list: Fingerprint bit vector as a list
+        """
         mol = Chem.MolFromSmiles(smiles)
         if not mol:
             return np.zeros((self.fp_length,), dtype=np.float32)
@@ -45,6 +62,13 @@ class TemplateRelevanceAPIModel(TFServingAPIModel):
         ).reshape(1, -1).tolist()
     
     def transform_output(self, pred, max_num_templates=100, max_cum_prob=0.995, **kwargs):
+        """Transforms output of API model to return the top scores and indices for the output classes (templates)
+
+        Args:
+            pred (np.array): numpy array of output from prediction
+            max_num_templates (int): Maximum number of template scores/indices to return from the prediction
+            max_cum_prob (float): Maximum cumulative probability of templates to be returned. This offers another convenient way to limit the number of templates returned to those are have been given high scores
+        """
         indices = np.argsort(-pred)[:max_num_templates]
         scores = softmax(pred[indices])
         truncate = np.argmax(np.cumsum(scores)>max_cum_prob)
@@ -52,7 +76,26 @@ class TemplateRelevanceAPIModel(TFServingAPIModel):
 
 
 class FastFilterAPIModel(TFServingAPIModel):
+    """Fast filter Tensorflow API Model. Overrides input and output transformation methods with fast filter specific methods.
+
+    Attributes:
+        hostname (str): hostname of service serving tf model.
+        model_name (str): Name of model provided to tf serving.
+        version (int): version of the model to use when serving
+    """
     def transform_input(self, reactant_smiles, target, rxnfpsize=2048, pfpsize=2048, useFeatures=False):
+        """Transforms the input for the API model from SMILES strings to product and reaction fingerprints
+
+        Args:
+            reactant_smiles (str): SMILES string of the reactants
+            target (str): SMILES string of the target
+            rxnfpsize (int): Length of desired fingerprint for the reaction. Must agree with model input shape
+            pfpsize (int): Length of desired fingerprint for the product. Must agree with model input shape
+            useFeatures (bool): Flag to use features or not when generating fingerprint. Should agree with how model was trained
+
+        Returns:
+            list of dict: Input fingerprints, formatted for a call to the tensorflow API model
+        """
         pfp, rfp = create_rxn_Morgan2FP_separately(
             reactant_smiles, target, rxnfpsize=rxnfpsize, pfpsize=pfpsize, useFeatures=useFeatures
         )
@@ -65,6 +108,14 @@ class FastFilterAPIModel(TFServingAPIModel):
         }]
     
     def transform_output(self, pred):
+        """Transforms the output of the prediction into the fast filter score
+
+        Args:
+            pred (np.array): numpy array of the output of the prediction
+
+        Returns
+            float: the first element of the prediction is returned
+        """
         return pred[0]
 
 
