@@ -21,12 +21,12 @@ class TFServingAPIModel(object):
         pass
 
     def transform_input(self, *args):
-        if len(args) == 0:
+        if len(args) == 1:
             return args[0]
         return args
 
     def transform_output(self, *args):
-        if len(args) == 0:
+        if len(args) == 1:
             return args[0]
         return args
 
