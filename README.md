@@ -6,14 +6,14 @@ Software package for the prediction of feasible synthetic routes towards a desir
 Release Notes  
 User notes:  
 * Upgrade to rdkit version 2019.03.3
-* Migration of rdchiral to standalone pypi package. rdchiral development can not be found at https://github.com/connorcoley/rdchiral
+* Migration of rdchiral to standalone pypi package. rdchiral development can now be found at https://github.com/connorcoley/rdchiral
 * Improved buyables lookup consistency
 * Canonicalizes SMILES strings before lookup in buyables module
 * Improved granularity of feedback after buyable upload
 * Improved handling of reaction templates in rdchiral for "hypervalent" nitrogens. Significant improvement for nitration reactions
 
 Developer notes:
-* makeit data migrated to separate repository (https://gitlab.com/mlpds_mit/ASKCOS/makeit-data)
+* makeit data migrated to a separate repository (https://gitlab.com/mlpds_mit/ASKCOS/makeit-data)
 * Data copied from data-only docker container (registry.gitlab.com/mlpds_mit/askcos/makeit-data:0.4.1)
 * Docker builds are now much, much, much faster
 * chemhistorian data migrated to mongodb. This increases initialization mongodb seeding time, but decreases memory footprint
@@ -26,18 +26,18 @@ Bug fixes:
 
 ### Upgrade information
 
-The easiest way to upgrade to the new version of ASKCOS is using Docker and docker-compose. To get started, make sure both docker and docker-compose are installed on your machine. We have a pre-built docker image of ASKCOS hosted on GitLab. It is a private repository; if you do not have access to pull the image, please contact us. In addition, you need to have the deploy/ folder from our code repository. To get the most recent version of ASKCOS:
+The easiest way to upgrade to the new version of ASKCOS is using Docker and docker-compose. To get started, make sure both docker and docker-compose are installed on your machine. We have a pre-built docker image of ASKCOS hosted on GitLab. It is a private repository; if you do not have access to pull the image, please contact us [contact us](mailto:mlpds_support@mit.edu). In addition, you need to have the deploy/ folder from our code repository. To get the most recent version of ASKCOS:
 
 ```bash
 $ docker login registry.gitlab.com # enter credentials
 $ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
 ```
 
-Then, follow the instructions under "How do I upgrade ASKCOS to a new version?" below using the new version of the deploy folder from this repository.
+Then, follow the instructions below using the new version of the deploy folder from this repository.
 
 ### Using GitLab Deploy Tokens
 
-We are in the process of migrating our development space from GitHub to GitLab. There are a number of beneficial features provided through GitLab that encouraged this move. The first of which are deploy tokens, providing __read-only__ access to source code and our container registry available through GitLab. For the next few releases, code and containers will continue to be made available via the GitHub and DockerHub repositories you may be familiar with, but eventually we plan to move exclusively to GitLab. Below is a complete example showing how to deploy the askcos application using deploy tokens (omitted in this example). The only software prerequisites are git, docker, and docker-compose.
+ASKCOS can also be downloaded using deploy tokens, these provide __read-only__ access to the source code and our container registry in GitLab. Below is a complete example showing how to deploy the ASKCOS application using deploy tokens (omitted in this example). The deploy tokens can be found on the [MLPDS Member Resources ASKCOS Versions Page](https://mlpds.mit.edu/member-resources-releases-versions/). The only software prerequisites are git, docker, and docker-compose.
 
 ```bash
 $ export DEPLOY_TOKEN_USERNAME=
@@ -63,13 +63,13 @@ __NOTE:__ The git clone command pulls enough to deploy the application (but not 
 
 ### Deploying the web application
 
-The entrypoint for deployment is a bash script that runs a few docker-compose commands in a specific order. A few of the database services need to be started first, and more importantly seeded with data, before other services (which rely on the availability of data in the database) can start. The bash script can be found and should be run from the deploy folder as follows:
+Deployment is initiated by a bash script that runs a few docker-compose commands in a specific order. Several database services need to be started first, and more importantly seeded with data, before other services (which rely on the availability of data in the database) can start. The bash script can be found and should be run from the deploy folder as follows:
 
 ```
 $ bash deploy.sh
 ```
 
-There are three optional arguments you can pass along:
+There are three optional arguments you can pass to deploy.sh:
 * --skip-seed: This will skip seeding the mongo database. Unless you know that the mongo database is currently up and running, you should probably choose to seed the database
 * --skip-ssl: This will skip the generation of a random self-signed ssl certificate. If you are supplying your own, use this option so as to not override the certificates
 * --skip-https: This will skip requiring https altogether. This option is not recommended, but was added in case users' browsers do not allow viewing pages with invalid certificates.
@@ -94,7 +94,7 @@ $ docker-compose down -v
 
 If you are upgrading from v0.3.1 or later, the backup/restore process is no longer needed unless you are moving the deployment to a brand new computer/cloud instance.
 
-If you are upgrading the deployment from a previous version,or moving the application to a different server, you may want to retain user accounts and user-saved data/results. Previous to version 0.3.1, user data was stored in an sqlite db at `askcos/db.sqlite3` and a user\_saves directory at `makeit/data/user_saves`, _in the running app container service_. Versions >=0.3.1 use a mysql service for user data, and a mongo db for user results. Although the process for backing-up/restoring data is different, currently the `backup.sh` and `restore.sh` scripts are capable of handling the backup process. Please read the following carefully so as to not lose any user data:
+If you are upgrading the deployment from a previous version,or moving the application to a different server, you may want to retain user accounts and user-saved data/results. The provided `backup.sh` and `restore.sh` scripts are capable of handling the backup and restoring process. Please read the following carefully so as to not lose any user data:
 
 1) Start by making sure the previous version you would like to backup is __currently up and running__ with `docker-compose ps`.
 2) Checkout the newest version of the source code (only the deploy folder is necessary)
