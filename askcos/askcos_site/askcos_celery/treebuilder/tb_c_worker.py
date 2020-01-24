@@ -69,9 +69,14 @@ class TemplateRelevanceAPIModel(TFServingAPIModel):
             max_num_templates (int): Maximum number of template scores/indices to return from the prediction
             max_cum_prob (float): Maximum cumulative probability of templates to be returned. This offers another convenient way to limit the number of templates returned to those are have been given high scores
         """
-        indices = np.argsort(-pred)[:max_num_templates]
-        scores = softmax(pred[indices])
-        truncate = np.argmax(np.cumsum(scores) > max_cum_prob)
+        scores = softmax(pred)
+        indices = np.argsort(-scores)[:max_num_templates]
+        scores = scores[indices]
+        cum_scores = np.cumsum(scores)
+        if max_cum_prob >= cum_scores[-1]:
+            truncate = -1
+        else:
+            truncate = np.argmax(cum_scores > max_cum_prob)
         return scores[:truncate], indices[:truncate]
 
 

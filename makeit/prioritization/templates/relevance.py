@@ -70,9 +70,14 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         """
         fp = self.smiles_to_fp(smiles)
         scores = self.model.predict(fp.reshape(1, -1)).reshape(-1)
+        scores = softmax(scores)
         indices = np.argsort(-scores)[:max_num_templates]
-        scores = softmax(scores[indices])
-        truncate = np.argmax(np.cumsum(scores)>max_cum_prob)
+        scores = scores[indices]
+        cum_scores = np.cumsum(scores)
+        if max_cum_prob >= cum_scores[-1]:
+            truncate = -1
+        else:
+            truncate = np.argmax(cum_scores > max_cum_prob)
         return scores[:truncate], indices[:truncate]
 
 
