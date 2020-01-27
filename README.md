@@ -63,29 +63,54 @@ __NOTE:__ The git clone command pulls enough to deploy the application (but not 
 
 ### Deploying the web application
 
-Deployment is initiated by a bash script that runs a few docker-compose commands in a specific order. Several database services need to be started first, and more importantly seeded with data, before other services (which rely on the availability of data in the database) can start. The bash script can be found and should be run from the deploy folder as follows:
-
-```
-$ bash deploy.sh
-```
-
-There are three optional arguments you can pass to deploy.sh:
-* --skip-seed: This will skip seeding the mongo database. Unless you know that the mongo database is currently up and running, you should probably choose to seed the database
-* --skip-ssl: This will skip the generation of a random self-signed ssl certificate. If you are supplying your own, use this option so as to not override the certificates
-* --skip-https: This will skip requiring https altogether. This option is not recommended, but was added in case users' browsers do not allow viewing pages with invalid certificates.
-* --skip-migration: This will skip performing the db migration required by django. Only use this if you know the migration has already been performed and the db models have not changed.
-
-
-To stop a currently running application, run the following from the deploy folder, where you ran deploy.sh:
+Deployment is initiated by a bash script that runs a few docker-compose commands in a specific order.
+Several database services need to be started first, and more importantly seeded with data, before other services 
+(which rely on the availability of data in the database) can start. The bash script can be found and should be run 
+from the deploy folder as follows:
 
 ```bash
-$ docker-compose stop
+$ bash deploy.sh command [optional arguments]
+```
+
+There are a number of available commands, including the following for common deploy tasks:
+* `deploy`: runs standard first-time deployment tasks, including `seed-db`
+* `update`: pulls new docker image from GitLab repository and restarts all services
+* `seed-db`: seed the database with default or custom data files
+* `start`: start a deployment without performing first-time tasks
+* `stop`: stop a running deployment
+* `clean`: stop a running deployment and remove all docker containers
+
+For a running deployment, new data can be seeded into the database using the `seed-db` command along with arguments
+indicating the types of data to be seeded. Note that this will replace the existing data in the database.
+The available arguments are as follows:
+* `-b, --buyables`: specify buyables data to seed, either `default` or path to data file
+* `-c, --chemicals`: specify chemicals data to seed, either `default` or path to data file
+* `-x, --reactions`: specify reactions data to seed, either `default` or path to data file
+* `-r, --retro-templates`: specify retrosynthetic templates to seed, either `default` or path to data file
+* `-f, --forward-templates`: specify forward templates to seed, either `default` or path to data file
+
+For example, to seed default buyables data and custom retrosynthetic pathways, run the following from the deploy folder:
+
+```bash
+$ bash deploy.sh seed-db --buyables default --retro-templates /path/to/my.retro.templates.json.gz
+```
+
+To update a deployment, run the following from the deploy folder:
+
+```bash
+$ bash deploy.sh update --version x.y.z
+```
+
+To stop a currently running application, run the following from the deploy folder:
+
+```bash
+$ bash deploy.sh stop
 ```
 
 If you would like to clean up and remove everything from a previous deployment (__NOTE: you will lose user data__), run the following from the deploy folder:
 
 ```bash
-$ docker-compose down -v
+$ bash deploy.sh clean
 ```
 
 ### Upgrading or moving deployments
