@@ -15,7 +15,7 @@ class TFServingAPIModel(object):
             hostname, version, model_name
         )
 
-    def load(self, model_path=None):
+    def load_model(self, model_path=None):
         """Override load method, no model to load"""
         pass
 
