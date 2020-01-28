@@ -68,7 +68,7 @@ services:
     restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q sc_coordinator -n sc_coordinator@%h"
+    command: bash -c "celery -A askcos_site worker -c 2 -Q sc_coordinator -n sc_coordinator@%h --pool gevent"
     depends_on:
       - redis
       - rabbit
@@ -104,7 +104,7 @@ services:
     restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q cr_network_worker -n cr_network_worker@%h"
+    command: bash -c "celery -A askcos_site worker -c 2 -Q cr_network_worker -n cr_network_worker@%h --pool=gevent"
     depends_on:
       - redis
       - rabbit
