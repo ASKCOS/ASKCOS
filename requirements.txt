@@ -13,7 +13,7 @@ pymongo==3.7.2
 redis
 scipy
 scikit-learn
-tensorflow==1.4.1
+tensorflow==1.15.2
 theano
 tqdm
 uWSGI==2.0.17.1
