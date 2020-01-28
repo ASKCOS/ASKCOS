@@ -44,8 +44,7 @@ def ajax_evaluate_rxnsmiles(request):
 
     if forward_scorer == 'Fast_Filter':
         res = fast_filter_check.delay('.'.join(reactants), '.'.join(products))
-        outcomes = res.get(5)
-        score = outcomes[0][0]['score']
+        score = res.get(5)
         data['html'] = 'Estimated plausibility: {:.4f}'.format(score)
         B = 150.
         R = 255. - (score > 0.5) * (score - 0.5) * (255. - B) * 2.

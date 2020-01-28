@@ -261,8 +261,9 @@ def fast_filter_check(*args, **kwargs):
         list: Reaction outcomes.
     """
     print('got request for fast filter')
-    global retroTransformer
-    return retroTransformer.fast_filter(*args, **kwargs)
+    fast_filter_hostname = 'fast-filter'
+    fast_filter = FastFilterAPIModel(fast_filter_hostname, 'fast_filter')
+    return fast_filter.predict(*args, **kwargs)
 
 
 @shared_task(bind=True)
