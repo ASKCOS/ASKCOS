@@ -2,7 +2,6 @@ from django.http import JsonResponse
 from askcos_site.celery import app
 
 READABLE_NAMES = {
-    'cr_coordinator': 'Context Recommender Coordinator',
     'cr_network_worker': 'Context Recommender Worker',
     'ft_worker': 'Forward Predictor Worker',
     'sc_coordinator': 'Forward Predictor Scoring Coordinator',

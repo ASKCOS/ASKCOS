@@ -87,18 +87,6 @@ services:
       - mysql
       - mongo
 
-  cr_coordinator:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
-    restart: always
-    env_file:
-      - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q cr_coordinator -n cr_coordinator@%h"
-    depends_on:
-      - redis
-      - rabbit
-      - mysql
-      - mongo
-
   cr_network_worker:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
     restart: always
