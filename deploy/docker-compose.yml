@@ -148,7 +148,7 @@ services:
       - mongo
 
   sites_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.0}
     restart: always
     env_file:
       - .env
