@@ -115,7 +115,7 @@ class RetroTransformer(TemplateTransformer):
         if self.fast_filter == 'default':
             MyLogger.print_and_log('Loading fast filter for RetroTransformer', retro_transformer_loc)
             self.fast_filter_object = FastFilterScorer()
-            self.fast_filter_object.load(gc.FAST_FILTER_MODEL['trained_model_path'])
+            self.fast_filter_object.load()
             self.fast_filter = lambda x, y: self.fast_filter_object.evaluate(x, y)[0][0]['score']
 
         if self.cluster == 'default':
@@ -293,7 +293,9 @@ class RetroTransformer(TemplateTransformer):
         results = []
         smiles_to_index = {}
 
-        scores, indices = template_prioritizer.predict(smiles, max_num_templates, max_cum_prob)
+        scores, indices = template_prioritizer.predict(
+            smiles, max_num_templates=max_num_templates, max_cum_prob=max_cum_prob
+        )
 
         templates = self.order_templates_by_indices(indices, template_set)
 
@@ -373,7 +375,7 @@ class RetroTransformer(TemplateTransformer):
     def apply_one_template_by_idx(
         self, _id, smiles, template_idx, calculate_next_probs=True,
         fast_filter_threshold=0.75, max_num_templates=100, max_cum_prob=0.995,
-        template_prioritizer=None, template_set=None
+        template_prioritizer=None, template_set=None, fast_filter=None
     ):
         """Applies one template by index.
 
@@ -408,6 +410,9 @@ class RetroTransformer(TemplateTransformer):
         if template_set is None:
             template_set = self.template_set
 
+        if fast_filter == None:
+            fast_filter = self.fast_filter
+
         mol = Chem.MolFromSmiles(smiles)
         smiles = Chem.MolToSmiles(mol, isomericSmiles=True)
         mol = rdchiralReactants(smiles)
@@ -424,7 +429,7 @@ class RetroTransformer(TemplateTransformer):
             if reactant_smiles in seen_reactant_combos:
                 continue
             seen_reactant_combos.append(reactant_smiles)
-            fast_filter_score = self.fast_filter(reactant_smiles, smiles)
+            fast_filter_score = fast_filter(reactant_smiles, smiles)
             if fast_filter_score < fast_filter_threshold:
                 continue
             
@@ -433,7 +438,7 @@ class RetroTransformer(TemplateTransformer):
                 for reactant_smi in precursor['smiles_split']:
                     if reactant_smi not in seen_reactants:
                         scores, indeces = template_prioritizer.predict(
-                            reactant_smi, max_num_templates, max_cum_prob
+                            reactant_smi, max_num_templates=max_num_templates, max_cum_prob=max_cum_prob
                         )
                         # scores and indeces will be passed through celery, need to be lists
                         scores = scores.tolist()

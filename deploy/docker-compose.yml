@@ -68,7 +68,7 @@ services:
     restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q sc_coordinator -n sc_coordinator@%h"
+    command: bash -c "celery -A askcos_site worker -c 2 -Q sc_coordinator -n sc_coordinator@%h --pool gevent"
     depends_on:
       - redis
       - rabbit
@@ -87,24 +87,12 @@ services:
       - mysql
       - mongo
 
-  cr_coordinator:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
-    restart: always
-    env_file:
-      - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q cr_coordinator -n cr_coordinator@%h"
-    depends_on:
-      - redis
-      - rabbit
-      - mysql
-      - mongo
-
   cr_network_worker:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
     restart: always
     env_file:
       - .env
-    command: bash -c "celery -A askcos_site worker -c 2 -Q cr_network_worker -n cr_network_worker@%h"
+    command: bash -c "celery -A askcos_site worker -c 2 -Q cr_network_worker -n cr_network_worker@%h --pool=gevent"
     depends_on:
       - redis
       - rabbit
@@ -148,7 +136,7 @@ services:
       - mongo
 
   sites_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.0}
     restart: always
     env_file:
       - .env
@@ -185,8 +173,13 @@ services:
 
   template-relevance-reaxys:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos/models:template-relevance-reaxys
-    ports:
-      - 8501:8501
+    expose:
+      - 8501
+
+  fast-filter:
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos/models:fast-filter
+    expose:
+      - 8501
 
   redis:
     image: redis:5.0.7

@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fast-filter
+  labels:
+    app: fast-filter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: fast-filter
+  template:
+    metadata:
+      labels:
+        pod: fast-filter
+    spec:
+      containers:
+        - name: fast-filter
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos/models:fast-filter
+          ports:
+            - containerPort: 8501
+      imagePullSecrets:
+        - name: regcred

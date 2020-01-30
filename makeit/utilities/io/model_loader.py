@@ -53,7 +53,7 @@ def load_Forward_Transformer(mincount=100, worker_no = 0):
 
 def load_fastfilter():
     ff = FastFilterScorer()
-    ff.load(model_path =gc.FAST_FILTER_MODEL['trained_model_path'])
+    ff.load(model_path =gc.FAST_FILTER_MODEL['model_path'])
     return ff
 
 
