@@ -15,6 +15,7 @@ from celery.signals import celeryd_init
 from pymongo import MongoClient
 import makeit.global_config as gc
 from makeit.retrosynthetic.transformer import RetroTransformer
+from .tb_c_worker import TemplateRelevanceAPIModel, FastFilterAPIModel
 from rdkit import RDLogger
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
@@ -38,15 +39,20 @@ def configure_worker(options={}, **kwargs):
 
     # Instantiate and load retro transformer
     global retroTransformer
-    retroTransformer = RetroTransformer(celery=True, load_all=True)
-
-    retroTransformer.load(chiral=True)
-    print(retroTransformer.fast_filter.evaluate('CCCCCCO.CCCCBr', 'CCCCCCOCCCC'))
+    retroTransformer = RetroTransformer(template_prioritizer=None, fast_filter=None, use_db=False, load_all=True)
+    retroTransformer.load()
     print('### TREE BUILDER WORKER STARTED UP ###')
 
 
 @shared_task
-def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, mincount=0, max_branching=20, template_count=10000, mode=gc.max, max_cum_prob=1, apply_fast_filter=False, filter_threshold=0.8, cluster=True, cluster_method='kmeans', cluster_feature='original', cluster_fp_type='morgan', cluster_fp_length=512, cluster_fp_radius=1):
+def get_top_precursors(
+        smiles, precursor_prioritizer=None,
+        template_set='reaxys', template_prioritizer='reaxys',
+        fast_filter=None, max_num_templates=1000,
+        max_cum_prob=1, fast_filter_threshold=0.75,
+        cluster=True, cluster_method='kmeans', cluster_feature='original',
+        cluster_fp_type='morgan', cluster_fp_length=512, cluster_fp_radius=1
+    ):
     """Get the precursors for a chemical defined by its SMILES.
 
     Args:
@@ -82,28 +88,39 @@ def get_top_precursors(smiles, template_prioritizer, precursor_prioritizer, minc
             precursors found.
     """
 
-    # print('Treebuilder worker was asked to expand {} (mincount {}, branching {}) using {} and {}'.format(
-    #    smiles, mincount, max_branching, template_prioritizer, precursor_prioritizer
-    #))
+    template_relevance_hostname = 'template-relevance-{}'.format(template_prioritizer)
+    template_prioritizer = TemplateRelevanceAPIModel(
+        hostname=template_relevance_hostname, model_name='template_relevance'
+    )
+
+    fast_filter_hostname = 'fast-filter'
+    fast_filter = FastFilterAPIModel(fast_filter_hostname, 'fast_filter').predict
 
     global retroTransformer
     result = retroTransformer.get_outcomes(
-        smiles, mincount, (precursor_prioritizer,
-                           template_prioritizer), template_count=template_count, mode=mode,
-        max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
-
-    # print(result)
-
-    precursors = result.return_top(
-        n=max_branching, 
-        cluster=cluster,
-        cluster_method=cluster_method,
-        cluster_feature=cluster_feature,
-        cluster_fp_type=cluster_fp_type,
-        cluster_fp_length=cluster_fp_length,
-        cluster_fp_radius=cluster_fp_radius
+        smiles, template_set=template_set,
+        max_num_templates=max_num_templates, max_cum_prob=max_cum_prob, 
+        fast_filter_threshold=fast_filter_threshold, template_prioritizer=template_prioritizer,
+        precursor_prioritizer=precursor_prioritizer, fast_filter=fast_filter
     )
-    return (smiles, precursors)
+    
+    return (smiles, result)
+
+@shared_task
+def template_relevance(smiles, max_num_templates, max_cum_prob, relevance_model='reaxys'):
+    global retroTransformer
+    hostname = 'template-relevance-{}'.format(relevance_model)
+    template_prioritizer = TemplateRelevanceAPIModel(
+        hostname=hostname, model_name='template_relevance'
+    )
+    scores, indices = template_prioritizer.predict(
+        smiles, max_num_templates=max_num_templates, max_cum_prob=max_cum_prob
+    )
+    if not isinstance(scores, list):
+        scores = scores.tolist()
+    if not isinstance(indices, list):
+        indices = indices.tolist()
+    return scores, indices
 
 @shared_task
 def apply_one_template_by_idx(*args, **kwargs):
@@ -113,6 +130,23 @@ def apply_one_template_by_idx(*args, **kwargs):
         list of 5-tuples of (int, str, int, list, float): Result of
             applying given template to the molecule.
     """
+    global retroTransformer
+
+    template_prioritizer = kwargs.pop('template_prioritizer', 'reaxys')
+
+    hostname = 'template-relevance-{}'.format(template_prioritizer)
+    template_prioritizer = TemplateRelevanceAPIModel(
+        hostname=hostname, model_name='template_relevance'
+    )
+
+    fast_filter_hostname = 'fast-filter'
+    fast_filter = FastFilterAPIModel(fast_filter_hostname, 'fast_filter').predict
+
+    kwargs.update({
+        'template_prioritizer': template_prioritizer,
+        'fast_filter': fast_filter
+    })
+
     return retroTransformer.apply_one_template_by_idx(*args, **kwargs)
 
 @shared_task
@@ -126,57 +160,6 @@ def fast_filter_check(*args, **kwargs):
         list: Reaction outcomes.
     """
     print('got request for fast filter')
-    return retroTransformer.fast_filter.evaluate(*args, **kwargs)
-
-
-@shared_task(bind=True)
-def reserve_worker_pool(self):
-    """Reserves pool of workers.
-
-    Called by a tb_coordinator to reserve this pool of workers to do a tree
-    expansion. This is accomplished by changing what queue(s) this pool
-    listens to.
-
-    Returns:
-        str: Name of the new queue the worker pool listens to.
-    """
-    hostname = self.request.hostname
-    private_queue = CORRESPONDING_QUEUE + '_' + hostname
-    print('Tried to reserve this worker!')
-    print('I am {}'.format(hostname))
-    print('Telling myself to ignore the {} and {} queues'.format(
-        CORRESPONDING_QUEUE, CORRESPONDING_RESERVABLE_QUEUE))
-    from askcos_site.celery import app
-    app.control.cancel_consumer(CORRESPONDING_QUEUE, destination=[hostname])
-    app.control.cancel_consumer(
-        CORRESPONDING_RESERVABLE_QUEUE, destination=[hostname])
-
-    # *** purge the queue in case old jobs remain
-    import celery.bin.amqp
-    amqp = celery.bin.amqp.amqp(app=app)
-    amqp.run('queue.purge', private_queue)
-    print('Telling myself to only listen to the new {} queue'.format(private_queue))
-    app.control.add_consumer(private_queue, destination=[hostname])
-    return private_queue
-
-
-@shared_task(bind=True)
-def unreserve_worker_pool(self):
-    """Releases this worker pool so it can listen to the original queues.
-
-    Returns:
-        True
-    """
-    hostname = self.request.hostname
-    private_queue = CORRESPONDING_QUEUE + '_' + hostname
-    print('Tried to unreserve this worker!')
-    print('I am {}'.format(hostname))
-    print('Telling myself to ignore the {} queue'.format(private_queue))
-    from askcos_site.celery import app
-    app.control.cancel_consumer(private_queue, destination=[hostname])
-    print('Telling myself to only listen to the {} and {} queues'.format(
-        CORRESPONDING_QUEUE, CORRESPONDING_RESERVABLE_QUEUE))
-    app.control.add_consumer(CORRESPONDING_QUEUE, destination=[hostname])
-    app.control.add_consumer(
-        CORRESPONDING_RESERVABLE_QUEUE, destination=[hostname])
-    return True
+    fast_filter_hostname = 'fast-filter'
+    fast_filter = FastFilterAPIModel(fast_filter_hostname, 'fast_filter')
+    return fast_filter.predict(*args, **kwargs)
