@@ -137,6 +137,9 @@ class Evaluator():
     def get_scorers(self, mincount, worker_no=0):
         """Loads the scorers used for evaulation."""
         self.scorers[gc.fastfilter] = load_fastfilter()
+        # template-based scorer is deprecated from web app
+        # enumeration based prediction still functions properly from python
+        # evaluation based prediction is broken following tf2.0 upgrade
         # self.scorers[gc.templatebased] = load_templatebased(
         #     mincount=mincount, celery=self.celery, worker_no=worker_no)
         self.scorers[gc.templatefree] = load_templatefree() # fast, one worker only
