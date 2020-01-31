@@ -58,7 +58,7 @@ n_atom_mapping_worker=1  # Atom mapping worker
 
 # Default argument values
 COMPOSE_FILE=""
-VERSION="0.4.1"
+VERSION=""
 BUYABLES=""
 CHEMICALS=""
 REACTIONS=""
