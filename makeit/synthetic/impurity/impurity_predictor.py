@@ -447,12 +447,12 @@ class ImpurityPredictor:
 
 if __name__ == '__main__':
     from makeit.synthetic.evaluation.template_free import TemplateFreeNeuralNetScorer
-    from makeit.synthetic.evaluation.fast_filter import FastFilerImpurityInspector
+    from makeit.synthetic.evaluation.fast_filter import FastFilterScorer
     from makeit.synthetic.atom_mapper.wln_mapper import WLN_AtomMapper
 
     #
     predictor = TemplateFreeNeuralNetScorer().evaluate
-    inspector = FastFilerImpurityInspector().evaluate
+    inspector = FastFilterScorer().evaluate_reaction_score
     mapper = WLN_AtomMapper().evaluate
     # %%
     pe = ImpurityPredictor(predictor, inspector, mapper, 1, 0.75, check_mapping=True)

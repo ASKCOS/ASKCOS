@@ -83,6 +83,15 @@ class FastFilterScorer(Scorer):
                               }])
         return all_outcomes
 
+    def evaluate_reaction_score(self, reaction_smiles, **kwargs):
+        """
+        Given a reaction SMILES string, return the score.
+        Convenience wrapper for the ``evaluate`` method.
+        """
+        reactants, products = reaction_smiles.split('>>')
+        all_outcomes = self.evaluate(reactants, products)
+        return all_outcomes[0][0]['score']
+
     def filter_with_threshold(self, reactant_smiles, target, threshold):
         """Filters reactions based on a score threshold.
 
@@ -105,16 +114,6 @@ class FastFilterScorer(Scorer):
         filter_flag = (score > threshold)
         return filter_flag, float(score)
 
-class FastFilerImpurityInspector():
-    def __init__(self):
-        self.inspector = FastFilterScorer()
-        self.inspector.load(model_path=gc.FAST_FILTER_MODEL['trained_model_path'])
-
-    def evaluate(self, rxnsmi):
-        rct, rea, prd = rxnsmi.split('>')
-        all_outcomes = self.inspector.evaluate(rct, prd)
-        score = all_outcomes[0][0]['score']
-        return score
 
 if __name__ == "__main__":
 

@@ -28,7 +28,6 @@ app = Celery('askcos_site', broker='amqp://{}:{}'.format(RABBIT_HOST, RABBIT_POR
         'askcos_site.askcos_celery.siteselectivity.sites_worker',
         'askcos_site.askcos_celery.impurity.impurity_worker',
         'askcos_site.askcos_celery.impurity.impurity_predictor_worker',
-        'askcos_site.askcos_celery.impurity.impurity_inspector_worker',
         'askcos_site.askcos_celery.atom_mapper.atom_mapping_worker',
     ]
 )
