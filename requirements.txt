@@ -1,5 +1,5 @@
 amqp==2.5.2
-celery==4.3.0
+celery==4.4
 Cython==0.29.14
 Django==2.2.7
 django-extensions==2.2.5
