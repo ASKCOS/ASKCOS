@@ -49,9 +49,10 @@ def get_impurities(self, reactants, reagents='', products='', solvents='',
         return result.get(10)
 
     def inspector(rxnsmiles, model=inspector_selection):
-        from askcos_site.askcos_celery.impurity.impurity_inspector_worker import inspect_reaction
+        from askcos_site.askcos_celery.treebuilder.tb_c_worker import fast_filter_check
         # print('inspector in impurity_worker', rxnsmiles)
-        result = inspect_reaction.delay(rxnsmiles, inspector=model)
+        react, prod = rxnsmiles.split('>>')
+        result = fast_filter_check.delay(react, prod)
         return result.get(3)
 
     def mapper(rxnsmiles, model=mapper_selection):
