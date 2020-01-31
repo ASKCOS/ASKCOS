@@ -51,8 +51,11 @@ def get_impurities(self, reactants, reagents='', products='', solvents='',
     def inspector(rxnsmiles, model=inspector_selection):
         from askcos_site.askcos_celery.treebuilder.tb_c_worker import fast_filter_check
         # print('inspector in impurity_worker', rxnsmiles)
-        react, prod = rxnsmiles.split('>>')
-        result = fast_filter_check.delay(react, prod)
+        if model == 'Reaxys inspector':
+            react, prod = rxnsmiles.split('>>')
+            result = fast_filter_check.delay(react, prod)
+        else:
+            raise NotImplementedError('{0} is not yet supported for impurity prediction.'.format(model))
         return result.get(3)
 
     def mapper(rxnsmiles, model=mapper_selection):
