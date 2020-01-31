@@ -150,7 +150,7 @@ start-db-services() {
   echo
 }
 
-set_db_defaults() {
+set-db-defaults() {
   # Set default values for seeding database if values are not already defined
   BUYABLES=${BUYABLES:-default}
   RETRO_TEMPLATES=${RETRO_TEMPLATES:-default}
@@ -281,7 +281,7 @@ else
   do
     case "$arg" in
       clean-static | start-db-services | seed-db | copy-http-conf | copy-https-conf | create-ssl | \
-      start-web-services | start-tf-server | start-celery-workers | migrate)
+      start-web-services | start-tf-server | start-celery-workers | migrate | set-db-defaults)
         # This is a defined function, so execute it
         $arg
         ;;
@@ -291,7 +291,7 @@ else
         create-ssl
         start-db-services
         start-web-services
-        set_db_defaults
+        set-db-defaults
         seed-db  # Must occur after starting app
         start-tf-server
         start-celery-workers
@@ -302,7 +302,7 @@ else
         copy-http-conf
         start-db-services
         start-web-services
-        set_db_defaults
+        set-db-defaults
         seed-db  # Must occur after starting app
         start-tf-server
         start-celery-workers
