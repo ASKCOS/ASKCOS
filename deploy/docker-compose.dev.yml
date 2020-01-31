@@ -14,19 +14,15 @@ services:
 
   sc_coordinator:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
-    command: bash -c "celery -A askcos_site worker -c 1 -Q sc_coordinator -n sc_coordinator@%h"
+    command: bash -c "celery -A askcos_site worker -c 1 -Q sc_coordinator -n sc_coordinator@%h --pool gevent"
 
   ft_worker:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
     command: bash -c "celery -A askcos_site worker -c 1 -Q ft_worker -n ft_worker@%h"
 
-  cr_coordinator:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
-    command: bash -c "celery -A askcos_site worker -c 1 -Q cr_coordinator -n cr_coordinator@%h"
-
   cr_network_worker:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
-    command: bash -c "celery -A askcos_site worker -c 1 -Q cr_network_worker -n cr_network_worker@%h"
+    command: bash -c "celery -A askcos_site worker -c 1 -Q cr_network_worker -n cr_network_worker@%h --pool gevent"
 
   tb_coordinator_mcts:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
@@ -41,7 +37,7 @@ services:
     command: bash -c "celery -A askcos_site worker -c 1 -Q tb_c_worker_preload -n tb_c_worker_preload@%h"
 
   sites_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.0}
     command: bash -c "celery -A askcos_site worker -c 1 -Q sites_worker --pool=gevent -n sites_worker@%h"
 
   impurity_worker:
