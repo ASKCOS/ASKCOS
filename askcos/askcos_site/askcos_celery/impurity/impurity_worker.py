@@ -1,10 +1,11 @@
-from __future__ import absolute_import, unicode_literals, print_function
 from celery import shared_task
 from celery.signals import celeryd_init
 from rdkit import RDLogger
-import time
-from functools import partial
-from rdkit import Chem
+
+from makeit.synthetic.impurity.impurity_predictor import ImpurityPredictor
+from ..atom_mapper.atom_mapping_worker import get_atom_mapping
+from ..impurity.impurity_predictor_worker import predict_reaction
+from ..treebuilder.tb_c_worker import fast_filter_check
 
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
@@ -43,13 +44,11 @@ def get_impurities(self, reactants, reagents='', products='', solvents='',
                    top_k=3, threshold=0.75, check_mapping=True):
 
     def predictor(reactants_smiles, model=predictor_selection):
-        from askcos_site.askcos_celery.impurity.impurity_predictor_worker import predict_reaction
         # print('predictor in impurity_worker', reactants_smiles)
         result = predict_reaction.delay(reactants_smiles, predictor=model)
         return result.get(10)
 
     def inspector(rxnsmiles, model=inspector_selection):
-        from askcos_site.askcos_celery.treebuilder.tb_c_worker import fast_filter_check
         # print('inspector in impurity_worker', rxnsmiles)
         if model == 'Reaxys inspector':
             react, prod = rxnsmiles.split('>>')
@@ -59,7 +58,6 @@ def get_impurities(self, reactants, reagents='', products='', solvents='',
         return result.get(3)
 
     def mapper(rxnsmiles, model=mapper_selection):
-        from askcos_site.askcos_celery.atom_mapper.atom_mapping_worker import get_atom_mapping
         result = get_atom_mapping.delay(rxnsmiles, mapper=model)
         return result.get(10)
 
@@ -69,7 +67,6 @@ def get_impurities(self, reactants, reagents='', products='', solvents='',
     # mapper = partial(get_atom_mapping, mapper=mapper_selection)
     # configure impurity predictor
 
-    from makeit.synthetic.impurity.impurity_predictor import ImpurityPredictor
     impurity_predictor = ImpurityPredictor(predictor, inspector, mapper,
                                            topn_outcome=top_k, insp_threshold=threshold,
                                            celery_task=self, check_mapping=check_mapping)
