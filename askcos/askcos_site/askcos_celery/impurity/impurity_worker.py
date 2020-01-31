@@ -21,18 +21,6 @@ def configure_worker(options={}, **kwargs):
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
         return
     print('### STARTING UP A IMPURITY PREDICTOR WORKER ###')
-    # Import as needed
-    # from askcos.askcos_site.askcos_celery.impurity.impurity_predictor_worker import predict_reaction
-    # from askcos.askcos_site.askcos_celery.impurity.impurity_inspector_worker import inspect_reaction
-    # from askcos.askcos_site.askcos_celery.atom_mapper.atom_mapping_worker import get_atom_mapping
-
-    # try:
-    #     predictor = predict_reaction
-    #     inspector = inspect_reaction
-    #     mapper = get_atom_mapping
-    # except Exception as e:
-    #     print(e)
-    #     raise (e)
     print('Initialized')
 
 
@@ -44,12 +32,10 @@ def get_impurities(self, reactants, reagents='', products='', solvents='',
                    top_k=3, threshold=0.75, check_mapping=True):
 
     def predictor(reactants_smiles, model=predictor_selection):
-        # print('predictor in impurity_worker', reactants_smiles)
         result = predict_reaction.delay(reactants_smiles, predictor=model)
         return result.get(10)
 
     def inspector(rxnsmiles, model=inspector_selection):
-        # print('inspector in impurity_worker', rxnsmiles)
         if model == 'Reaxys inspector':
             react, prod = rxnsmiles.split('>>')
             result = fast_filter_check.delay(react, prod)
@@ -61,17 +47,8 @@ def get_impurities(self, reactants, reagents='', products='', solvents='',
         result = get_atom_mapping.delay(rxnsmiles, mapper=model)
         return result.get(10)
 
-    # configure predictor, inspector, and mapper
-    # predictor = partial(predict_reaction, predictor=predictor_selection)
-    # inspector = partial(inspect_reaction, inspector=inspector_selection)
-    # mapper = partial(get_atom_mapping, mapper=mapper_selection)
-    # configure impurity predictor
-
     impurity_predictor = ImpurityPredictor(predictor, inspector, mapper,
                                            topn_outcome=top_k, insp_threshold=threshold,
                                            celery_task=self, check_mapping=check_mapping)
     # make prediction
-    outcome = impurity_predictor.predict(reactants, reagents=reagents, products=products, solvents=solvents)
-    # return impurity_predictor.predict(reactants, reagents=reagents, products=products, solvents=solvents)
-    return outcome
-
+    return impurity_predictor.predict(reactants, reagents=reagents, products=products, solvents=solvents)
