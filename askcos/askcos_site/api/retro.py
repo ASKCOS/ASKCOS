@@ -45,6 +45,8 @@ def singlestep(request):
     if max_cum_prob > 0.999 and max_num_templates > 1000:
         res = get_top_precursors_p.delay(
             target,
+            template_set=template_set,
+            template_prioritizer=template_prioritizer,
             fast_filter_threshold=fast_filter_threshold,
             max_cum_prob=max_cum_prob,
             max_num_templates=max_num_templates,
