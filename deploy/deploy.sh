@@ -331,7 +331,17 @@ else
         ;;
       clean)
         # Clean up current deployment
-        docker-compose down -v  # make sure there's a prompt for confirmation
+        echo "This will stop and remove all containers and also remove all data volumes. Are you sure you want to continue?"
+        read -rp 'Continue (y/N): ' response
+        case "$response" in
+          [Yy] | [Yy][Ee][Ss])
+            echo "Cleaning deployment."
+            docker-compose down -v
+            ;;
+          *)
+            echo "Doing nothing."
+            ;;
+        esac
         ;;
       *)
         echo "Error: Unsupported command $1" >&2  # print to stderr
