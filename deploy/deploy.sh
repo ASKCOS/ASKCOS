@@ -159,6 +159,15 @@ set-db-defaults() {
 }
 
 seed-db() {
+  if [ -z "$BUYABLES" ] && [ -z "$CHEMICALS" ] && [ -z "$REACTIONS" ] && [ -z "$RETRO_TEMPLATES" ] && [ -z "$FORWARD_TEMPLATES" ]; then
+    echo "Nothing to seed!"
+    echo "Example usages:"
+    echo "    bash deploy.sh seed-db -r default                  seed only the default retro templates"
+    echo "    bash deploy.sh seed-db -r <templates.json.gz>      seed retro templates from local file <templates.json.gz>"
+    echo "    bash deploy.sh set-db-defaults seed-db             seed all default collections"
+    return
+  fi
+
   echo "Seeding mongo database..."
   MAKEIT_PATH=$(docker-compose exec app bash -c "python -c 'import makeit; print(makeit.__file__.split(\"/__\")[0])'" | tr -d '\r')
 
