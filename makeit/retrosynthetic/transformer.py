@@ -344,9 +344,7 @@ class RetroTransformer(TemplateTransformer):
 
         try:
             outcomes, mapped_outcomes = rdchiralRun(template['rxn'], mol, return_mapped=True)
-            # outcomes, mapped_outcomes = rdchiralRun(template, mol, return_mapped=True)
         except Exception as e:
-            print(e)
             return results
 
         for j, outcome in enumerate(outcomes):

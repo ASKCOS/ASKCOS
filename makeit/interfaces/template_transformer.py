@@ -87,6 +87,8 @@ class TemplateTransformer(object):
             'efgs':                 document['efgs'] if 'efgs' in document else None,
             'intra_only':           document['intra_only'] if 'intra_only' in document else False,
             'dimer_only':           document['dimer_only'] if 'dimer_only' in document else False,
+            'template_set':         document.get('template_set', ''),
+            'index':                document.get('index')
         }
         template['chiral'] = chiral_rxn
 
