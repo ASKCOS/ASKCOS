@@ -456,7 +456,7 @@ def TransformStringToImage(transform, retro=True, **kwargs):
     return ReactionToImage(rxn, dummyAtoms=True, options=options, retro=retro, **kwargs)
 
 
-def MolsSmilesToImage(smiles, options=None, **kwargs):
+def MolsSmilesToImage(smiles, options=None, clear_map=True, **kwargs):
     """Draws molecule(s) from SMILES.
 
     This function takes a SMILES string of one or more molecules
@@ -466,13 +466,12 @@ def MolsSmilesToImage(smiles, options=None, **kwargs):
         smiles (str): SMILES string of molecule(s) to draw.
         options (None or ??, optional): RDKit drawing options. If None, will use
             defaults. (default: {None})
+        clear_map (bool): Boolean flag to clear atom map numbers before drawing. (default: True)
         **kwargs: Unused.
 
     Returns:
         PIL.Image: Drawing of the molecule(s).
     """
-
-    clear_map = kwargs.get('clear_map', True)
 
     # Generate mols
     mols = mols_from_smiles_list(smiles.split('.'))
