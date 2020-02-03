@@ -37,10 +37,10 @@ usage() {
   echo "    -d,--dev                  use docker-compose configuration for development (fewer workers)"
   echo
   echo "Examples:"
-  echo "    ./deploy.sh deploy -f docker-compose.yml"
-  echo "    ./deploy.sh update -v x.y.z"
-  echo "    ./deploy.sh seed-db -r retro-templates.json -b buyables.json"
-  echo "    ./deploy.sh clean"
+  echo "    bash deploy.sh deploy -f docker-compose.yml"
+  echo "    bash deploy.sh update -v x.y.z"
+  echo "    bash deploy.sh seed-db -r retro-templates.json.gz -b buyables.json.gz"
+  echo "    bash deploy.sh clean"
   echo
 }
 
@@ -58,7 +58,7 @@ n_atom_mapping_worker=1  # Atom mapping worker
 
 # Default argument values
 COMPOSE_FILE=""
-VERSION="0.4.1"
+VERSION=""
 BUYABLES=""
 CHEMICALS=""
 REACTIONS=""
@@ -150,7 +150,7 @@ start-db-services() {
   echo
 }
 
-set_db_defaults() {
+set-db-defaults() {
   # Set default values for seeding database if values are not already defined
   BUYABLES=${BUYABLES:-default}
   RETRO_TEMPLATES=${RETRO_TEMPLATES:-default}
@@ -159,6 +159,15 @@ set_db_defaults() {
 }
 
 seed-db() {
+  if [ -z "$BUYABLES" ] && [ -z "$CHEMICALS" ] && [ -z "$REACTIONS" ] && [ -z "$RETRO_TEMPLATES" ] && [ -z "$FORWARD_TEMPLATES" ]; then
+    echo "Nothing to seed!"
+    echo "Example usages:"
+    echo "    bash deploy.sh seed-db -r default                  seed only the default retro templates"
+    echo "    bash deploy.sh seed-db -r <templates.json.gz>      seed retro templates from local file <templates.json.gz>"
+    echo "    bash deploy.sh set-db-defaults seed-db             seed all default collections"
+    return
+  fi
+
   echo "Seeding mongo database..."
   MAKEIT_PATH=$(docker-compose exec app bash -c "python -c 'import makeit; print(makeit.__file__.split(\"/__\")[0])'" | tr -d '\r')
 
@@ -281,7 +290,7 @@ else
   do
     case "$arg" in
       clean-static | start-db-services | seed-db | copy-http-conf | copy-https-conf | create-ssl | \
-      start-web-services | start-tf-server | start-celery-workers | migrate)
+      start-web-services | start-tf-server | start-celery-workers | migrate | set-db-defaults)
         # This is a defined function, so execute it
         $arg
         ;;
@@ -291,7 +300,7 @@ else
         create-ssl
         start-db-services
         start-web-services
-        set_db_defaults
+        set-db-defaults
         seed-db  # Must occur after starting app
         start-tf-server
         start-celery-workers
@@ -302,7 +311,7 @@ else
         copy-http-conf
         start-db-services
         start-web-services
-        set_db_defaults
+        set-db-defaults
         seed-db  # Must occur after starting app
         start-tf-server
         start-celery-workers
@@ -331,7 +340,17 @@ else
         ;;
       clean)
         # Clean up current deployment
-        docker-compose down -v  # make sure there's a prompt for confirmation
+        echo "This will stop and remove all containers and also remove all data volumes. Are you sure you want to continue?"
+        read -rp 'Continue (y/N): ' response
+        case "$response" in
+          [Yy] | [Yy][Ee][Ss])
+            echo "Cleaning deployment."
+            docker-compose down -v
+            ;;
+          *)
+            echo "Doing nothing."
+            ;;
+        esac
         ;;
       *)
         echo "Error: Unsupported command $1" >&2  # print to stderr
