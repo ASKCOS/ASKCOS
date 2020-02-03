@@ -472,8 +472,13 @@ def MolsSmilesToImage(smiles, options=None, **kwargs):
         PIL.Image: Drawing of the molecule(s).
     """
 
+    clear_map = kwargs.get('clear_map', True)
+
     # Generate mols
     mols = mols_from_smiles_list(smiles.split('.'))
+    if clear_map:
+        for mol in mols:
+            [a.SetAtomMapNum(0) for a in mol.GetAtoms()]
     # Generate images
     imgs = [TrimImgByWhite(MolToImage(
         mol, kekulize=True, options=options), padding=10) for mol in mols]
