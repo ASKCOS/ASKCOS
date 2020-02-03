@@ -37,10 +37,10 @@ usage() {
   echo "    -d,--dev                  use docker-compose configuration for development (fewer workers)"
   echo
   echo "Examples:"
-  echo "    ./deploy.sh deploy -f docker-compose.yml"
-  echo "    ./deploy.sh update -v x.y.z"
-  echo "    ./deploy.sh seed-db -r retro-templates.json -b buyables.json"
-  echo "    ./deploy.sh clean"
+  echo "    bash deploy.sh deploy -f docker-compose.yml"
+  echo "    bash deploy.sh update -v x.y.z"
+  echo "    bash deploy.sh seed-db -r retro-templates.json.gz -b buyables.json.gz"
+  echo "    bash deploy.sh clean"
   echo
 }
 
