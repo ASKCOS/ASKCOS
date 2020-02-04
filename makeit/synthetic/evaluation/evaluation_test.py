@@ -15,7 +15,7 @@ class TestTemplateFree(unittest.TestCase):
         scorer = tf.TemplateFreeNeuralNetScorer()
         result = scorer.evaluate(react)
 
-        with open(os.path.join(os.path.dirname(__file__), 'expected/template_free.pkl'), 'rb') as t:
+        with open(os.path.join(os.path.dirname(__file__), 'test_data/template_free.pkl'), 'rb') as t:
             expected = pickle.load(t, encoding='iso-8859-1')
 
         self.assertEqual(len(result), 1)
@@ -71,7 +71,7 @@ class TestEvaluator(unittest.TestCase):
         result = evaluator.evaluate('CCCCO.CCCCBr', 'O=C1CCCCCCCO1', [(20, '', '', '', '', '')],
                                     forward_scorer=gc.templatefree, return_all_outcomes=True)
 
-        with open(os.path.join(os.path.dirname(__file__), 'expected/evaluator.pkl'), 'rb') as t:
+        with open(os.path.join(os.path.dirname(__file__), 'test_data/evaluator.pkl'), 'rb') as t:
             expected = pickle.load(t, encoding='iso-8859-1')
 
         self.assertEqual(len(result), 1)

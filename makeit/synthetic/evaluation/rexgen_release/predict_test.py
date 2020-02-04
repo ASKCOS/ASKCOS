@@ -12,7 +12,7 @@ class TestPredict(unittest.TestCase):
         tffp = p.TFFP()
         result = tffp.predict('CCCO.CCCBr')
 
-        with open(os.path.join(os.path.dirname(__file__), 'expected/predict.pkl'), 'rb') as t:
+        with open(os.path.join(os.path.dirname(__file__), 'test_data/predict.pkl'), 'rb') as t:
             expected = pickle.load(t, encoding='iso-8859-1')
 
         self.assertEqual(len(expected), len(result))

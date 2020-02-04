@@ -19,7 +19,7 @@ class TestTemplateRelevance(unittest.TestCase):
         """Test that the template relevance model returns the expected result for CCCOCCC"""
         scores, indices = self.model.predict('CCCOCCC', 100, 0.995)
 
-        with open(os.path.join(os.path.dirname(__file__), 'expected/relevance_01.pkl'), 'rb') as t:
+        with open(os.path.join(os.path.dirname(__file__), 'test_data/relevance_01.pkl'), 'rb') as t:
             expected = pickle.load(t)
 
         self.assertEqual(len(expected[0]), len(scores))
@@ -31,7 +31,7 @@ class TestTemplateRelevance(unittest.TestCase):
         """Test that the template relevance model returns the expected result for CCCNc1ccccc1"""
         scores, indices = self.model.predict('CCCNc1ccccc1', 100, 0.995)
 
-        with open(os.path.join(os.path.dirname(__file__), 'expected/relevance_02.pkl'), 'rb') as t:
+        with open(os.path.join(os.path.dirname(__file__), 'test_data/relevance_02.pkl'), 'rb') as t:
             expected = pickle.load(t)
 
         self.assertEqual(len(expected[0]), len(scores))

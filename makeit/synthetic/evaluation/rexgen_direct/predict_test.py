@@ -14,7 +14,7 @@ class TestPredict(unittest.TestCase):
 
         self.assertEqual('[CH3:1][CH2:2][CH2:3][OH:4].[CH3:5][CH2:6][CH2:7][Br:8]', rsmi_am)
 
-        with open(os.path.join(os.path.dirname(__file__), 'expected/predict.pkl'), 'rb') as t:
+        with open(os.path.join(os.path.dirname(__file__), 'test_data/predict.pkl'), 'rb') as t:
             expected = pickle.load(t, encoding='iso-8859-1')
 
         self.assertEqual(len(expected), len(result))

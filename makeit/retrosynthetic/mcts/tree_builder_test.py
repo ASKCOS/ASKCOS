@@ -30,7 +30,7 @@ class TestMCTSTreeBuilder(unittest.TestCase):
                                             # min_chemical_history_dict={'as_reactant':5, 'as_product':5,'logic':'none'},
                                             soft_reset=False,
                                             soft_stop=True)
-        with open(os.path.join(os.path.dirname(__file__), 'expected/test_01_scopolamine_test.pkl'), 'rb') as t:
+        with open(os.path.join(os.path.dirname(__file__), 'test_data/test_01_scopolamine_test.pkl'), 'rb') as t:
             expected_status, expected_paths = pickle.load(t)
         self.assertEqual(expected_status, status_result)
         self.assertEqual(expected_paths, paths_result)
@@ -45,7 +45,7 @@ class TestMCTSTreeBuilder(unittest.TestCase):
                                             template_count=100,
                                             soft_reset=False,
                                             soft_stop=True)
-        with open(os.path.join(os.path.dirname(__file__), 'expected/test_02_get_buyable_paths.pkl'), 'rb') as t:
+        with open(os.path.join(os.path.dirname(__file__), 'test_data/test_02_get_buyable_paths.pkl'), 'rb') as t:
             expected_status, expected_paths = pickle.load(t)
         self.assertEqual(expected_status, status_result)
         self.assertEqual(expected_paths, paths_result)

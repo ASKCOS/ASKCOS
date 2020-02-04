@@ -11,7 +11,7 @@ class TestCRMolGraph(unittest.TestCase):
     def test_01_smiles2graph(self):
         """Test makeit.synthetic.evaluation.rexgen_release.CandRanker.mol_graph.smiles2graph"""
         result = mg.smiles2graph("[OH:1][CH3:2]", "[O:1]=[CH2:2]", [(0, 1)])
-        with open(os.path.join(os.path.dirname(__file__), 'expected/CR_smiles2graph.pkl'), 'rb') as t:
+        with open(os.path.join(os.path.dirname(__file__), 'test_data/CR_smiles2graph.pkl'), 'rb') as t:
             expected = pickle.load(t, encoding='iso-8859-1')
         for e, r in zip(expected[0], result[0]):
             self.assertTrue((e == r).all())

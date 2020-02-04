@@ -21,7 +21,7 @@ class TestNeuralNetwork(unittest.TestCase):
         result = cont.get_n_conditions('CC1(C)OBOC1(C)C.Cc1ccc(Br)cc1>>Cc1cccc(B2OC(C)(C)C(C)(C)O2)c1', 10,
                                        with_smiles=False, return_scores=True)
 
-        with open(os.path.join(os.path.dirname(__file__), 'expected/get_n_conditions.pkl'), 'rb') as t:
+        with open(os.path.join(os.path.dirname(__file__), 'test_data/get_n_conditions.pkl'), 'rb') as t:
             expected = pickle.load(t, encoding='iso-8859-1')
 
         for e, r in zip(expected[0], result[0]):
