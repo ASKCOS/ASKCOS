@@ -124,7 +124,7 @@ $ bash deploy.sh clean
 
 If you are upgrading from v0.3.1 or later, the backup/restore process is no longer needed.
 
-If you are upgrading the deployment from a previous version, or moving the application to a different server, you may want to retain user accounts and user-saved data/results.
+If you are upgrading the deployment from a previous version (prior to v0.3.1), or moving the application to a different server, you may want to retain user accounts and user-saved data/results.
 The provided `backup.sh` and `restore.sh` scripts are capable of handling the backup and restoring process. Please read the following carefully so as to not lose any user data:
 
 1) Start by making sure the previous version you would like to backup is __currently up and running__ with `docker-compose ps`.
