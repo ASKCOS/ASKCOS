@@ -35,7 +35,7 @@ class TestFastFilter(unittest.TestCase):
     def setUpClass(cls):
         """This method is run once before all tests in this class."""
         cls.model = ff.FastFilterScorer()
-        cls.model.load(model_path=gc.FAST_FILTER_MODEL['trained_model_path'])
+        cls.model.load(model_path=gc.FAST_FILTER_MODEL['model_path'])
 
     def test_01_evaluate(self):
         result = self.model.evaluate('CCO.CC(=O)O', 'CCOC(=O)C')
