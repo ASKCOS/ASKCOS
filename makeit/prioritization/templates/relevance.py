@@ -62,7 +62,7 @@ class RelevanceTemplatePrioritizer(Prioritizer):
                 and indices to return
             max_cum_prob (float): Maximum cumulative probability of template
                 scores to return. Scores and indices will be returned up until
-                max_cum_prob is exceeded.
+                max_cum_prob, without exceeding it.
 
         Returns:
             (scores, indices): np.ndarrays of scores and indices for 
@@ -74,11 +74,7 @@ class RelevanceTemplatePrioritizer(Prioritizer):
         indices = np.argsort(-scores)[:max_num_templates]
         scores = scores[indices]
         cum_scores = np.cumsum(scores)
-        if max_cum_prob >= cum_scores[-1]:
-            truncate = -1
-        else:
-            truncate = np.argmax(cum_scores > max_cum_prob)
-        return scores[:truncate], indices[:truncate]
+        return scores[cum_scores <= max_cum_prob], indices[cum_scores <= max_cum_prob]
 
 
 if __name__ == '__main__':
