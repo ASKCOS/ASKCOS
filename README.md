@@ -5,6 +5,8 @@ Software package for the prediction of feasible synthetic routes towards a desir
 
 Release Notes  
 User notes:  
+* New impurity predictor module
+* New reaction atom-mapping module
 * Upgrade to rdkit version 2019.03.3
 * Migration of rdchiral to standalone pypi package. rdchiral development can now be found at https://github.com/connorcoley/rdchiral
 * Improved buyables lookup consistency
@@ -19,6 +21,7 @@ Developer notes:
 * chemhistorian data migrated to mongodb. This increases initialization mongodb seeding time, but decreases memory footprint
 * All dependencies, including third-party docker images, are now pinned to specific versions
 * Seeding of mongo db now occurs using the backend "app" service
+* Template relevance and fast filter models moved to tensorflow serving API endpoints
 
 Bug fixes:
 * Buyables page bugfixes
@@ -52,8 +55,10 @@ $ docker login registry.gitlab.com -u $DEPLOY_TOKEN_USERNAME -p $DEPLOY_TOKEN_PA
 $ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
 $ cd askcos/deploy
 $ git checkout v0.4.1
-$ bash deploy.sh
+$ bash deploy.sh deploy
 ```
+
+__NOTE:__ Starting with version 0.4.1, the chemhistorian data has been migrated to mongodb, which may take up to ~5 minutes to initially seed for the first time upgrade/deployment. Subsequent upgrades should not require the re-seeding of the chemhistorian information.
 
 __NOTE:__ The git clone command pulls enough to deploy the application (but not all the data files hosted using git large file store). To acquire the complete source code repository including large data files (if you want to rebuild a custom image, for example), please install git lfs and pull the rest of the repository.
 
@@ -148,13 +153,14 @@ $ git lfs pull
 $ docker build -t askcos .
 ```
 
+__NOTE:__ For application deployment, double check the image tag used in the `docker-compose.yml` file and be sure to tag your newly built image with the same image name. Otherwise, the image tag sed in `docker-compose.yml` will be pullled and deployed instead of the image that was just built.
+
 ### Add customization
 
 There are a few parts of the application that you can customize:
 * Header sub-title next to ASKCOS (to designate this as a local deployment at your organization)
-* Contact emails for centralized IT support
 
-These are handled as environment variables that can change upon deployment (and are therefore not tied into the image directly). They can be found in `deploy/customization`. Please let us know what other degrees of customization you would like.
+This is handled as an environment variable that can change upon deployment (and are therefore not tied into the image directly). This can be found in `deploy/customization`. Please let us know what other degrees of customization you would like.
 
 ### Managing Django
 
@@ -165,10 +171,6 @@ If you'd like to manage the Django app (i.e. - run python manage.py ...), for ex
 In this case you'll be presented an interactive prompt to create a superuser with your desired credentials.
 
 ## Important Notes
-
-#### First startup
-
-The celery worker will take a few minutes to start up (possibly up to 5 minutes; it reads a lot of data into memory from disk). The web app itself will be ready before this, however upon the first get request (only the first for each process) a few files will be read from disk, so expect a 1-2 second delay.
 
 #### Scaling workers
 
