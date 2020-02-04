@@ -122,7 +122,7 @@ $ bash deploy.sh clean
 
 #### Backing up user data
 
-If you are upgrading from v0.3.1 or later, the backup/restore process is no longer needed unless you are moving the deployment to a brand new computer/cloud instance.
+If you are upgrading from v0.3.1 or later, the backup/restore process is no longer needed.
 
 If you are upgrading the deployment from a previous version, or moving the application to a different server, you may want to retain user accounts and user-saved data/results.
 The provided `backup.sh` and `restore.sh` scripts are capable of handling the backup and restoring process. Please read the following carefully so as to not lose any user data:
@@ -131,11 +131,11 @@ The provided `backup.sh` and `restore.sh` scripts are capable of handling the ba
 2) Checkout the newest version of the source code (only the deploy folder is necessary)
 3) Run `$ bash backup.sh`
 4) Make sure that the `deploy/backup` folder is present, and there is a folder with a long string of numbers (year+month+date+time) that corresponds to the time you just ran the backup command
-5) If the backup was successful (`db.json` and `user_saves` (\<v0.3.1) or `results.mongo` (\>=0.3.1) should be present), you can safely tear down the old application with `docker-compose down -v`
+5) If the backup was successful (`db.json` and `user_saves` (\<v0.3.1) or `results.mongo` (\>=0.3.1) should be present), you can safely tear down the old application with `docker-compose down [-v]`
 6) Deploy the new application with `bash deploy.sh deploy` or update with `bash deploy.sh update -v x.y.z`
 7) Restore user data with `bash restore.sh`
 
-Note: For versions >=0.3.1, user data persists in docker volumes, and is not tied to the lifecycle of the container services. In other words, as long as you do not include the [-v] flag to `docker-compose down`, volumes do not get removed, and user data is safe. In this case, the backup/restore procedure is not necessary as the new containers that get created upon an upgrade will continue to use the docker volumes that contain all the important data.
+Note: For versions >=0.3.1, user data persists in docker volumes and is not tied to the lifecycle of the container services. If the [-v] flag is not used with `docker-compose down`, volumes do not get removed, and user data is safe. In this case, the backup/restore procedure is not necessary as the containers that get created upon an install/upgrade will continue to use the docker volumes that contain all the important data. If the [-v] flag is used, all data will be removed and a restore will be required to recover user data.
 
 ### (Optional) Building the ASKCOS Image
 
