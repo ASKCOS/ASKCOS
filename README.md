@@ -55,7 +55,7 @@ In addition, you need to have the deploy/ folder from the ASKCOS code repository
 #### From v0.3.1 or v0.4.0
 ```
 $ git checkout v0.4.1
-$ bash deploy.sh start                      # updates services to v0.4.1
+$ bash deploy.sh clean-static start         # updates services to v0.4.1
 $ bash deploy.sh set-db-defaults seed-db    # this may take ~5 minutes to load "default chemicals data" (new in 0.4.1)
 ```
 
@@ -63,7 +63,7 @@ $ bash deploy.sh set-db-defaults seed-db    # this may take ~5 minutes to load "
 ```
 $ git checkout v0.4.1
 $ bash backup.sh
-$ bash deploy.sh start                      # updates services to v0.4.1
+$ bash deploy.sh clean-static start         # updates services to v0.4.1
 $ bash deploy.sh set-db-defaults seed-db    # this may take ~5 minutes to load "default chemicals data" (new in 0.4.1)
 $ bash restore.sh
 ```
