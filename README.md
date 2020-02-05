@@ -27,22 +27,6 @@ Bug fixes:
 * Buyables page bugfixes
 * nginx service restarts like the rest of the services now
 
-### Upgrade information
-
-The easiest way to upgrade to the new version of ASKCOS is using Docker and docker-compose.
-To get started, make sure both docker and docker-compose are installed on your machine.
-We have a pre-built docker image of ASKCOS hosted on GitLab.
-It is a private repository; if you do not have access to pull the image, please [contact us](mailto:mlpds_support@mit.edu).
-In addition, you need to have the deploy/ folder from our code repository.
-To get the most recent version of ASKCOS:
-
-```bash
-$ docker login registry.gitlab.com # enter credentials
-$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
-```
-
-Then, follow the instructions below using the new version of the deploy folder from this repository.
-
 ### Using GitLab Deploy Tokens
 
 ASKCOS can also be downloaded using deploy tokens, these provide __read-only__ access to the source code and our container registry in GitLab. Below is a complete example showing how to deploy the ASKCOS application using deploy tokens (omitted in this example). The deploy tokens can be found on the [MLPDS Member Resources ASKCOS Versions Page](https://mlpds.mit.edu/member-resources-releases-versions/). The only software prerequisites are git, docker, and docker-compose.
@@ -52,7 +36,6 @@ $ export DEPLOY_TOKEN_USERNAME=
 $ export DEPLOY_TOKEN_PASSWORD=
 $ git clone https://$DEPLOY_TOKEN_USERNAME:$DEPLOY_TOKEN_PASSWORD@gitlab.com/mlpds_mit/askcos/askcos.git
 $ docker login registry.gitlab.com -u $DEPLOY_TOKEN_USERNAME -p $DEPLOY_TOKEN_PASSWORD
-$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
 $ cd askcos/deploy
 $ git checkout v0.4.1
 $ bash deploy.sh deploy
@@ -60,8 +43,29 @@ $ bash deploy.sh deploy
 
 __NOTE:__ Starting with version 0.4.1, the chemhistorian data has been migrated to mongodb, which may take up to ~5 minutes to initially seed for the first time upgrade/deployment. Subsequent upgrades should not require the re-seeding of the chemhistorian information.
 
-__NOTE:__ The git clone command pulls enough to deploy the application (but not all the data files hosted using git large file store). To acquire the complete source code repository including large data files (if you want to rebuild a custom image, for example), please install git lfs and pull the rest of the repository.
+### Upgrade information
 
+The easiest way to upgrade to a new version of ASKCOS is using Docker and docker-compose.
+To get started, make sure both docker and docker-compose are installed on your machine.
+We have a pre-built docker image of ASKCOS hosted on GitLab.
+It is a private repository; if you do not have access to pull the image, please [contact us](mailto:mlpds_support@mit.edu).
+In addition, you need to have the deploy/ folder from the ASKCOS code repository for the specific version for which you would like to upgrade to. Due to backend changes introduced with v0.3.1, the upgrade information is different is older versions, and the steps are summarized below:
+
+#### From v0.3.1 or v0.4.0
+```
+$ git checkout v0.4.1
+$ bash deploy.sh start                      # updates services to v0.4.1
+$ bash deploy.sh set-db-defaults seed-db    # this may take ~5 minutes to load "default chemicals data" (new in 0.4.1)
+```
+
+#### From v0.2.x or v0.3.0
+```
+$ git checkout v0.4.1
+$ bash backup.sh
+$ bash deploy.sh start                      # updates services to v0.4.1
+$ bash deploy.sh set-db-defaults seed-db    # this may take ~5 minutes to load "default chemicals data" (new in 0.4.1)
+$ bash restore.sh
+```
 
 # First Time Deployment with Docker
 
@@ -123,17 +127,15 @@ If you would like to clean up and remove everything from a previous deployment (
 $ bash deploy.sh clean
 ```
 
-### Upgrading or moving deployments
+### Backing up user data
 
-#### Backing up user data
-
-If you are upgrading from v0.3.1 or later, the backup/restore process is no longer needed.
+If you are upgrading from v0.3.1 or later, the backup/restore process is no longer needed unless you are moving deployments to a new machine.
 
 If you are upgrading the deployment from a previous version (prior to v0.3.1), or moving the application to a different server, you may want to retain user accounts and user-saved data/results.
 The provided `backup.sh` and `restore.sh` scripts are capable of handling the backup and restoring process. Please read the following carefully so as to not lose any user data:
 
 1) Start by making sure the previous version you would like to backup is __currently up and running__ with `docker-compose ps`.
-2) Checkout the newest version of the source code (only the deploy folder is necessary)
+2) Checkout the newest version of the source code `git checkout v0.4.1`
 3) Run `$ bash backup.sh`
 4) Make sure that the `deploy/backup` folder is present, and there is a folder with a long string of numbers (year+month+date+time) that corresponds to the time you just ran the backup command
 5) If the backup was successful (`db.json` and `user_saves` (\<v0.3.1) or `results.mongo` (\>=0.3.1) should be present), you can safely tear down the old application with `docker-compose down [-v]`
