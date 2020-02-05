@@ -37,7 +37,7 @@ services:
     command: bash -c "celery -A askcos_site worker -c 1 -Q tb_c_worker_preload -n tb_c_worker_preload@%h"
 
   sites_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.0}
+    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
     command: bash -c "celery -A askcos_site worker -c 1 -Q sites_worker --pool=gevent -n sites_worker@%h"
 
   impurity_worker:
