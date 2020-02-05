@@ -346,7 +346,7 @@ else
         case "$response" in
           [Yy] | [Yy][Ee][Ss])
             echo "Cleaning deployment."
-            docker-compose down -v
+            docker-compose down -v --remove-orphans
             ;;
           *)
             echo "Doing nothing."
