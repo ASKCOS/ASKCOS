@@ -20,6 +20,7 @@ Developer notes:
 * Docker builds are now much, much, much faster
 * chemhistorian data migrated to mongodb. This increases initialization mongodb seeding time, but decreases memory footprint
 * All dependencies, including third-party docker images, are now pinned to specific versions
+* Celery dependency upgraded to 4.4
 * Seeding of mongo db now occurs using the backend "app" service
 * Template relevance and fast filter models moved to tensorflow serving API endpoints
 
