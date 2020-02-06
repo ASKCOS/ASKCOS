@@ -1,6 +1,21 @@
 # ASKCOS:
 Software package for the prediction of feasible synthetic routes towards a desired compound and associated tasks related to synthesis planning. Originally developed under the DARPA Make-It program and now being developed under the [MLPDS Consortium](http://mlpds.mit.edu).
 
+# Contents
+* [v0.4.1 Release](#v0.4.1-release)
+    * [Using GitLab Deploy Tokens](#using-gitlab-deploy-tokens)
+    * [Upgrade Information](#upgrade-information)
+* [First Time Deployment with Docker](#first-time-deployment-with-docker)
+    * [Prerequisites](#prerequisites)
+    * [Deploying the Web Application](#deploying-the-web-application)
+    * [Backing Up User Data](#backing-up-user-data)
+    * [(Optional) Building the ASKCOS Image](#optional-building-the-askcos-image)
+    * [Add Customization](#add-customization)
+    * [Managing Django](#managing-django)
+    * [Important Notes](#important-notes)
+        * [Scaling Workers](#scaling-workers)
+* [How To Run Individual Modules](#how-to-run-individual-modules)
+
 # v0.4.1 Release
 
 Release Notes  
@@ -44,7 +59,7 @@ $ bash deploy.sh deploy
 
 __NOTE:__ Starting with version 0.4.1, the chemhistorian data has been migrated to mongodb, which may take up to ~5 minutes to initially seed for the first time upgrade/deployment. Subsequent upgrades should not require the re-seeding of the chemhistorian information.
 
-### Upgrade information
+### Upgrade Information
 
 The easiest way to upgrade to a new version of ASKCOS is using Docker and docker-compose.
 To get started, make sure both docker and docker-compose are installed on your machine.
@@ -76,7 +91,7 @@ $ bash restore.sh
  - Install Docker [OS specific instructions](https://docs.docker.com/install/)
  - Install docker-compose [installation instructions](https://docs.docker.com/compose/install/#install-compose)
 
-### Deploying the web application
+### Deploying the Web Application
 
 Deployment is initiated by a bash script that runs a few docker-compose commands in a specific order.
 Several database services need to be started first, and more importantly seeded with data, before other services 
@@ -128,7 +143,7 @@ If you would like to clean up and remove everything from a previous deployment (
 $ bash deploy.sh clean
 ```
 
-### Backing up user data
+### Backing Up User Data
 
 If you are upgrading from v0.3.1 or later, the backup/restore process is no longer needed unless you are moving deployments to a new machine.
 
@@ -158,7 +173,7 @@ $ docker build -t askcos .
 
 __NOTE:__ For application deployment, double check the image tag used in the `docker-compose.yml` file and be sure to tag your newly built image with the same image name. Otherwise, the image tag used in `docker-compose.yml` will be pulled and deployed instead of the image that was just built.
 
-### Add customization
+### Add Customization
 
 There are a few parts of the application that you can customize:
 * Header sub-title next to ASKCOS (to designate this as a local deployment at your organization)
@@ -175,12 +190,12 @@ In this case you'll be presented an interactive prompt to create a superuser wit
 
 ## Important Notes
 
-#### Scaling workers
+### Scaling Workers
 
 Only 1 worker per queue is deployed by default with limited concurrency. This is not ideal for many-user demand. You can easily scale the number of celery workers you'd like to use with `docker-compose up -d --scale tb_c_worker=N` where N is the number of workers you want, for example. The above note applies to each worker you start, however, and each worker will consume RAM.
 
 
-# How to run individual modules
+# How To Run Individual Modules
 Many of the individual modules -- at least the ones that are the most interesting -- can be run "standalone". Examples of how to use them are often found in the ```if __name__ == '__main__'``` statement at the bottom of the script definitions. For example...
 
 #### Using the learned synthetic complexity metric (SCScore)
