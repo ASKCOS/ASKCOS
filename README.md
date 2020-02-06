@@ -2,7 +2,8 @@
 Software package for the prediction of feasible synthetic routes towards a desired compound and associated tasks related to synthesis planning. Originally developed under the DARPA Make-It program and now being developed under the [MLPDS Consortium](http://mlpds.mit.edu).
 
 # Contents
-* [v0.4.1 Release](#v0.4.1-release)
+* [v0.4.1 Release](#v041-release)
+    * [Release Notes](#release-notes)
     * [Using GitLab Deploy Tokens](#using-gitlab-deploy-tokens)
     * [Upgrade Information](#upgrade-information)
 * [First Time Deployment with Docker](#first-time-deployment-with-docker)
@@ -18,7 +19,8 @@ Software package for the prediction of feasible synthetic routes towards a desir
 
 # v0.4.1 Release
 
-Release Notes  
+### Release Notes
+
 User notes:  
 * New impurity predictor module
 * New reaction atom-mapping module
