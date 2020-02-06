@@ -72,7 +72,7 @@ $ bash restore.sh
 
 ### Prerequisites
 
- - If you're buidling the image from scratch, make sure git (and git lfs) is installed on your machine
+ - If you're building the image from scratch, make sure git (and git lfs) is installed on your machine
  - Install Docker [OS specific instructions](https://docs.docker.com/install/)
  - Install docker-compose [installation instructions](https://docs.docker.com/compose/install/#install-compose)
 
@@ -156,7 +156,7 @@ $ git lfs pull
 $ docker build -t askcos .
 ```
 
-__NOTE:__ For application deployment, double check the image tag used in the `docker-compose.yml` file and be sure to tag your newly built image with the same image name. Otherwise, the image tag sed in `docker-compose.yml` will be pullled and deployed instead of the image that was just built.
+__NOTE:__ For application deployment, double check the image tag used in the `docker-compose.yml` file and be sure to tag your newly built image with the same image name. Otherwise, the image tag used in `docker-compose.yml` will be pulled and deployed instead of the image that was just built.
 
 ### Add customization
 
@@ -232,7 +232,7 @@ The following options influence which models are used to carry out the different
 	
 	-'Popularity': Ranking based on number of references in literature, independent of the product species
 
-- Precursor prioritization: via '--precusor_prioritization', is used to determine which precursor is the most promising branch to pursue. It currently has the following options:
+- Precursor prioritization: via '--precursor_prioritization', is used to determine which precursor is the most promising branch to pursue. It currently has the following options:
 
 	-'Heuristic': Simple heuristic, with decreasing score as number of atoms, rings and chiral centers increases
 	
