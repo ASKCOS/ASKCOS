@@ -22,7 +22,7 @@ class TestTreeBuilder(unittest.TestCase):
         self.assertEqual(expected_paths, paths_result)
 
 
-@unittest.skip('Broken')
+@unittest.skip('Work-in-progress')
 class TestTransformer(unittest.TestCase):
 
     def setUp(self):

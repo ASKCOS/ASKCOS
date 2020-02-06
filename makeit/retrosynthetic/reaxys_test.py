@@ -4,6 +4,8 @@ from makeit import global_config as gc
 from makeit.retrosynthetic.transformer import RetroTransformer
 from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
 
+
+@unittest.skip('Work-in-progress')
 class TestTransformer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
