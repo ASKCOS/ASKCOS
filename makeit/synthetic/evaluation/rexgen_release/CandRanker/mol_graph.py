@@ -130,7 +130,7 @@ def smiles2graph(rsmiles, psmiles, core_bonds, cutoff=500, idxfunc=lambda x:x.Ge
             ring_bonds.add((a1,a2))
 
     #Fix golden label
-    for x,y in gbonds.iterkeys():
+    for x,y in gbonds.keys():
         if x not in tatoms and y not in tatoms and (x,y) in rbonds:
             gbonds[(x,y)] = rbonds[(x,y)]
 
