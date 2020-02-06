@@ -184,7 +184,9 @@ This is handled as an environment variable that can change upon deployment (and 
 
 If you'd like to manage the Django app (i.e. - run python manage.py ...), for example, to create an admin superuser, you can run commands in the _running_ app service (do this _after_ `docker-compose up`) as follows:
 
-`docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py createsuperuser"`
+```
+$ docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py createsuperuser"
+```
 
 In this case you'll be presented an interactive prompt to create a superuser with your desired credentials.
 
@@ -192,7 +194,16 @@ In this case you'll be presented an interactive prompt to create a superuser wit
 
 ### Scaling Workers
 
-Only 1 worker per queue is deployed by default with limited concurrency. This is not ideal for many-user demand. You can easily scale the number of celery workers you'd like to use with `docker-compose up -d --scale tb_c_worker=N` where N is the number of workers you want, for example. The above note applies to each worker you start, however, and each worker will consume RAM.
+Only 1 worker per queue is deployed by default with limited concurrency. This is not ideal for many-user demand.
+You can easily scale the number of celery workers you'd like to use with
+
+```
+$ docker-compose up -d --scale tb_c_worker=N tb_c_worker
+```
+
+where N is the number of workers you want, for example. The above note applies to each worker you start, however, and
+each worker will consume RAM. You can also adjust the default number of workers defined by the variables at the top of
+the `deploy.sh` script.
 
 
 # How To Run Individual Modules
