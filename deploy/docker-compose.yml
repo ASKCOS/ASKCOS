@@ -35,6 +35,7 @@ services:
       - .env
     volumes:
       - 'mongo_data:/data/db'
+      - 'appdata:/data/app'
 
   app:
     image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
@@ -48,6 +49,7 @@ services:
       - '8000'
     volumes:
       - 'staticdata:/usr/local/ASKCOS/askcos/askcos_site/static'
+      - 'appdata:/usr/local/ASKCOS/makeit/data'
     depends_on:
       - redis
       - rabbit
@@ -208,3 +210,4 @@ volumes:
   mysql_data:
   mongo_data:
   staticdata:
+  appdata:
