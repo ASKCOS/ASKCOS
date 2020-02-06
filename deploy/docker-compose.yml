@@ -28,6 +28,7 @@ services:
 
   mongo:
     image: mongo:4.2.2
+    command: --wiredTigerCacheSizeGB 1.5
     hostname: mongo
     restart: always
     env_file:
