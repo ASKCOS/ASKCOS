@@ -241,14 +241,14 @@ create-ssl() {
 
 start-web-services() {
   echo "Starting web services..."
-  docker-compose up -d nginx app
+  docker-compose up -d --remove-orphans nginx app
   echo "Start up complete."
   echo
 }
 
 start-tf-server() {
   echo "Starting tensorflow serving worker..."
-  docker-compose up -d template-relevance-reaxys fast-filter
+  docker-compose up -d --remove-orphans template-relevance-reaxys fast-filter
   echo "Start up complete."
   echo
 }
@@ -265,6 +265,7 @@ start-celery-workers() {
                        --scale sites_worker=$n_sites_worker \
                        --scale impurity_worker=$n_impurity_worker \
                        --scale atom_mapping_worker=$n_atom_mapping_worker \
+                       --remove-orphans \
                        te_coordinator sc_coordinator ft_worker cr_network_worker tb_coordinator_mcts \
                        tb_c_worker tb_c_worker_preload sites_worker impurity_worker atom_mapping_worker
   echo "Start up complete."
@@ -345,7 +346,7 @@ else
         case "$response" in
           [Yy] | [Yy][Ee][Ss])
             echo "Cleaning deployment."
-            docker-compose down -v
+            docker-compose down -v --remove-orphans
             ;;
           *)
             echo "Doing nothing."
