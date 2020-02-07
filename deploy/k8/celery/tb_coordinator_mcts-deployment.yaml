@@ -24,6 +24,6 @@ spec:
                 name: django-config
           resources:
             requests:
-              memory: "5Gi"
+              memory: "1.0G"
       imagePullSecrets:
         - name: regcred

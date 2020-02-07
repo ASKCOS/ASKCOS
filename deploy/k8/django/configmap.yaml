@@ -14,7 +14,6 @@ data:
   MYSQL_DATABASE: askcos_db
   MYSQL_ROOT_PASSWORD: password
   MYSQL_USER: root
-  KERAS_BACKEND: theano
   VERSION_NUMBER: "0.4.1"
   STATIC_URL: /static/
   ORGANIZATION: ""
