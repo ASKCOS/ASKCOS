@@ -85,6 +85,8 @@ $ bash deploy.sh set-db-defaults seed-db    # this may take ~5 minutes to load "
 $ bash restore.sh
 ```
 
+__NOTE:__ A large amount of data has been migrated to the mongo db starting in v0.4.1 (chemhistorian), and seeding may take some time to complete. We send this seeding task to the background so the rest of the application can start and become functional without having to wait. If using the default set of data (i.e. - using the exact commands above), you can monitor the progress of mongo db seeding using `bash deploy.sh count-mongo-docs`, which will tell you how many documents have been seeded out of the expected number. Complete seeding is not necessary for application functionality unless you use the chemical popularity logic in the tree builder.
+
 # First Time Deployment with Docker
 
 ### Prerequisites
