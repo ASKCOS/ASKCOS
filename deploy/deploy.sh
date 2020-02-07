@@ -158,6 +158,18 @@ set-db-defaults() {
   CHEMICALS=${CHEMICALS:-default}
 }
 
+run-mongo-js() {
+  # arg 1 is js command
+  docker-compose exec mongo bash -c 'mongo --username ${MONGO_USER} --password ${MONGO_PW} --authenticationDatabase admin ${MONGO_HOST}/askcos --quiet --eval '"'$1'"
+}
+
+seed-db-collection() {
+  # arg 1 is collection name
+  # arg 2 is file path
+  # arg 3 is a flag to pass to docker-compose exec, e.g. -d to detach
+  docker-compose exec $3 mongo bash -c 'gunzip -c '$2' | mongoimport --host ${MONGO_HOST} --username ${MONGO_USER} --password ${MONGO_PW} --authenticationDatabase admin --db askcos --collection '$1' --type json --jsonArray --drop'
+}
+
 seed-db() {
   if [ -z "$BUYABLES" ] && [ -z "$CHEMICALS" ] && [ -z "$REACTIONS" ] && [ -z "$RETRO_TEMPLATES" ] && [ -z "$FORWARD_TEMPLATES" ]; then
     echo "Nothing to seed!"
@@ -169,55 +181,79 @@ seed-db() {
   fi
 
   echo "Seeding mongo database..."
-  MAKEIT_PATH=$(docker-compose exec app bash -c "python -c 'import makeit; print(makeit.__file__.split(\"/__\")[0])'" | tr -d '\r')
 
   if [ "$BUYABLES" = "default" ]; then
-    echo "Loading default buyables data..."
-    docker-compose exec app python -c "from askcos_site.main.db import seed_mongo_db; seed_mongo_db(buyables=True, chemicals=False, reactions=False, retro_templates=False, forward_templates=False)"
+    echo "Loading default buyables data in background..."
+    buyables_file="/data/app/buyables/buyables.json.gz"
+    seed-db-collection buyables "$buyables_file" -d
+    run-mongo-js 'db.buyables.createIndex({smiles: "text"})'
   elif [ -n "$BUYABLES" ]; then
-    echo "Loading buyables data from $BUYABLES ..."
-    docker cp "$BUYABLES" deploy_app_1:"$MAKEIT_PATH/data/buyables/$(basename $BUYABLES)"
-    docker-compose exec app python -c "from askcos_site.main.db import seed_buyables; seed_buyables('$MAKEIT_PATH/data/buyables/$(basename $BUYABLES)')"
+    echo "Loading buyables data from $BUYABLES in background..."
+    buyables_file="/data/app/buyables/$(basename $BUYABLES)"
+    docker cp "$BUYABLES" deploy_mongo_1:"$buyables_file"
+    run-mongo-js "db.buyables.remove({})"
+    seed-db-collection buyables "$buyables_file" -d
+    run-mongo-js 'db.buyables.createIndex({smiles: "text"})'
   fi
 
   if [ "$CHEMICALS" = "default" ]; then
-    echo "Loading default chemicals data..."
-    docker-compose exec app python -c "from askcos_site.main.db import seed_mongo_db; seed_mongo_db(buyables=False, chemicals=True, reactions=False, retro_templates=False, forward_templates=False)"
+    echo "Loading default chemicals data in background..."
+    chemicals_file="/data/app/historian/chemicals.json.gz"
+    seed-db-collection chemicals "$chemicals_file" -d
+    run-mongo-js 'db.chemicals.createIndex({smiles: "hashed"})'
   elif [ -n "$CHEMICALS" ]; then
-    echo "Loading chemicals data from $CHEMICALS ..."
-    docker cp "$CHEMICALS" deploy_app_1:"$MAKEIT_PATH/data/historian/$(basename $CHEMICALS)"
-    docker-compose exec app python -c "from askcos_site.main.db import seed_chemicals; seed_chemicals('$MAKEIT_PATH/data/historian/$(basename $CHEMICALS)')"
+    echo "Loading chemicals data from $CHEMICALS in background..."
+    chemicals_file="/data/app/historian/$(basename $CHEMICALS)"
+    docker cp "$CHEMICALS" deploy_mongo_1:"$chemicals_file"
+    seed-db-collection chemicals "$chemicals_file" -d
+    run-mongo-js 'db.chemicals.createIndex({smiles: "hashed"})'
   fi
 
   if [ "$REACTIONS" = "default" ]; then
-    echo "Loading default reactions data..."
-    docker-compose exec app python -c "from askcos_site.main.db import seed_mongo_db; seed_mongo_db(buyables=False, chemicals=False, reactions=True, retro_templates=False, forward_templates=False)"
+    echo "Loading default reactions data in background..."
+    reactions_file="/data/app/historian/reactions.json.gz"
+    seed-db-collection reactions "$reactions_file" -d
   elif [ -n "$REACTIONS" ]; then
-    echo "Loading reactions data from $REACTIONS ..."
-    docker cp "$REACTIONS" deploy_app_1:"$MAKEIT_PATH/data/historian/$(basename $REACTIONS)"
-    docker-compose exec app python -c "from askcos_site.main.db import seed_reactions; seed_reactions('$MAKEIT_PATH/data/historian/$(basename $REACTIONS)')"
+    echo "Loading reactions data from $REACTIONS in background..."
+    reactions_file="/data/app/historian/$(basename $REACTIONS)"
+    docker cp "$REACTIONS" deploy_mongo_1:"$reactions_file"
+    seed-db-collection reactions "$reactions_file" -d
   fi
 
   if [ "$RETRO_TEMPLATES" = "default" ]; then
     echo "Loading default retrosynthetic templates..."
-    docker-compose exec app python -c "from askcos_site.main.db import seed_mongo_db; seed_mongo_db(buyables=False, chemicals=False, reactions=False, retro_templates=True, forward_templates=False)"
+    retro_file="/data/app/templates/retro.templates.json.gz"
+    seed-db-collection retro_templates "$retro_file"
+    run-mongo-js 'db.retro_templates.createIndex({index: 1})'
   elif [ -n "$RETRO_TEMPLATES" ]; then
     echo "Loading retrosynthetic templates from $RETRO_TEMPLATES ..."
-    docker cp "$RETRO_TEMPLATES" deploy_app_1:"$MAKEIT_PATH/data/templates/$(basename $RETRO_TEMPLATES)"
-    docker-compose exec app python -c "from askcos_site.main.db import seed_retro_templates; seed_retro_templates('$MAKEIT_PATH/data/templates/$(basename $RETRO_TEMPLATES)')"
+    retro_file="/data/app/templates/$(basename $RETRO_TEMPLATES)"
+    docker cp "$RETRO_TEMPLATES" deploy_mongo_1:"$retro_file"
+    seed-db-collection retro_templates "$retro_file"
+    run-mongo-js 'db.retro_templates.createIndex({index: 1})'
   fi
 
   if [ "$FORWARD_TEMPLATES" = "default" ]; then
     echo "Loading default forward templates..."
-    docker-compose exec app python -c "from askcos_site.main.db import seed_mongo_db; seed_mongo_db(buyables=False, chemicals=False, reactions=False, retro_templates=False, forward_templates=True)"
+    forward_file="/data/app/templates/forward.templates.json.gz"
+    seed-db-collection forward_templates "$forward_file"
   elif [ -n "$FORWARD_TEMPLATES" ]; then
     echo "Loading forward templates from $FORWARD_TEMPLATES ..."
-    docker cp "$FORWARD_TEMPLATES" deploy_app_1:"$MAKEIT_PATH/data/templates/$(basename $FORWARD_TEMPLATES)"
-    docker-compose exec app python -c "from askcos_site.main.db import seed_forward_templates; seed_forward_templates('$MAKEIT_PATH/data/templates/$(basename $FORWARD_TEMPLATES)')"
+    forward_file="/data/app/templates/$(basename $FORWARD_TEMPLATES)"
+    docker cp "$FORWARD_TEMPLATES" deploy_mongo_1:"$forward_file"
+    seed-db-collection forward_templates "$forward_file"
   fi
 
   echo "Seeding complete."
   echo
+}
+
+count-mongo-docs() {
+  echo "Buyables collection:          $(run-mongo-js "db.buyables.countDocuments({})" | tr -d '\r') / 106750 expected (default)"
+  echo "Chemicals collection:         $(run-mongo-js "db.chemicals.countDocuments({})" | tr -d '\r') / 17562038 expected (default)"
+  echo "Reactions collection:         $(run-mongo-js "db.reactions.countDocuments({})" | tr -d '\r') / 0 expected (default)"
+  echo "Retro template collection:    $(run-mongo-js "db.retro_templates.countDocuments({})" | tr -d '\r') / 163723 expected (default)"
+  echo "Forward template collection:  $(run-mongo-js "db.forward_templates.countDocuments({})" | tr -d '\r') / 17089 expected (default)"
 }
 
 copy-http-conf() {
@@ -291,7 +327,7 @@ else
   do
     case "$arg" in
       clean-static | start-db-services | seed-db | copy-http-conf | copy-https-conf | create-ssl | \
-      start-web-services | start-tf-server | start-celery-workers | migrate | set-db-defaults)
+      start-web-services | start-tf-server | start-celery-workers | migrate | set-db-defaults | count-mongo-docs)
         # This is a defined function, so execute it
         $arg
         ;;
