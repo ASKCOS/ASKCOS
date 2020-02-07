@@ -13,7 +13,7 @@ import os
 import rdkit.Chem as Chem
 import makeit.global_config as makeit_gc
 
-from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
+from ...askcos_celery.contextrecommender.cr_network_worker import get_n_conditions
 
 from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
     trim_trailing_period
@@ -43,8 +43,7 @@ def ajax_context_rxnsmiles(request):
     products = smiles.split('>>')[1].split('.')
     print('...trying to get predicted context')
 
-    res = get_context_recommendations.delay(smiles, n=10, singleSlvt=False,
-        context_recommender=context_recommender)
+    res = get_n_conditions.delay(smiles, n=10, singleSlvt=False)
     contexts = res.get(60)
     print('Got context(s)')
     print(contexts)

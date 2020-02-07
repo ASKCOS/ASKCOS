@@ -20,3 +20,6 @@ askcos_site/static/admin/*
 deploy/askcos.ssl.cert
 deploy/askcos.ssl.key
 
+# ignore pycharm folder
+.idea/
+

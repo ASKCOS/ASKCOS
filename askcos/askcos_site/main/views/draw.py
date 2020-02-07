@@ -6,11 +6,15 @@ from django.conf import settings
 import django.contrib.auth.views
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-
+from PIL import Image, ImageOps
 from ..utils import ajax_error_wrapper, resolve_smiles
 from ..forms import DrawingInputForm
-
+from rdkit.Chem import rdChemReactions
+import cairosvg
+from rdkit.Chem.Draw.rdMolDraw2D import MolDraw2DSVG
 import re
+import io
+import numpy as np
 
 @ajax_error_wrapper
 def ajax_smiles_to_image(request):
@@ -39,10 +43,17 @@ def ajax_rxn_to_image(request):
 
     reactants = request.GET.get('reactants', '')
     product = request.GET.get('product', '')
+    strip = request.GET.get('strip', True)
 
     reactants = resolve_smiles(reactants)
     product = resolve_smiles(product)
     smiles = reactants + '>>' + product
+
+    if request.method == 'GET' and 'rxnsmiles' in request.GET:
+        tmp = request.GET['rxnsmiles']
+        if tmp is not None and tmp != '':
+            smiles = tmp
+    print(smiles)
     print('RXN SMILES from Ajax: {}'.format(smiles))
     url = reverse('draw_reaction', kwargs={'smiles': smiles})
     data = {
@@ -88,6 +99,26 @@ def draw_reaction(request, smiles):
     from makeit.utilities.io.draw import ReactionStringToImage
     response = HttpResponse(content_type='image/jpeg')
     ReactionStringToImage(str(smiles)).save(response, 'png', quality=70)
+    return response
+
+def draw_mapped_reaction(request, smiles):
+    '''
+    Returns a png response for a SMILES reaction string
+    '''
+    from makeit.utilities.io.draw import ReactionStringToImage
+    response = HttpResponse(content_type='image/jpeg')
+    print('in views', smiles)
+    ReactionStringToImage(str(smiles), strip=False).save(response, 'png', quality=70)
+    return response
+
+def draw_highlighted_reaction(request, smiles):
+    '''
+        Returns a png response for a SMILES reaction string
+    '''
+    from makeit.utilities.io.draw import MappedReactionToHightlightImage
+    response = HttpResponse(content_type='image/jpeg')
+    print('in views', smiles)
+    MappedReactionToHightlightImage(str(smiles), highlightByReactant=True).save(response, 'png', quality=70)
     return response
 
 def draw_smiles_highlight(request, smiles, reacting_atoms, bonds='False'):

@@ -1,4 +1,4 @@
-from makeit.utilities.fastfilter_utilities import Highway_self, pos_ct, true_pos, real_pos, set_keras_backend
+import os, sys
 from makeit.utilities.fingerprinting import create_rxn_Morgan2FP_separately
 from rdkit import Chem
 from rdkit.Chem import AllChem, DataStructs
@@ -7,8 +7,8 @@ import numpy as np
 import csv
 from pymongo import MongoClient
 from tqdm import tqdm
-from keras.models import load_model
-from keras import backend as K
+from tensorflow.keras.models import load_model
+from tensorflow.keras import backend as K
 import makeit.global_config as gc
 from makeit.utilities.io.logger import MyLogger
 import os
@@ -36,16 +36,14 @@ class FastFilterScorer(Scorer):
             reload(K)
             assert K.backend() == backend
 
-    def load(self, model_path):
+    def load(self, model_path=gc.FAST_FILTER_MODEL['model_path']):
         """Loads model from a file.
 
         Args:
             model_path (str): Path to file specifying model.
         """
         MyLogger.print_and_log('Starting to load fast filter', fast_filter_loc)
-        self.model = load_model(model_path, custom_objects={
-                                'Highway_self': Highway_self, 'pos_ct': pos_ct, 'true_pos': true_pos, 'real_pos': real_pos})
-        self.model._make_predict_function()
+        self.model = load_model(model_path)
         MyLogger.print_and_log('Done loading fast filter', fast_filter_loc)
 
     def evaluate(self, reactant_smiles, target, **kwargs):
@@ -84,6 +82,15 @@ class FastFilterScorer(Scorer):
                               'prob': float(score[0][0]),
                               }])
         return all_outcomes
+
+    def evaluate_reaction_score(self, reaction_smiles, **kwargs):
+        """
+        Given a reaction SMILES string, return the score.
+        Convenience wrapper for the ``evaluate`` method.
+        """
+        reactants, products = reaction_smiles.split('>>')
+        all_outcomes = self.evaluate(reactants, products)
+        return all_outcomes[0][0]['score']
 
     def filter_with_threshold(self, reactant_smiles, target, threshold):
         """Filters reactions based on a score threshold.

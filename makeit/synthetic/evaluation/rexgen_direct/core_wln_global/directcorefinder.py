@@ -1,4 +1,6 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+from makeit import global_config as gc
 from makeit.synthetic.evaluation.rexgen_direct.core_wln_global.nn import linearND, linear
 from makeit.synthetic.evaluation.rexgen_direct.core_wln_global.models import *
 from makeit.synthetic.evaluation.rexgen_direct.core_wln_global.ioutils_direct import *
@@ -14,7 +16,7 @@ NK3 = 80
 batch_size = 2 # just fake it, make two 
 hidden_size = 300
 depth = 3
-model_path = os.path.join(os.path.dirname(__file__), "model-300-3-direct/model.ckpt-140000")
+model_path = gc.TEMPLATE_FREE_FORWARD_PREDICTOR['core_model_path']
 from makeit.synthetic.evaluation.rexgen_direct.core_wln_global.mol_graph import atom_fdim as adim, bond_fdim as bdim, max_nb, smiles2graph_list as _s2g
 smiles2graph_batch = partial(_s2g, idxfunc=lambda x:x.GetIntProp('molAtomMapNumber') - 1)
 

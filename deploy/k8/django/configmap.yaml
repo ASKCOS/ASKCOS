@@ -14,8 +14,7 @@ data:
   MYSQL_DATABASE: askcos_db
   MYSQL_ROOT_PASSWORD: password
   MYSQL_USER: root
-  KERAS_BACKEND: theano
-  VERSION_NUMBER: "0.4.0"
+  VERSION_NUMBER: "0.4.1"
   STATIC_URL: /static/
   ORGANIZATION: ""
   CONTACT_EMAIL: "mlpds_support@mit.edu"

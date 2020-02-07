@@ -1,12 +1,16 @@
-import tensorflow as tf
-from rdkit import Chem
-import pickle as pk
-from makeit.synthetic.evaluation.rexgen_direct.core_wln_global.nn import linearND
-from makeit.synthetic.selectivity.mol_graph import atom_fdim as adim, bond_fdim as bdim, max_nb, smiles2graph_list as _s2g
-from makeit.synthetic.evaluation.rexgen_direct.core_wln_global.models import *
-from makeit.synthetic.selectivity.ioutils_direct import * 
-from functools import partial
 import os
+import pickle as pk
+from functools import partial
+
+import tensorflow.compat.v1 as tf
+
+from makeit import global_config as gc
+from makeit.synthetic.evaluation.rexgen_direct.core_wln_global.models import rcnn_wl_last
+from makeit.synthetic.evaluation.rexgen_direct.core_wln_global.nn import linearND
+from makeit.synthetic.selectivity.ioutils_direct import binary_features_batch, binary_fdim
+from makeit.synthetic.selectivity.mol_graph import atom_fdim as adim, bond_fdim as bdim, max_nb, smiles2graph_list as _s2g
+
+model_path = gc.SELECTIVITY['model_path']
 
 
 class tf_predictor():
@@ -20,7 +24,7 @@ class tf_predictor():
         self.task_dict_rev = {v: k for k, v in self.task_dict.items()}
         self.saver = None
         self.num_tasks = len(self.task_dict)
-        self.save_path = os.path.join(os.path.dirname(__file__), 'model/model.ckpt-30615') 
+        self.save_path = model_path
         self.smiles2graph_batch = partial(_s2g, idxfunc=lambda x:x.GetIdx())
         self.adim = adim
         self.bdim = bdim

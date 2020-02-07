@@ -37,7 +37,7 @@ def configure_worker(options={}, **kwargs):
     # SYNTH_DB = db[settings.SYNTH_TRANSFORMS['collection']]
     # # Load templates
     # mincount_synth = settings.SYNTH_TRANSFORMS['mincount']
-    forwardTransformer = ForwardTransformer(celery=True)
+    forwardTransformer = ForwardTransformer()
     forwardTransformer.load()
     print('### FORWARD ENUMERATION WORKER STARTED UP ###')
 

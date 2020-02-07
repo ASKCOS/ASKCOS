@@ -2,7 +2,6 @@ from django.http import JsonResponse
 from askcos_site.celery import app
 
 READABLE_NAMES = {
-    'cr_coordinator': 'Context Recommender Coordinator',
     'cr_network_worker': 'Context Recommender Worker',
     'ft_worker': 'Forward Predictor Worker',
     'sc_coordinator': 'Forward Predictor Scoring Coordinator',
@@ -10,7 +9,9 @@ READABLE_NAMES = {
     'tb_c_worker_preload': 'One-Step/Tree Builder Retrosynthesis Worker (Pre-loaded)',
     'tb_coordinator_mcts': 'Tree Builder Coordinator',
     'te_coordinator': 'Tree Evaluation Coordinator',
-    'sites_worker': 'Site Selectivity Worker'
+    'sites_worker': 'Site Selectivity Worker',
+    'impurity_worker': 'Impurity worker',
+    'atom_mapping_worker': 'Atom mapping worker',
 }
 
 def celery_status(request):

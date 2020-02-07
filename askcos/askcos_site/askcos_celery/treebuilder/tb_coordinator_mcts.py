@@ -23,6 +23,7 @@ import time
 from rdkit import RDLogger
 import makeit.global_config as gc
 from makeit.utilities.buyable.pricer import Pricer
+from makeit.utilities.historian.chemicals import ChemHistorian
 from makeit.retrosynthetic.mcts.tree_builder import MCTS as MCTSTreeBuilder
 from django.db import models
 from askcos_site.main.models import SavedResults
@@ -72,7 +73,9 @@ def configure_coordinator(options={}, **kwargs):
     # QUESTION: Is evaluator needed?
     global evaluator
 
-    treeBuilder = MCTSTreeBuilder(celery=True, nproc=8) # 8 active pathways
+    historian = ChemHistorian(use_db=True, hashed=True)
+    historian.load()
+    treeBuilder = MCTSTreeBuilder(celery=True, nproc=8, chemhistorian=historian) # 8 active pathways
     print('Finished initializing treebuilder MCTS coordinator')
 
 

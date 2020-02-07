@@ -30,6 +30,7 @@ CELERY_TASK_ROUTES = {
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.fast_filter_check': {'queue': 'tb_c_worker'},
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.apply_one_template_by_idx': {'queue': 'tb_c_worker'},
     'askcos_site.askcos_celery.treebuilder.tb_c_worker.reserve_worker_pool': {'queue': 'tb_c_worker_reservable'},
+    'askcos_site.askcos_celery.treebuilder.tb_c_worker.template_relevance': {'queue': 'tb_c_worker'},
     'askcos_site.askcos_celery.treebuilder.tb_worker.get_top_precursors': {'queue': 'tb_worker'},
     'askcos_site.askcos_celery.treebuilder.tb_worker.reserve_worker_pool': {'queue': 'tb_worker_reservable'},
     'askcos_site.askcos_celery.treebuilder.tb_coordinator.*':{'queue': 'tb_coordinator'},
@@ -41,4 +42,8 @@ CELERY_TASK_ROUTES = {
     'askcos_site.askcos_celery.contextrecommender.cr_network_worker.*': {'queue':'cr_network_worker'},
     'askcos_site.askcos_celery.contextrecommender.cr_coordinator.*':{'queue':'cr_coordinator'},
     'askcos_site.askcos_celery.siteselectivity.sites_worker.*':{'queue':'sites_worker'},
+    'askcos_site.askcos_celery.impurity.impurity_worker.*':{'queue':'impurity_worker'},
+    'askcos_site.askcos_celery.atom_mapper.atom_mapping_worker.*':{'queue':'atom_mapping_worker'},
+    'askcos_site.askcos_celery.impurity.impurity_predictor_worker.*': {'queue': 'atom_mapping_worker'},
+
 }

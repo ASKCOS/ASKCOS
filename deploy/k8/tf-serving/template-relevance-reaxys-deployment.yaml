@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: template-relevance-reaxys
+  labels:
+    app: template-relevance-reaxys
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: template-relevance-reaxys
+  template:
+    metadata:
+      labels:
+        pod: template-relevance-reaxys
+    spec:
+      containers:
+        - name: template-relevance-reaxys
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos/models:template-relevance-reaxys
+          ports:
+            - containerPort: 8501
+      imagePullSecrets:
+        - name: regcred

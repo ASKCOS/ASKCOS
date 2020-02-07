@@ -189,8 +189,7 @@ class TemplateNeuralNetScorer(Scorer):
 
         # Now load solvent information
         # Try to load from file first
-        from makeit.utilities.io.files import get_abraham_solvents_path
-        file_path = get_abraham_solvents_path()
+        file_path = gc.SOLVENTS['file_name']
         if os.path.isfile(file_path):
             with open(file_path, 'rb') as fid:
                 self.solvent_name_to_smiles = pickle.load(fid)

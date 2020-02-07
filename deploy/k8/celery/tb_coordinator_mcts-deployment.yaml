@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: tb-coordinator-mcts
-          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
           command: ["/bin/bash"]
           args: ["-c", "celery -A askcos_site worker -c 1 -Q tb_coordinator_mcts -n tb_coordinator_mcts@%h --pool gevent --without-heartbeat"]
           envFrom:
@@ -24,6 +24,6 @@ spec:
                 name: django-config
           resources:
             requests:
-              memory: "5Gi"
+              memory: "1.0G"
       imagePullSecrets:
         - name: regcred

@@ -159,15 +159,20 @@ function addReaction(reaction, sourceNode, nodes, edges) {
     })
     for (n in reaction['smiles_split']) {
         var smi = reaction['smiles_split'][n];
-        fetch('/ajax/price_smiles/?smiles='+encodeURIComponent(smi))
+        fetch('/api/buyables/search/?q='+encodeURIComponent(smi)+'&canonicalize=True')
         .then(resp => resp.json())
         .then(json => {
-            var mysmi = json['smiles'];
-            var ppg = json['ppg'];
-            if (ppg == 0) {
-                ppg = "not buyable"
+            var mysmi = json['search'];
+            if (json.buyables.length > 0) {
+                var ppg = json.buyables[0].ppg
+                var buyable = true
+                var source = json.buyables[0].source
             }
-            var buyable = (json['ppg']!=0);
+            else {
+                var ppg = "not buyable"
+                var buyable = false
+                var source = ''
+            }
             if (buyable) {
                 var color = "#008800"
             }
@@ -185,6 +190,7 @@ function addReaction(reaction, sourceNode, nodes, edges) {
                 mass: 1,
                 value: 10,
                 ppg: ppg,
+                source: source,
                 color: {
                     border: color
                 }
@@ -394,7 +400,8 @@ var app = new Vue({
         selected: null,
         isHighlightAtom: true,
         reactionLimit: 5,
-        templatePrioritization: "Relevance",
+        templatePrioritization: "reaxys",
+        templateSet: "reaxys",
         precursorScoring: "RelevanceHeuristic",
         numTemplates: 1000,
         maxCumProb: 0.999,
@@ -430,7 +437,8 @@ var app = new Vue({
             var url = '/api/retro/?';
             var params = {
                 target: smiles,
-                template_prioritization: this.templatePrioritization,
+                template_set: this.templateSet,
+                template_prioritizer: this.templatePrioritization,
                 precursor_prioritization: this.precursorScoring,
                 num_templates: this.numTemplates,
                 max_cum_prob: this.maxCumProb,
@@ -528,12 +536,14 @@ var app = new Vue({
                             addReactions(this.results[this.target], this.data.nodes.get(0), this.data.nodes, this.data.edges, this.reactionLimit);
                             this.getTemplateNumExamples(this.results[this.target]);
                             hideLoader();
-                            fetch('/api/price/?smiles='+encodeURIComponent(this.target))
+                            fetch('/api/buyables/search/?q='+encodeURIComponent(this.target)+'&canonicalize=True')
                                 .then(resp => resp.json())
                                 .then(json => {
-                                    var ppg = json['price'];
-                                    if (ppg == 0) {
-                                        ppg = "not buyable"
+                                    if (json.buyables.length > 0) {
+                                        var ppg = json.buyables[0].ppg
+                                    }
+                                    else {
+                                        var ppg = "not buyable"
                                     }
                                     this.data.nodes.update({id: 0, ppg: ppg});
                                     network.selectNodes([0]);

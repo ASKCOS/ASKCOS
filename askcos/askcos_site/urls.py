@@ -84,11 +84,7 @@ urlpatterns += [
     # re_path(ur'^history/reactions/(?P<smiles>.+)$', views.reaction_history_check, name='reaction_history'),
 
     # Pricing
-    re_path(r'^price/$', views.pricing, name='pricing'),
     re_path(r'^buyables/$', views.buyables, name='buyables'),
-    re_path(r'^ajax/price_smiles/$', views.ajax_price_smiles, name='ajax_price_smiles'),
-    re_path(r'^price/smiles/(?P<smiles>.+)$', views.price_smiles, name='price_smiles'),
-    re_path(r'^price/xrn/(?P<xrn>.+)$', views.price_xrn, name='price_xrn'),
 
     # SCScore
     re_path(r'^scscore/$', views.scscoring, name='scscoring'),
@@ -99,6 +95,9 @@ urlpatterns += [
     re_path(r'^draw/smiles/(?P<smiles>.+)$', views.draw_smiles, name='draw_smiles'),
     re_path(r'^draw/template/(?P<template>.+)$', views.draw_template, name='draw_template'),
     re_path(r'^draw/reaction/(?P<smiles>.+)$', views.draw_reaction, name='draw_reaction'),
+    re_path(r'^draw/mapped_reaction/(?P<smiles>.+)$', views.draw_mapped_reaction, name='draw_mapped_reaction'),
+    re_path(r'^draw/highlighted_reaction/(?P<smiles>.+)$', views.draw_highlighted_reaction, name='draw_highlighted_reaction'),
+
     re_path(r'^draw/highlight/smiles=(?P<smiles>.+)&reacting_atoms=(?P<reacting_atoms>.+)&bonds=(?P<bonds>.+)$', views.draw_smiles_highlight, name='draw_highlight'),
 
     # Separation
@@ -136,7 +135,6 @@ urlpatterns += [
     re_path(r'^api/template/$', api.template.template, name='template_api'),
     re_path(r'^api/treebuilder/$', api.tree_builder.tree_builder, name='tree_builder_api'),
     re_path(r'^api/scscore/$', api.scscore.scscore, name='scscore_api'),
-    re_path(r'^api/price/$', api.price.price, name='price_api'),
     re_path(r'^api/celery/$', api.status.celery_status, name='celery_api'),
     re_path(r'^api/validate-chem-name/$', api.validate_chem_name.validate_chem_name, name='validate_chem_name_api'),
     re_path(r'^api/buyables/search', api.buyables.buyables, name='all_buyables_api'),
@@ -161,4 +159,13 @@ urlpatterns += [
 
     # Celery status
     re_path(r'^status/$', views.status),
+
+    # Interactive impurity prediction
+    re_path(r'^impurity_interactive/$', views.impurity_interactive, name='impurity_interactive'),
+    re_path(r'^ajax/start_impurity/$', views.ajax_start_impurity, name='ajax_start_impurity'),
+    re_path(r'^ajax/impurity_status/(?P<task_id>[\w-]+)/$', views.ajax_get_progress, name='ajax_impurity_status'),
+
+    # Atom mapping
+    re_path(r'^atom_mapping/$', views.atom_mapping, name='atom_mapping'),
+    re_path(r'^ajax/find_atom_mapping/$', views.ajax_find_atom_mapping, name='ajax_find_atom_mapping'),
 ]
