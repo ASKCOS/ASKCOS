@@ -1,10 +1,29 @@
 # ASKCOS:
 Software package for the prediction of feasible synthetic routes towards a desired compound and associated tasks related to synthesis planning. Originally developed under the DARPA Make-It program and now being developed under the [MLPDS Consortium](http://mlpds.mit.edu).
 
+# Contents
+* [v0.4.1 Release](#v041-release)
+    * [Release Notes](#release-notes)
+    * [Using GitLab Deploy Tokens](#using-gitlab-deploy-tokens)
+    * [Upgrade Information](#upgrade-information)
+* [First Time Deployment with Docker](#first-time-deployment-with-docker)
+    * [Prerequisites](#prerequisites)
+    * [Deploying the Web Application](#deploying-the-web-application)
+    * [Backing Up User Data](#backing-up-user-data)
+    * [(Optional) Building the ASKCOS Image](#optional-building-the-askcos-image)
+    * [Add Customization](#add-customization)
+    * [Managing Django](#managing-django)
+    * [Important Notes](#important-notes)
+        * [Scaling Workers](#scaling-workers)
+* [How To Run Individual Modules](#how-to-run-individual-modules)
+
 # v0.4.1 Release
 
-Release Notes  
+### Release Notes
+
 User notes:  
+* New impurity predictor module
+* New reaction atom-mapping module
 * Upgrade to rdkit version 2019.03.3
 * Migration of rdchiral to standalone pypi package. rdchiral development can now be found at https://github.com/connorcoley/rdchiral
 * Improved buyables lookup consistency
@@ -18,22 +37,13 @@ Developer notes:
 * Docker builds are now much, much, much faster
 * chemhistorian data migrated to mongodb. This increases initialization mongodb seeding time, but decreases memory footprint
 * All dependencies, including third-party docker images, are now pinned to specific versions
+* Celery dependency upgraded to 4.4
 * Seeding of mongo db now occurs using the backend "app" service
+* Template relevance and fast filter models moved to tensorflow serving API endpoints
 
 Bug fixes:
 * Buyables page bugfixes
 * nginx service restarts like the rest of the services now
-
-### Upgrade information
-
-The easiest way to upgrade to the new version of ASKCOS is using Docker and docker-compose. To get started, make sure both docker and docker-compose are installed on your machine. We have a pre-built docker image of ASKCOS hosted on GitLab. It is a private repository; if you do not have access to pull the image, please contact us [contact us](mailto:mlpds_support@mit.edu). In addition, you need to have the deploy/ folder from our code repository. To get the most recent version of ASKCOS:
-
-```bash
-$ docker login registry.gitlab.com # enter credentials
-$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
-```
-
-Then, follow the instructions below using the new version of the deploy folder from this repository.
 
 ### Using GitLab Deploy Tokens
 
@@ -44,24 +54,48 @@ $ export DEPLOY_TOKEN_USERNAME=
 $ export DEPLOY_TOKEN_PASSWORD=
 $ git clone https://$DEPLOY_TOKEN_USERNAME:$DEPLOY_TOKEN_PASSWORD@gitlab.com/mlpds_mit/askcos/askcos.git
 $ docker login registry.gitlab.com -u $DEPLOY_TOKEN_USERNAME -p $DEPLOY_TOKEN_PASSWORD
-$ docker pull registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
 $ cd askcos/deploy
 $ git checkout v0.4.1
-$ bash deploy.sh
+$ bash deploy.sh deploy
 ```
 
-__NOTE:__ The git clone command pulls enough to deploy the application (but not all the data files hosted using git large file store). To acquire the complete source code repository including large data files (if you want to rebuild a custom image, for example), please install git lfs and pull the rest of the repository.
+__NOTE:__ Starting with version 0.4.1, the chemhistorian data has been migrated to mongodb, which may take up to ~5 minutes to initially seed for the first time upgrade/deployment. Subsequent upgrades should not require the re-seeding of the chemhistorian information.
 
+### Upgrade Information
+
+The easiest way to upgrade to a new version of ASKCOS is using Docker and docker-compose.
+To get started, make sure both docker and docker-compose are installed on your machine.
+We have a pre-built docker image of ASKCOS hosted on GitLab.
+It is a private repository; if you do not have access to pull the image, please [contact us](mailto:mlpds_support@mit.edu).
+In addition, you need to have the deploy/ folder from the ASKCOS code repository for the specific version for which you would like to upgrade to. Due to backend changes introduced with v0.3.1, the upgrade information is different is older versions, and the steps are summarized below:
+
+#### From v0.3.1 or v0.4.0
+```
+$ git checkout v0.4.1
+$ bash deploy.sh clean-static start         # updates services to v0.4.1
+$ bash deploy.sh set-db-defaults seed-db    # this may take ~5 minutes to load "default chemicals data" (new in 0.4.1)
+```
+
+#### From v0.2.x or v0.3.0
+```
+$ git checkout v0.4.1
+$ bash backup.sh
+$ bash deploy.sh clean-static start         # updates services to v0.4.1
+$ bash deploy.sh set-db-defaults seed-db    # this may take ~5 minutes to load "default chemicals data" (new in 0.4.1)
+$ bash restore.sh
+```
+
+__NOTE:__ A large amount of data has been migrated to the mongo db starting in v0.4.1 (chemhistorian), and seeding may take some time to complete. We send this seeding task to the background so the rest of the application can start and become functional without having to wait. If using the default set of data (i.e. - using the exact commands above), you can monitor the progress of mongo db seeding using `bash deploy.sh count-mongo-docs`, which will tell you how many documents have been seeded out of the expected number. Complete seeding is not necessary for application functionality unless you use the chemical popularity logic in the tree builder.
 
 # First Time Deployment with Docker
 
 ### Prerequisites
 
- - If you're buidling the image from scratch, make sure git (and git lfs) is installed on your machine
+ - If you're building the image from scratch, make sure git (and git lfs) is installed on your machine
  - Install Docker [OS specific instructions](https://docs.docker.com/install/)
  - Install docker-compose [installation instructions](https://docs.docker.com/compose/install/#install-compose)
 
-### Deploying the web application
+### Deploying the Web Application
 
 Deployment is initiated by a bash script that runs a few docker-compose commands in a specific order.
 Several database services need to be started first, and more importantly seeded with data, before other services 
@@ -113,23 +147,22 @@ If you would like to clean up and remove everything from a previous deployment (
 $ bash deploy.sh clean
 ```
 
-### Upgrading or moving deployments
+### Backing Up User Data
 
-#### Backing up user data
+If you are upgrading from v0.3.1 or later, the backup/restore process is no longer needed unless you are moving deployments to a new machine.
 
-If you are upgrading from v0.3.1 or later, the backup/restore process is no longer needed unless you are moving the deployment to a brand new computer/cloud instance.
-
-If you are upgrading the deployment from a previous version,or moving the application to a different server, you may want to retain user accounts and user-saved data/results. The provided `backup.sh` and `restore.sh` scripts are capable of handling the backup and restoring process. Please read the following carefully so as to not lose any user data:
+If you are upgrading the deployment from a previous version (prior to v0.3.1), or moving the application to a different server, you may want to retain user accounts and user-saved data/results.
+The provided `backup.sh` and `restore.sh` scripts are capable of handling the backup and restoring process. Please read the following carefully so as to not lose any user data:
 
 1) Start by making sure the previous version you would like to backup is __currently up and running__ with `docker-compose ps`.
-2) Checkout the newest version of the source code (only the deploy folder is necessary)
+2) Checkout the newest version of the source code `git checkout v0.4.1`
 3) Run `$ bash backup.sh`
 4) Make sure that the `deploy/backup` folder is present, and there is a folder with a long string of numbers (year+month+date+time) that corresponds to the time you just ran the backup command
-5) If the backup was successful (`db.json` and `user_saves` (\<v0.3.1) or `results.mongo` (\>=0.3.1) should be present), you can safely tear down the old application with `docker-compose down -v`
-6) Deploy the new application with `bash deploy.sh`
+5) If the backup was successful (`db.json` and `user_saves` (\<v0.3.1) or `results.mongo` (\>=0.3.1) should be present), you can safely tear down the old application with `docker-compose down [-v]`
+6) Deploy the new application with `bash deploy.sh deploy` or update with `bash deploy.sh update -v x.y.z`
 7) Restore user data with `bash restore.sh`
 
-Note: For versions >=0.3.1, user data persists in docker volumes, and is not tied to the lifecycle of the container services. In other words, as long as you do not include the [-v] flag to `docker-compose down`, volumes do not get removed, and user data is safe. In this case, the backup/restore procedure is not necessary as the new containers that get created upon an upgrade will continue to use the docker volumes that contain all the important data.
+Note: For versions >=0.3.1, user data persists in docker volumes and is not tied to the lifecycle of the container services. If the [-v] flag is not used with `docker-compose down`, volumes do not get removed, and user data is safe. In this case, the backup/restore procedure is not necessary as the containers that get created upon an install/upgrade will continue to use the docker volumes that contain all the important data. If the [-v] flag is used, all data will be removed and a restore will be required to recover user data.
 
 ### (Optional) Building the ASKCOS Image
 
@@ -142,34 +175,42 @@ $ git lfs pull
 $ docker build -t askcos .
 ```
 
-### Add customization
+__NOTE:__ For application deployment, double check the image tag used in the `docker-compose.yml` file and be sure to tag your newly built image with the same image name. Otherwise, the image tag used in `docker-compose.yml` will be pulled and deployed instead of the image that was just built.
+
+### Add Customization
 
 There are a few parts of the application that you can customize:
 * Header sub-title next to ASKCOS (to designate this as a local deployment at your organization)
-* Contact emails for centralized IT support
 
-These are handled as environment variables that can change upon deployment (and are therefore not tied into the image directly). They can be found in `deploy/customization`. Please let us know what other degrees of customization you would like.
+This is handled as an environment variable that can change upon deployment (and are therefore not tied into the image directly). This can be found in `deploy/customization`. Please let us know what other degrees of customization you would like.
 
 ### Managing Django
 
 If you'd like to manage the Django app (i.e. - run python manage.py ...), for example, to create an admin superuser, you can run commands in the _running_ app service (do this _after_ `docker-compose up`) as follows:
 
-`docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py createsuperuser"`
+```
+$ docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py createsuperuser"
+```
 
 In this case you'll be presented an interactive prompt to create a superuser with your desired credentials.
 
 ## Important Notes
 
-#### First startup
+### Scaling Workers
 
-The celery worker will take a few minutes to start up (possibly up to 5 minutes; it reads a lot of data into memory from disk). The web app itself will be ready before this, however upon the first get request (only the first for each process) a few files will be read from disk, so expect a 1-2 second delay.
+Only 1 worker per queue is deployed by default with limited concurrency. This is not ideal for many-user demand.
+You can easily scale the number of celery workers you'd like to use with
 
-#### Scaling workers
+```
+$ docker-compose up -d --scale tb_c_worker=N tb_c_worker
+```
 
-Only 1 worker per queue is deployed by default with limited concurrency. This is not ideal for many-user demand. You can easily scale the number of celery workers you'd like to use with `docker-compose up -d --scale tb_c_worker=N` where N is the number of workers you want, for example. The above note applies to each worker you start, however, and each worker will consume RAM.
+where N is the number of workers you want, for example. The above note applies to each worker you start, however, and
+each worker will consume RAM. You can also adjust the default number of workers defined by the variables at the top of
+the `deploy.sh` script.
 
 
-# How to run individual modules
+# How To Run Individual Modules
 Many of the individual modules -- at least the ones that are the most interesting -- can be run "standalone". Examples of how to use them are often found in the ```if __name__ == '__main__'``` statement at the bottom of the script definitions. For example...
 
 #### Using the learned synthetic complexity metric (SCScore)
@@ -221,7 +262,7 @@ The following options influence which models are used to carry out the different
 	
 	-'Popularity': Ranking based on number of references in literature, independent of the product species
 
-- Precursor prioritization: via '--precusor_prioritization', is used to determine which precursor is the most promising branch to pursue. It currently has the following options:
+- Precursor prioritization: via '--precursor_prioritization', is used to determine which precursor is the most promising branch to pursue. It currently has the following options:
 
 	-'Heuristic': Simple heuristic, with decreasing score as number of atoms, rings and chiral centers increases
 	
