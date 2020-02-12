@@ -1,6 +1,6 @@
 amqp==2.3.2
 celery==4.2.1
-Django==1.8
+Django==1.11.28
 django-extensions
 django-registration==2.4
 h5py==2.8.0
