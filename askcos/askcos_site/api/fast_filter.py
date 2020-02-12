@@ -41,6 +41,5 @@ def fast_filter(request):
         res.revoke()
         return JsonResponse(resp, status=400)
     
-    score = outcome[0][0]['score']
-    resp['score'] = score
+    resp['score'] = outcome
     return JsonResponse(resp)
