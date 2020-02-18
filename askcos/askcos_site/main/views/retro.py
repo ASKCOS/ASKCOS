@@ -198,7 +198,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
         ]
 
 
-    context['footnote'] = RETRO_CHIRAL_FOOTNOTE
+ 
     return render(request, 'retro.html', context)
 
 #@login_required
