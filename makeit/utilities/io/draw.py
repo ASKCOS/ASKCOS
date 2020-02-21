@@ -12,6 +12,8 @@ import re
 Many of these functions are taken from RDKit.
 '''
 
+from rdkit.Chem import rdDepictor
+rdDepictor.SetPreferCoordGen(True)
 
 def mols_from_smiles_list(all_smiles):
     '''Given a list of smiles strings, this function creates rdkit
