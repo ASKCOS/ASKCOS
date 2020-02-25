@@ -134,7 +134,15 @@ class TemplateTransformer(object):
                             template['rxn'] = None
                         self.templates.append(template)
                 else:
-                    self.templates = pickle.load(file)
+                    pickle_templates = pickle.load(file)
+                    self.templates = []
+                    for template in pickle_templates:
+                        try:
+                            template['rxn'] = AllChem.ReactionFromSmarts(template['reaction_smarts'])
+                        except Exception as e:
+                            template['rxn'] = None
+                        self.templates.append(template)
+#                     self.templates = pickle.load(file)
         else:
             MyLogger.print_and_log("No file to read data from.", transformer_loc, level=1)
             raise IOError('File not found to load template_transformer from!')
