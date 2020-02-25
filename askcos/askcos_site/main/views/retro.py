@@ -162,7 +162,8 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             # Use apply_async so we can force high priority
             res = get_top_precursors.delay(smiles, template_prioritization, precursor_prioritization,
                 mincount=0, max_branching=max_n, template_count=template_count, max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
-            context['precursors'] = res.get(120)
+            (smiles, precursors) = res.get(300)
+            context['precursors'] = precursors
             context['footnote'] = RETRO_FOOTNOTE
         context['time'] = '%0.3f' % (time.time() - startTime)
 
