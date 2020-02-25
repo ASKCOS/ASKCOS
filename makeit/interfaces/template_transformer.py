@@ -145,6 +145,9 @@ class TemplateTransformer(object):
         elif 'references' not in self.templates[0]:
             raise IOError('Save file does not contain references (which were requested!)')
 
+            
+        # efgs is a now-defunct field from an early attempt to use Extended Functional Groups 
+        # (mdpi.com/1420-3049/21/1/1/htm) to provide a MACCS-like fingerprint of substrate scope compatibility for each template.
         if not efgs:
             [self.templates[i].pop('efgs', None) for i in range(len(self.templates))]
         elif 'efgs' not in self.templates[0]:
