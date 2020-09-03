@@ -3,6 +3,7 @@ celery==4.2.1
 Django==1.8
 django-extensions==2.2.2
 django-registration==2.4
+gevent
 h5py==2.8.0
 keras==2.2.4
 matplotlib==2.2.3
