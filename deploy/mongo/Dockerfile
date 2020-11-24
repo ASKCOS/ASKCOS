@@ -1,4 +1,4 @@
-FROM mongo
+FROM mongo:4.4
 
 COPY *.json.gz /init/
 COPY seed.sh /init/

@@ -1,7 +1,7 @@
 version: '2.2'
 services:
   nginx:
-    image: nginx:latest
+    image: nginx:1.19-alpine
     depends_on:
       - app
     volumes:
@@ -27,7 +27,7 @@ services:
       - '3306'
 
   mongo:
-    image: mongo
+    image: mongo:4.4
     hostname: mongo
     restart: always
     env_file:
@@ -41,7 +41,7 @@ services:
       - mongo
 
   app:
-    image: mefortunato/askcos:0.3.1
+    image: askcos/askcos
     hostname: app
     restart: always
     env_file:
@@ -59,7 +59,7 @@ services:
       - mongo
 
   te_coordinator:
-    image: mefortunato/askcos:0.3.1
+    image: askcos/askcos
     restart: always
     env_file:
       - .env
@@ -69,7 +69,7 @@ services:
       - rabbit
 
   sc_coordinator:
-    image: mefortunato/askcos:0.3.1
+    image: askcos/askcos
     restart: always
     env_file:
       - .env
@@ -81,7 +81,7 @@ services:
       - mongo
 
   ft_worker:
-    image: mefortunato/askcos:0.3.1
+    image: askcos/askcos
     restart: always
     env_file:
       - .env
@@ -93,7 +93,7 @@ services:
       - mongo
 
   cr_coordinator:
-    image: mefortunato/askcos:0.3.1
+    image: askcos/askcos
     restart: always
     env_file:
       - .env
@@ -105,7 +105,7 @@ services:
       - mongo
 
   cr_network_worker:
-    image: mefortunato/askcos:0.3.1
+    image: askcos/askcos
     restart: always
     env_file:
       - .env
@@ -117,7 +117,7 @@ services:
       - mongo
 
   tb_coordinator_mcts:
-    image: mefortunato/askcos:0.3.1
+    image: askcos/askcos
     restart: always
     env_file:
       - .env
@@ -129,7 +129,7 @@ services:
       - mongo
 
   tb_c_worker:
-    image: mefortunato/askcos:0.3.1
+    image: askcos/askcos
     restart: always
     env_file:
       - .env
@@ -141,7 +141,7 @@ services:
       - mongo
 
   redis:
-    image: redis
+    image: redis:6.0-alpine
     hostname: redis
     env_file:
       - .env
@@ -153,7 +153,7 @@ services:
     command: redis-server --port ${REDIS_PORT}
 
   rabbit:
-    image: rabbitmq
+    image: rabbitmq:3.8-alpine
     hostname: rabbit
     env_file:
       - .env
