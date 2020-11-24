@@ -22,6 +22,7 @@ from makeit.prioritization.templates.popularity import PopularityTemplatePriorit
 from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
 from makeit.prioritization.default import DefaultPrioritizer
 from makeit.synthetic.evaluation.fast_filter import FastFilterScorer
+from makeit.utilities.banned import BANNED_SMILES
 from rdchiral.main import rdchiralRun
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 retro_transformer_loc = 'retro_transformer'
@@ -183,6 +184,7 @@ class RetroTransformer(TemplateTransformer):
         """
         apply_fast_filter = kwargs.pop('apply_fast_filter', True)
         filter_threshold = kwargs.pop('filter_threshold', 0.75)
+        use_ban_list = kwargs.pop('use_ban_list', True)
         if (apply_fast_filter and not self.fast_filter):
             self.load_fast_filter()
 
@@ -203,6 +205,9 @@ class RetroTransformer(TemplateTransformer):
 
         # Initialize results object
         result = RetroResult(smiles)
+
+        if use_ban_list and smiles in BANNED_SMILES:
+            return result
 
         for template in self.top_templates(smiles, **kwargs):
             for precursor in self.apply_one_template(mol, smiles, template):
@@ -240,6 +245,7 @@ class RetroTransformer(TemplateTransformer):
         # QUESTION: Why are these not just optional named arguments?
         apply_fast_filter = kwargs.pop('apply_fast_filter', True)
         filter_threshold = kwargs.pop('filter_threshold', 0.75)
+        use_ban_list = kwargs.pop('use_ban_list', True)
         template_count = kwargs.pop('template_count', 100)
         max_cum_prob = kwargs.pop('max_cum_prob', 0.995)
         if (apply_fast_filter and not self.fast_filter):
@@ -253,6 +259,10 @@ class RetroTransformer(TemplateTransformer):
             mol = rdchiralReactants(smiles)
 
         all_outcomes = []; seen_reactants = {}; seen_reactant_combos = [];
+
+        if use_ban_list and smiles in BANNED_SMILES:
+            return all_outcomes
+
         for smiles_list in self.apply_one_template_smilesonly(mol, smiles, self.templates[template_idx]):
             # Avoid duplicate outcomes (e.g., by symmetry)
             reactant_smiles = '.'.join(smiles_list)
@@ -314,6 +324,10 @@ class RetroTransformer(TemplateTransformer):
             list of str: Results of applying template in the form of a list
                 of SMILES strings.
         """
+        use_ban_list = kwargs.pop('use_ban_list', True)
+        if use_ban_list and smiles in BANNED_SMILES:
+            yield []
+
         if template is not None:
             try:
                 if self.chiral:
@@ -357,6 +371,10 @@ class RetroTransformer(TemplateTransformer):
             list: RetroPrecursor objects resulting from applying this one
                 template.
         """
+        use_ban_list = kwargs.pop('use_ban_list', True)
+        if use_ban_list and smiles in BANNED_SMILES:
+            return []
+
         if template is None:
             return []
         try:

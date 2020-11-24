@@ -204,3 +204,5 @@ NEURALNET_CONTEXT_REC = {
     'weights_path': os.path.join(data_path,'context', 'NeuralNet_Cont_Model', 'weights.h5'),
     'database': database,
 }
+
+BAN_LIST_PATH = os.path.join(os.path.dirname(__file__), 'utilities', 'banned', 'banned_list.json')
