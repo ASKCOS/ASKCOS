@@ -10,7 +10,6 @@ services:
       - './askcos.ssl.cert:/etc/ssl/certs/askcos.ssl.cert'
       - './askcos.ssl.key:/etc/ssl/private/askcos.ssl.key'
       - 'staticdata:/static'
-      - 'docdata:/documentation'
     ports:
       - '80:80'
       - '443:443'
@@ -53,7 +52,6 @@ services:
       - '8000'
     volumes:
       - 'staticdata:/usr/local/ASKCOS/askcos/askcos_site/static'
-      - 'docdata:/usr/local/ASKCOS/docs/_build/html'
     depends_on:
       - redis
       - rabbit
@@ -167,4 +165,3 @@ volumes:
   redisdata:
   mysql_data:
   staticdata:
-  docdata:
