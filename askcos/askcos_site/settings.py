@@ -2,10 +2,10 @@
 Django settings for askcos_site project.
 
 For more information on this file, see
-https://docs.djangoproject.com/en/1.6/topics/settings/
+https://docs.djangoproject.com/en/2.2/topics/settings/
 
 For the full list of settings and their values, see
-https://docs.djangoproject.com/en/1.6/ref/settings/
+https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
@@ -18,11 +18,11 @@ from askcos_site.askcos_celery.celeryconfig import *
 import makeit.global_config as gc
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY') or 'secret'
+SECRET_KEY = 'notsosecret'
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv('DEBUG', False)
 
-ALLOWED_HOSTS = ['0.0.0.0']
+ALLOWED_HOSTS = ['0.0.0.0', 'askcos.mit.edu', 'askcos4.mit.edu']
 if os.environ.get('CURRENT_HOST'):
     ALLOWED_HOSTS.append(os.environ.get('CURRENT_HOST'))
 
@@ -55,17 +55,17 @@ TEMPLATES = [
 ]
 
 INSTALLED_APPS = (
-    'django.contrib.admin',
+    'askcos_site.main',
     'django.contrib.auth',
+    'django.contrib.admin',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'askcos_site.main',
     'django_extensions',
 )
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -82,7 +82,7 @@ LOGIN_URL = '/registration/login'
 LOGIN_REDIRECT_URL = '/'
 REGISTRATION_OPEN = True
 ACCOUNT_ACTIVATION_DAYS=7
-REGISTRATION_SALT = os.environ.get('REGISTRATION_SALT') or 'REG_SALT'
+REGISTRATION_SALT='saltystring'
 
 # Registration
 REGISTRATION_SUPPLEMENT_CLASS = None
@@ -94,13 +94,17 @@ ACCOUNT_ACTIVATION_DAYS = 7
 #EMAIL_HOST_USER = ''
 #EMAIL_HOST_PASSWORD = ''
 #EMAIL_USE_TLS = False
-DEFAULT_FROM_EMAIL = 'no-reply@domain.com'
+DEFAULT_FROM_EMAIL = 'no-reply@askcos4.mit.edu'
 
 # Where are user settings / banlists / etc. saved?
 # NOTE: we recommend relocating the db to an ssd for speed
 DATABASES = {'default': {
-    'ENGINE': 'django.db.backends.sqlite3',
-    'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    'ENGINE': 'django.db.backends.mysql',
+    'NAME': 'askcos_db',
+    'USER': os.getenv('MYSQL_USER', 'root'),
+    'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', 'root'),
+    'HOST': 'mysql',
+    'PORT': '3306',
 }}
 
 
@@ -112,11 +116,11 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_ROOT = os.path.join(PROJECT_PATH, 'static/')
-STATIC_URL = '/static/'
+STATIC_URL = os.getenv('STATIC_URL', '/static/')
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder',    
-) 
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+)
 STATICFILES_DIRS = (
     os.path.join(STATIC_ROOT, 'css'),
     os.path.join(STATIC_ROOT, 'js')
@@ -165,5 +169,3 @@ TEMPLATE_BACKUPS = [
 ### Very important - where to look for local versions of files instead of relying on DB connections
 LOCAL_STORAGE = {}
 LOCAL_STORAGE['user_saves'] = os.path.join(gc.data_path, 'user_saves')
-
-

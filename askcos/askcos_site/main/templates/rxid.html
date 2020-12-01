@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Image{% endblock %}
+{% block page_title %}Template source(s){% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block page_body %}
+
+{% if err %}
+<div class="error">{{ err }}</div>
+{% endif %}
+{% if warn %}
+<div class="warning">{{ warn }}</div>
+{% endif %}
+
+{% if rxid %}
+<h4>
+	Reaxys reaction ID {{ rxid }}: <font class="smiles">{{ rxn_smiles }}</font><br>
+</h4> 
+{% if num_instances %}
+<p>
+	{{ num_instances }} total references
+</p>
+{% endif %}
+
+<img src="{% url 'draw_reaction' rxn_smiles %}" >
+
+{% if suggested_conditions %}
+<h4>
+	Most popular conditions:
+</h4>
+<table>
+	{% for condition in suggested_conditions %}
+	<tr><td>{{ condition }}</td></tr>
+	{% endfor %} 
+</table>
+{% endif %}
+
+
+{% endif %}
+{% endblock %}

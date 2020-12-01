@@ -2,7 +2,6 @@ import argparse
 import makeit.global_config as gc
 arg_parser_loc = 'arg_parser'
 
-### WARNING: This script does not expose all of the options for tree expansion
 
 def setup_parser():
 

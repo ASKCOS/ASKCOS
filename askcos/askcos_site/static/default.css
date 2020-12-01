@@ -550,3 +550,23 @@ input::-webkit-inner-spin-button {
     font-size: 10pt;
 }
 
+.support-popup {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  right: 0;
+  top: 0;
+  display: none;
+  background-color: #ffffffd9;
+  padding: 10% 25%;
+}
+
+.support-form {
+  border: 5px solid black;
+  padding: 20px;
+  background-color: #fff
+}
+
+#support-anchor {
+  cursor: pointer;
+}

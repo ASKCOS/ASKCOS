@@ -16,7 +16,9 @@ from keras.engine.topology import Layer
 import os
 
 
-
+# lg = RDLogger.logger()
+# lg.setLevel(RDLogger.CRITICAL)
+####utilities
 def set_keras_backend(backend):
 
     if K.backend() != backend:

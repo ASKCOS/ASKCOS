@@ -20,6 +20,9 @@
 <p>
 	{{ total_references }} total references
 </p>
+<p>
+	<a href="{% url 'template_target_export' template.id %}">Export Reaxys query for precedents</a>
+</p>
 {% endif %}
 
 <img src="{% url 'draw_template' template.reaction_smarts %}" alt="{{ template.reaction_smarts }}">

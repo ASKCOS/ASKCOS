@@ -14,3 +14,6 @@ class SmilesInputForm(forms.Form):
 class DrawingInputForm(forms.Form):
     text = forms.CharField(label = 'Enter text to draw',
         max_length = 4000)
+
+# nnSetup = modelform_factory(ConditionPredictorSetup, exclude=('N_conditions',))
+# sepInput = modelform_factory(SeparationInput, exclude=('PHASE_CHOICES', 'OPT_TGT_CHOICES'))

@@ -1,6 +1,6 @@
 from django.shortcuts import render, HttpResponse, redirect
 from django.template.loader import render_to_string
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.conf import settings
@@ -8,37 +8,29 @@ import django.contrib.auth.views
 from pymongo.message import bson
 from bson.objectid import ObjectId
 from collections import defaultdict
+from datetime import datetime
 import time
 import numpy as np
 import json
 import os
 
-from ..globals import RetroTransformer, RETRO_FOOTNOTE, \
-    RETRO_CHIRAL_FOOTNOTE
+from ..globals import RetroTransformer, RETRO_CHIRAL_FOOTNOTE
 
 from ..utils import ajax_error_wrapper, resolve_smiles
 from .price import price_smiles_func
 from .users import can_control_robot, can_avoid_banned_chemicals
 from ..forms import SmilesInputForm
-from ..models import BlacklistedReactions, BlacklistedChemicals
-
-from makeit import global_config as gc
-from rdkit import Chem
+from ..models import BlacklistedReactions, BlacklistedChemicals, SavedResults
 
 from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors as get_top_precursors_c
 from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors
 from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
 from askcos_site.askcos_celery.treebuilder.tb_coordinator_mcts import get_buyable_paths as get_buyable_paths_mcts
 
-with open(gc.BAN_LIST_PATH) as f:
-    ban_list = json.load(f)
-BANNED_SMILES = [smi for sublist in ban_list.values() for smi in sublist if smi is not None]
-BANNED_SMILES = [
-    Chem.MolToSmiles(
-        Chem.MolFromSmiles(smi), True
-    ) 
-    for smi in BANNED_SMILES
-]
+from celery.result import AsyncResult
+from askcos_site.celery import app
+from makeit.utilities.banned import BANNED_SMILES
+
 
 def is_banned(request, smiles):
     if can_avoid_banned_chemicals(request):
@@ -46,6 +38,7 @@ def is_banned(request, smiles):
     if smiles in BANNED_SMILES:
         return True
     return False
+
 
 #@login_required
 def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
@@ -163,15 +156,14 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             res = get_top_precursors.delay(smiles, template_prioritization, precursor_prioritization,
                 mincount=0, max_branching=max_n, template_count=template_count, max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
             context['precursors'] = res.get(120)
-            context['footnote'] = RETRO_FOOTNOTE
+            context['footnote'] = ''
         context['time'] = '%0.3f' % (time.time() - startTime)
 
         # Change 'tform' field to be reaction SMARTS, not ObjectID from Mongo
         # Also add up total number of examples
         for (i, precursor) in enumerate(context['precursors']):
             context['precursors'][i]['tforms'] = \
-                [dict(RetroTransformer.lookup_id(ObjectId(_id)), **
-                      {'id': str(_id)}) for _id in precursor['tforms']]
+                [dict(RetroTransformer.lookup_id(_id), **{'id': str(_id)}) for _id in precursor['tforms']]
             context['precursors'][i]['mols'] = []
             # Overwrite num examples
             context['precursors'][i]['num_examples'] = sum(
@@ -182,7 +174,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
                     'smiles': smiles,
                     'ppg': '${}/g'.format(ppg) if ppg else 'cannot buy',
                 })
-                
+
     elif smiles is not None:
         context['err'] = 'ASKCOS does not provide results for compounds on restricted lists such as the CWC and DEA schedules'
     else:
@@ -196,9 +188,24 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             {'name': 'Atropine', 'smiles': 'CN1C2CCC1CC(C2)OC(=O)C(CO)c3ccccc3'},
             {'name': 'Diazepam', 'smiles': 'CN1C(=O)CN=C(c2ccccc2)c3cc(Cl)ccc13'},
         ]
+        hidden = [{'name': 'Hydroxychloroquine', 'smiles': 'CCN(CCO)CCCC(C)Nc1ccnc2cc(Cl)ccc12'},
+            {'name': 'Ibuprofen', 'smiles': 'CC(C)Cc1ccc(cc1)C(C)C(O)=O'},
+            {'name': 'Tramadol', 'smiles': 'CN(C)C[C@H]1CCCC[C@@]1(C2=CC(=CC=C2)OC)O'},
+            {'name': 'Lamivudine', 'smiles': 'NC1=NC(=O)N(C=C1)[C@@H]2CS[C@H](CO)O2'},
+            {'name': 'Pregabalin', 'smiles': 'CC(C)C[C@H](CN)CC(O)=O'},
+            {'name': 'Naproxen', 'smiles': 'COc1ccc2cc([C@H](C)C(=O)O)ccc2c1'},
+            {'name': 'Imatinib', 'smiles': 'CN1CCN(CC1)Cc2ccc(cc2)C(=O)Nc3ccc(C)c(Nc4nccc(n4)c5cccnc5)c3'},
+            {'name': 'Quinapril', 'smiles': 'CCOC(=O)[C@H](CCc1ccccc1)N[C@@H](C)C(=O)N2Cc3ccccc3C[C@H]2C(O)=O'},
+            {'name': 'Atorvastatin', 'smiles': 'CC(C)c1n(CC[C@@H](O)C[C@@H](O)CC(O)=O)c(c2ccc(F)cc2)c(c3ccccc3)c1C(=O)Nc4ccccc4'},
+            {'name': 'Bortezomib', 'smiles': 'CC(C)C[C@@H](NC(=O)[C@@H](Cc1ccccc1)NC(=O)c2cnccn2)B(O)O'},
+            {'name': 'Itraconazole', 'smiles': 'CCC(C)N1N=CN(C1=O)c2ccc(cc2)N3CCN(CC3)c4ccc(OC[C@H]5CO[C@@](Cn6cncn6)(O5)c7ccc(Cl)cc7Cl)cc4'},
+            {'name': '6-Carboxytetramethylrhodamine', 'smiles': 'CN(C)C1=CC2=C(C=C1)C(=C3C=CC(=[N+](C)C)C=C3O2)C4=C(C=CC(=C4)C(=O)[O-])C(=O)O'},
+            {'name': '6-Carboxytetramethylrhodamine isomer', 'smiles': 'CN(C)c1ccc2c(c1)Oc1cc(N(C)C)ccc1C21OC(=O)c2ccc(C(=O)O)c1c2'},
+            {'name': '(S)-Warfarin', 'smiles': 'CC(=O)C[C@@H](C1=CC=CC=C1)C2=C(C3=CC=CC=C3OC2=O)O'},
+            {'name': 'Tranexamic Acid', 'smiles': 'NC[C@@H]1CC[C@H](CC1)C(O)=O'},
+        ]
 
-
- 
+    context['footnote'] = RETRO_CHIRAL_FOOTNOTE
     return render(request, 'retro.html', context)
 
 #@login_required
@@ -208,7 +215,13 @@ def retro_target(request, smiles):
     '''
     return retro(request, smiles=smiles)
 
+def retro_network(request):
+    context = {}
+    allow_resolve = os.environ.get('ALLOW_SMILES_RESOLVER') == 'True'
+    context['allowResolve'] = 'checked' if allow_resolve else ''
+    return render(request, 'reaction_network.html', context)
 
+@login_required
 def retro_interactive(request, target=None):
     '''Builds an interactive retrosynthesis page'''
 
@@ -233,7 +246,7 @@ def retro_interactive(request, target=None):
 
     return render(request, 'retro_interactive.html', context)
 
-
+@login_required
 def retro_interactive_mcts(request, target=None):
     '''Builds an interactive retrosynthesis page'''
 
@@ -256,7 +269,7 @@ def retro_interactive_mcts(request, target=None):
     if target is not None:
         context['target_mol'] = target
 
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         context['logged_in'] = True
     else:
         context['logged_in'] = False
@@ -363,12 +376,15 @@ def ajax_start_retro_mcts_celery(request):
     '''Start builder'''
     data = {'err': False}
 
+    run_async = json.loads(request.GET.get('async', 'true'))
+    description = request.GET.get('description')
+
     smiles = request.GET.get('smiles', None)
-    
+
     if is_banned(request, smiles):
         data['html_trees'] = 'ASKCOS does not provide results for compounds on restricted lists such as the CWC and DEA schedules'
         return JsonResponse(data)
-    
+
     max_depth = int(request.GET.get('max_depth', 4))
     max_branching = int(request.GET.get('max_branching', 25))
     expansion_time = int(request.GET.get('expansion_time', 60))
@@ -387,7 +403,7 @@ def ajax_start_retro_mcts_celery(request):
     apply_fast_filter = filter_threshold > 0
     return_first = json.loads(request.GET.get('return_first', 'false'))
 
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         blacklisted_reactions = list(set(
             [x.smiles for x in BlacklistedReactions.objects.filter(user=request.user, active=True)]))
         forbidden_molecules = list(set(
@@ -422,25 +438,34 @@ def ajax_start_retro_mcts_celery(request):
                                   max_cum_template_prob=max_cum_prob, template_count=template_count,
                                   max_natom_dict=max_natom_dict, min_chemical_history_dict=min_chemical_history_dict,
                                   apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold,
-                                  return_first=return_first)
-    (tree_status, trees) = res.get(expansion_time * 3)
+                                  return_first=return_first,
+                                  run_async=run_async)
 
+    if run_async:
+        now = datetime.now()
 
-    # print(trees)
+        saved_result = SavedResults.objects.create(
+            user=request.user,
+            created=now,
+            dt=now.strftime('%B %d, %Y %H:%M:%S %p'),
+            result_id=res.id,
+            result_state='pending',
+            result_type='tree_builder',
+            description=description
+        )
 
-    (num_chemicals, num_reactions, _) = tree_status
-    data['html_stats'] = 'After expanding (with {} banned reactions, {} banned chemicals), {} total chemicals and {} total reactions'.format(
-        len(blacklisted_reactions), len(forbidden_molecules), num_chemicals, num_reactions)
-
-    if trees:
-        data['html_trees'] = render_to_string('trees_only.html',
-                                              {'trees': trees, 'can_control_robot': can_control_robot(request)})
+        return JsonResponse({'id': res.id})
     else:
-        data['html_trees'] = render_to_string('trees_none.html', {})
+        (tree_status, trees) = res.get(expansion_time * 3)
+        (num_chemicals, num_reactions, _) = tree_status
+        data['html_stats'] = 'After expanding (with {} banned reactions, {} banned chemicals), {} total chemicals and {} total reactions'.format(
+            len(blacklisted_reactions), len(forbidden_molecules), num_chemicals, num_reactions)
+        if trees:
+            data['html_trees'] = render_to_string('trees_only.html',
+                                                {'trees': trees, 'can_control_robot': can_control_robot(request)})
+        else:
+            data['html_trees'] = render_to_string('trees_none.html', {})
 
-    # Save to session in case user wants to export
-    request.session['last_retro_interactive'] = trees
-    # print('Saved {} trees to {} session'.format(
-    #     len(trees), request.user.get_username()))
-
-    return JsonResponse(data)
+        # Save to session in case user wants to export
+        request.session['last_retro_interactive'] = trees
+        return JsonResponse(data)

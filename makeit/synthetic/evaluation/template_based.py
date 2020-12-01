@@ -427,5 +427,5 @@ if __name__ == '__main__':
     res = scorer.evaluate('CN1C2CCC1CC(O)C2.O=C(O)C(CO)c1ccccc1', [
                           [80.0, u'', u'', u'', -1, 50.0]], batch_size=100, nproc=8)
     for re in res[0]:
-        print(re['outcome'].smiles + " {}".format(re['prob']))
+        print(re['outcome']['smiles'] + " {}".format(re['prob']))
     print('done')

@@ -4,7 +4,7 @@ from collections import defaultdict
 from tqdm import tqdm
 from makeit.utilities.io.logger import MyLogger
 import makeit.utilities.io.pickle as pickle
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 from multiprocessing import Manager
 import os
 pricer_loc = 'pricer'
@@ -16,21 +16,28 @@ class Pricer:
     are buyable.
     '''
 
-    def __init__(self, done=None, BUYABLES=None, CHEMICALS=None):
+    def __init__(self, by_xrn=False, done=None, BUYABLES=None, CHEMICALS=None):
 
         self.CHEMICAL_DB = CHEMICALS
         self.BUYABLE_DB = BUYABLES
+        self.by_xrn = False
         self.done = done
         self.prices = defaultdict(float)  # default 0 ppg means not buyable
         # default 0 ppg means not buyable
         self.prices_flat = defaultdict(float)
+        self.prices_by_xrn = defaultdict(float)
 
     def load_databases(self):
         '''
         Load the pricing data from the online database
         '''
         db_client = MongoClient(gc.MONGO['path'], gc.MONGO[
-                                'id'], connect=gc.MONGO['connect'])
+                                'id'], connect=gc.MONGO['connect'], serverSelectionTimeoutMS=1000)
+        try:
+            db_client.server_info()
+        except errors.ServerSelectionTimeoutError:
+            MyLogger.print_and_log('Cannot connect to mongodb to load prices', pricer_loc)
+            return
         db = db_client[gc.BUYABLES['database']]
         self.BUYABLE_DB = db[gc.BUYABLES['collection']]
         db = db_client[gc.CHEMICALS['database']]
@@ -43,26 +50,28 @@ class Pricer:
         with open(file_path, 'wb') as file:
             pickle.dump(self.prices, file)
             pickle.dump(self.prices_flat, file)
+            pickle.dump(self.prices_by_xrn, file)
 
     def load(self):
         '''
-        Load the data for the pricer from a locally stored file instead of from the online database.
+        Try to load the data for the pricer from a mongo database. If server cannot be found, load from locally stored file instead.
         '''
         from makeit.utilities.io.files import get_pricer_path
         file_path = get_pricer_path(
-            gc.CHEMICALS['database'], 
-            gc.CHEMICALS['collection'], 
-            gc.BUYABLES['database'], 
+            gc.CHEMICALS['database'],
+            gc.CHEMICALS['collection'],
+            gc.BUYABLES['database'],
             gc.BUYABLES['collection'],
         )
-        if os.path.isfile(file_path):
+        self.load_databases()
+        if not self.BUYABLE_DB and os.path.isfile(file_path):
             with open(file_path, 'rb') as file:
                 self.prices = defaultdict(float, pickle.load(file))
                 self.prices_flat = defaultdict(float, pickle.load(file))
-        else:
-            self.load_databases()
-            self.load_from_database()
-            self.dump_to_file(file_path)
+                self.prices_by_xrn = defaultdict(float, pickle.load(file))
+            MyLogger.print_and_log('Loaded prices from flat file', pricer_loc)
+        # self.load_from_database()
+        # self.dump_to_file(file_path)
 
     def load_from_database(self, max_ppg=1e10):
         '''
@@ -70,17 +79,18 @@ class Pricer:
         template records.
         '''
         MyLogger.print_and_log('Loading pricer with buyable limit of ${} per gram.'.format(max_ppg), pricer_loc)
-        
+
         # Save collection source use online option to load either from local
         # file or from online database.
         self.prices = defaultdict(float)  # default 0 ppg means not buyable
         # default 0 ppg means not buyable
         self.prices_flat = defaultdict(float)
+        self.prices_by_xrn = defaultdict(float)
 
         buyable_dict = {}
 
         # First pull buyables source (smaller)
-        for buyable_doc in self.BUYABLE_DB.find({}, 
+        for buyable_doc in self.BUYABLE_DB.find({'source': {'$ne': 'LN'}},
                         ['ppg', 'smiles', 'smiles_flat'],
                         no_cursor_timeout=True):
 
@@ -103,6 +113,15 @@ class Pricer:
                 else:
                     self.prices_flat[smiles_flat] = buyable_doc['ppg']
 
+        if self.by_xrn:
+            # Then pull chemicals source for XRNs (larger)
+            for chemical_doc in tqdm(self.CHEMICAL_DB.find({'buyable_id': {'$gt': -1}},
+                    ['buyable_id'], no_cursor_timeout=True)):
+                if 'buyable_id' not in chemical_doc:
+                    continue
+                self.prices_by_xrn[chemical_doc['_id']] = buyable_dict[
+                    chemical_doc['buyable_id']]
+
         MyLogger.print_and_log('Pricer has been loaded.', pricer_loc)
 
         # multiprocessing notify done
@@ -113,7 +132,33 @@ class Pricer:
 
     def lookup_smiles(self, smiles, alreadyCanonical=False, isomericSmiles=True):
         '''
-        Looks up a price by SMILES. Tries it as-entered and then 
+        Looks up a price by SMILES. Canonicalize smiles string unless 
+        the user specifies that the smiles string is definitely already 
+        canonical. If the DB connection does not exist, look up from 
+        prices dictionary attribute, otherwise lookup from DB.
+        '''
+        if not alreadyCanonical:
+            mol = Chem.MolFromSmiles(smiles)
+            if not mol:
+                return 0.
+            smiles = Chem.MolToSmiles(mol, isomericSmiles=isomericSmiles)
+
+        if self.BUYABLE_DB is None:
+            return self.prices[smiles]
+
+        entry = self.BUYABLE_DB.find_one({
+            'smiles': smiles,
+            'source': {'$ne': 'LN'}
+        })
+
+        if entry:
+            return entry['ppg']
+        else:
+            return self.prices[smiles]
+
+    def lookup_smiles_old(self, smiles, alreadyCanonical=False, isomericSmiles=True):
+        '''
+        Looks up a price by SMILES. Tries it as-entered and then
         re-canonicalizes it in RDKit unl ess the user specifies that
         the string is definitely already canonical.
         '''
@@ -140,6 +185,14 @@ class Pricer:
                 return ppg
 
         return ppg
+
+    def lookup_xrn(self, xrn):
+        '''
+        Looks up a price by Reaxys XRN.
+        '''
+        if not self.by_rxn:
+            raise ValueError('Not initialized to look up prices by XRN!')
+        return self.prices_by_xrn[xrn]
 
 
 if __name__ == '__main__':

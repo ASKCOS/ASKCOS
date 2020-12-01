@@ -8,13 +8,26 @@ heuristic_precursor_prioritizer_loc = 'heuristic_precursor_prioritizer'
 
 
 class HeuristicPrecursorPrioritizer(Prioritizer):
+    """A precursor Prioritizer that uses a heuristic scoring function.
 
+    Attributes:
+        pricer (Pricer or None): Used to look up chemical prices.
+    """
     def __init__(self):
-       
+        """Initializes HeuristicPrecursorPrioritizer."""
         self.pricer = None
         self._loaded = False
 
     def get_priority(self, retroPrecursor, **kwargs):
+        """Gets priority of given precursor based on heuristic function.
+
+        Args:
+            retroPrecursor (RetroPrecursor): Precursor to calculate priority of.
+            **kwargs: Unused.
+
+        Returns:
+            float: Priority score of precursor.
+        """
         if not self._loaded:
             self.load_model()
 
@@ -43,6 +56,7 @@ class HeuristicPrecursorPrioritizer(Prioritizer):
         return np.sum(scores) - 4.00 * np.power(necessary_reagent_atoms, 2.0)
 
     def load_model(self):
+        """Loads the Pricer used in the heuristic priority scoring."""
         self.pricer = Pricer()
         self.pricer.load()
         self._loaded = True

@@ -17,7 +17,7 @@ def name_to_molecule(name):
         pass
 
     smiles = urlopen(
-        'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{}/property/IsomericSMILES/txt'.format(name)).read()
+        'https://cactus.nci.nih.gov/chemical/structure/{}/smiles'.format(name)).read()
     mol = Chem.MolFromSmiles(smiles)
     if not mol:
         raise ValueError(

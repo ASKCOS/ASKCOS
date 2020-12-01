@@ -1,16 +1,16 @@
 from django.shortcuts import render, HttpResponse, redirect
 from django.template.loader import render_to_string
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.conf import settings
 import django.contrib.auth.views
 from datetime import datetime
 import time
-import numpy as np 
+import numpy as np
 import json
 import os
-import rdkit.Chem as Chem 
+import rdkit.Chem as Chem
 import makeit.global_config as makeit_gc
 
 from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
@@ -52,7 +52,7 @@ def ajax_context_rxnsmiles(request):
         raise ValueError('Context recommender was unable to get valid context(?)')
 
     if contexts:
-        data['html'] = render_to_string('context_recs_only.html', 
+        data['html'] = render_to_string('context_recs_only.html',
             {'contexts': [context_to_dict(x) for x in contexts],
              'reactants': '.'.join(reactants)})
     else:

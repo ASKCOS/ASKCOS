@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}ASKCOS homepage{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'sep_input' %}">SPARC Separation Input</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block page_body %}
+<p>Begin by entering in the required information for the separation.</p>
+
+<form method="post" id="sepInput">
+<table>
+{{ form.as_table }}
+	<th>{% csrf_token %}</th>
+	<td>
+		<input type="submit" value="Input complete" name="sep_input">
+	</td>
+</table>
+</form>
+
+{% if err %}
+<div class="error">{{ err }}</div>
+{% endif %}
+
+{% if output %}
+<div>
+	<!--&lt;!&ndash;To print out the images, however, not successful yet&ndash;&gt;-->
+	<!--{% for im in output.imgs %}-->
+		<!--<img src="{{ im }}" >-->
+	<!--{% endfor %}-->
+
+	{% if form.cleaned_data.opt_tgt_choice == 'b' %}
+	<h4>Target properties are yield (first 4 rows) and purity (second 4 rows);
+		the first two rows are for the maximization option (flow rate ratio, pH)
+		and the second two rows are for the minimization option (flow rate ratio, pH).
+	</h4>
+
+	<table>
+	<!--yield & purity-->
+	{% for p in output.result %}
+		<!--maximize and minimize-->
+		{% for m in p %}
+			<!--flow rate and pH-->
+			{% for c in m %}
+				<tr>
+				{% for n in c %}
+					<td>{{ n }}</td>
+				{% endfor %}
+				</tr>
+			{% endfor %}
+		{% endfor %}
+	{% endfor %}
+		<!--</table>-->
+	</table>
+
+	{% else %}
+		{% if form.cleaned_data.opt_tgt_choice == 'y' %}
+		<h4>Target property is yield; the first two rows are for the maximization option (flow rate ratio, pH)
+			and the second two rows are for the minimization option (flow rate ratio, pH).
+		</h4>
+		{% endif %}
+
+		{% if form.cleaned_data.opt_tgt_choice == 'p' %}
+		<h4>Target property is purity; the first two rows are for the maximization option (flow rate ratio, pH)
+			and the second two rows are for the minimization option (flow rate ratio, pH).
+		</h4>
+		{% endif %}
+
+		<table>
+		<!--maximize and minimize-->
+		{% for m in output.result %}
+			<!--flow rate and pH-->
+			{% for c in m %}
+				<tr>
+				{% for n in c %}
+					<td>{{ n }}</td>
+				{% endfor %}
+				</tr>
+			{% endfor %}
+		{% endfor %}
+		</table>
+
+
+	{% endif %}
+
+</div>
+{% endif %}
+
+{% endblock %}

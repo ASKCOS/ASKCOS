@@ -12,12 +12,31 @@ contextRecommender_loc = 'contextRecommender'
 
 
 class NeuralNetContextRecommender(ContextRecommender):
-    """Reaction condition predictor based on Nearest Neighbor method"""
+    """Reaction condition predictor based on Neural Network method
+
+    Attributes:
+        nnModel ():
+        c1_dict ():
+        s1_dict ():
+        s2_dict ():
+        r1_dict ():
+        r2_dict ():
+        num_cond ():
+        singleSlvt ():
+        with_smiles ():
+        max_total_context ():
+        max_context ():
+        fp_size ():
+    """
 
     def __init__(self, max_contexts=10, singleSlvt=True, with_smiles=True):
-        """
-        :param singleSlvt:
-        :param with_smiles:
+        """Initializes Neural Network predictor.
+
+        Args:
+            max_contexts (int, optional): ?? (default: {10})
+            singleSlvt (bool, optional): Whether to use only a single
+                solvent. (default: {True})
+            with_smiles (bool, optional): ?? (default: {True})
         """
         self.nnModel = None
         self.c1_dict = None
@@ -34,6 +53,18 @@ class NeuralNetContextRecommender(ContextRecommender):
 
     def load(self, model_path=gc.NEURALNET_CONTEXT_REC['model_path'], info_path=gc.NEURALNET_CONTEXT_REC[
                        'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path']):
+        """Loads the specified model and weights.
+
+        Wrapper function for ``load_nn_model``.
+
+        Args:
+            model_path (str, optional): Path to file specifying model.
+                (default: {gc.NEURALNET_CONTEXT_REC['model_path']})
+            info_path (str, optional): Path to file specifying encoders.
+                (default: {gc.NEURALNET_CONTEXT_REC['info_path']})
+            weights_path (str, optional): Path to file specifying weights.
+                (default: {gc.NEURALNET_CONTEXT_REC['weights_path']})
+        """
         # for the neural net model, info path points to the encoders
         self.load_nn_model(model_path, info_path, weights_path)
 
@@ -41,7 +72,16 @@ class NeuralNetContextRecommender(ContextRecommender):
             'Nerual network context recommender has been loaded.', contextRecommender_loc)
 
     def load_nn_model(self, model_path="", info_path="", weights_path=""):
+        """Loads specified Neural Network model.
 
+        Args:
+            model_path (str, optional): Path to file specifying model.
+                (default: {''})
+            info_path (str, optional): Path to file specifying encoders.
+                (default: {''})
+            weights_path (str, optional): Path to file specifying weights.
+                (default: {''})
+        """
         if not model_path:
             MyLogger.print_and_log(
                 'Cannot load neural net context recommender without a specific path to the model. Exiting...', contextRecommender_loc, level=3)
@@ -109,7 +149,12 @@ class NeuralNetContextRecommender(ContextRecommender):
         self.T_func = K.function([fp_transform_layer.output,c1_input_layer.output,s1_input_layer.output, s2_input_layer.output,r1_input_layer.output,r2_input_layer.output], [T_output.output])
 
     def load_predictor(self, userInput):
-        """Loads the predictor based on user input"""
+        """Loads the predictor based on user input.
+
+        Args:
+            userInput (dict): Specifies values to use for the main attributes of
+                the predictor.
+        """
         self.num_cond = userInput['num_cond']
         self.dist_limit = userInput['dist_limit']
         self.singleSlvt = userInput['first_solvent_only']
@@ -119,9 +164,19 @@ class NeuralNetContextRecommender(ContextRecommender):
         self.max_context = userInput['max_context']
 
     def get_n_conditions(self, rxn, n=10, singleSlvt=True, with_smiles=True, return_scores=False):
-        """
+        """Returns the top n parseable reaction condition recommendations.
+
         Reaction condition recommendations for a rxn (SMILES) from top n NN
-        Returns the top n parseable conditions.
+
+        Args:
+            rxn (str): SMILES string for reaction.
+            n (int, optional): Number of condition recomendations to return.
+                (default: {10})
+            singleSlvt (bool, optional): Whether to use a single solvent.
+                (default: {true})
+            with_smiles (bool, optional): ?? (default: {True})
+            return_scores (bool, optional): Whether to also return the scores of the
+                recomendations. (default: {True})
         """
         # print('started neuralnet')
         self.singleSlvt = singleSlvt
@@ -150,9 +205,11 @@ class NeuralNetContextRecommender(ContextRecommender):
             s2_input = []
             inputs = [pfp, rxnfp, c1_input, r1_input,
                       r2_input, s1_input, s2_input]
-            
+
             (top_combos,top_combo_scores)=self.predict_top_combos(inputs=inputs)
-            
+
+            top_combo_scores = list(map(float, top_combo_scores))
+
             if return_scores:
                 return (top_combos[:n],top_combo_scores[:n])
             else:
@@ -167,9 +224,15 @@ class NeuralNetContextRecommender(ContextRecommender):
             return [[]]
 
     def path_condition(self, n, path):
-        """Reaction condition recommendation for a reaction path with multiple reactions
-            path: a list of reaction SMILES for each step
-            return: a list of reaction context with n options for each step
+        """Recommends reaction conditions reaction path with multiple reactions.
+
+        Args:
+            n (int): Number of options to use at each step.
+            path (list): Reaction SMILES for each step.
+
+
+            Returns:
+                A list of reaction contexts with n options for each step.
         """
         rsmi_list = []
         psmi_list = []
@@ -207,7 +270,29 @@ class NeuralNetContextRecommender(ContextRecommender):
                     rxn, e), contextRecommender_loc, level=2)
         return contexts
 
-    def predict_top_combos(self, inputs, return_categories_only = False, c1_rank_thres=2, s1_rank_thres=3, s2_rank_thres=1, r1_rank_thres=3, r2_rank_thres=1):
+    def predict_top_combos(self, inputs, return_categories_only = False,
+                           c1_rank_thres=2, s1_rank_thres=3, s2_rank_thres=1,
+                           r1_rank_thres=3, r2_rank_thres=1):
+        """Predicts top combos based on rank thresholds for individual elements.
+
+        Args:
+            inputs (list??): Input values for model.
+            return_categories_only (bool, optional): Whether to only return the
+                categories. Used for testing. (default: {False})
+            c1_rank_thres (int, optional): Rank threshold for c1??
+                (default: {2})
+            s1_rank_thres (int, optional): Rank threshold for s1??
+                (default: {3})
+            s2_rank_thres (int, optional): Rank threshold for s2??
+                (default: {1})
+            r1_rank_thres (int, optional): Rank threshold for r1??
+                (default: {3})
+            r2_rank_thres (int, optional): Rank threshold for r2??
+                (default: {1})
+
+        Returns:
+            2-tuple of lists: Context combinations and scores predicted.
+        """
         # this function predicts the top combos based on rank thresholds for
         # individual elements
         context_combos = []
@@ -326,15 +411,21 @@ class NeuralNetContextRecommender(ContextRecommender):
                             context_combo_scores.append(
                                 c1_sc*s1_sc*s2_sc*r1_sc*r2_sc)
         context_ranks = list(num_combos+1 - stats.rankdata(context_combo_scores))
-        
+
         context_combos = [context_combos[
             context_ranks.index(i+1)] for i in range(num_combos)]
         context_combo_scores = [context_combo_scores[
             context_ranks.index(i+1)] for i in range(num_combos)]
-    
+
         return (context_combos, context_combo_scores)
 
     def category_to_name(self,chem_type,category):
+        """Returns name ??
+
+        Args:
+            chem_type (str): ??
+            category (??): ??
+        """
         if chem_type == 'c1':
             return self.c1_dict[category]
         elif chem_type == 's1':
@@ -345,7 +436,7 @@ class NeuralNetContextRecommender(ContextRecommender):
             return self.r1_dict[category]
         elif chem_type == 'r2':
             return self.r2_dict[category]
-        
+
 
 if __name__ == '__main__':
     cont = NeuralNetContextRecommender()
@@ -353,4 +444,3 @@ if __name__ == '__main__':
     cont.load_nn_model(model_path=gc.NEURALNET_CONTEXT_REC['model_path'], info_path=gc.NEURALNET_CONTEXT_REC[
                        'info_path'], weights_path=gc.NEURALNET_CONTEXT_REC['weights_path'])
     print(cont.get_n_conditions('CC1(C)OBOC1(C)C.Cc1ccc(Br)cc1>>Cc1cccc(B2OC(C)(C)C(C)(C)O2)c1', 10, with_smiles=False, return_scores=True))
-
