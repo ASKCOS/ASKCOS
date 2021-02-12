@@ -16,7 +16,7 @@ import os
 from ..globals import RetroTransformer, RETRO_CHIRAL_FOOTNOTE, Pricer
 
 from ..utils import ajax_error_wrapper, resolve_smiles
-from .users import can_control_robot
+from .users import can_control_robot, can_avoid_banned_chemicals
 from ..forms import SmilesInputForm
 from ..models import BlacklistedReactions, BlacklistedChemicals, SavedResults
 
@@ -28,6 +28,16 @@ from askcos_site.askcos_celery.treebuilder.tb_coordinator_mcts import get_buyabl
 
 from celery.result import AsyncResult
 from askcos_site.celery import app
+from makeit.utilities.banned import BANNED_SMILES
+
+
+def is_banned(request, smiles):
+    if can_avoid_banned_chemicals(request):
+        return False
+    if smiles in BANNED_SMILES:
+        return True
+    return False
+
 
 #@login_required
 def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
@@ -70,7 +80,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             context['err'] = 'Could not parse!'
             return render(request, 'retro.html', context)
 
-    if smiles is not None:
+    if smiles is not None and not is_banned(request, smiles):
 
         # OLD: ALWAYS CHIRAL NOW
         # if 'retro_lit' in request.POST: return redirect('retro_lit_target', smiles=smiles)
@@ -171,6 +181,8 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
                     'ppg': '${}/g'.format(ppg) if ppg else 'cannot buy',
                 })
 
+    elif smiles is not None:
+        context['err'] = 'ASKCOS does not provide results for compounds on restricted lists such as the CWC and DEA schedules'
     else:
 
 
@@ -374,6 +386,11 @@ def ajax_start_retro_mcts_celery(request):
     description = request.GET.get('description')
 
     smiles = request.GET.get('smiles', None)
+
+    if is_banned(request, smiles):
+        data['html_trees'] = 'ASKCOS does not provide results for compounds on restricted lists such as the CWC and DEA schedules'
+        return JsonResponse(data)
+
     max_depth = int(request.GET.get('max_depth', 4))
     max_branching = int(request.GET.get('max_branching', 25))
     expansion_time = int(request.GET.get('expansion_time', 60))

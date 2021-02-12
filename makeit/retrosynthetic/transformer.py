@@ -16,6 +16,7 @@ from makeit.interfaces.template_transformer import TemplateTransformer
 from makeit.prioritization.templates.relevance import RelevanceTemplatePrioritizer
 from makeit.prioritization.precursors.relevanceheuristic import RelevanceHeuristicPrecursorPrioritizer
 from makeit.synthetic.evaluation.fast_filter import FastFilterScorer
+from makeit.utilities.banned import BANNED_SMILES
 from rdchiral.main import rdchiralRun
 from rdchiral.initialization import rdchiralReaction, rdchiralReactants
 from bson.objectid import ObjectId
@@ -227,7 +228,7 @@ class RetroTransformer(TemplateTransformer):
             template_set=None, template_prioritizer=None, 
             fast_filter=None, fast_filter_threshold=0.75, 
             max_num_templates=100, max_cum_prob=0.995, 
-            cluster=None, cluster_settings={}, 
+            cluster=None, cluster_settings={}, use_ban_list=True,
             **kwargs
         ):
         """Performs a one-step retrosynthesis given a SMILES string.
@@ -292,6 +293,9 @@ class RetroTransformer(TemplateTransformer):
 
         results = []
         smiles_to_index = {}
+
+        if use_ban_list and smiles in BANNED_SMILES:
+            return results
 
         scores, indices = template_prioritizer.predict(
             smiles, max_num_templates=max_num_templates, max_cum_prob=max_cum_prob
@@ -373,7 +377,8 @@ class RetroTransformer(TemplateTransformer):
     def apply_one_template_by_idx(
         self, _id, smiles, template_idx, calculate_next_probs=True,
         fast_filter_threshold=0.75, max_num_templates=100, max_cum_prob=0.995,
-        template_prioritizer=None, template_set=None, fast_filter=None
+        template_prioritizer=None, template_set=None, fast_filter=None,
+        use_ban_list=True,
     ):
         """Applies one template by index.
 
@@ -418,6 +423,9 @@ class RetroTransformer(TemplateTransformer):
         all_outcomes = []
         seen_reactants = {}
         seen_reactant_combos = []
+
+        if use_ban_list and smiles in BANNED_SMILES:
+            return [(_id, smiles, template_idx, [], 0.0)]  # dummy outcome
 
         template = self.get_one_template_by_idx(template_idx, template_set)
         template['rxn'] = rdchiralReaction(template['reaction_smarts'])

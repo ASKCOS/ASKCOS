@@ -1,0 +1,963 @@
+# (1) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1
+
+CP(=O)(OC(C)C)F  # sarin
+CP(=O)(OC(C)C(C)(C)C)F  # soman
+CP(=O)(OC1CCCCC1)F
+CP(=O)(OC)F
+CP(=O)(OCC)F
+CP(=O)(OCCC)F
+CP(=O)(OCCCC)F
+
+CCP(=O)(OC(C)C)F 
+CCP(=O)(OC(C)C(C)(C)C)F
+CCP(=O)(OC1CCCCC1)F
+CCP(=O)(OC)F
+CCP(=O)(OCC)F
+CCP(=O)(OCCC)F
+CCP(=O)(OCCCC)F
+
+CCCP(=O)(OC(C)C)F 
+CCCP(=O)(OC(C)C(C)(C)C)F
+CCCP(=O)(OC1CCCCC1)F
+CCCP(=O)(OC)F
+CCCP(=O)(OCC)F
+CCCP(=O)(OCCC)F
+CCCP(=O)(OCCCC)F
+
+CC(C)P(=O)(OC(C)C)F 
+CC(C)P(=O)(OC(C)C(C)(C)C)F
+CC(C)P(=O)(OC1CCCCC1)F
+CC(C)P(=O)(OC)F
+CC(C)P(=O)(OCC)F
+CC(C)P(=O)(OCCC)F
+CC(C)P(=O)(OCCCC)F
+
+# (2) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1
+
+O-Isopropyl N,N-dimethyl phosphoramidocyanidate
+O-Pinacolyl N,N-dimethyl phosphoramidocyanidate
+O-cyclohexyl N,N-dimethyl phosphoramidocyanidate
+O-methyl N,N-dimethyl phosphoramidocyanidate
+O-Ethyl N,N-dimethyl phosphoramidocyanidate # tabun
+O-propyl N,N-dimethyl phosphoramidocyanidate
+O-butyl N,N-dimethyl phosphoramidocyanidate
+
+O-Isopropyl N,N-diethyl phosphoramidocyanidate
+O-Pinacolyl N,N-diethyl phosphoramidocyanidate
+O-cyclohexyl N,N-diethyl phosphoramidocyanidate
+O-methyl N,N-diethyl phosphoramidocyanidate
+O-Ethyl N,N-diethyl phosphoramidocyanidate 
+O-propyl N,N-diethyl phosphoramidocyanidate
+O-butyl N,N-diethyl phosphoramidocyanidate
+
+O-Isopropyl N,N-dipropyl phosphoramidocyanidate
+O-Pinacolyl N,N-dipropyl phosphoramidocyanidate
+O-cyclohexyl N,N-dipropyl phosphoramidocyanidate
+O-methyl N,N-dipropyl phosphoramidocyanidate
+O-Ethyl N,N-dipropyl phosphoramidocyanidate 
+O-propyl N,N-dipropyl phosphoramidocyanidate
+O-butyl N,N-dipropyl phosphoramidocyanidate
+
+O-Isopropyl N,N-diisopropyl phosphoramidocyanidate
+O-Pinacolyl N,N-diisopropyl phosphoramidocyanidate
+O-cyclohexyl N,N-diisopropyl phosphoramidocyanidate
+O-methyl N,N-diisopropyl phosphoramidocyanidate
+O-Ethyl N,N-diisopropyl phosphoramidocyanidate 
+O-propyl N,N-diisopropyl phosphoramidocyanidate
+O-butyl N,N-diisopropyl phosphoramidocyanidate
+
+# (3) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1
+
+O-Methyl S-2-diisopropylaminoethyl methyl phosphonothiolate
+O-Ethyl S-2-diisopropylaminoethyl methyl phosphonothiolate # VX
+O-propyl S-2-diisopropylaminoethyl methyl phosphonothiolate
+O-butyl S-2-diisopropylaminoethyl methyl phosphonothiolate
+O-Isopropyl S-2-diisopropylaminoethyl methyl phosphonothiolate
+O-Pinacolyl S-2-diisopropylaminoethyl methyl phosphonothiolate
+O-cyclohexyl S-2-diisopropylaminoethyl methyl phosphonothiolate
+
+O-Methyl S-2-diisopropylaminoethyl ethyl phosphonothiolate
+O-Ethyl S-2-diisopropylaminoethyl ethyl phosphonothiolate
+O-propyl S-2-diisopropylaminoethyl ethyl phosphonothiolate
+O-butyl S-2-diisopropylaminoethyl ethyl phosphonothiolate
+O-Isopropyl S-2-diisopropylaminoethyl ethyl phosphonothiolate
+O-Pinacolyl S-2-diisopropylaminoethyl ethyl phosphonothiolate
+O-cyclohexyl S-2-diisopropylaminoethyl ethyl phosphonothiolate
+
+O-Methyl S-2-diisopropylaminoethyl propyl phosphonothiolate
+O-Ethyl S-2-diisopropylaminoethyl propyl phosphonothiolate
+O-propyl S-2-diisopropylaminoethyl propyl phosphonothiolate
+O-butyl S-2-diisopropylaminoethyl propyl phosphonothiolate
+O-Isopropyl S-2-diisopropylaminoethyl propyl phosphonothiolate
+O-Pinacolyl S-2-diisopropylaminoethyl propyl phosphonothiolate
+O-cyclohexyl S-2-diisopropylaminoethyl propyl phosphonothiolate
+
+O-Methyl S-2-diisopropylaminoethyl isopropyl phosphonothiolate
+O-Ethyl S-2-diisopropylaminoethyl isopropyl phosphonothiolate
+O-propyl S-2-diisopropylaminoethyl isopropyl phosphonothiolate
+O-butyl S-2-diisopropylaminoethyl isopropyl phosphonothiolate
+O-Isopropyl S-2-diisopropylaminoethyl isopropyl phosphonothiolate
+O-Pinacolyl S-2-diisopropylaminoethyl isopropyl phosphonothiolate
+O-cyclohexyl S-2-diisopropylaminoethyl isopropyl phosphonothiolate
+
+O-Methyl S-2-dimethylaminoethyl methyl phosphonothiolate
+O-Ethyl S-2-dimethylaminoethyl methyl phosphonothiolate 
+O-propyl S-2-dimethylaminoethyl methyl phosphonothiolate
+O-butyl S-2-dimethylaminoethyl methyl phosphonothiolate
+O-Isopropyl S-2-dimethylaminoethyl methyl phosphonothiolate
+O-Pinacolyl S-2-dimethylaminoethyl methyl phosphonothiolate
+O-cyclohexyl S-2-dimethylaminoethyl methyl phosphonothiolate
+
+O-Methyl S-2-dimethylaminoethyl ethyl phosphonothiolate
+O-Ethyl S-2-dimethylaminoethyl ethyl phosphonothiolate
+O-propyl S-2-dimethylaminoethyl ethyl phosphonothiolate
+O-butyl S-2-dimethylaminoethyl ethyl phosphonothiolate
+O-Isopropyl S-2-dimethylaminoethyl ethyl phosphonothiolate
+O-Pinacolyl S-2-dimethylaminoethyl ethyl phosphonothiolate
+O-cyclohexyl S-2-dimethylaminoethyl ethyl phosphonothiolate
+
+O-Methyl S-2-dimethylaminoethyl propyl phosphonothiolate
+O-Ethyl S-2-dimethylaminoethyl propyl phosphonothiolate
+O-propyl S-2-dimethylaminoethyl propyl phosphonothiolate
+O-butyl S-2-dimethylaminoethyl propyl phosphonothiolate
+O-Isopropyl S-2-dimethylaminoethyl propyl phosphonothiolate
+O-Pinacolyl S-2-dimethylaminoethyl propyl phosphonothiolate
+O-cyclohexyl S-2-dimethylaminoethyl propyl phosphonothiolate
+
+O-Methyl S-2-dimethylaminoethyl isopropyl phosphonothiolate
+O-Ethyl S-2-dimethylaminoethyl isopropyl phosphonothiolate
+O-propyl S-2-dimethylaminoethyl isopropyl phosphonothiolate
+O-butyl S-2-dimethylaminoethyl isopropyl phosphonothiolate
+O-Isopropyl S-2-dimethylaminoethyl isopropyl phosphonothiolate
+O-Pinacolyl S-2-dimethylaminoethyl isopropyl phosphonothiolate
+O-cyclohexyl S-2-dimethylaminoethyl isopropyl phosphonothiolate
+
+O-Methyl S-2-diethylaminoethyl methyl phosphonothiolate
+O-Ethyl S-2-diethylaminoethyl methyl phosphonothiolate 
+O-propyl S-2-diethylaminoethyl methyl phosphonothiolate
+O-butyl S-2-diethylaminoethyl methyl phosphonothiolate
+O-Isopropyl S-2-diethylaminoethyl methyl phosphonothiolate
+O-Pinacolyl S-2-diethylaminoethyl methyl phosphonothiolate
+O-cyclohexyl S-2-diethylaminoethyl methyl phosphonothiolate
+
+O-Methyl S-2-diethylaminoethyl ethyl phosphonothiolate
+O-Ethyl S-2-diethylaminoethyl ethyl phosphonothiolate
+O-propyl S-2-diethylaminoethyl ethyl phosphonothiolate
+O-butyl S-2-diethylaminoethyl ethyl phosphonothiolate
+O-Isopropyl S-2-diethylaminoethyl ethyl phosphonothiolate
+O-Pinacolyl S-2-diethylaminoethyl ethyl phosphonothiolate
+O-cyclohexyl S-2-diethylaminoethyl ethyl phosphonothiolate
+
+O-Methyl S-2-diethylaminoethyl propyl phosphonothiolate
+O-Ethyl S-2-diethylaminoethyl propyl phosphonothiolate
+O-propyl S-2-diethylaminoethyl propyl phosphonothiolate
+O-butyl S-2-diethylaminoethyl propyl phosphonothiolate
+O-Isopropyl S-2-diethylaminoethyl propyl phosphonothiolate
+O-Pinacolyl S-2-diethylaminoethyl propyl phosphonothiolate
+O-cyclohexyl S-2-diethylaminoethyl propyl phosphonothiolate
+
+O-Methyl S-2-diethylaminoethyl isopropyl phosphonothiolate
+O-Ethyl S-2-diethylaminoethyl isopropyl phosphonothiolate
+O-propyl S-2-diethylaminoethyl isopropyl phosphonothiolate
+O-butyl S-2-diethylaminoethyl isopropyl phosphonothiolate
+O-Isopropyl S-2-diethylaminoethyl isopropyl phosphonothiolate
+O-Pinacolyl S-2-diethylaminoethyl isopropyl phosphonothiolate
+O-cyclohexyl S-2-diethylaminoethyl isopropyl phosphonothiolate
+
+O-Methyl S-2-dipropylaminoethyl methyl phosphonothiolate
+O-Ethyl S-2-dipropylaminoethyl methyl phosphonothiolate 
+O-propyl S-2-dipropylaminoethyl methyl phosphonothiolate
+O-butyl S-2-dipropylaminoethyl methyl phosphonothiolate
+O-Isopropyl S-2-dipropylaminoethyl methyl phosphonothiolate
+O-Pinacolyl S-2-dipropylaminoethyl methyl phosphonothiolate
+O-cyclohexyl S-2-dipropylaminoethyl methyl phosphonothiolate
+
+O-Methyl S-2-dipropylaminoethyl ethyl phosphonothiolate
+O-Ethyl S-2-dipropylaminoethyl ethyl phosphonothiolate
+O-propyl S-2-dipropylaminoethyl ethyl phosphonothiolate
+O-butyl S-2-dipropylaminoethyl ethyl phosphonothiolate
+O-Isopropyl S-2-dipropylaminoethyl ethyl phosphonothiolate
+O-Pinacolyl S-2-dipropylaminoethyl ethyl phosphonothiolate
+O-cyclohexyl S-2-dipropylaminoethyl ethyl phosphonothiolate
+
+O-Methyl S-2-dipropylaminoethyl propyl phosphonothiolate
+O-Ethyl S-2-dipropylaminoethyl propyl phosphonothiolate
+O-propyl S-2-dipropylaminoethyl propyl phosphonothiolate
+O-butyl S-2-dipropylaminoethyl propyl phosphonothiolate
+O-Isopropyl S-2-dipropylaminoethyl propyl phosphonothiolate
+O-Pinacolyl S-2-dipropylaminoethyl propyl phosphonothiolate
+O-cyclohexyl S-2-dipropylaminoethyl propyl phosphonothiolate
+
+O-Methyl S-2-dipropylaminoethyl isopropyl phosphonothiolate
+O-Ethyl S-2-dipropylaminoethyl isopropyl phosphonothiolate
+O-propyl S-2-dipropylaminoethyl isopropyl phosphonothiolate
+O-butyl S-2-dipropylaminoethyl isopropyl phosphonothiolate
+O-Isopropyl S-2-dipropylaminoethyl isopropyl phosphonothiolate
+O-Pinacolyl S-2-dipropylaminoethyl isopropyl phosphonothiolate
+O-cyclohexyl S-2-dipropylaminoethyl isopropyl phosphonothiolate
+
+# (4) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1
+
+2-Chloroethylchloromethylsulfide
+Bis(2-chloroethyl)sulfide # Mustard gas
+Bis(2-chloroethylthio)methane	
+1,2-Bis(2-chloroethylthio)ethane	# Sesquimustard
+1,3-Bis(2-chloroethylthio)-n-propane	
+1,4-Bis(2-chloroethylthio)-n-butane	
+1,5-Bis(2-chloroethylthio)-n-pentane	
+Bis(2-chloroethylthiomethyl)ether
+Bis(2-chloroethylthioethyl)ether  # O-Mustard
+
+# (5) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1
+
+2-Chlorovinyldichloroarsine # lewisite 1
+Bis(2-chlorovinyl)chloroarsine # lewisite 2
+Tris(2-chlorovinyl)arsine # lewisite 3
+
+# (6) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1
+
+Bis(2-chloroethyl)ethylamine # HN1
+Bis(2-chloroethyl)methylamine # HN2
+Tris(2-chloroethyl)amine # HN3
+
+# (7) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1
+
+Saxitoxin 
+
+# (8) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1
+
+Ricin
+
+# (9) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1
+
+Methylphosphonyldifluoride # DF
+ethylphosphonyldifluoride 
+propylphosphonyldifluoride
+isopropylphosphonyldifluoride
+
+# (10) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1
+
+O-Methyl O-2-diisopropylaminoethyl methyl phosphonite
+O-Ethyl O-2-diisopropylaminoethyl methyl phosphonite 
+O-propyl O-2-diisopropylaminoethyl methyl phosphonite
+O-butyl O-2-diisopropylaminoethyl methyl phosphonite
+O-Isopropyl O-2-diisopropylaminoethyl methyl phosphonite
+O-Pinacolyl O-2-diisopropylaminoethyl methyl phosphonite
+O-cyclohexyl O-2-diisopropylaminoethyl methyl phosphonite
+
+O-Methyl O-2-diisopropylaminoethyl ethyl phosphonite
+O-Ethyl O-2-diisopropylaminoethyl ethyl phosphonite
+O-propyl O-2-diisopropylaminoethyl ethyl phosphonite
+O-butyl O-2-diisopropylaminoethyl ethyl phosphonite
+O-Isopropyl O-2-diisopropylaminoethyl ethyl phosphonite
+O-Pinacolyl O-2-diisopropylaminoethyl ethyl phosphonite
+O-cyclohexyl O-2-diisopropylaminoethyl ethyl phosphonite
+
+O-Methyl O-2-diisopropylaminoethyl propyl phosphonite
+O-Ethyl O-2-diisopropylaminoethyl propyl phosphonite
+O-propyl O-2-diisopropylaminoethyl propyl phosphonite
+O-butyl O-2-diisopropylaminoethyl propyl phosphonite
+O-Isopropyl O-2-diisopropylaminoethyl propyl phosphonite
+O-Pinacolyl O-2-diisopropylaminoethyl propyl phosphonite
+O-cyclohexyl O-2-diisopropylaminoethyl propyl phosphonite
+
+O-Methyl O-2-diisopropylaminoethyl isopropyl phosphonite
+O-Ethyl O-2-diisopropylaminoethyl isopropyl phosphonite
+O-propyl O-2-diisopropylaminoethyl isopropyl phosphonite
+O-butyl O-2-diisopropylaminoethyl isopropyl phosphonite
+O-Isopropyl O-2-diisopropylaminoethyl isopropyl phosphonite
+O-Pinacolyl O-2-diisopropylaminoethyl isopropyl phosphonite
+O-cyclohexyl O-2-diisopropylaminoethyl isopropyl phosphonite
+
+O-Methyl O-2-dimethylaminoethyl methyl phosphonite
+O-Ethyl O-2-dimethylaminoethyl methyl phosphonite 
+O-propyl O-2-dimethylaminoethyl methyl phosphonite
+O-butyl O-2-dimethylaminoethyl methyl phosphonite
+O-Isopropyl O-2-dimethylaminoethyl methyl phosphonite
+O-Pinacolyl O-2-dimethylaminoethyl methyl phosphonite
+O-cyclohexyl O-2-dimethylaminoethyl methyl phosphonite
+
+O-Methyl O-2-dimethylaminoethyl ethyl phosphonite
+O-Ethyl O-2-dimethylaminoethyl ethyl phosphonite
+O-propyl O-2-dimethylaminoethyl ethyl phosphonite
+O-butyl O-2-dimethylaminoethyl ethyl phosphonite
+O-Isopropyl O-2-dimethylaminoethyl ethyl phosphonite
+O-Pinacolyl O-2-dimethylaminoethyl ethyl phosphonite
+O-cyclohexyl O-2-dimethylaminoethyl ethyl phosphonite
+
+O-Methyl O-2-dimethylaminoethyl propyl phosphonite
+O-Ethyl O-2-dimethylaminoethyl propyl phosphonite
+O-propyl O-2-dimethylaminoethyl propyl phosphonite
+O-butyl O-2-dimethylaminoethyl propyl phosphonite
+O-Isopropyl O-2-dimethylaminoethyl propyl phosphonite
+O-Pinacolyl O-2-dimethylaminoethyl propyl phosphonite
+O-cyclohexyl O-2-dimethylaminoethyl propyl phosphonite
+
+O-Methyl O-2-dimethylaminoethyl isopropyl phosphonite
+O-Ethyl O-2-dimethylaminoethyl isopropyl phosphonite
+O-propyl O-2-dimethylaminoethyl isopropyl phosphonite
+O-butyl O-2-dimethylaminoethyl isopropyl phosphonite
+O-Isopropyl O-2-dimethylaminoethyl isopropyl phosphonite
+O-Pinacolyl O-2-dimethylaminoethyl isopropyl phosphonite
+O-cyclohexyl O-2-dimethylaminoethyl isopropyl phosphonite
+
+O-Methyl O-2-diethylaminoethyl methyl phosphonite
+O-Ethyl O-2-diethylaminoethyl methyl phosphonite 
+O-propyl O-2-diethylaminoethyl methyl phosphonite
+O-butyl O-2-diethylaminoethyl methyl phosphonite
+O-Isopropyl O-2-diethylaminoethyl methyl phosphonite
+O-Pinacolyl O-2-diethylaminoethyl methyl phosphonite
+O-cyclohexyl O-2-diethylaminoethyl methyl phosphonite
+
+O-Methyl O-2-diethylaminoethyl ethyl phosphonite
+O-Ethyl O-2-diethylaminoethyl ethyl phosphonite
+O-propyl O-2-diethylaminoethyl ethyl phosphonite
+O-butyl O-2-diethylaminoethyl ethyl phosphonite
+O-Isopropyl O-2-diethylaminoethyl ethyl phosphonite
+O-Pinacolyl O-2-diethylaminoethyl ethyl phosphonite
+O-cyclohexyl O-2-diethylaminoethyl ethyl phosphonite
+
+O-Methyl O-2-diethylaminoethyl propyl phosphonite
+O-Ethyl O-2-diethylaminoethyl propyl phosphonite
+O-propyl O-2-diethylaminoethyl propyl phosphonite
+O-butyl O-2-diethylaminoethyl propyl phosphonite
+O-Isopropyl O-2-diethylaminoethyl propyl phosphonite
+O-Pinacolyl O-2-diethylaminoethyl propyl phosphonite
+O-cyclohexyl O-2-diethylaminoethyl propyl phosphonite
+
+O-Methyl O-2-diethylaminoethyl isopropyl phosphonite
+O-Ethyl O-2-diethylaminoethyl isopropyl phosphonite
+O-propyl O-2-diethylaminoethyl isopropyl phosphonite
+O-butyl O-2-diethylaminoethyl isopropyl phosphonite
+O-Isopropyl O-2-diethylaminoethyl isopropyl phosphonite
+O-Pinacolyl O-2-diethylaminoethyl isopropyl phosphonite
+O-cyclohexyl O-2-diethylaminoethyl isopropyl phosphonite
+
+O-Methyl O-2-dipropylaminoethyl methyl phosphonite
+O-Ethyl O-2-dipropylaminoethyl methyl phosphonite 
+O-propyl O-2-dipropylaminoethyl methyl phosphonite
+O-butyl O-2-dipropylaminoethyl methyl phosphonite
+O-Isopropyl O-2-dipropylaminoethyl methyl phosphonite
+O-Pinacolyl O-2-dipropylaminoethyl methyl phosphonite
+O-cyclohexyl O-2-dipropylaminoethyl methyl phosphonite
+
+O-Methyl O-2-dipropylaminoethyl ethyl phosphonite
+O-Ethyl O-2-dipropylaminoethyl ethyl phosphonite
+O-propyl O-2-dipropylaminoethyl ethyl phosphonite
+O-butyl O-2-dipropylaminoethyl ethyl phosphonite
+O-Isopropyl O-2-dipropylaminoethyl ethyl phosphonite
+O-Pinacolyl O-2-dipropylaminoethyl ethyl phosphonite
+O-cyclohexyl O-2-dipropylaminoethyl ethyl phosphonite
+
+O-Methyl O-2-dipropylaminoethyl propyl phosphonite
+O-Ethyl O-2-dipropylaminoethyl propyl phosphonite
+O-propyl O-2-dipropylaminoethyl propyl phosphonite
+O-butyl O-2-dipropylaminoethyl propyl phosphonite
+O-Isopropyl O-2-dipropylaminoethyl propyl phosphonite
+O-Pinacolyl O-2-dipropylaminoethyl propyl phosphonite
+O-cyclohexyl O-2-dipropylaminoethyl propyl phosphonite
+
+O-Methyl O-2-dipropylaminoethyl isopropyl phosphonite
+O-Ethyl O-2-dipropylaminoethyl isopropyl phosphonite
+O-propyl O-2-dipropylaminoethyl isopropyl phosphonite
+O-butyl O-2-dipropylaminoethyl isopropyl phosphonite
+O-Isopropyl O-2-dipropylaminoethyl isopropyl phosphonite
+O-Pinacolyl O-2-dipropylaminoethyl isopropyl phosphonite
+O-cyclohexyl O-2-dipropylaminoethyl isopropyl phosphonite
+
+# (11) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1
+
+O-Isopropyl methylphosphonochloridate # chlorosarin
+
+# (12) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-1
+
+O-Pinacolyl methylphosphonochloridate # chlorosoman
+
+# (1) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+CCN(CC)CCSP(=O)(OCC)OCC # VG, amiton
+
+# (2) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+1,1,3,3,3-Pentafluoro-2-(trifluoromethyl)-1-propene # PFIB
+
+# (3) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+3-Quinuclidinyl benzilate # BZ
+
+# (4) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+Methylphosphonyl dichloride
+Dimethyl methylphosphonate
+
+# (5) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+N,N-dimethyl phosphoramidic dibromide
+N,N-dimethyl phosphoramidic dichloride
+N,N-dimethyl phosphoramidic diiodide
+N,N-dimethyl phosphoramidic difluoride
+
+N,N-diethyl phosphoramidic dibromide
+N,N-diethyl phosphoramidic dichloride
+N,N-diethyl phosphoramidic diiodide
+N,N-diethyl phosphoramidic difluoride
+
+N,N-dipropyl phosphoramidic dibromide
+N,N-dipropyl phosphoramidic dichloride
+N,N-dipropyl phosphoramidic diiodide
+N,N-dipropyl phosphoramidic difluoride
+
+N,N-diisopropyl phosphoramidic dibromide
+N,N-diisopropyl phosphoramidic dichloride
+N,N-diisopropyl phosphoramidic diiodide
+N,N-diisopropyl phosphoramidic difluoride
+
+# (6) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+Dimethyl N,N-dimethylphosphoramidate
+Diethyl N,N-dimethylphosphoramidate
+Dipropyl N,N-dimethylphosphoramidate
+Diisopropyl N,N-dimethylphosphoramidate
+
+Dimethyl N,N-diethylphosphoramidate
+Diethyl N,N-diethylphosphoramidate
+Dipropyl N,N-diethylphosphoramidate
+Diisopropyl N,N-diethylphosphoramidate
+
+Dimethyl N,N-dipropylphosphoramidate
+Diethyl N,N-dipropylphosphoramidate
+Dipropyl N,N-dipropylphosphoramidate
+Diisopropyl N,N-dipropylphosphoramidate
+
+Dimethyl N,N-diisopropylphosphoramidate
+Diethyl N,N-diisopropylphosphoramidate
+Dipropyl N,N-diisopropylphosphoramidate
+Diisopropyl N,N-diisopropylphosphoramidate
+
+# (7) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+Arsenic trichloride
+
+# (8) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+2,2-Diphenyl-2-hydroxyacetic acid
+
+# (9) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+Quinuclidin-3-ol
+
+# (10) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+N,N-Dimethylaminoethyl-2-chloride
+N,N-Diethylaminoethyl-2-chloride
+N,N-Dipropylaminoethyl-2-chloride
+N,N-Diisopropylaminoethyl-2-chloride
+
+# (11) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+N,N-Dipropylaminoethane-2-ol
+N,N-Diisopropylaminoethane-2-ol
+
+# (12) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+N,N-Dimethylaminoethane-2-thiol
+N,N-Diethylaminoethane-2-thiol
+N,N-Dipropylaminoethane-2-thiol
+N,N-Diisopropylaminoethane-2-thiol
+
+# (13) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+Bis(2-hydroxyethyl)sulfide
+
+# (14) from https://www.opcw.org/chemical-weapons-convention/annexes/annex-chemicals/schedule-2
+
+3,3-Dimethylbutan-2-ol
+
+# https://cen.acs.org/articles/96/i12/Nerve-agent-attack-on-spy-used-Novichok-poison.html
+
+VR
+A-230
+A-232
+A-234
+
+
+# DEA schedule
+
+
+6-bromo-androsta-1,4-diene-3,17-dione
+[3,2-c]-furazan-5α-androstan-17β-ol
+[3,2-c]pyrazole-androst-4-en-17β-ol
+1-(1-Phenylcyclohexyl)pyrrolidine
+1-(2-Phenylethyl)-4-phenyl-4-acetoxypiperidine
+1-[1-(2-Thienyl)cyclohexyl]piperidine
+1-[1-(2-Thienyl)cyclohexyl]pyrrolidine
+13Beta-ethyl-17beta-hydroxygon-4-en-3-one
+17Alpha-methyl-3alpha,17beta-dihydroxy-5alpha-androstane
+17Alpha-methyl-3beta,17beta-dihydroxy-5alpha-androstane
+17Alpha-methyl-3beta,17beta-dihydroxyandrost-4-ene
+17Alpha-methyl-4-hydroxynandrolone
+17Alpha-methyl-delta1-dihydrotestosterone
+17α-Methyl-5α-androstan-17β-ol
+17α-methyl-androst-2-ene-3,17β-diol
+17α-methyl-androsta-1,4-diene-3,17β-diol
+17α-Methyl-androstan-3-hydroxyimine-17β-ol
+17β-Hydroxy-androstano[2,3-d]isoxazole
+17β-Hydroxy-androstano[3,2-c]isoxazole
+18a-Homo-3-hydroxy-estra-2,5(10)-dien-17-one
+19-Nor-4,9(10)-androstadienedione
+19-Nor-4-androstenediol
+19-Nor-4-androstenedione
+19-Nor-5-androstenediol
+19-Nor-5-androstenedione
+1-Androstenediol
+1-Androstenedione
+1-Methyl-4-phenyl-4-propionoxypiperidine
+1-Phenylcyclohexylamine
+1-Piperidinocyclohexanecarbonitrile
+2-(2,5-Dimethoxy-4-(n)-propylphenyl) ethanamine
+2-(2,5-Dimethoxy-4-ethylphenyl) ethanamine
+dimethylphenethylamine
+2-(2,5-Dimethoxy-4-methylphenyl) ethanamine
+2-(2,5-Dimethoxy-4-nitro-phenyl) ethanamine
+2-(2,5-Dimethoxyphenyl) ethanamine
+2-(4-bromo-2,5-dimethoxyphenyl)-N-(2-methoxybenzyl) ethanamine
+2-(4-Chloro-2,5-dimethoxyphenyl) ethanamine
+2-(4-chloro-2,5-dimethoxyphenyl)-N-(2-methoxybenzyl)ethanamine
+2-(4-Ethylthio-2,5-dimethoxyphenyl) ethanamine
+2-(4-iodo-2,5-dimethoxyphenyl) ethanamine
+2-(4-iodo-2,5-dimethoxyphenyl)-N-(2-methoxybenzyl)ethanamine
+2-(4-Isopropylthio)-2,5-dimethoxyphenyl) ethanamine
+2,5-Dimethoxy-4-(n)-propylthiophenethylamine
+2,5-Dimethoxy-4-ethylamphetamine
+2,5-Dimethoxyamphetamine
+2-methoxy-N-(1-phenethylpiperidin-4-yl)-N-phenylacetamide
+2α,17α-dimethyl-17β-hydroxy-5β-androstan-3-one
+2α,3α-epithio-17α-methyl-5α-androstan-17β-ol
+3,4,5-Trimethoxyamphetamine
+3,4-Methylenedioxyamphetamine
+3,4-Methylenedioxymethamphetamine
+3,4-Methylenedioxy-N-ethylamphetamine
+3Alpha,17beta-dihydroxy-5alpha-androstane
+3Beta,17beta-dihydroxy-5alpha-androstane
+3-Fluoro-N-methylcathinone
+3-Methylfentanyl
+3-Methylthiofentanyl
+3β-hydroxy-estra-4,9,11-trien-17-one
+4-Androstenediol
+4-Androstenedione
+4-Anilino-N-phenethyl-4-piperidine
+4-Bromo-2,5-dimethoxyamphetamine
+4-Bromo-2,5-dimethoxyphenethylamine
+4-chloro-17α-methyl-17β-hydroxy-androst-4-en-3-one
+4-chloro-17α-methyl-17β-hydroxy-androst-4-ene-3,11-dione
+4-chloro-17α-methyl-androst-4-ene-3β,17β-diol
+4-chloro-17α-methyl-androsta-1,4-diene-3,17β-diol
+4-CN-CUMYL-BUTINACA (1-(4-cyanobutyl)-N-(2-phenylpropan-2-yl)-1 H-indazole-3-carboxamide) BINACA; CUMYL-4CN-BINACA; SGT-78
+4-Dihydrotestosterone
+4-Fluoroisobutyryl fentanyl
+4-Fluoro-N-methylcathinone
+4-Hydroxy-19-nortestosterone
+4-Hydroxy-androst-4-ene-3,17-dione
+4-Hydroxytestosterone
+4-Methoxyamphetamine
+4-Methyl-2,5-dimethoxyamphetamine
+dimethylphenethylamine
+4-Methyl-alphapyrrolidinopropiophenone
+methylphenyl)-2-(pyrrolidin-1-yl)-propan-1-one)
+4-Methylaminorex
+4-Methyl-N-ethylcathinone
+5-Androstenediol
+5-Androstenedione
+5F-AB-PINACA
+5F-ADB
+5F-AMB 
+5F-APINACA
+5F-CUMYL-P7AICA 
+5-Fluoro-UR-144 
+5F-PB-22
+5-Methoxy-3,4-methylenedioxyamphetamine
+5-Methoxy-N,N-diisopropyltryptamine
+5-Methoxy-N-N-dimethyltryptamine
+5α-Androstan-3,6,17-trione
+6-bromo-androstan-3,17-dione
+6α-Methyl-androst-4-ene-3,17-dione
+AB-CHMINACA
+AB-FUBINACA 
+AB-PINACA 
+Acetorphine
+Acetyl Fentanyl
+Acetyl-alpha-methylfentanyl
+Acetyldihydrocodeine
+Acetylmethadol
+Acryl fentanyl
+ADB-FUBINACA
+ADB-PINACA
+AH-7921
+Alfaxalone
+Alfentanil
+Allylprodine
+Alphacetylmethadol except levo-alphacetylmethadol
+Alpha-ethyltryptamine
+Alphameprodine
+Alphamethadol
+Alpha-methylfentanyl
+Alpha-methylthiofentanyl
+Alpha-methyltryptamine
+Alphaprodine
+alpha-pyrrolidinobutiophenone
+alpha-pyrrolidinopentiophenone
+4-methyl-αpyrrolidinobutiophenone
+1-phenyl-2-(piperidin-1-yl)butan-1-one
+Alprazolam
+AM2201
+AM-694
+Aminorex
+Amobarbital
+Amobarbital & noncontrolled active ingred.
+Amobarbital suppository dosage form
+Amphetamine
+Anabolic steroids
+Androstanedione
+Anileridine
+APINACA
+AKB48
+Aprobarbital
+Barbital
+Barbituric acid derivative
+Benzethidine
+Benzphetamine
+Benzylmorphine
+Betacetylmethadol
+Beta-hydroxy-3-methylfentanyl
+Beta-hydroxyfentanyl
+Beta-hydroxythiofentanyl
+N-phenylpropionamide
+Betameprodine
+Betamethadol
+Betaprodine
+Bezitramide
+Bolasterone
+Boldenone
+Boldione
+Brivaracetam
+Bromazepam
+Bufotenine
+Buprenorphine
+Butabarbital
+Butalbital
+Butobarbital
+Butorphanol
+Butylone
+Butyryl Fentanyl
+Calusterone
+Camazepam
+Carfentanil
+Carisoprodol
+Cathine
+Cathinone
+Chloral betaine
+Chloral hydrate
+Chlordiazepoxide
+Chlorhexadol
+Chlorphentermine
+Clobazam
+Clonazepam
+Clonitazene
+Clorazepate
+Clortermine
+Clostebol
+Clotiazepam
+Cloxazolam
+Coca Leaves
+Cocaine
+Codeine
+Codeine methylbromide
+Codeine-N-oxide
+5-(1,1-Dimethylheptyl)-2-[(1R,3S)-3-hydroxycyclohexyl-phenol
+5-(1,1-Dimethyloctyl)-2-[(1R,3S)3-hydroxycyclohexyl-phenol
+Cyclopentyl fentanyl
+Cyclopropyl Fentanyl
+Cyprenorphine
+Dehydrochloromethyltestosterone
+Delorazepam
+Delta1-dihydrotestosterone
+Desomorphine
+Desoxymethyltestosterone
+Dexfenfluramine
+Dextromoramide
+Dextropropoxyphene
+Diampromide
+Diazepam
+Dichloralphenazone
+Diethylpropion
+Diethylthiambutene
+Diethyltryptamine
+Difenoxin
+Dihydrocodeine
+Dihydroetorphine
+Dihydromorphine
+Dimenoxadol
+Dimepheptanol
+Dimethylthiambutene
+Dimethyltryptamine
+Dioxaphetyl butyrate
+Diphenoxylate
+Dipipanone
+Dronabinol
+Drostanolone
+Drotebanol
+Ecgonine
+Eluxadoline
+Embutramide
+Estazolam
+Estra-4,9,11-triene-3,17-dione
+Ethchlorvynol
+Ethinamate
+Ethyl loflazepate
+Ethylestrenol
+Ethylmethylthiambutene
+Ethylmorphine
+Etonitazene
+Etorphine
+Etorphine HCl
+Etoxeridine
+Ezogabine
+Fencamfamin
+Fenethylline
+Fenfluramine
+Fenproporex
+Fentanyl
+Fludiazepam
+Flunitrazepam
+Fluoxymesterone
+Flurazepam
+Formebolone
+Fospropofol
+Furanyl fentanyl
+Furazabol
+Furethidine
+Gamma Hydroxybutyric Acid
+Glutethimide
+Halazepam
+Haloxazolam
+Heroin
+Hydrocodone
+Hydromorphinol
+Hydromorphone
+Hydroxypethidine
+Ibogaine
+Isobutyryl fentanyl
+Isomethadone
+JWH-018
+JWH-019
+JWH-073
+JWH-081
+JWH-122
+JWH-200
+JWH-203
+JWH-250
+JWH-398
+Ketamine
+Ketazolam
+Ketobemidone
+Lacosamide
+Levo-alphacetylmethadol
+Levomethorphan
+Levomoramide
+Levophenacylmorphan
+Levorphanol
+Lisdexamfetamine
+Loprazolam
+Lorazepam
+Lorcaserin
+Lormetazepam
+Lysergic acid
+Lysergic acid amide
+Lysergic acid diethylamide
+MAB-CHMINACA
+Mazindol
+MDMB-CHMICA
+MDMB-FUBINACA 
+MDPV
+Mebutamate
+Mecloqualone
+Medazepam
+Mefenorex
+Meperidine
+Mephedrone 
+Meprobamate 
+3-Methyl-methcathinone
+Buphedrone
+Ethcathinone
+N,N-Dimethyl-cathinone
+Mescaline
+Mestanolone
+Mesterolone 
+Metazocine 
+Methadone
+Methamphetamine
+Methandienone
+Methandriol 
+Methaqualone 
+Methasterone
+Methcathinone
+Methasterone
+N-Methylcathinone
+Methenolone 
+Methohexital
+Methyl 2-(1-(4-fluorobenzyl)-1Hindazole-3-carboxamido)-3- methylbutanoate
+Methyldesorphine 
+Methyldienolone 
+Methyldihydromorphine 
+Methylone 
+Methylphenidate 
+2,3-methylenedioxymethcathinone
+Methylphenobarbital
+Methyltestosterone
+Methyltrienolone
+Methyprylon
+Metopon
+Mibolerone
+Midazolam
+MMB-CHMICA
+Modafinil
+Moramide-intermediate
+Morpheridine
+Morphine
+Morphine methylbromide
+Morphine methylsulfonate
+Morphine-N-oxide
+MT-45
+Myrophine
+N-(1-phenethylpiperidin-4-yl)-N-phenyltetrahydrofuran-2-carboxamide
+N-(2-fluorophenyl)-N-(1-phenethylpiperidin-4-yl)propionamide
+N,N-Dimethylamphetamine
+Nabilone
+Nalorphine
+Nandrolone 
+Naphyrone
+N-Benzylpiperazine
+N-Ethyl-1-phenylcyclohexylamine
+N-Ethyl-3-piperidyl benzilate
+N-Ethylamphetamine
+N-Ethylpentylone
+N-Hydroxy-3,4-methylenedioxyamphetamine
+Nicocodeine
+Nicomorphine
+Nimetazepam
+Nitrazepam
+NM2201
+N-Methyl-3-piperidyl benzilate
+Noracymethadol
+Norbolethone 
+Norclostebol
+Nordiazepam
+Norethandrolone 
+Norlevorphanol
+Normethadone
+Normethandrolone
+Normorphine
+Norpipanone
+Ocfentanil
+Opium
+Oripavine
+Oxandrolone
+Oxazepam
+Oxazolam
+Oxycodone
+Oxymesterone 
+Oxymetholone
+Oxymorphone
+Para-chloroisobutyryl fentanyl
+Para-fluorobutyryl fentanyl
+Para-Fluorofentanyl
+Parahexyl
+Paraldehyde
+Para-methoxybutyryl fentanyl
+PB-22
+Pemoline
+Pentazocine
+Pentedrone
+3-methylethcathinone
+4-ethylmethcathinone 
+4-methylbuphedrone
+3,4-dimethylmethcathinone
+N-ethylbuphedrone 
+N-ethyl-Nmethylcathinone
+Pentobarbital
+Pentylone
+dibutylone
+propylone
+Perampanel
+Petrichloral
+Peyote
+Phenadoxone
+Phenampromide
+Phenazocine
+Phencyclidine
+Phendimetrazine
+Phenmetrazine
+Phenobarbital
+Phenomorphan
+Phenoperidine
+Phentermine
+Phenylacetone
+Pholcodine
+Piminodine
+Pinazepam
+Pipradrol
+Piritramide
+Prazepam
+Pregabalin
+Proheptazine
+Properidine
+Propiram
+Prostanozol 
+Psilocybin
+Psilocyn
+Pyrovalerone
+Quazepam
+Racemethorphan
+Racemoramide
+Racemorphan
+Remifentanil
+Secobarbital
+Sibutramine
+SPA
+SR-18
+SR-19
+Stanozolol 
+Stenbolone 
+Sufentanil
+Sulfondiethylmethane
+Sulfonethylmethane
+Sulfonmethane
+Suvorexant
+Talbutal
+Tapentadol
+Temazepam
+Testolactone 
+Testosterone
+Tetrahydrocannabinols
+Tetrahydrogestrinone 
+Tetrazepam
+Thebacon
+Thebaine
+Thiafentanil
+Thiamylal
+Thiofentanyl
+Thiopental
+THJ-2201
+Tiletamine
+Tilidine
+Tramadol
+Trenbolone
+Triazolam
+Trimeperidine
+U-47700 
+UR-144 
+Valeryl fentanyl
+Vinbarbital
+Zaleplon
+Zolpidem
+Zopiclone

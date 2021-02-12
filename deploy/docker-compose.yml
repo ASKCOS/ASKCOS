@@ -1,7 +1,7 @@
 version: '2.2'
 services:
   nginx:
-    image: nginx:1.17.6
+    image: nginx:1.19-alpine
     restart: always
     depends_on:
       - app
@@ -27,7 +27,7 @@ services:
       - '3306'
 
   mongo:
-    image: mongo:4.2.2
+    image: mongo:4.4
     command: --wiredTigerCacheSizeGB 1.5
     hostname: mongo
     restart: always
@@ -38,7 +38,7 @@ services:
       - 'appdata:/data/app'
 
   app:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-0.4.1}
     hostname: app
     restart: always
     env_file:
@@ -57,7 +57,7 @@ services:
       - mongo
 
   te_coordinator:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-0.4.1}
     restart: always
     env_file:
       - .env
@@ -67,7 +67,7 @@ services:
       - rabbit
 
   sc_coordinator:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-0.4.1}
     restart: always
     env_file:
       - .env
@@ -79,7 +79,7 @@ services:
       - mongo
 
   ft_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-0.4.1}
     restart: always
     env_file:
       - .env
@@ -91,7 +91,7 @@ services:
       - mongo
 
   cr_network_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-0.4.1}
     restart: always
     env_file:
       - .env
@@ -103,7 +103,7 @@ services:
       - mongo
 
   tb_coordinator_mcts:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-0.4.1}
     restart: always
     env_file:
       - .env
@@ -115,7 +115,7 @@ services:
       - mongo
 
   tb_c_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-0.4.1}
     restart: always
     env_file:
       - .env
@@ -127,7 +127,7 @@ services:
       - mongo
 
   tb_c_worker_preload:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-0.4.1}
     restart: always
     env_file:
       - .env
@@ -139,7 +139,7 @@ services:
       - mongo
 
   sites_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.0
+    image: askcos/askcos:0.4.0
     restart: always
     env_file:
       - .env
@@ -151,7 +151,7 @@ services:
       - mongo
 
   impurity_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-0.4.1}
     restart: always
     env_file:
       - .env
@@ -163,7 +163,7 @@ services:
       - mongo
 
   atom_mapping_worker:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-0.4.1}
     restart: always
     env_file:
       - .env
@@ -185,7 +185,7 @@ services:
       - 8501
 
   redis:
-    image: redis:5.0.7
+    image: redis:6.0-alpine
     hostname: redis
     env_file:
       - .env
@@ -197,7 +197,7 @@ services:
     command: redis-server --port ${REDIS_PORT}
 
   rabbit:
-    image: rabbitmq:3.8.2
+    image: rabbitmq:3.8-alpine
     hostname: rabbit
     env_file:
       - .env

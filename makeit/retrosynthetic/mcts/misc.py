@@ -110,7 +110,7 @@ def value_network_training_states(smiles_id, Chemicals, Reactions, FP_rad = 3, F
     with open(fileName, "a+b") as fid:
         for smile, state, value in zip(smiles,states,values):
             save_sparse_tree(smile, smiles_id, state, float(value), 1, fid, FPS_size)
-    print "... saved {} buyable chemicals to file.".format(len(values))
+    print("... saved {} buyable chemicals to file.".format(len(values)))
     # Reaction
 
 def network_statistics(smiles_id, Chemicals, Reactions):

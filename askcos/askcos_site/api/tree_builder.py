@@ -3,7 +3,18 @@ from rdkit import Chem
 from collections import defaultdict
 from django.http import JsonResponse
 from celery.exceptions import TimeoutError
+from makeit.utilities.banned import BANNED_SMILES
 from askcos_site.askcos_celery.treebuilder.tb_coordinator_mcts import get_buyable_paths as get_buyable_paths_mcts
+from askcos_site.main.views.users import can_avoid_banned_chemicals
+
+
+def is_banned(request, smiles):
+    if can_avoid_banned_chemicals(request):
+        return False
+    if smiles in BANNED_SMILES:
+        return True
+    return False
+
 
 def tree_builder(request):
     resp = {}
@@ -22,6 +33,11 @@ def tree_builder(request):
         return JsonResponse(resp, status=400)
 
     smiles = Chem.MolToSmiles(mol)
+
+    if is_banned(request, smiles):
+        resp['error'] = 'ASKCOS does not provide results for compounds on restricted lists such as the CWC and DEA schedules'
+        return JsonResponse(resp, status=400)
+
     max_depth = int(request.GET.get('max_depth', 4))
     max_branching = int(request.GET.get('max_branching', 25))
     expansion_time = int(request.GET.get('expansion_time', 60))
@@ -83,7 +99,7 @@ def tree_builder(request):
         resp['error'] = str(e)
         res.revoke()
         return JsonResponse(resp, status=400)
-    
+
     resp['trees'] = trees
     
     return JsonResponse(resp)

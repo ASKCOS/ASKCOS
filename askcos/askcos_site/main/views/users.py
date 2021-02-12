@@ -35,6 +35,9 @@ def can_modify_buyables(request):
         return True
     return request.user.is_authenticated and request.user.groups.filter(name='modify_buyables').exists()
 
+def can_avoid_banned_chemicals(request):
+    return request.user.is_authenticated and request.user.groups.filter(name='avoid_banned_chemicals').exists()
+
 def log_this_request(method):
     def f(*args, **kwargs):
         try:

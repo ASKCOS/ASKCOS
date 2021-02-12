@@ -171,3 +171,5 @@ TEMPLATE_FREE_FORWARD_PREDICTOR = {
 SELECTIVITY = {
     'model_path': os.path.join(models_path, 'selectivity', 'model.ckpt-30615')
 }
+
+BAN_LIST_PATH = os.path.join(os.path.dirname(__file__), 'utilities', 'banned', 'banned_list.json')
