@@ -139,7 +139,7 @@ services:
       - mongo
 
   sites_worker:
-    image: askcos/askcos:0.4.0
+    image: askcos/askcos:${VERSION:-0.4.1}
     restart: always
     env_file:
       - .env
@@ -175,12 +175,12 @@ services:
       - mongo
 
   template-relevance-reaxys:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos/models:template-relevance-reaxys
+    image: askcos/template-relevance-reaxys:1.0
     expose:
       - 8501
 
   fast-filter:
-    image: registry.gitlab.com/mlpds_mit/askcos/askcos/models:fast-filter
+    image: askcos/fast-filter:1.0
     expose:
       - 8501
 
