@@ -23,8 +23,6 @@ from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors, 
 from rdkit import RDLogger
 import makeit.global_config as gc
 from makeit.utilities.buyable.pricer import Pricer
-from makeit.retrosynthetic.tree_builder import TreeBuilder
-from makeit.synthetic.evaluation.evaluator import Evaluator
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
 
@@ -38,6 +36,8 @@ def configure_coordinator(options={}, **kwargs):
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
         return
     print('### STARTING UP A TREE BUILDER COORDINATOR ###')
+    from makeit.retrosynthetic.tree_builder import TreeBuilder
+    from makeit.synthetic.evaluation.evaluator import Evaluator
 
     global treeBuilder
     global evaluator

@@ -7,7 +7,6 @@ from celery.result import allow_join_result
 from celery.exceptions import Terminated
 import time
 from rdkit import RDLogger
-from makeit.synthetic.evaluation.evaluator import Evaluator
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
 
@@ -21,6 +20,7 @@ def configure_coordinator(options={}, **kwargs):
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
         return
     print('### STARTING UP A SCORING COORDINATOR ###')
+    from makeit.synthetic.evaluation.evaluator import Evaluator
 
     global evaluator
 

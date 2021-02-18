@@ -24,7 +24,6 @@ from rdkit import RDLogger
 import makeit.global_config as gc
 from makeit.utilities.buyable.pricer import Pricer
 from makeit.utilities.historian.chemicals import ChemHistorian
-from makeit.retrosynthetic.mcts.tree_builder import MCTS as MCTSTreeBuilder
 from django.db import models
 from askcos_site.main.models import SavedResults
 lg = RDLogger.logger()
@@ -68,6 +67,7 @@ def configure_coordinator(options={}, **kwargs):
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
         return
     print('### STARTING UP A TREE BUILDER MCTS COORDINATOR ###')
+    from makeit.retrosynthetic.mcts.tree_builder import MCTS as MCTSTreeBuilder
 
     global treeBuilder
     # QUESTION: Is evaluator needed?

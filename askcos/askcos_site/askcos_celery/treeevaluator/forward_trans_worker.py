@@ -9,7 +9,6 @@ from celery import shared_task
 from celery.signals import celeryd_init
 import time
 import rdkit.Chem as Chem
-from makeit.synthetic.enumeration.transformer import ForwardTransformer
 from rdkit import RDLogger
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
@@ -27,6 +26,7 @@ def configure_worker(options={}, **kwargs):
         # print('Queues not in options as key')
         return
     print('### STARTING UP A FORWARD ENUMERATION WORKER ###')
+    from makeit.synthetic.enumeration.transformer import ForwardTransformer
 
     global templates
     global forwardTransformer

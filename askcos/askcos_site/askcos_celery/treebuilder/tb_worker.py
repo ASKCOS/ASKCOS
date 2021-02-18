@@ -13,7 +13,6 @@ from celery import shared_task
 from celery.signals import celeryd_init
 from pymongo import MongoClient
 import makeit.global_config as gc
-from makeit.retrosynthetic.transformer import RetroTransformer
 from rdkit import RDLogger
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.CRITICAL)
@@ -34,6 +33,7 @@ def configure_worker(options={}, **kwargs):
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
         return
     print('### STARTING UP A TREE BUILDER WORKER ###')
+    from makeit.retrosynthetic.transformer import RetroTransformer
 
     global retroTransformer
     # Instantiate and load retro transformer
