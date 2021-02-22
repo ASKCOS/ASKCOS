@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tb-c-worker
+  labels:
+    app: tb-c-worker
+spec:
+  replicas: 12
+  selector:
+    matchLabels:
+      pod: tb-c-worker
+  template:
+    metadata:
+      labels:
+        pod: tb-c-worker
+    spec:
+      containers:
+        - name: tb-c-worker
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
+          command: ["/bin/bash"]
+          args: ["-c", "celery -A askcos_site worker -c 1 -Q tb_c_worker -n tb_c_worker@%h --pool=gevent --without-heartbeat"]
+          envFrom:
+            - configMapRef:
+                name: django-config
+          resources:
+            requests:
+              memory: "1.0G"
+      imagePullSecrets:
+        - name: regcred

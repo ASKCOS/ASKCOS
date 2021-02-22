@@ -4,8 +4,6 @@ import numpy as np
 import os
 import argparse
 import h5py # needed for save_weights, fails otherwise
-import theano
-import theano.tensor as T
 from keras import backend as K
 from keras.models import Model, model_from_json
 from keras.layers import Dense, Activation, Input, merge
@@ -77,7 +75,7 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
     # bond_gain_r = Reshape((bond_gain.shape[0] * bond_gain.shape[1], F_bond), name = "flatten bond_gain")(bond_gain)
 
     # Combine along first three dimensions
-    dynamic_reshaper       = lambda x: T.reshape(x, (x.shape[0] * x.shape[1] * x.shape[2], x.shape[3]), ndim  = x.ndim-2)
+    dynamic_reshaper       = lambda x: K.reshape(x, (x.shape[0] * x.shape[1] * x.shape[2], x.shape[3]), ndim  = x.ndim-2)
     dynamic_reshaper_shape = lambda x: (None,) + x[3:]
 
     h_lost_r    = Lambda(dynamic_reshaper, output_shape = dynamic_reshaper_shape, name = "flatten_H_lost")(h_lost)
@@ -119,7 +117,7 @@ def build(F_atom = 1, F_bond = 1, N_h1 = 100, N_h2 = 50, N_h3 = 0, inner_act = '
         bond_gain_h = bond_gain_h1
 
     # Re-expand (using tricky Merge layer, where x[0] is actual data and x[1] is only used for shape)
-    dynamic_unreshaper = lambda x: T.reshape(x[0], (x[1].shape[0], x[1].shape[1], x[1].shape[2], x[0].shape[1]), ndim  = x[0].ndim+2)
+    dynamic_unreshaper = lambda x: K.reshape(x[0], (x[1].shape[0], x[1].shape[1], x[1].shape[2], x[0].shape[1]), ndim  = x[0].ndim+2)
     dynamic_unreshaper_shape = lambda x: x[1][:3] + x[0][1:]
 
     h_lost_r2    = Lambda(dynamic_unreshaper, output_shape = dynamic_unreshaper_shape, name = "expand H_lost edits")([h_lost_h, h_lost])

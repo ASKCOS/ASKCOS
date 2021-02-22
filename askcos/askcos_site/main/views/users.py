@@ -21,12 +21,19 @@ client = MongoClient(
 results_db = client['results']
 results_collection = results_db['results']
 
+AUTH_MODIFY_BUYABLES = os.environ.get('AUTH_MODIFY_BUYABLES') == 'True'
+
 from ..models import SavedResults, BlacklistedReactions, BlacklistedChemicals
 
 can_control_robot = lambda request: request.user.get_username() in ['ccoley']
 
 def can_view_reaxys(request):
     return request.user.is_authenticated and request.user.groups.filter(name='reaxys_view').exists()
+
+def can_modify_buyables(request):
+    if not AUTH_MODIFY_BUYABLES:
+        return True
+    return request.user.is_authenticated and request.user.groups.filter(name='modify_buyables').exists()
 
 def can_avoid_banned_chemicals(request):
     return request.user.is_authenticated and request.user.groups.filter(name='avoid_banned_chemicals').exists()

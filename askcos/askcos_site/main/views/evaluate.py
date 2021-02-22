@@ -14,7 +14,7 @@ import rdkit.Chem as Chem
 import makeit.global_config as makeit_gc
 
 # TODO: fix this Celery reference
-from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
+from ...askcos_celery.contextrecommender.cr_network_worker import get_n_conditions
 from ...askcos_celery.treeevaluator.scoring_coordinator import evaluate
 from ...askcos_celery.treebuilder.tb_c_worker import fast_filter_check
 from ..utils import ajax_error_wrapper, fix_rgt_cat_slvt, \
@@ -44,8 +44,7 @@ def ajax_evaluate_rxnsmiles(request):
 
     if forward_scorer == 'Fast_Filter':
         res = fast_filter_check.delay('.'.join(reactants), '.'.join(products))
-        outcomes = res.get(5)
-        score = outcomes[0][0]['score']
+        score = res.get(5)
         data['html'] = 'Estimated plausibility: {:.4f}'.format(score)
         B = 150.
         R = 255. - (score > 0.5) * (score - 0.5) * (255. - B) * 2.
@@ -64,8 +63,7 @@ def ajax_evaluate_rxnsmiles(request):
         num_contexts = 0
 
     if num_contexts:
-        res = get_context_recommendations.delay(smiles, n=num_contexts,
-            context_recommender=context_recommender)
+        res = get_n_conditions.delay(smiles, n=num_contexts)
         contexts = res.get(60)
         print('Got context(s)')
         print(contexts)

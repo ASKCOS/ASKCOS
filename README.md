@@ -3,7 +3,7 @@ Software package for the prediction of feasible synthetic routes towards a desir
 
 Please note that the MPL 2.0 license for this repository does not apply to the data and trained models. The data and trained models are released under CC BY-NC-SA (i.e., are for noncommercial use only).
 
-Contributors include Connor Coley, Mike Fortunato, Hanyu Gao, Pieter Plehiers, Matthew Cameron, Max Liu, Yuran Wang, Thomas Struble, and Jiannan Liu.
+Contributors include Connor Coley, Mike Fortunato, Hanyu Gao, Pieter Plehiers, Matthew Cameron, Max Liu, Yuran Wang, Thomas Struble, Jiannan Liu, and Yiming Mo.
 
 # Quick start using Google Cloud
 
@@ -49,14 +49,14 @@ sudo apt-get install git-lfs -y
 git lfs install
 
 # (5) Pull
-git clone https://github.com/connorcoley/ASKCOS
+git clone https://github.com/ASKCOS/ASKCOS
 cd ASKCOS
 git lfs pull
 
 # (6) Build & run
 docker build -t askcos/askcos . # build
 cd deploy
-bash deploy.sh            # start containers (detached) and run other initialization tasks
+bash deploy.sh deploy     # start containers (detached) and run other initialization tasks
 docker-compose logs -f    # start tailing logs (can CTRL+C to exit)
 
 # (7) Navigate to your instance's external IP
@@ -77,40 +77,67 @@ docker-compose logs -f    # start tailing logs (can CTRL+C to exit)
 
 ## (Optional) Building the ASKCOS Image
 
-The askcos image itself can be built using the Dockerfile in this repository. If not built locally, the image will be automatically pulled from Docker Hub during deployment.
+The askcos image itself can be built using the Dockerfile in this repository.
 
 ```bash
-$ git clone https://github.com/connorcoley/ASKCOS
+$ git clone https://github.com/ASKCOS/ASKCOS
 $ cd ASKCOS
 $ git lfs pull
 $ docker build -t askcos/askcos .
 ```
 
-## Deploying the web application
+__NOTE:__ For application deployment, double check the image tag used in the `docker-compose.yml` file and be sure to tag your newly built image with the same image name. Otherwise, the image tag used in `docker-compose.yml` will be pulled and deployed instead of the image that was just built.
 
-The entrypoint for deployment is a bash script that runs a few docker-compose commands in a specific order. A few of the database services need to be started first, and more importantly seeded with data, before other services (which rely on the availability of data in the database) can start. The bash script can be found and should be run from the deploy folder as follows:
+## Deploying the Web Application
+
+Deployment is initiated by a bash script that runs a few docker-compose commands in a specific order.
+Several database services need to be started first, and more importantly seeded with data, before other services 
+(which rely on the availability of data in the database) can start. The bash script can be found and should be run 
+from the deploy folder as follows:
 
 ```bash
-$ cd deploy
-$ bash deploy.sh
+$ bash deploy.sh command [optional arguments]
 ```
 
-There are three optional arguments you can pass along:
-* --skip-seed: This will skip seeding the mongo database. Unless you know that the mongo database is currently up and running, you should probably choose to seed the database
-* --skip-ssl: This will skip the generation of a random self-signed ssl certificate. If you are supplying your own, use this option so as to not override the certificates
-* --skip-migration: This will skip performing the db migration required by django. Only use this if you know the migration has already been performed and the db models have not changed.
+There are a number of available commands, including the following for common deploy tasks:
+* `deploy`: runs standard first-time deployment tasks, including `seed-db`
+* `update`: pulls new docker image from GitLab repository and restarts all services
+* `seed-db`: seed the database with default or custom data files
+* `start`: start a deployment without performing first-time tasks
+* `stop`: stop a running deployment
+* `clean`: stop a running deployment and remove all docker containers
 
+For a running deployment, new data can be seeded into the database using the `seed-db` command along with arguments
+indicating the types of data to be seeded. Note that this will replace the existing data in the database.
+The available arguments are as follows:
+* `-b, --buyables`: specify buyables data to seed, either `default` or path to data file
+* `-c, --chemicals`: specify chemicals data to seed, either `default` or path to data file
+* `-x, --reactions`: specify reactions data to seed, either `default` or path to data file
+* `-r, --retro-templates`: specify retrosynthetic templates to seed, either `default` or path to data file
+* `-f, --forward-templates`: specify forward templates to seed, either `default` or path to data file
 
-To stop a currently running application, run the following from the deploy folder, where you ran deploy.sh:
+For example, to seed default buyables data and custom retrosynthetic pathways, run the following from the deploy folder:
 
 ```bash
-$ docker-compose stop
+$ bash deploy.sh seed-db --buyables default --retro-templates /path/to/my.retro.templates.json.gz
+```
+
+To update a deployment, run the following from the deploy folder:
+
+```bash
+$ bash deploy.sh update --version x.y.z
+```
+
+To stop a currently running application, run the following from the deploy folder:
+
+```bash
+$ bash deploy.sh stop
 ```
 
 If you would like to clean up and remove everything from a previous deployment (__NOTE: you will lose user data__), run the following from the deploy folder:
 
 ```bash
-$ docker-compose down -v
+$ bash deploy.sh clean
 ```
 
 # Important Notes
@@ -125,15 +152,36 @@ The celery worker will take a few minutes to start up (possibly up to 5 minutes;
 
 ## Scaling workers
 
-Only 1 worker per queue is deployed by default with limited concurrency. This is not ideal for many-user demand. You can easily scale the number of celery workers you'd like to use with `docker-compose up -d --scale tb_c_worker=N` where N is the number of workers you want, for example. The above note applies to each worker you start, however, and each worker will consume RAM.
+Only 1 worker per queue is deployed by default with limited concurrency. This is not ideal for many-user demand.
+You can easily scale the number of celery workers you'd like to use with
+
+```
+$ docker-compose up -d --scale tb_c_worker=N tb_c_worker
+```
+
+where N is the number of workers you want, for example. The above note applies to each worker you start, however, and
+each worker will consume RAM. You can also adjust the default number of workers defined by the variables at the top of
+the `deploy.sh` script.
 
 ## Managing Django
 
 If you'd like to manage the Django app (i.e. - run python manage.py ...), for example, to create an admin superuser, you can run commands in the _running_ app service (do this _after_ `docker-compose up`) as follows:
 
-`docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py createsuperuser"`
+```
+$ docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py createsuperuser"
+```
 
 In this case you'll be presented an interactive prompt to create a superuser with your desired credentials.
+
+# Data migration to askcos-data
+In the v0.4.1 release of ASKCOS, data and models have been migrated to a separate repository at https://github.com/ASKCOS/askcos-data.
+The pre-built ASKCOS Docker image available from Docker Hub already contains the data and models.
+For local use, you will need to clone the askcos-data repository separately:
+
+```
+$ cd ASKCOS/makeit
+$ git clone https://github.com/ASKCOS/askcos-data data
+```
 
 # How to run individual modules
 Many of the individual modules -- at least the ones that are the most interesting -- can be run "standalone". Examples of how to use them are often found in the ```if __name__ == '__main__'``` statement at the bottom of the script definitions. For example...

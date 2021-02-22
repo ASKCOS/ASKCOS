@@ -9,7 +9,6 @@ from __future__ import absolute_import, unicode_literals, print_function
 from django.conf import settings
 from celery import shared_task
 from celery.signals import celeryd_init
-from makeit.synthetic.context.neuralnetwork import NeuralNetContextRecommender
 import makeit.global_config as gc
 
 CORRESPONDING_QUEUE = 'cr_network_worker'
@@ -22,6 +21,7 @@ def configure_worker(options={}, **kwargs):
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
         return
     print('### STARTING UP A NEURAL NETWORK CONTEXT RECOMMENDER WORKER ###')
+    from makeit.synthetic.context.neuralnetwork import NeuralNetContextRecommender
 
     global recommender
 

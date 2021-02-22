@@ -2,6 +2,7 @@ import json
 from rdkit import Chem
 from collections import defaultdict
 from django.http import JsonResponse
+from celery.exceptions import TimeoutError
 from makeit.utilities.banned import BANNED_SMILES
 from askcos_site.askcos_celery.treebuilder.tb_coordinator_mcts import get_buyable_paths as get_buyable_paths_mcts
 from askcos_site.main.views.users import can_avoid_banned_chemicals
@@ -20,7 +21,17 @@ def tree_builder(request):
     resp['request'] = dict(**request.GET)
     run_async = request.GET.get('async', False)
     orig_smiles = request.GET.get('smiles', None)
+
+    if not orig_smiles:
+        resp['error'] = 'Required parameter "smiles" missing'
+        return JsonResponse(resp, status=400)
+
     mol = Chem.MolFromSmiles(orig_smiles)
+
+    if not mol:
+        resp['error'] = 'Cannot parse smiles with rdkit'
+        return JsonResponse(resp, status=400)
+
     smiles = Chem.MolToSmiles(mol)
 
     if is_banned(request, smiles):
@@ -43,10 +54,12 @@ def tree_builder(request):
     min_chempop_products = int(request.GET.get('min_chempop_products', 5))
     filter_threshold = float(request.GET.get('filter_threshold', 0.75))
     apply_fast_filter = filter_threshold > 0
-    return_first = json.loads(request.GET.get('return_first', 'false'))
+    return_first = request.GET.get('return_first', 'True') in ['True', 'true']
     
-    blacklisted_reactions = request.GET.get('blacklisted_reactions', [])
-    forbidden_molecules = request.GET.get('forbidden_molecules', [])
+    blacklisted_reactions = request.GET.get('blacklisted_reactions', '')
+    blacklisted_reactions = blacklisted_reactions.split(';')
+    forbidden_molecules = request.GET.get('forbidden_molecules', '')
+    forbidden_molecules = forbidden_molecules.split(';')
     
     default_val = 1e9 if chemical_property_logic == 'and' else 0
     max_natom_dict = defaultdict(lambda: default_val, {
@@ -78,11 +91,15 @@ def tree_builder(request):
     
     try:
         (tree_status, trees) = res.get(expansion_time * 3)
-    except:
+    except TimeoutError:
         resp['error'] = 'API request timed out (after {})'.format(expansion_time * 3)
         res.revoke()
-        return JsonResponse(resp, status=500)
-    
+        return JsonResponse(resp, status=408)
+    except Exception as e:
+        resp['error'] = str(e)
+        res.revoke()
+        return JsonResponse(resp, status=400)
+
     resp['trees'] = trees
     
     return JsonResponse(resp)

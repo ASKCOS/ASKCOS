@@ -1,7 +1,9 @@
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 import makeit.global_config as gc
 import numpy as np
-from keras.models import model_from_json
-from keras import backend as K
+from tensorflow.keras.models import model_from_json
+from tensorflow.keras import backend as K
 import makeit.utilities.fingerprinting as fp
 from makeit.utilities.io.logger import MyLogger
 from makeit.interfaces.context_recommender import ContextRecommender
@@ -10,6 +12,8 @@ import pickle
 from rdkit import Chem
 contextRecommender_loc = 'contextRecommender'
 
+session = tf.Session()
+tf.keras.backend.set_session(session)
 
 class NeuralNetContextRecommender(ContextRecommender):
     """Reaction condition predictor based on Neural Network method
@@ -312,104 +316,106 @@ class NeuralNetContextRecommender(ContextRecommender):
         s2_input_dum = np.zeros(self.s2_dim, dtype='float32').reshape(1, self.s2_dim)
         model_inputs = [pfp, rxnfp, c1_input_dum, r1_input_dum,
                             r2_input_dum, s1_input_dum, s2_input_dum]
-        fp_trans = self.fp_func(model_inputs)
-        if c1_input_user == []:
-            c1_inputs = fp_trans
-            c1_pred = self.c1_func(c1_inputs)
-            c1_cdts = c1_pred[0][0].argsort()[-c1_rank_thres:][::-1]
-        else:
-            c1_cdts = np.nonzero(c1_input_user)[0]
-        # find the name of catalyst
-        for c1_cdt in c1_cdts:
-            c1_name = self.c1_dict[c1_cdt]
-            c1_input = np.zeros([1, self.c1_dim])
-            c1_input[0, c1_cdt] = 1
-            if c1_input_user == []:
-                c1_sc = c1_pred[0][0][c1_cdt]
-            else:
-                c1_sc = 1
-            if s1_input_user == []:
-                s1_inputs = [fp_trans[0],c1_input]
-                s1_pred = self.s1_func(s1_inputs)
-                s1_cdts = s1_pred[0][0].argsort()[-s1_rank_thres:][::-1]
-            else:
-                s1_cdts = np.nonzero(s1_input_user)[0]
-            for s1_cdt in s1_cdts:
-                s1_name = self.s1_dict[s1_cdt]
-                s1_input = np.zeros([1, self.s1_dim])
-                s1_input[0, s1_cdt] = 1
-                if s1_input_user == []:
-                    s1_sc = s1_pred[0][0][s1_cdt]
+        with session.as_default():
+            with session.graph.as_default():
+                fp_trans = self.fp_func(model_inputs)
+                if c1_input_user == []:
+                    c1_inputs = fp_trans
+                    c1_pred = self.c1_func(c1_inputs)
+                    c1_cdts = c1_pred[0][0].argsort()[-c1_rank_thres:][::-1]
                 else:
-                    s1_sc = 1
-                if s2_input_user == []:
-                    s2_inputs = [fp_trans[0], c1_input, s1_input]
-                    s2_pred = self.s2_func(s2_inputs)
-                    s2_cdts = s2_pred[0][0].argsort()[-s2_rank_thres:][::-1]
-                else:
-                    s2_cdts = np.nonzero(s2_input_user)[0]
-                for s2_cdt in s2_cdts:
-                    s2_name = self.s2_dict[s2_cdt]
-                    s2_input = np.zeros([1, self.s2_dim])
-                    s2_input[0, s2_cdt] = 1
-                    if s2_input_user == []:
-                        s2_sc = s2_pred[0][0][s2_cdt]
+                    c1_cdts = np.nonzero(c1_input_user)[0]
+                # find the name of catalyst
+                for c1_cdt in c1_cdts:
+                    c1_name = self.c1_dict[c1_cdt]
+                    c1_input = np.zeros([1, self.c1_dim])
+                    c1_input[0, c1_cdt] = 1
+                    if c1_input_user == []:
+                        c1_sc = c1_pred[0][0][c1_cdt]
                     else:
-                        s2_sc = 1
-                    if r1_input_user == []:
-                        r1_inputs = [fp_trans[0], c1_input, s1_input, s2_input]
-                        r1_pred = self.r1_func(r1_inputs)
-                        r1_cdts = r1_pred[0][
-                            0].argsort()[-r1_rank_thres:][::-1]
+                        c1_sc = 1
+                    if s1_input_user == []:
+                        s1_inputs = [fp_trans[0],c1_input]
+                        s1_pred = self.s1_func(s1_inputs)
+                        s1_cdts = s1_pred[0][0].argsort()[-s1_rank_thres:][::-1]
                     else:
-                        r1_cdts = np.nonzero(r1_input_user)[0]
-                    for r1_cdt in r1_cdts:
-                        r1_name = self.r1_dict[r1_cdt]
-                        r1_input = np.zeros([1, self.r1_dim])
-                        r1_input[0, r1_cdt] = 1
-                        if r1_input_user == []:
-                            r1_sc = r1_pred[0][0][r1_cdt]
+                        s1_cdts = np.nonzero(s1_input_user)[0]
+                    for s1_cdt in s1_cdts:
+                        s1_name = self.s1_dict[s1_cdt]
+                        s1_input = np.zeros([1, self.s1_dim])
+                        s1_input[0, s1_cdt] = 1
+                        if s1_input_user == []:
+                            s1_sc = s1_pred[0][0][s1_cdt]
                         else:
-                            r1_sc = 1
-                        if r2_input_user == []:
-                            r2_inputs = [fp_trans[0], c1_input, s1_input, s2_input, r1_input]
-                            r2_pred = self.r2_func(r2_inputs)
-                            r2_cdts = r2_pred[0][
-                                0].argsort()[-r2_rank_thres:][::-1]
+                            s1_sc = 1
+                        if s2_input_user == []:
+                            s2_inputs = [fp_trans[0], c1_input, s1_input]
+                            s2_pred = self.s2_func(s2_inputs)
+                            s2_cdts = s2_pred[0][0].argsort()[-s2_rank_thres:][::-1]
                         else:
-                            r2_cdts = np.nonzero(r2_input_user)[0]
-                        for r2_cdt in r2_cdts:
-                            r2_name = self.r2_dict[r2_cdt]
-                            r2_input = np.zeros([1, self.r2_dim])
-                            r2_input[0, r2_cdt] = 1
-                            if r2_input_user == []:
-                                r2_sc = r2_pred[0][0][r2_cdt]
+                            s2_cdts = np.nonzero(s2_input_user)[0]
+                        for s2_cdt in s2_cdts:
+                            s2_name = self.s2_dict[s2_cdt]
+                            s2_input = np.zeros([1, self.s2_dim])
+                            s2_input[0, s2_cdt] = 1
+                            if s2_input_user == []:
+                                s2_sc = s2_pred[0][0][s2_cdt]
                             else:
-                                r2_sc = 1
-                            T_inputs = [fp_trans[0], c1_input, s1_input, s2_input, r1_input, r2_input]
-                            T_pred = self.T_func(T_inputs)
-                            # print(c1_name,s1_name,s2_name,r1_name,r2_name)
-                            cat_name = [c1_name]
-                            if r2_name == '':
-                                rgt_name = [r1_name]
-                            else: rgt_name = [r1_name,r2_name]
-                            if s2_name == '':
-                                slv_name = [s1_name]
-                            else: slv_name = [s1_name,s2_name]
-                            # if self.with_smiles:
-                            #     rgt_name = [rgt for rgt in rgt_name if 'Reaxys' not in rgt]
-                            #     slv_name = [slv for slv in slv_name if 'Reaxys' not in slv]
-                            #     cat_name = [cat for cat in cat_name if 'Reaxys' not in cat]
-                            ##for testing purpose only, output order as training
-                            if return_categories_only:
-                                context_combos.append([c1_cdt,s1_cdt,s2_cdt,r1_cdt,r2_cdt,T_pred[0][0][0]])
-                            ## esle ouptupt format compatible with the overall framework
+                                s2_sc = 1
+                            if r1_input_user == []:
+                                r1_inputs = [fp_trans[0], c1_input, s1_input, s2_input]
+                                r1_pred = self.r1_func(r1_inputs)
+                                r1_cdts = r1_pred[0][
+                                    0].argsort()[-r1_rank_thres:][::-1]
                             else:
-                                context_combos.append(
-                                    [float(T_pred[0][0][0]), '.'.join(slv_name), '.'.join(rgt_name), '.'.join(cat_name), np.nan, np.nan])
+                                r1_cdts = np.nonzero(r1_input_user)[0]
+                            for r1_cdt in r1_cdts:
+                                r1_name = self.r1_dict[r1_cdt]
+                                r1_input = np.zeros([1, self.r1_dim])
+                                r1_input[0, r1_cdt] = 1
+                                if r1_input_user == []:
+                                    r1_sc = r1_pred[0][0][r1_cdt]
+                                else:
+                                    r1_sc = 1
+                                if r2_input_user == []:
+                                    r2_inputs = [fp_trans[0], c1_input, s1_input, s2_input, r1_input]
+                                    r2_pred = self.r2_func(r2_inputs)
+                                    r2_cdts = r2_pred[0][
+                                        0].argsort()[-r2_rank_thres:][::-1]
+                                else:
+                                    r2_cdts = np.nonzero(r2_input_user)[0]
+                                for r2_cdt in r2_cdts:
+                                    r2_name = self.r2_dict[r2_cdt]
+                                    r2_input = np.zeros([1, self.r2_dim])
+                                    r2_input[0, r2_cdt] = 1
+                                    if r2_input_user == []:
+                                        r2_sc = r2_pred[0][0][r2_cdt]
+                                    else:
+                                        r2_sc = 1
+                                    T_inputs = [fp_trans[0], c1_input, s1_input, s2_input, r1_input, r2_input]
+                                    T_pred = self.T_func(T_inputs)
+                                    # print(c1_name,s1_name,s2_name,r1_name,r2_name)
+                                    cat_name = [c1_name]
+                                    if r2_name == '':
+                                        rgt_name = [r1_name]
+                                    else: rgt_name = [r1_name,r2_name]
+                                    if s2_name == '':
+                                        slv_name = [s1_name]
+                                    else: slv_name = [s1_name,s2_name]
+                                    # if self.with_smiles:
+                                    #     rgt_name = [rgt for rgt in rgt_name if 'Reaxys' not in rgt]
+                                    #     slv_name = [slv for slv in slv_name if 'Reaxys' not in slv]
+                                    #     cat_name = [cat for cat in cat_name if 'Reaxys' not in cat]
+                                    ##for testing purpose only, output order as training
+                                    if return_categories_only:
+                                        context_combos.append([c1_cdt,s1_cdt,s2_cdt,r1_cdt,r2_cdt,T_pred[0][0][0]])
+                                    ## esle ouptupt format compatible with the overall framework
+                                    else:
+                                        context_combos.append(
+                                            [float(T_pred[0][0][0]), '.'.join(slv_name), '.'.join(rgt_name), '.'.join(cat_name), np.nan, np.nan])
 
-                            context_combo_scores.append(
-                                c1_sc*s1_sc*s2_sc*r1_sc*r2_sc)
+                                    context_combo_scores.append(
+                                        c1_sc*s1_sc*s2_sc*r1_sc*r2_sc)
         context_ranks = list(num_combos+1 - stats.rankdata(context_combo_scores))
 
         context_combos = [context_combos[

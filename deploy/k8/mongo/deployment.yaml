@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo
+spec:
+  selector:
+    matchLabels:
+      pod: mongo
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        pod: mongo
+    spec:
+      containers:
+      - image: mongo:4.2.2
+        name: mongo
+        env:
+          # Use secret in real usage
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: askcos
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: askcos
+        - name: MONGO_HOST
+          value: mongo
+        - name: MONGO_USER
+          value: askcos
+        - name: MONGO_PW
+          value: askcos
+        ports:
+        - containerPort: 27017
+          name: mongo
+        volumeMounts:
+        - name: mongo-persistent-storage
+          mountPath: /data/db
+      volumes:
+      - name: mongo-persistent-storage
+        persistentVolumeClaim:
+          claimName: mongo-pv-claim

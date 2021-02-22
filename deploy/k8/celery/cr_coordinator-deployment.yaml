@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cr-coordinator
+  labels:
+    app: cr-coordinator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: cr-coordinator
+  template:
+    metadata:
+      labels:
+        pod: cr-coordinator
+    spec:
+      containers:
+        - name: cr-coordinator
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
+          command: ["/bin/bash"]
+          args: ["-c", "celery -A askcos_site worker -c 2 -Q cr_coordinator -n cr_coordinator@%h"]
+          envFrom:
+            - configMapRef:
+                name: django-config
+      imagePullSecrets:
+        - name: regcred

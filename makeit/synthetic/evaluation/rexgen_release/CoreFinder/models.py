@@ -1,4 +1,4 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from .mol_graph import max_nb
 from ..utils.nn import *
 

@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sites-worker
+  labels:
+    app: sites-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: sites-worker
+  template:
+    metadata:
+      labels:
+        pod: sites-worker
+    spec:
+      containers:
+        - name: sites-worker
+          image: registry.gitlab.com/mlpds_mit/askcos/askcos:0.4.1
+          imagePullPolicy: Always
+          command: ["/bin/bash"]
+          args: ["-c", "celery -A askcos_site worker -c 1 -Q sites_worker --pool=gevent -n sites_worker@%h"]
+          envFrom:
+            - configMapRef:
+                name: django-config
+      imagePullSecrets:
+        - name: regcred

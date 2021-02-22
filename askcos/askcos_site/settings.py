@@ -20,9 +20,9 @@ import makeit.global_config as gc
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'notsosecret'
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', False)
+DEBUG = os.getenv('DJANGO_DEBUG', False)
 
-ALLOWED_HOSTS = ['0.0.0.0', 'askcos.mit.edu', 'askcos4.mit.edu']
+ALLOWED_HOSTS = ['0.0.0.0']
 if os.environ.get('CURRENT_HOST'):
     ALLOWED_HOSTS.append(os.environ.get('CURRENT_HOST'))
 
@@ -100,10 +100,10 @@ DEFAULT_FROM_EMAIL = 'no-reply@askcos4.mit.edu'
 # NOTE: we recommend relocating the db to an ssd for speed
 DATABASES = {'default': {
     'ENGINE': 'django.db.backends.mysql',
-    'NAME': 'askcos_db',
+    'NAME': os.getenv('MYSQL_DATABASE', 'askcos_db'),
     'USER': os.getenv('MYSQL_USER', 'root'),
-    'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', 'root'),
-    'HOST': 'mysql',
+    'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', 'password'),
+    'HOST': os.getenv('MYSQL_HOST', 'mysql'),
     'PORT': '3306',
 }}
 
@@ -134,38 +134,4 @@ MEDIA_URL = '/media/'
 # Define databases to replicate Make-It settings
 ################################################################################
 
-RETRO_TRANSFORMS = gc.RETRO_TRANSFORMS
-RETRO_TRANSFORMS_CHIRAL = gc.RETRO_TRANSFORMS_CHIRAL
-
-# TODO: deprecate in favor of template-free forward prediction only
-SYNTH_TRANSFORMS = gc.SYNTH_TRANSFORMS
-
-INSTANCES = gc.INSTANCES
-REACTIONS = gc.REACTIONS
-CHEMICALS = gc.CHEMICALS
-
-# Back-up databases
-INSTANCES_OLD = {'database': 'reaxys', 'collection': 'instances'}
-REACTIONS_OLD = {'database': 'reaxys', 'collection': 'reactions'}
-CHEMICALS_OLD = {'database': 'reaxys', 'collection': 'chemicals'}
-
-BUYABLES = gc.BUYABLES
-SOLVENTS = gc.SOLVENTS
-
-# For searching "old" templates in the MongoDB (not locally saved)
-TEMPLATE_BACKUPS = [
-    ('reaxys_v2', 'transforms_retro_v8'),
-    ('reaxys_v2', 'transforms_retro_v7'),
-    ('reaxys', 'transforms_retro_v6'),
-    ('reaxys', 'transforms_retro_v5'),
-    ('reaxys', 'transforms_retro_v4'),
-    ('reaxys', 'transforms_retro_v3'),
-]
-
-################################################################################
-# Define local file storage locations
-################################################################################
-
-### Very important - where to look for local versions of files instead of relying on DB connections
 LOCAL_STORAGE = {}
-LOCAL_STORAGE['user_saves'] = os.path.join(gc.data_path, 'user_saves')

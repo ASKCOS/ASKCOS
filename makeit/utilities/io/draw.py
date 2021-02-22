@@ -3,11 +3,91 @@ import numpy as np
 import rdkit.Chem as Chem
 import rdkit.Chem.AllChem as AllChem
 import rdkit.Chem.Draw as Draw
+from rdkit.Chem import rdDepictor, rdChemReactions
+from rdkit.Chem.Draw import rdMolDraw2D
+from rdkit import Geometry
 from PIL import Image, ImageOps
 from collections import defaultdict
 # from rdkit.Chem.Draw.cairoCanvas import Canvas
 import os
 import re
+import io
+
+
+
+def get_scaled_drawer(mol):
+    '''This function takes a rdkit mol object and scales the drawing so that 
+    all of the drawings come out with the same proportions'''
+    dpa = 24
+    rdDepictor.Compute2DCoords(mol)
+    conf = mol.GetConformer()
+    xs = [conf.GetAtomPosition(i).x for i in range(mol.GetNumAtoms())]
+    ys = [conf.GetAtomPosition(i).y for i in range(mol.GetNumAtoms())]
+    point_min = Geometry.rdGeometry.Point2D()
+    point_max = Geometry.rdGeometry.Point2D()
+    point_min.x = min(xs) - 1
+    point_min.y = min(ys) - 1
+    point_max.x = max(xs) + 1
+    point_max.y = max(ys) + 1
+    w = int(dpa * (point_max.x - point_min.x))
+    h = int(dpa * (point_max.y - point_min.y))
+    drawer = rdMolDraw2D.MolDraw2DSVG(w, h)
+    drawer.SetScale(w, h, point_min, point_max)
+    return drawer
+
+
+def MolsSmilesToImageHighlight(smiles, options=None, **kwargs):
+    '''This function takes a SMILES string of one or more molecules
+    and generates a combined image for that molecule set.'''
+    mol = Chem.MolFromSmiles(str(smiles))
+    d2 = get_scaled_drawer(mol)
+    dopts = d2.drawOptions()
+    reacting_atoms = kwargs.get('reacting_atoms', [])
+    bonds = kwargs.get('bonds', False)
+    clear_map = kwargs.get('clear_map', True)
+    selectivity = kwargs.get('selectivity', False)
+
+    try:
+        # Check to see if there are atom scores for site selectivity drawing
+        if len(reacting_atoms) == len(mol.GetAtoms()):
+            highlightAtoms = list(range(mol.GetNumAtoms()))
+            highlightAtomColors = {x: (1, 1, 1) for x in highlightAtoms}
+            atom_scores = reacting_atoms
+            for i, j in enumerate(mol.GetAtoms()):
+                # cutoff to make the images better
+                if round(atom_scores[i] * 100) > 5 and j.GetIsAromatic():
+                    highlightAtomColors[i] = ((1 - atom_scores[i], 1, 1 - atom_scores[i]))
+                    dopts.atomLabels[i] = '{}%'.format(int(round(atom_scores[i] * 100)))
+
+        # Will only draw the highlighted atoms if they are mapped by isotope from rdchiral otherwise
+        # the reacting_atoms will not match the atom index and draw the highlight in the incorrect location
+        else:
+            isotope_idx_map = {a.GetAtomMapNum():a.GetIdx() for a in mol.GetAtoms()}
+            highlightAtoms = [isotope_idx_map[x] for x in reacting_atoms]
+            # TODO add options for colors?
+            highlightAtomColors = {x: (0, 1, 0) for x in highlightAtoms}
+
+        if bonds:
+            # TODO some edits have multiple atoms changing in one tuple
+            highlightBonds = [mol.GetBondBetweenAtoms(x[0], x[1]).GetIdx() for x in reacting_atoms]
+        else:
+            highlightBonds = []
+    except:
+        highlightAtoms = []
+        highlightBonds = []
+        highlightAtomColors = []
+
+    if clear_map:
+        [a.SetAtomMapNum(0) for a in mol.GetAtoms()]
+    m2=Draw.PrepareMolForDrawing(mol)
+    d2.DrawMolecule(m2,highlightAtoms=highlightAtoms, \
+        highlightBonds=highlightBonds, highlightAtomColors=highlightAtomColors)
+    d2.FinishDrawing()
+    txt = d2.GetDrawingText()
+
+    return txt
+
+
 """
 Many of these functions are taken from RDKit.
 """
@@ -59,6 +139,25 @@ def StripAlphaFromImage(img):
     return Image.merge('RGB', img.split()[:3])
 
 
+def MakeBackgroundTransparent(img):
+    """Returns an RGBA image from an RGBA PIL image.
+
+    Args:
+        img (PIL.Image): RGBA/RGB image to alpha channel.
+    """
+    img = img.convert("RGBA")
+    data = img.getdata()
+
+    newData = []
+    for item in data:
+        if item[0] == 255 and item[1] == 255 and item[2] == 255:
+            newData.append((255, 255, 255, 0))
+        else:
+            newData.append(item)
+    img.putdata(newData)
+    return img
+
+
 def MolToImage(mol, max_size=(1000, 1000), kekulize=True, options=None,
                canvas=None, **kwargs):
     """Wrapper for RDKit's ``MolToImage``.
@@ -85,10 +184,10 @@ def MolToImage(mol, max_size=(1000, 1000), kekulize=True, options=None,
     if mol == '->':
         subImgSize = (100, 100)
         img, canvas = Draw._createCanvas(subImgSize)
-        p0 = (10, subImgSize[1]//2)
-        p1 = (subImgSize[0]-10, subImgSize[1]//2)
-        p3 = (subImgSize[0]-20, subImgSize[1]//2-10)
-        p4 = (subImgSize[0]-20, subImgSize[1]//2+10)
+        p0 = (10, subImgSize[1] // 2)
+        p1 = (subImgSize[0] - 10, subImgSize[1] // 2)
+        p3 = (subImgSize[0] - 20, subImgSize[1] // 2 - 10)
+        p4 = (subImgSize[0] - 20, subImgSize[1] // 2 + 10)
         canvas.addCanvasLine(p0, p1, lineWidth=2, color=(0, 0, 0))
         canvas.addCanvasLine(p3, p1, lineWidth=2, color=(0, 0, 0))
         canvas.addCanvasLine(p4, p1, lineWidth=2, color=(0, 0, 0))
@@ -101,13 +200,13 @@ def MolToImage(mol, max_size=(1000, 1000), kekulize=True, options=None,
         subImgSize = (100, 100)
         (a, b) = subImgSize
         img, canvas = Draw._createCanvas(subImgSize)
-        canvas.addCanvasLine((10, b//2-7), (a-17, b//2-7),
+        canvas.addCanvasLine((10, b // 2 - 7), (a - 17, b // 2 - 7),
                              lineWidth=2, color=(0, 0, 0))
-        canvas.addCanvasLine((10, b//2+7), (a-17, b//2+7),
+        canvas.addCanvasLine((10, b // 2 + 7), (a - 17, b // 2 + 7),
                              lineWidth=2, color=(0, 0, 0))
-        canvas.addCanvasLine((a-24, b//2-14), (a-10, b//2),
+        canvas.addCanvasLine((a - 24, b // 2 - 14), (a - 10, b // 2),
                              lineWidth=2, color=(0, 0, 0))
-        canvas.addCanvasLine((a-24, b//2+14), (a-10, b//2),
+        canvas.addCanvasLine((a - 24, b // 2 + 14), (a - 10, b // 2),
                              lineWidth=2, color=(0, 0, 0))
         if hasattr(canvas, 'flush'):
             canvas.flush()
@@ -152,7 +251,7 @@ def TrimImgByWhite(img, padding=0):
     x_range = max([min(xs) - margin, 0]), min([max(xs) + margin, as_array.shape[0]])
     y_range = max([min(ys) - margin, 0]), min([max(ys) + margin, as_array.shape[1]])
     as_array_cropped = as_array[
-        x_range[0]:x_range[1], y_range[0]:y_range[1], 0:3]
+                       x_range[0]:x_range[1], y_range[0]:y_range[1], 0:3]
 
     img = Image.fromarray(as_array_cropped, mode='RGB')
 
@@ -277,7 +376,7 @@ def ReactionToImage(rxn, dummyAtoms=False, kekulize=True, options=None, **kwargs
 
 
 def ReactionStringToImage(rxn_string, strip=True, update=True, options=None,
-        retro=False, **kwargs):
+                          retro=False, **kwargs):
     """Draws a reaction from a SMILES string.
 
     This function takes a SMILES rxn_string as input, not an
@@ -357,7 +456,7 @@ def TransformStringToImage(transform, retro=True, **kwargs):
     return ReactionToImage(rxn, dummyAtoms=True, options=options, retro=retro, **kwargs)
 
 
-def MolsSmilesToImage(smiles, options=None, **kwargs):
+def MolsSmilesToImage(smiles, options=None, clear_map=True, **kwargs):
     """Draws molecule(s) from SMILES.
 
     This function takes a SMILES string of one or more molecules
@@ -367,6 +466,7 @@ def MolsSmilesToImage(smiles, options=None, **kwargs):
         smiles (str): SMILES string of molecule(s) to draw.
         options (None or ??, optional): RDKit drawing options. If None, will use
             defaults. (default: {None})
+        clear_map (bool): Boolean flag to clear atom map numbers before drawing. (default: True)
         **kwargs: Unused.
 
     Returns:
@@ -375,11 +475,38 @@ def MolsSmilesToImage(smiles, options=None, **kwargs):
 
     # Generate mols
     mols = mols_from_smiles_list(smiles.split('.'))
+    if clear_map:
+        for mol in mols:
+            [a.SetAtomMapNum(0) for a in mol.GetAtoms()]
     # Generate images
     imgs = [TrimImgByWhite(MolToImage(
         mol, kekulize=True, options=options), padding=10) for mol in mols]
     # Combine
     return StitchPILsHorizontally(imgs)
+
+
+def MappedReactionToHightlightImage(rxnsmiles, highlightByReactant=True):
+    ## Available to use after upgrading to RDkit 2019
+    import cairosvg
+    from rdkit.Chem.Draw.rdMolDraw2D import MolDraw2DSVG
+    print(rxnsmiles)
+    rxn_mol = rdChemReactions.ReactionFromSmarts(rxnsmiles, useSmiles=True)
+    # set the drawing image size
+    drawer = MolDraw2DSVG(750, 250)
+    colors = [(255 / 255, 200 / 255, 153 / 255),
+              (204 / 255, 255 / 255, 153 / 255),
+              (153 / 255, 179 / 255, 255 / 255),
+              (255 / 255, 153 / 255, 230 / 255),
+              (204 / 255, 0 / 255, 204 / 255),
+              (192 / 255, 192 / 255, 192 / 255),
+              (204 / 255, 153 / 255, 255 / 255)]
+    drawer.DrawReaction(rxn_mol, highlightByReactant=highlightByReactant, highlightColorsReactants=colors)
+    drawer.FinishDrawing()
+    svg = drawer.GetDrawingText()
+    img = Image.open(io.BytesIO(cairosvg.svg2png(svg.replace('svg:', ''))))
+    img = TrimImgByWhite(img, padding=5)
+    print(type(img))
+    return StitchPILsHorizontally([img])
 
 
 def main():
@@ -397,5 +524,9 @@ def main():
     img = TransformStringToImage(tform)
     img.save('draw_transform.png')
 
+
 if __name__ == '__main__':
-    main()
+    # main()
+    smiles = '[CH3:1][CH2:2][Br:3].[CH3:4][CH2:5][CH2:6][OH:7]>>[CH3:1][CH2:2][O:7][CH2:6][CH2:5][CH3:4]'
+    MappedReactionToHightlightImage(smiles).show()
+    ReactionStringToImage(smiles).show()

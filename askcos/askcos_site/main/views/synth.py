@@ -13,7 +13,7 @@ import json
 import os
 
 # TODO: fix this Celery reference
-from ...askcos_celery.contextrecommender.cr_coordinator import get_context_recommendations
+from ...askcos_celery.contextrecommender.cr_network_worker import get_n_conditions
 from askcos_site.askcos_celery.treeevaluator.scoring_coordinator import evaluate
 
 from ..globals import PREDICTOR_FOOTNOTE, solvent_choices
@@ -49,7 +49,7 @@ def synth_interactive(request, reactants='', reagents='', solvent='default',
     else:
         # Get suggested conditions
         smiles = '%s>>%s' % (reactants, product)
-        res = get_context_recommendations.delay(smiles, n=1, context_recommender='Neural_Network')
+        res = get_n_conditions.delay(smiles, n=1)
         contexts = res.get(60)
         if contexts is None or len(contexts) == 0:
             raise ValueError('Context recommender was unable to get valid context(?)')

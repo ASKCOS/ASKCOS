@@ -6,10 +6,15 @@ from django.conf import settings
 import django.contrib.auth.views
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-
+from PIL import Image, ImageOps
 from ..utils import ajax_error_wrapper, resolve_smiles
 from ..forms import DrawingInputForm
-
+from rdkit.Chem import rdChemReactions
+import cairosvg
+from rdkit.Chem.Draw.rdMolDraw2D import MolDraw2DSVG
+import re
+import io
+import numpy as np
 
 @ajax_error_wrapper
 def ajax_smiles_to_image(request):
@@ -38,10 +43,17 @@ def ajax_rxn_to_image(request):
 
     reactants = request.GET.get('reactants', '')
     product = request.GET.get('product', '')
+    strip = request.GET.get('strip', True)
 
     reactants = resolve_smiles(reactants)
     product = resolve_smiles(product)
     smiles = reactants + '>>' + product
+
+    if request.method == 'GET' and 'rxnsmiles' in request.GET:
+        tmp = request.GET['rxnsmiles']
+        if tmp is not None and tmp != '':
+            smiles = tmp
+    print(smiles)
     print('RXN SMILES from Ajax: {}'.format(smiles))
     url = reverse('draw_reaction', kwargs={'smiles': smiles})
     data = {
@@ -58,9 +70,13 @@ def draw_smiles(request, smiles):
     '''
     Returns a png response for a target smiles
     '''
-    from makeit.utilities.io.draw import MolsSmilesToImage
-    response = HttpResponse(content_type='image/jpeg')
-    MolsSmilesToImage(str(smiles)).save(response, 'png', quality=70)
+    from makeit.utilities.io.draw import MolsSmilesToImage, MakeBackgroundTransparent
+    isTransparent = request.GET.get('transparent', 'False')
+    response = HttpResponse(content_type='image/png')
+    if isTransparent.lower() in ['true', 't', 'yes', 'y', '1']:
+        MakeBackgroundTransparent(MolsSmilesToImage(str(smiles))).save(response, 'png', quality=70)
+    else:
+        MolsSmilesToImage(str(smiles)).save(response, 'png', quality=70)
     return response
 
 
@@ -83,6 +99,46 @@ def draw_reaction(request, smiles):
     from makeit.utilities.io.draw import ReactionStringToImage
     response = HttpResponse(content_type='image/jpeg')
     ReactionStringToImage(str(smiles)).save(response, 'png', quality=70)
+    return response
+
+def draw_mapped_reaction(request, smiles):
+    '''
+    Returns a png response for a SMILES reaction string
+    '''
+    from makeit.utilities.io.draw import ReactionStringToImage
+    response = HttpResponse(content_type='image/jpeg')
+    print('in views', smiles)
+    ReactionStringToImage(str(smiles), strip=False).save(response, 'png', quality=70)
+    return response
+
+def draw_highlighted_reaction(request, smiles):
+    '''
+        Returns a png response for a SMILES reaction string
+    '''
+    from makeit.utilities.io.draw import MappedReactionToHightlightImage
+    response = HttpResponse(content_type='image/jpeg')
+    print('in views', smiles)
+    MappedReactionToHightlightImage(str(smiles), highlightByReactant=True).save(response, 'png', quality=70)
+    return response
+
+def draw_smiles_highlight(request, smiles, reacting_atoms, bonds='False'):
+    '''
+    Returns a svg xml with atoms highlighted
+    '''
+    from makeit.utilities.io.draw import MolsSmilesToImageHighlight
+    from ast import literal_eval
+    reacting_atoms = literal_eval(reacting_atoms)
+    #TODO has to be a better way to evaluate string to true or false
+    bonds = bonds.lower() in ['true', '1', 't', 'y', 'yes']
+    res = MolsSmilesToImageHighlight(smiles, reacting_atoms=reacting_atoms, bonds=bonds, clear_map=True)
+    IsTransparent = request.GET.get('transparent', 'False')
+    if IsTransparent.lower() in ['true', '1', 't', 'y', 'yes']:
+        # <svg:rect style='opacity:1.0;fill:#FFFFFF;stroke:none' width='300' height='300' x='0' y='0'> </svg:rect>
+        # replace #FFFFFF with none
+        res = re.sub(r"(.*)<svg:rect(.*)style='([^']*)'(.*)>(.*)</svg:rect>(.*)",
+               r"\1<svg:rect\2style='opacity:0.0;fill:none;stroke:none'\4>\5</svg:rect>\6", res)
+    response = HttpResponse(res, content_type='image/svg+xml')
+  
     return response
 
 

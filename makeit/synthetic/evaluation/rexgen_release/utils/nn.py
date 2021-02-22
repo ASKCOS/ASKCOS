@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.sparse import csc_matrix, vstack
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import math
 
 def batch_normalization(x, scope, decay=0.999, eps=1e-6, training=True):

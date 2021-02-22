@@ -37,7 +37,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
 
     """
 
-    def __init__(self, mincount=gc.SYNTH_TRANSFORMS['mincount'], celery=False):
+    def __init__(self, use_db=False, TEMPLATE_DB=None, load_all=True):
         """Initializes ForwardTransformer.
 
         ??VV??
@@ -52,19 +52,18 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
                 (default: {False})
         """
 
-        self.mincount = mincount
+        self.use_db = use_db
+        self.TEMPLATE_DB = TEMPLATE_DB
         self.templates = []
         self.id_to_index = {}
-        self.celery = celery
-        self.template_prioritizers = {}
 
-        super(ForwardTransformer, self).__init__()
+        super(ForwardTransformer, self).__init__(load_all=load_all, use_db=use_db)
 
     def template_count(self):
         """Returns number of templates loaded?? by transformer."""
         return len(self.templates)
 
-    def get_outcomes(self, smiles, mincount, template_prioritization, start_at=-1, end_at=-1,
+    def get_outcomes(self, smiles, start_at=-1, end_at=-1,
                      singleonly=True, stop_if=False, template_count=10000, max_cum_prob=1.0):
         """Performs a one-step synthesis reaction for a given SMILES string.
 
@@ -88,15 +87,6 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
             max_cum_prob (float, optional): Maximum cumulative probability of
                 all templates used. (default: {1.0})
         """
-        self.get_template_prioritizers(template_prioritization)
-        # Get sorted by popularity during loading.
-        if template_prioritization == gc.popularity:
-            prioritized_templates = self.templates
-        else:
-            self.template_prioritizer.set_max_templates(template_count)
-            self.template_prioritizer.set_max_cum_prob(max_cum_prob)
-            prioritized_templates = self.template_prioritizer.get_priority((self.templates, smiles))
-        self.mincount = mincount
         self.start_at = start_at
         self.singleonly = singleonly
         self.stop_if = stop_if
@@ -113,56 +103,54 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
         smiles = Chem.MolToSmiles(
             mol, isomericSmiles=USE_STEREOCHEMISTRY)  # to canonicalize
         # Initialize results object
-        if self.celery:
-            result = []
-        else:
-            result = ForwardResult(smiles)
+        result = []
         for i in range(self.start_at, self.end_at):
-
             # only use templates between the specified boundaries.
-            template = prioritized_templates[i]
-            if template['count'] > mincount:
-                products = self.apply_one_template(
-                    mol, smiles, template, singleonly=singleonly, stop_if=stop_if)
-                if self.celery:
-                    for product in products:
-                        result.append({'smiles_list': product.smiles_list,
-                                       'smiles': product.smiles,
-                                       'edits': product.edits,
-                                       'template_ids': product.template_ids,
-                                       'num_examples': product.num_examples
-                                       })
-                else:
-                    result.add_products(products)
+            template = self.templates[i]
+            if not self.load_all:
+                template = self.doc_to_template(template, retro=False)
+            products = self.apply_one_template(
+                mol, smiles, template, 
+                singleonly=singleonly, stop_if=stop_if
+            )
+            for product in products:
+                result.append({
+                    'smiles_list': product.smiles_list,
+                    'smiles': product.smiles,
+                    'edits': product.edits,
+                    'template_ids': product.template_ids,
+                    'num_examples': product.num_examples
+                })
 
         return (smiles, result)
 
-    def load(self, chiral=False, refs=False, efgs=False, rxn_ex=False, worker_no=0, rxns = True):
+    def load(self, file_path=gc.FORWARD_TEMPLATES['file_name'], worker_no=0):
         """
         Loads and parses the template database to a useable one
         Chrial and rxn_ex are not used, but for compatibility with retro_transformer
         """
         if worker_no == 0:
-            MyLogger.print_and_log('Loading synthetic transformer, including all templates with more than {} hits'.format(
-                self.mincount), forward_transformer_loc)
-
-        from makeit.utilities.io.files import get_synthtransformer_path
-        file_path = get_synthtransformer_path(
-            gc.SYNTH_TRANSFORMS['database'],
-            gc.SYNTH_TRANSFORMS['collection'],
-            gc.SYNTH_TRANSFORMS['mincount'],
-        )
+            MyLogger.print_and_log('Loading synthetic transformer', forward_transformer_loc)
 
         try:
-            self.load_from_file(False, file_path, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+            self.load_from_file(file_path, retro=False)
         except IOError:
-            self.load_from_database(False, chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
+            raise ValueError('cannot read forward templates from database at this time')
+            #self.load_from_database(chiral=chiral, rxns=rxns, refs=refs, efgs=efgs, rxn_ex=rxn_ex)
         finally:
             self.reorder()
 
         if worker_no == 0:
             MyLogger.print_and_log('Synthetic transformer has been loaded - using {} templates'.format(
                 self.num_templates), forward_transformer_loc)
+
+    def reorder(self):
+        self.num_templates = len(self.templates)
+        self.templates = sorted(self.templates, key=lambda z: z['count'], reverse=True)
+        self.id_to_index = {
+            template['_id']: i 
+            for i, template in enumerate(self.templates)
+        }
 
     def apply_one_template(self, mol, smiles, template, singleonly=True, stop_if=False):
         """
@@ -195,7 +183,7 @@ class ForwardTransformer(TemplateTransformer, ForwardEnumerator):
 
 
                 try:
-                    outcome.UpdatePropertyCache()
+                    outcome.UpdatePropertyCache(strict=False)
                     Chem.SanitizeMol(outcome)
                 except Exception as e:
                     if gc.DEBUG:
@@ -264,7 +252,7 @@ if __name__ == '__main__':
         for start_at in range(0, template_count, batch_size):
             i += 1
             outcomes.append(ft.get_outcomes(smiles, 100, start_at=start_at,
-                                            end_at=start_at+batch_size, template_prioritization=gc.popularity))
+                                            end_at=start_at+batch_size))
         print('Ran {} batches of {} templates'.format(i, batch_size))
         unique_res = ForwardResult(smiles)
 

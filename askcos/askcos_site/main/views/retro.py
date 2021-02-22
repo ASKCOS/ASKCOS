@@ -3,7 +3,6 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.conf import settings
 import django.contrib.auth.views
 from pymongo.message import bson
 from bson.objectid import ObjectId
@@ -14,15 +13,15 @@ import numpy as np
 import json
 import os
 
-from ..globals import RetroTransformer, RETRO_CHIRAL_FOOTNOTE
+from ..globals import RetroTransformer, RETRO_CHIRAL_FOOTNOTE, Pricer
 
 from ..utils import ajax_error_wrapper, resolve_smiles
-from .price import price_smiles_func
 from .users import can_control_robot, can_avoid_banned_chemicals
 from ..forms import SmilesInputForm
 from ..models import BlacklistedReactions, BlacklistedChemicals, SavedResults
 
 from askcos_site.askcos_celery.treebuilder.tb_c_worker import get_top_precursors as get_top_precursors_c
+from askcos_site.askcos_celery.treebuilder.tb_c_worker_preload import get_top_precursors as get_top_precursors_p
 from askcos_site.askcos_celery.treebuilder.tb_worker import get_top_precursors
 from askcos_site.askcos_celery.treebuilder.tb_coordinator import get_buyable_paths
 from askcos_site.askcos_celery.treebuilder.tb_coordinator_mcts import get_buyable_paths as get_buyable_paths_mcts
@@ -142,10 +141,17 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
 
         startTime = time.time()
         if chiral:
-
-            res = get_top_precursors_c.delay(
-                smiles, template_prioritization, precursor_prioritization, mincount=0, max_branching=max_n,
-                template_count=template_count, max_cum_prob=max_cum_prob, apply_fast_filter=apply_fast_filter, filter_threshold=filter_threshold)
+            if max_cum_prob > 0.999 and template_count > 1000:
+                res = get_top_precursors_p.delay(
+                    smiles, max_num_templates=template_count, max_cum_prob=max_cum_prob, 
+                    fast_filter_threshold=filter_threshold
+                )
+            else:
+                res = get_top_precursors_c.delay(
+                    smiles, max_num_templates=template_count, max_cum_prob=max_cum_prob, 
+                    fast_filter_threshold=filter_threshold
+                )
+            
             (smiles, precursors) = res.get(300)
             # allow up to 5 minutes...can be pretty slow
             context['precursors'] = precursors
@@ -169,7 +175,7 @@ def retro(request, smiles=None, chiral=True, mincount=0, max_n=200):
             context['precursors'][i]['num_examples'] = sum(
                 tform['count'] for tform in precursor['tforms'])
             for smiles in precursor['smiles_split']:
-                ppg = price_smiles_func(smiles)
+                ppg = Pricer.lookup_smiles(smiles)
                 context['precursors'][i]['mols'].append({
                     'smiles': smiles,
                     'ppg': '${}/g'.format(ppg) if ppg else 'cannot buy',
@@ -230,8 +236,8 @@ def retro_interactive(request, target=None):
 
     context['max_depth_default'] = 4
     context['max_branching_default'] = 20
-    context['retro_mincount_default'] = settings.RETRO_TRANSFORMS['mincount']
-    context['synth_mincount_default'] = settings.SYNTH_TRANSFORMS['mincount']
+    context['retro_mincount_default'] = 0
+    context['synth_mincount_default'] = 0
     context['expansion_time_default'] = 60
     context['max_ppg_default'] = 100
     context['template_count_default'] = 100
@@ -255,8 +261,8 @@ def retro_interactive_mcts(request, target=None):
 
     context['max_depth_default'] = 4
     context['max_branching_default'] = 20
-    context['retro_mincount_default'] = settings.RETRO_TRANSFORMS['mincount']
-    context['synth_mincount_default'] = settings.SYNTH_TRANSFORMS['mincount']
+    context['retro_mincount_default'] = 0
+    context['synth_mincount_default'] = 0
     context['expansion_time_default'] = 60
     context['max_ppg_default'] = 100
     context['template_count_default'] = 100

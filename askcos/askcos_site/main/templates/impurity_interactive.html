@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}Impurity Predictor{% endblock %}
+{% block page_title %}Impurity Predictor<span id="status"></span>{% endblock %}
+
+{% block extrahead %}{% endblock %}
+
+{% block navbar_items %}
+<a href="{% url 'impurity_interactive' %}">Impurity</a>
+{% endblock %}
+
+{% block sidebar_items %}{% endblock %}
+
+{% block javascript %}
+<script>
+
+$("#reactants").change(function () {
+    console.log( $(this).val() );
+    $.ajax({
+        url: '/ajax/smiles_to_image/',
+        data: {
+            smiles: $(this).val(),
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data.err) {
+                $("#reactant_mol_wrapper").show();
+                $("#reactants_image").html('error! could not parse');
+                $("#controls_wrapper").hide();
+            } else {
+                $("#reactants_image").html(data.html);
+                $("#reactants").val(data.smiles)
+                $("#reactant_mol_wrapper").show();
+                $("#controls_wrapper").show();
+            }
+        },
+    });
+});
+
+$("#products").change(function () {
+    console.log( $(this).val() );
+    if ($(this).val()) {
+        $.ajax({
+            url: '/ajax/smiles_to_image/',
+            data: {
+                smiles: $(this).val(),
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.err) {
+                    $("#products_image").html('error! could not parse');
+                    $("#product_mol_wrapper").show();
+                    $("#controls_wrapper").hide();
+                } else {
+                    $("#products").val(data.smiles)
+                    $("#products_image").html(data.html);
+                    $("#product_mol_wrapper").show();
+                    {#$("#controls_wrapper").show();#}
+                }
+            },
+        });
+    } else {
+        $("#product_mol_wrapper").hide();
+    };
+});
+
+$("#reagents").change(function () {
+    console.log( $(this).val() );
+    if ($(this).val()) {
+        $.ajax({
+            url: '/ajax/smiles_to_image/',
+            data: {
+                smiles: $(this).val(),
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.err) {
+                    $("#reagents_image").html('error! could not parse');
+                    $("#reagent_mol_wrapper").show();
+                    $("#controls_wrapper").hide();
+                } else {
+                    $("#reagents").val(data.smiles)
+                    $("#reagents_image").html(data.html);
+                    $("#reagent_mol_wrapper").show();
+                    {#$("#controls_wrapper").show();#}
+                }
+            },
+        });
+    } else {
+        $("#reagent_mol_wrapper").hide();
+    };
+});
+
+$("#solvents").change(function () {
+    console.log( $(this).val() );
+    if ($(this).val()) {
+        $.ajax({
+            url: '/ajax/smiles_to_image/',
+            data: {
+                smiles: $(this).val(),
+            },
+            dataType: 'json',
+            success: function (data) {
+                if (data.err) {
+                    $("#solvents_image").html('error! could not parse');
+                    $("#solvent_mol_wrapper").show();
+                    $("#controls_wrapper").hide();
+                } else {
+                    $("#solvents").val(data.smiles)
+                    $("#solvents_image").html(data.html);
+                    $("#solvent_mol_wrapper").show();
+                    {#$("#controls_wrapper").show();#}
+                }
+            },
+        });
+    } else {
+        $("#solvent_mol_wrapper").hide();
+    };
+});
+
+$("#start_synth").click(function () {
+    console.log('starting synth');
+    var reactants = $("#reactants").val() + $("#reagents").val()
+    // possibly poor quality check to count the number of heavy atoms which must be > 3
+    if (reactants.replace(/\.|\[|\]|\+|\-|\=|\#/g, '').length < 4) {
+        alert('Reactants must contain more than 3 atoms!')
+        return
+    }
+    $.ajax({
+        url: '/ajax/start_impurity/',
+        data: {
+            reactants: $("#reactants").val(),
+            products: $("#products").val(),
+            reagents: $("#reagents").val(),
+            solvents: $("#solvents").val(),
+            predictor: $("#id_predictor").val(),
+            inspector: $("#id_inspector").val(),
+            mapper: $("#id_atom_mapper").val(),
+            check_mapping: $("#id_use_atom_mapper").val(),
+            top_k: $("#top_k").val(),
+            threshold: $("#threshold").val(),
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data.err) {
+                alert(data.message);
+            } else {
+                $("#progress-wrapper").show();
+                var barMessage = document.getElementById("progress-bar-message");
+                barMessage.innerHTML = "Impurity prediction started.";
+                var progressUrl = "/ajax/impurity_status/" + data.task_id + "/";
+                updateProgress(progressUrl);
+            }
+        }
+    });
+});
+
+
+function updateProgress (progressUrl) {
+    fetch(progressUrl).then(function(response) {
+        response.json().then(function(data) {
+            var bar = document.getElementById("progress-bar");
+            var barMessage = document.getElementById("progress-bar-message");
+            bar.style.width = data.percent * 100 + "%";
+            barMessage.innerHTML = data.message + ": " + data.percent * 100 + "% finished.";
+            if (!data.complete) {
+                setTimeout(updateProgress, 2000, progressUrl);
+            } else {
+                // after it is done, display results
+                $("#results").html(data.html);
+                // $("#progress-wrapper").show();
+            }
+        })
+    });
+}
+
+// On load, if entries defined, switch it out
+$(document).ready(function() {
+    if ("{{reactants}}" != "") {
+        $("#reactants").val("{{reactants}}");
+        $("#reactants").trigger("change");
+    }
+    if ("{{reagents}}" != "") {
+        $("#reagents").val("{{reagents}}");
+        $("#reagents").trigger("change");
+    }
+    if ("{{solvents}}" != "") {
+        $("#solvents").val("{{solvents}}");
+        $("#solvents").trigger("change");
+    }
+    if ("{{products}}" != "") {
+        $("#products").val("{{products}}");
+        $("#products").trigger("change");
+    }
+    if ("{{predictor}}" != "WLN forward predictor") {
+        $("#id_predictor").val("{{predictor}}");
+    }
+    if ("{{inspector}}" != "Reaxys inspector") {
+        $("#id_inspector").val("{{inspector}}");
+    }
+    if ("{{predictor}}" != "WLN atom mapper") {
+        $("#id_atom_mapper").val("{{mapper}}");
+    }
+    if ("{{top_k}}" != "3") {
+        $("#top_k").val("{{top_k}}");
+    }
+    if ("{{threshold}}" != "0.75") {
+        $("#threshold").val("{{threshold}}");
+    }
+});
+
+</script>
+{% endblock %}
+
+
+{% block page_body %}
+<i>Note:</i>
+<br>
+<i>(1) Predictor: WLN forward predictor and molecular transformer predictor can be selected.</i>
+<br>
+<i>(2) Inspector: Reaxys inspect and Pistachio inspector are trained on Reaxys dataset and Pistachio dataset, respectively.</i>
+<br>
+<i>(3) Mapper: mapper is used to check impurity generation mechanism. WLN atom mapper is based on WLN forward predictor, Heuristic mapping is based on doi: 10.1038/s41467-019-09440-2.</i>
+<br>
+<i>(4) Use atom mapping: whether to use atom mapping to check impurity generation mechanism.</i>
+<br>
+<i>(5) Stereochemistry is not perceived during the forward prediction.</i>
+<br>
+
+<table class="table table-borderless table-nonfluid">
+
+<!-- Reactants -->
+<tr><th style="vertical-align: text-top;">Reactants: </th><td><input id="reactants" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('reactants')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
+
+<tr id="reactant_mol_wrapper" style="display:none"><th style="vertical-align: text-top">Parsed reactants:</th><td id="reactants_image"></td></tr>
+
+<!-- Major products -->
+<tr><th style="vertical-align: text-top;">Major products: </th><td><input id="products" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('products')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
+
+<tr id="product_mol_wrapper" style="display:none"><th style="vertical-align: text-top">Parsed major products:</th><td id="products_image"></td></tr>
+
+<!-- Reagents -->
+<tr><th style="vertical-align: text-top;">Reagents: </th><td><input id="reagents" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('reagents')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
+
+<tr id="reagent_mol_wrapper" style="display:none"><th style="vertical-align: text-top">Parsed reagents:</th><td id="reagents_image"></td></tr>
+
+<!-- Solvents -->
+<tr><th style="vertical-align: text-top;">Solvents: </th><td><input id="solvents" maxlength="500" size="40" type="text"/><a class="btn btn-primary" data-toggle="modal" data-target="#drawingbox" onclick="drawBox('solvents')" style="margin-left:10px"><span class="glyphicon glyphicon-pencil" style="margin-right:10px"></span>Draw</a></td></tr>
+
+<tr id="solvent_mol_wrapper" style="display:none"><th style="vertical-align: text-top">Parsed solvents:</th><td id="solvents_image"></td></tr>
+
+<tr><th style="vertical-align:text-top;">Forward predictor: <a href="#" data-toggle="tooltip" title="WLN forward predictor, or moleculear transformer predictor."><span class="glyphicon glyphicon-info-sign"></span></a></th>
+    <td>
+        <select id="id_predictor" name="predictor" onchange="showFields(this.options[this.selectedIndex].value)">
+            <option value="WLN forward predictor" {% if predictor == 'WLN forward predictor' %}selected{% endif %}>WLN forward predictor</option>
+            <option disabled value="Molecular transformer" {% if predictor == 'Molecular transformer' %}selected{% endif %}>Molecular transformer</option>
+        </select>
+    </td>
+</tr>
+
+<tr><th style="vertical-align:text-top;">Inspector model: <a href="#" data-toggle="tooltip" title="Reaxys inspector, pistachio inspector."><span class="glyphicon glyphicon-info-sign"></span></a></th>
+    <td>
+        <select id="id_inspector" name="inspector" onchange="showFields(this.options[this.selectedIndex].value)">
+            <option value="Reaxys inspector" {% if inspector == 'Reaxys inspector' %}selected{% endif %}>Reaxys inspector</option>
+            <option disabled value="Pistachio inspector" {% if inspector == 'Pistachio inspector' %}selected{% endif %}>Pistachio inspector</option>
+        </select>
+    </td>
+</tr>
+
+<tr><th style="vertical-align:text-top;">Atom mapping model: <a href="#" data-toggle="tooltip" title="Atom mapping based on Heuristic or WLN."><span class="glyphicon glyphicon-info-sign"></span></a></th>
+    <td>
+        <select id="id_atom_mapper" name="atom_mapper" onchange="showFields(this.options[this.selectedIndex].value)">
+            <option value="WLN atom mapper" {% if atom_mapper == 'WLN atom mapper' %}selected{% endif %}>WLN atom mapper</option>
+            <option disabled value="Heuristic mapper" {% if atom_mapper == 'Heuristic mapper' %}selected{% endif %}>Heuristic mapper</option>
+        </select>
+    </td>
+</tr>
+
+<tr><th style="vertical-align:text-top;">Use atom mapping: <a href="#" data-toggle="tooltip" title="Whether use atom mapping to check reaction modes."><span class="glyphicon glyphicon-info-sign"></span></a></th>
+    <td>
+        <select id="id_use_atom_mapper" name="use_atom_mapper" onchange="showFields(this.options[this.selectedIndex].value)">
+            <option value="True" {% if use_atom_mapper == 'True' %}selected{% endif %}>True</option>
+            <option value="False" {% if use_atom_mapper == 'False' %}selected{% endif %}>False</option>
+        </select>
+    </td>
+</tr>
+
+<tr><th>{% csrf_token %}</th></tr>
+
+<tr><th>Top-k prediction from forward predictor: <a href="#" data-toggle="tooltip" title="Up to top-k candidate outcomes should be considered?"><span class="glyphicon glyphicon-info-sign"></span></a></th><td><input id="top_k" maxlength="6" size="6" type="text" value="3"/></td></tr>
+
+<tr><th>Inspector cutoff threshold: <a href="#" data-toggle="tooltip" title="How certain about the predicted probable impurities?"><span class="glyphicon glyphicon-info-sign"></span></a></th><td><input id="threshold" maxlength="6" size="6" type="text" value="0.75"/></td></tr>
+
+<!-- Controls -->
+<tr id="controls_wrapper" style="display:none">
+<td colspan="2" style="width:100%">
+    <button type="button" style="width:100%" id="start_synth">Go</button>
+</td>
+</tr>
+
+</table>
+
+<br>
+<div id="progress-wrapper" style="display:none">
+  <div id="progress-bar-message">Waiting for progress to start...</div>
+  <div class="progress">
+    <div id="progress-bar" class='progress-bar' style="background-color: #68a9ef; width: 10%;">&nbsp;</div>
+  </div>
+</div>
+
+
+<!-- Results -->
+<br>
+<div id="time"></div>
+<br>
+<div id="results"></div>
+
+{% if footnote %}
+<br>
+<div style="font-size:smaller"><i>{{ footnote }}</i></div>
+{% endif %}
+
+
+<!-- drawing box -->
+{% include "drawing_modal.html" %}
+
+{% endblock %}

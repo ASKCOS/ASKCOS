@@ -1,4 +1,6 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+from makeit import global_config as gc
 from makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.nn import linearND, linear
 from makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.mol_graph_direct_useScores import atom_fdim as adim, bond_fdim as bdim, max_nb, smiles2graph, smiles2graph, bond_types
 from makeit.synthetic.evaluation.rexgen_direct.rank_diff_wln.models import *
@@ -18,7 +20,7 @@ hidden_size = 500
 depth = 3
 core_size = 16
 MAX_NCAND = 1500
-model_path = os.path.join(os.path.dirname(__file__), "model-core16-500-3-max150-direct-useScores", "model.ckpt-2400000")
+model_path = gc.TEMPLATE_FREE_FORWARD_PREDICTOR['rank_model_path']
 
 def softmax(x):
     e_x = np.exp(x - np.max(x))
@@ -79,7 +81,7 @@ class DirectCandRanker():
             saver = tf.train.Saver()
             saver.restore(self.session, model_path)
     
-    def predict(self, react, top_cand_bonds, top_cand_scores=[], scores=True, top_n=100):
+    def predict(self, react, top_cand_bonds, top_cand_scores=[], scores=True, top_n=100, atommap=False):
         '''react: atom mapped reactant smiles
         top_cand_bonds: list of strings "ai-aj-bo"'''
 
@@ -125,7 +127,8 @@ class DirectCandRanker():
                 x,y = x+1,y+1
                 if ((x,y) not in rbonds and t > 0) or ((x,y) in rbonds and rbonds[(x,y)] != t):
                     cbonds.append((x, y, bond_types_as_double[t]))
-            pred_smiles = edit_mol(rmol, cbonds)
+
+            pred_smiles = edit_mol(rmol, cbonds, atommap=atommap)
             cand_smiles.append(pred_smiles)
             cand_scores.append(cur_scores[idx])
             cand_probs.append(cur_probs[idx])

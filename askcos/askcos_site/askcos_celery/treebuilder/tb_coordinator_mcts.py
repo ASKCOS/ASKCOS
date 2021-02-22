@@ -23,7 +23,7 @@ import time
 from rdkit import RDLogger
 import makeit.global_config as gc
 from makeit.utilities.buyable.pricer import Pricer
-from makeit.retrosynthetic.mcts.tree_builder import MCTS as MCTSTreeBuilder
+from makeit.utilities.historian.chemicals import ChemHistorian
 from django.db import models
 from askcos_site.main.models import SavedResults
 lg = RDLogger.logger()
@@ -67,12 +67,15 @@ def configure_coordinator(options={}, **kwargs):
     if CORRESPONDING_QUEUE not in options['queues'].split(','):
         return
     print('### STARTING UP A TREE BUILDER MCTS COORDINATOR ###')
+    from makeit.retrosynthetic.mcts.tree_builder import MCTS as MCTSTreeBuilder
 
     global treeBuilder
     # QUESTION: Is evaluator needed?
     global evaluator
 
-    treeBuilder = MCTSTreeBuilder(celery=True, nproc=8) # 8 active pathways
+    historian = ChemHistorian(use_db=True, hashed=True)
+    historian.load()
+    treeBuilder = MCTSTreeBuilder(celery=True, nproc=8, chemhistorian=historian) # 8 active pathways
     print('Finished initializing treebuilder MCTS coordinator')
 
 
@@ -89,7 +92,13 @@ def get_buyable_paths(*args, **kwargs):
     print('Treebuilder MCTS coordinator was asked to expand {}'.format(args[0]))
     _id = get_buyable_paths.request.id
     try:
-        result = treeBuilder.get_buyable_paths(*args, **kwargs)
+        status, paths = treeBuilder.get_buyable_paths(*args, **kwargs)
+        graph = treeBuilder.return_chemical_results()
+        result_doc = {
+            'status': status,
+            'paths': paths,
+            'graph': graph
+        }
     except:
         if run_async:
             update_result_state(_id, 'failed')
@@ -98,6 +107,6 @@ def get_buyable_paths(*args, **kwargs):
         update_result_state(_id, 'completed')
         settings = {'smiles': args[0]}
         settings.update(kwargs)
-        save_results(result, settings, _id)
+        save_results(result_doc, settings, _id)
     print('Task completed, returning results.')
-    return result
+    return (status, paths)
