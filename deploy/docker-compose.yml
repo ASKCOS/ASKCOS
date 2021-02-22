@@ -38,7 +38,7 @@ services:
       - 'appdata:/data/app'
 
   app:
-    image: askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-latest}
     hostname: app
     restart: always
     env_file:
@@ -57,7 +57,7 @@ services:
       - mongo
 
   te_coordinator:
-    image: askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-latest}
     restart: always
     env_file:
       - .env
@@ -67,7 +67,7 @@ services:
       - rabbit
 
   sc_coordinator:
-    image: askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-latest}
     restart: always
     env_file:
       - .env
@@ -79,7 +79,7 @@ services:
       - mongo
 
   ft_worker:
-    image: askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-latest}
     restart: always
     env_file:
       - .env
@@ -91,7 +91,7 @@ services:
       - mongo
 
   cr_network_worker:
-    image: askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-latest}
     restart: always
     env_file:
       - .env
@@ -103,7 +103,7 @@ services:
       - mongo
 
   tb_coordinator_mcts:
-    image: askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-latest}
     restart: always
     env_file:
       - .env
@@ -115,7 +115,7 @@ services:
       - mongo
 
   tb_c_worker:
-    image: askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-latest}
     restart: always
     env_file:
       - .env
@@ -127,7 +127,7 @@ services:
       - mongo
 
   tb_c_worker_preload:
-    image: askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-latest}
     restart: always
     env_file:
       - .env
@@ -139,7 +139,7 @@ services:
       - mongo
 
   sites_worker:
-    image: askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-latest}
     restart: always
     env_file:
       - .env
@@ -151,7 +151,7 @@ services:
       - mongo
 
   impurity_worker:
-    image: askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-latest}
     restart: always
     env_file:
       - .env
@@ -163,7 +163,7 @@ services:
       - mongo
 
   atom_mapping_worker:
-    image: askcos/askcos:${VERSION:-0.4.1}
+    image: askcos/askcos:${VERSION:-latest}
     restart: always
     env_file:
       - .env
