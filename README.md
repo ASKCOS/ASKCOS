@@ -3,7 +3,7 @@ Software package for the prediction of feasible synthetic routes towards a desir
 
 Please note that the MPL 2.0 license for this repository does not apply to the data and trained models. The data and trained models are released under CC BY-NC-SA (i.e., are for noncommercial use only).
 
-Contributors include Connor Coley, Mike Fortunato, Hanyu Gao, Pieter Plehiers, Matthew Cameron, Max Liu, Yuran Wang, Thomas Struble, and Jiannan Liu.
+Contributors include Connor Coley, Mike Fortunato, Hanyu Gao, Pieter Plehiers, Matthew Cameron, Max Liu, Yuran Wang, Thomas Struble, Jiannan Liu, and Yiming Mo.
 
 # Quick start using Google Cloud
 
@@ -49,7 +49,7 @@ sudo apt-get install git-lfs -y
 git lfs install
 
 # (5) Pull
-git clone https://github.com/connorcoley/ASKCOS
+git clone https://github.com/ASKCOS/ASKCOS
 cd ASKCOS
 git lfs pull
 
@@ -80,7 +80,7 @@ docker-compose logs -f    # start tailing logs (can CTRL+C to exit)
 The askcos image itself can be built using the Dockerfile in this repository.
 
 ```bash
-$ git clone https://github.com/connorcoley/ASKCOS
+$ git clone https://github.com/ASKCOS/ASKCOS
 $ cd ASKCOS
 $ git lfs pull
 $ docker build -t askcos/askcos .
@@ -172,6 +172,16 @@ $ docker-compose exec app bash -c "python /usr/local/ASKCOS/askcos/manage.py cre
 ```
 
 In this case you'll be presented an interactive prompt to create a superuser with your desired credentials.
+
+# Data migration to askcos-data
+In the v0.4.1 release of ASKCOS, data and models have been migrated to a separate repository at https://github.com/ASKCOS/askcos-data.
+The pre-built ASKCOS Docker image available from Docker Hub already contains the data and models.
+For local use, you will need to clone the askcos-data repository separately:
+
+```
+$ cd ASKCOS/makeit
+$ git clone https://github.com/ASKCOS/askcos-data data
+```
 
 # How to run individual modules
 Many of the individual modules -- at least the ones that are the most interesting -- can be run "standalone". Examples of how to use them are often found in the ```if __name__ == '__main__'``` statement at the bottom of the script definitions. For example...
