@@ -5,6 +5,10 @@ Please note that the MPL 2.0 license for this repository does not apply to the d
 
 Contributors include Connor Coley, Mike Fortunato, Hanyu Gao, Pieter Plehiers, Matthew Cameron, Max Liu, Yuran Wang, Thomas Struble, Jiannan Liu, and Yiming Mo.
 
+# Where to find newer ASKCOS releases
+
+This repository contains the original ASKCOS project and will no longer be updated, with the final release being v0.4.1. However, the ASKCOS project is still under very active development! The project has been split into multiple smaller repositories for many reasons including improved modularity. The askcos, deploy, and makeit directories have been migrated to [askcos-site](https://github.com/ASKCOS/askcos-site), [askcos-deploy](https://github.com/ASKCOS/askcos-deploy), and [askcos-core](https://github.com/ASKCOS/askcos-core), respectively. In addition, version numbers have changed to a date based system, with the first new open-source release being version [2020.07](https://askcos.github.io/#/2020-07/). We highly encourage you to check out and update to the new version! For any questions or comments, please contact askcos_support@mit.edu.
+
 # Quick start using Google Cloud
 
 ```
