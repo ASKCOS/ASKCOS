@@ -16,7 +16,7 @@ configparser==3.5.0
 cycler==0.10.0
 Cython==0.25.2
 decorator==4.0.11
-Django==1.8.4
+Django==1.11.29
 django-appconf==1.0.2
 django-celery==3.2.1
 django-celery-beat==1.0.1
